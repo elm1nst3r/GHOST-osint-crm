@@ -16,7 +16,7 @@ import ReactFlow, {
 const API_BASE_URL = 'http://localhost:3001/api'; // Backend API
 const BACKEND_PUBLIC_URL = 'http://localhost:3001'; // For accessing static files
 
-// --- Icon Component (Placeholder) ---
+// --- Icon Component (Placeholder - assuming it's the same as before) ---
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const iconMap = {
     LayoutDashboard: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
@@ -29,7 +29,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     Edit2: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
     Trash2: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
     Eye: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-    Settings: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    Settings: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     X: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
     ListChecks: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>,
     UploadCloud: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17a4 4 0 014 4v5a4 4 0 01-4 4H7zm0 0l3 3m0 0l3-3m-3 3V6" /></svg>,
@@ -40,18 +40,30 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     Image: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
     Type: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4M12 4v16" /></svg>,
     Activity: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>,
+    FilePlus: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2v6h6M12 18v-6M9 15h6" /></svg>,
+
   };
   const IconComponent = iconMap[name];
   return IconComponent ? <IconComponent /> : <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 2L2 22h20L12 2zm0 4l7 12H5l7-12z" /></svg>;
 };
 
-// --- Constants and Helpers (same as before) ---
+// --- Constants and Helpers ---
 const defaultPersonCategories = ['Person of Interest', 'Possible Client', 'Client', 'Connected Person', 'Non Client', 'Asset', 'Organization', 'Event'];
 const defaultPersonStatuses = ['Open', 'Being Investigated', 'Completed', 'Closed'];
 const defaultCrmStatuses = ['N/A', 'Open', 'Contacted', 'Active', 'Non-Responsive', 'Closed'];
 const defaultToolCategories = ['Search Engines', 'Social Media Analysis', 'Username Checkers', 'Email Verification/Lookup', 'Phone Number Lookup', 'Domain/IP Research', 'Image Analysis', 'Dark Web Search', 'Data Breach Checkers', 'Mapping/Geolocation', 'Document Analysis', 'Business/Company Research', 'Link Analysis', 'Vulnerability Scanners', 'Network Analysis', 'Other'];
 const defaultToolStatuses = ['Active', 'Deprecated', 'Beta', 'Planned', 'Internal'];
 const defaultOsintDataTypes = ['social_media', 'email', 'location', 'phone', 'username', 'website', 'document', 'note', 'vehicle', 'financial', 'employment', 'education', 'ip_address', 'domain_registration', 'image_attachment'];
+// --- NEW --- Default custom field types
+const defaultCustomFieldTypes = [
+    { value: 'text', label: 'Text (Single Line)'},
+    { value: 'textarea', label: 'Text (Multi-Line)'},
+    { value: 'number', label: 'Number'},
+    { value: 'date', label: 'Date'},
+    { value: 'select', label: 'Select (Dropdown)'},
+    { value: 'checkbox', label: 'Checkbox (Yes/No)'} // Added checkbox as an example
+];
+
 
 function generateId() { return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
 const formatDate = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'Invalid Date'; } };
@@ -90,6 +102,12 @@ function App() {
   const [todos, setTodos] = useState([]);
   const [auditLog, setAuditLog] = useState(() => JSON.parse(localStorage.getItem('osintCrmAuditLog')) || []);
 
+  // --- NEW --- Custom Fields State
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState([]);
+  const [isLoadingCustomFields, setIsLoadingCustomFields] = useState(false);
+  const [isCustomFieldModalOpen, setIsCustomFieldModalOpen] = useState(false);
+  const [editingCustomField, setEditingCustomField] = useState(null); // For Add/Edit Custom Field Definition
+
   // UI State
   const [searchTermPeople, setSearchTermPeople] = useState('');
   const [filterPersonCategory, setFilterPersonCategory] = useState('');
@@ -116,7 +134,7 @@ function App() {
 
   const addAuditLogEntry = useCallback((action, entityType, entityNameOrId, details = '') => {
     const newEntry = { id: generateId(), timestamp: new Date().toISOString(), action, entityType, entityNameOrId, details };
-    setAuditLog(prevLog => [newEntry, ...prevLog].slice(0, 100));
+    setAuditLog(prevLog => [newEntry, ...prevLog].slice(0, 100)); // Keep last 100 entries
   }, []);
 
   // --- Data Fetching Callbacks ---
@@ -126,7 +144,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/people`);
       if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
       const data = await response.json(); setPeople(data);
-    } catch (e) { console.error("Failed to fetch people:", e); setError(`People: ${e.message}`); setPeople([]); }
+    } catch (e) { console.error("Failed to fetch people:", e); setError(prev => `${prev ? prev + '; ' : ''}People: ${e.message}`); setPeople([]); }
     finally { setIsPeopleLoading(false); }
   }, []);
 
@@ -136,7 +154,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/tools`);
       if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
       const data = await response.json(); setTools(data);
-    } catch (e) { console.error("Failed to fetch tools:", e); setError(`Tools: ${e.message}`); setTools([]); }
+    } catch (e) { console.error("Failed to fetch tools:", e); setError(prev => `${prev ? prev + '; ' : ''}Tools: ${e.message}`); setTools([]); }
     finally { setIsToolsLoading(false); }
   }, []);
 
@@ -146,16 +164,33 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/todos`);
       if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
       const data = await response.json(); setTodos(data);
-    } catch (e) { console.error("Failed to fetch todos:", e); setError(`To-Dos: ${e.message}`); setTodos([]); }
+    } catch (e) { console.error("Failed to fetch todos:", e); setError(prev => `${prev ? prev + '; ' : ''}To-Dos: ${e.message}`); setTodos([]); }
     finally { setIsTodosLoading(false); }
   }, []);
 
+  // --- NEW --- Fetch Custom Field Definitions
+  const fetchCustomFieldDefinitions = useCallback(async () => {
+    setIsLoadingCustomFields(true); setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/custom-fields`);
+      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
+      const data = await response.json();
+      setCustomFieldDefinitions(data.map(field => ({...field, options: typeof field.options === 'string' ? JSON.parse(field.options) : field.options || [] }))); // Ensure options is an array
+    } catch (e) {
+      console.error("Failed to fetch custom field definitions:", e);
+      setError(prev => `${prev ? prev + '; ' : ''}Custom Fields: ${e.message}`);
+      setCustomFieldDefinitions([]);
+    } finally {
+      setIsLoadingCustomFields(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchPeople();
     fetchTools();
     fetchTodos();
-  }, [fetchPeople, fetchTools, fetchTodos]);
+    fetchCustomFieldDefinitions(); // --- NEW --- Call fetch for custom fields
+  }, [fetchPeople, fetchTools, fetchTodos, fetchCustomFieldDefinitions]); // --- NEW --- Added fetchCustomFieldDefinitions
 
   // --- CRUD Handlers ---
   const handleOpenAddPersonModal = () => { setEditingPerson(null); setIsPersonModalOpen(true); };
@@ -165,14 +200,19 @@ function App() {
     setIsPeopleLoading(true); setError(null);
     const method = editingPerson ? 'PUT' : 'POST';
     const url = editingPerson ? `${API_BASE_URL}/people/${editingPerson.id}` : `${API_BASE_URL}/people`;
-    const processedPersonData = { ...personData, attachments: personData.attachments?.map(({ fileObject, ...rest }) => rest) || [] };
+    // Ensure custom_fields is an object
+    const processedPersonData = {
+        ...personData,
+        attachments: personData.attachments?.map(({ fileObject, ...rest }) => rest) || [],
+        custom_fields: personData.custom_fields || {} // Ensure custom_fields is at least an empty object
+    };
     try {
       const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(processedPersonData) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
       addAuditLogEntry(editingPerson ? 'UPDATE' : 'CREATE', 'Person', personData.name);
       await fetchPeople();
       setIsPersonModalOpen(false); setEditingPerson(null);
-    } catch (e) { console.error("Failed to save person:", e); setError(`Save Person: ${e.message}`); }
+    } catch (e) { console.error("Failed to save person:", e); setError(prev => `${prev ? prev + '; ' : ''}Save Person: ${e.message}`); }
     finally { setIsPeopleLoading(false); }
   };
   const handleDeletePerson = async (personId) => {
@@ -185,7 +225,7 @@ function App() {
         const deletedData = await response.json();
         addAuditLogEntry('DELETE', 'Person', deletedData.deletedPerson?.name || personId);
         await fetchPeople();
-      } catch (e) { console.error("Failed to delete person:", e); setError(`Delete Person: ${e.message}`); }
+      } catch (e) { console.error("Failed to delete person:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete Person: ${e.message}`); }
       finally { setIsPeopleLoading(false); }
     }
   };
@@ -202,7 +242,7 @@ function App() {
       addAuditLogEntry(editingTool ? 'UPDATE' : 'CREATE', 'Tool', toolData.name);
       await fetchTools();
       setIsToolModalOpen(false); setEditingTool(null);
-    } catch (e) { console.error("Failed to save tool:", e); setError(`Save Tool: ${e.message}`); }
+    } catch (e) { console.error("Failed to save tool:", e); setError(prev => `${prev ? prev + '; ' : ''}Save Tool: ${e.message}`); }
     finally { setIsToolsLoading(false); }
   };
   const handleDeleteTool = async (toolId) => {
@@ -215,7 +255,7 @@ function App() {
         const deletedData = await response.json();
         addAuditLogEntry('DELETE', 'Tool', deletedData.deletedTool?.name || toolId);
         await fetchTools();
-      } catch (e) { console.error("Failed to delete tool:", e); setError(`Delete Tool: ${e.message}`); }
+      } catch (e) { console.error("Failed to delete tool:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete Tool: ${e.message}`); }
       finally { setIsToolsLoading(false); }
     }
   };
@@ -231,7 +271,7 @@ function App() {
       addAuditLogEntry(editingTodo ? 'UPDATE' : 'CREATE', 'Todo', todoData.text.substring(0,20));
       await fetchTodos();
       setIsTodoModalOpen(false); setEditingTodo(null);
-    } catch (e) { console.error("Failed to save todo:", e); setError(`Save To-Do: ${e.message}`); }
+    } catch (e) { console.error("Failed to save todo:", e); setError(prev => `${prev ? prev + '; ' : ''}Save To-Do: ${e.message}`); }
     finally { setIsTodosLoading(false); }
   };
   const handleDeleteTodo = async (todoId) => {
@@ -244,7 +284,7 @@ function App() {
         const deletedData = await response.json();
         addAuditLogEntry('DELETE', 'Todo', deletedData.deletedTodo?.text.substring(0,20) || todoId);
         await fetchTodos();
-      } catch (e) { console.error("Failed to delete todo:", e); setError(`Delete To-Do: ${e.message}`); }
+      } catch (e) { console.error("Failed to delete todo:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete To-Do: ${e.message}`); }
       finally { setIsTodosLoading(false); }
     }
   };
@@ -259,7 +299,7 @@ function App() {
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
       addAuditLogEntry('UPDATE', 'Todo', todoToToggle.text.substring(0,20), `Toggled status to ${updatedStatus}`);
       await fetchTodos();
-    } catch (e) { console.error("Failed to toggle todo status:", e); setError(`Toggle To-Do: ${e.message}`); }
+    } catch (e) { console.error("Failed to toggle todo status:", e); setError(prev => `${prev ? prev + '; ' : ''}Toggle To-Do: ${e.message}`); }
     finally { setIsTodosLoading(false); }
   };
 
@@ -274,12 +314,85 @@ function App() {
       if (!response.ok) { const errData = await response.json().catch(() => ({ error: 'Failed to upload logo.' })); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
       const result = await response.json();
       setAppLogoUrl(BACKEND_PUBLIC_URL + result.logoUrl);
-      setAppLogoFilePreview(null);
+      setAppLogoFilePreview(null); // Clear preview after successful upload
       addAuditLogEntry('UPDATE_SETTING', 'Setting', 'Application Logo', `Uploaded new logo: ${result.logoUrl}`);
       alert('Logo uploaded successfully!');
-    } catch (e) { console.error("Failed to upload logo:", e); setError(`Logo Upload: ${e.message}`); alert(`Logo upload failed: ${e.message}`); }
+    } catch (e) { console.error("Failed to upload logo:", e); setError(prev => `${prev ? prev + '; ' : ''}Logo Upload: ${e.message}`); alert(`Logo upload failed: ${e.message}`); }
     finally { setIsUploadingLogo(false); }
   };
+
+  // --- NEW --- Custom Field Definition CRUD Handlers ---
+  const handleOpenAddEditCustomFieldModal = (field = null) => {
+    setEditingCustomField(field);
+    setIsCustomFieldModalOpen(true);
+  };
+
+  const handleSaveCustomFieldDefinition = async (fieldData) => {
+    setIsLoadingCustomFields(true); setError(null);
+    const method = editingCustomField ? 'PUT' : 'POST';
+    const url = editingCustomField
+      ? `${API_BASE_URL}/settings/custom-fields/${editingCustomField.id}`
+      : `${API_BASE_URL}/settings/custom-fields`;
+
+    // Ensure options is an array of objects if it exists
+    let processedFieldData = {...fieldData};
+    if (fieldData.options && Array.isArray(fieldData.options)) {
+        processedFieldData.options = fieldData.options.map(opt => typeof opt === 'string' ? {value: opt, label: opt} : opt);
+    } else if (fieldData.field_type !== 'select') {
+        processedFieldData.options = []; // Ensure options is empty if not a select
+    }
+
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(processedFieldData),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+      }
+      addAuditLogEntry(
+        editingCustomField ? 'UPDATE' : 'CREATE',
+        'CustomFieldDefinition',
+        fieldData.field_name,
+        `Label: ${fieldData.field_label}, Type: ${fieldData.field_type}`
+      );
+      await fetchCustomFieldDefinitions();
+      setIsCustomFieldModalOpen(false);
+      setEditingCustomField(null);
+    } catch (e) {
+      console.error("Failed to save custom field definition:", e);
+      setError(prev => `${prev ? prev + '; ' : ''}Save Custom Field Def: ${e.message}`);
+      alert(`Error saving custom field: ${e.message}`); // Show error to user
+    } finally {
+      setIsLoadingCustomFields(false);
+    }
+  };
+
+  const handleDeleteCustomFieldDefinition = async (fieldId, fieldName) => {
+    if (window.confirm(`Are you sure you want to delete the custom field definition "${fieldName}"? This action cannot be undone and might affect existing person records if not handled carefully on the backend.`)) {
+      setIsLoadingCustomFields(true); setError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}/settings/custom-fields/${fieldId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+        }
+        const deletedData = await response.json();
+        addAuditLogEntry('DELETE', 'CustomFieldDefinition', deletedData.deletedField?.field_name || fieldName);
+        await fetchCustomFieldDefinitions();
+      } catch (e) {
+        console.error("Failed to delete custom field definition:", e);
+        setError(prev => `${prev ? prev + '; ' : ''}Delete Custom Field Def: ${e.message}`);
+      } finally {
+        setIsLoadingCustomFields(false);
+      }
+    }
+  };
+  // --- END NEW ---
+
 
   // Filtered Data
   const filteredPeople = useMemo(() => {
@@ -309,7 +422,7 @@ function App() {
     <div className="w-64 bg-slate-800 text-slate-100 p-5 space-y-4 fixed top-0 left-0 h-full shadow-lg z-30">
       <div className="text-center mb-8">
         {appLogoUrl ? (
-          <img src={appLogoUrl} alt={`${appName} Logo`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" onError={(e) => { e.target.src = 'https://placehold.co/64x64/3B82F6/FFFFFF?text=Logo'; }} />
+          <img src={appLogoUrl} alt={`${appName} Logo`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" onError={(e) => { e.target.src = 'https://placehold.co/64x64/3B82F6/FFFFFF?text=Logo'; e.target.onerror = null; }} />
         ) : appLogoFilePreview ? (
           <img src={appLogoFilePreview} alt={`${appName} Logo Preview`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" />
         ) : (
@@ -329,7 +442,7 @@ function App() {
           <NavItem iconName="Settings" text="Settings" viewName="settings" />
         </ul>
       </nav>
-      <div className="absolute bottom-5 left-5 text-xs text-slate-400">Version 0.9.0</div> {/* Updated Version */}
+      <div className="absolute bottom-5 left-5 text-xs text-slate-400">Version 0.9.1</div> {/* Updated Version */}
     </div>
   );
   const NavItem = ({ iconName, text, viewName }) => (
@@ -348,7 +461,11 @@ function App() {
   );
 
   const renderContent = () => {
-    if (error) { return <div className="p-6 text-center text-red-600 bg-red-100 rounded-md shadow-md">{error}</div>; }
+    if (error) {
+        // Display multiple errors if they are concatenated with '; '
+        const errorMessages = error.split('; ').map((msg, index) => <div key={index}>{msg}</div>);
+        return <div className="p-6 text-center text-red-600 bg-red-100 rounded-md shadow-md">{errorMessages}</div>;
+    }
     switch (currentView) {
       case 'dashboard': return <DashboardView />;
       case 'people': return <PeopleView />;
@@ -448,7 +565,7 @@ function App() {
         </button>
       </div>
       {isPeopleLoading && <p className="text-center text-slate-500 py-10">Loading people...</p>}
-      {!isPeopleLoading && !error && (
+      {!isPeopleLoading && !error?.includes('People:') && ( // Only hide if no specific people error
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
@@ -467,7 +584,7 @@ function App() {
                   <tr key={person.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img className="h-10 w-10 rounded-full mr-3 object-cover" src={person.profile_picture_url || `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`} alt={person.name} />
+                        <img className="h-10 w-10 rounded-full mr-3 object-cover" src={person.profile_picture_url || `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`} alt={person.name} onError={(e) => {e.target.src = `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`; e.target.onerror=null;}}/>
                         <div>
                           <div className="text-sm font-medium text-slate-900">{person.name}</div>
                           <div className="text-xs text-slate-500">Case: {person.case_name || 'N/A'}</div>
@@ -488,7 +605,7 @@ function App() {
                     </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500">No people found. Try adding some or check backend connection.</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500">No people found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -512,7 +629,7 @@ function App() {
         </button>
       </div>
       {isToolsLoading && <p className="text-center text-slate-500 py-10">Loading tools...</p>}
-      {!isToolsLoading && !error && (
+      {!isToolsLoading && !error?.includes('Tools:') && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTools.length > 0 ? filteredTools.map(tool => (
               <div key={tool.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
@@ -528,11 +645,13 @@ function App() {
                   <div className="space-x-2"> <button onClick={() => handleOpenEditToolModal(tool)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1" title="Edit"><Icon name="Edit2" className="w-4 h-4"/></button> <button onClick={() => handleDeleteTool(tool.id)} className="text-red-600 hover:text-red-800 transition-colors p-1" title="Delete"><Icon name="Trash2" className="w-4 h-4"/></button> </div>
                 </div>
               </div>
-            )) : ( <p className="col-span-full text-center py-10 text-slate-500">No tools found. Try adding some!</p> )}
+            )) : ( <p className="col-span-full text-center py-10 text-slate-500">No tools found.</p> )}
           </div>
         )}
     </div>
   )};
+
+  // --- MODIFIED --- SettingsView to include Custom Person Fields management
   const SettingsView = () => {
     const [localAppName, setLocalAppName] = useState(appName);
     const [logoFile, setLogoFile] = useState(null);
@@ -553,13 +672,14 @@ function App() {
     const handleApplyGeneralSettings = () => {
         setAppName(localAppName);
         if (logoFile) { handleLogoUpload(logoFile); }
-        addAuditLogEntry('UPDATE_SETTINGS', 'System', 'General Config', `App name changed to: ${localAppName}`);
+        addAuditLogEntry('UPDATE_SETTINGS', 'System', 'General Config', `App name changed to: ${localAppName}${logoFile ? ', New Logo Uploaded' : ''}`);
         alert("General settings applied!");
     };
     return (
     <div>
         <Header title="Settings" />
         <div className="space-y-8">
+            {/* General Configuration */}
             <div className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-6">General Configuration</h3>
                 <div className="space-y-6">
@@ -567,7 +687,7 @@ function App() {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Application Logo</label>
                         <div className="mt-1 flex items-center space-x-4">
-                            {appLogoFilePreview ? ( <img src={appLogoFilePreview} alt="New Logo Preview" className="h-16 w-16 rounded-full object-cover" /> ) : appLogoUrl ? ( <img src={appLogoUrl} alt="Current Logo" className="h-16 w-16 rounded-full object-cover" onError={(e) => e.target.style.display='none'}/> ) : ( <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500"> <Icon name="Image" className="w-8 h-8" /> </div> )}
+                            {appLogoFilePreview ? ( <img src={appLogoFilePreview} alt="New Logo Preview" className="h-16 w-16 rounded-full object-cover" /> ) : appLogoUrl ? ( <img src={appLogoUrl} alt="Current Logo" className="h-16 w-16 rounded-full object-cover" onError={(e) => {e.target.style.display='none';}}/> ) : ( <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500"> <Icon name="Image" className="w-8 h-8" /> </div> )}
                             <input type="file" ref={logoInputRef} className="sr-only" accept="image/png, image/jpeg, image/gif, image/svg+xml" onChange={handleLocalLogoChange} />
                             <button type="button" onClick={() => logoInputRef.current?.click()} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-md border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"> Change Logo </button>
                         </div>
@@ -576,13 +696,68 @@ function App() {
                     <div className="pt-4"> <button onClick={handleApplyGeneralSettings} disabled={isUploadingLogo} className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"> {isUploadingLogo ? 'Saving...' : 'Save General Settings'} </button> </div>
                 </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Data Model Options</h3> <p className="text-slate-500">Data model customization to be implemented.</p> </div>
+
+            {/* Person Custom Fields (Data Model Options) --- NEW SECTION --- */}
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 className="text-xl font-semibold text-slate-700">Person Custom Fields</h3>
+                    <button
+                        onClick={() => handleOpenAddEditCustomFieldModal(null)}
+                        className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow text-sm"
+                    >
+                        <Icon name="FilePlus" className="w-4 h-4" />
+                        <span>Add Custom Field</span>
+                    </button>
+                </div>
+                {isLoadingCustomFields && <p className="text-slate-500">Loading custom field definitions...</p>}
+                {!isLoadingCustomFields && !error?.includes('Custom Fields:') && (
+                    customFieldDefinitions.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Label</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Field Name (Key)</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Active</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-200">
+                                    {customFieldDefinitions.map(field => (
+                                        <tr key={field.id}>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700">{field.field_label}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-500 font-mono">{field.field_name}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{defaultCustomFieldTypes.find(t => t.value === field.field_type)?.label || field.field_type}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${field.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                    {field.is_active ? 'Yes' : 'No'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm space-x-2">
+                                                <button onClick={() => handleOpenAddEditCustomFieldModal(field)} className="text-indigo-600 hover:text-indigo-800 p-1" title="Edit"><Icon name="Edit2" /></button>
+                                                <button onClick={() => handleDeleteCustomFieldDefinition(field.id, field.field_name)} className="text-red-600 hover:text-red-800 p-1" title="Delete"><Icon name="Trash2" /></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-slate-500">No custom person fields defined yet.</p>
+                    )
+                )}
+            </div>
+
+
             <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Data Management</h3> <p className="text-slate-500">Data import/export to be implemented.</p> </div>
             <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Audit Log</h3> <p className="text-slate-500">Audit log display to be implemented.</p> </div>
         </div>
     </div>
     );
   };
+  // --- END MODIFIED ---
+
 
   const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => {
     if (!isOpen) return null;
@@ -595,7 +770,18 @@ function App() {
       </div>
     );
   };
+
+  // --- MODIFIED --- AddEditPersonForm to include custom fields
   const AddEditPersonForm = ({ person, onSave, onCancel }) => {
+    const initialCustomFields = useMemo(() => {
+        const fields = {};
+        customFieldDefinitions.filter(def => def.is_active).forEach(def => {
+            fields[def.field_name] = person?.custom_fields?.[def.field_name] ?? (def.field_type === 'checkbox' ? false : '');
+        });
+        return fields;
+    }, [person, customFieldDefinitions]);
+
+
     const [formData, setFormData] = useState({
       name: person?.name || '',
       aliases: person?.aliases?.join(', ') || '',
@@ -606,11 +792,36 @@ function App() {
       caseName: person?.case_name || '',
       profilePictureUrl: person?.profile_picture_url || '',
       notes: person?.notes || '',
+      custom_fields: initialCustomFields, // --- NEW --- Initialize custom fields
     });
     const [currentOsintData, setCurrentOsintData] = useState(person?.osint_data || []);
-    const [currentAttachments, setCurrentAttachments] = useState(person?.attachments || []);
+    // const [currentAttachments, setCurrentAttachments] = useState(person?.attachments || []); // Attachment logic can be added later
 
-    const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+    useEffect(() => { // Re-initialize custom_fields if person or definitions change
+        const fields = {};
+        customFieldDefinitions.filter(def => def.is_active).forEach(def => {
+            fields[def.field_name] = person?.custom_fields?.[def.field_name] ?? (def.field_type === 'checkbox' ? false : '');
+        });
+        setFormData(prev => ({...prev, custom_fields: fields}));
+    }, [person, customFieldDefinitions]);
+
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        if (name.startsWith("custom_")) { // Handle custom fields
+            const fieldName = name.split("custom_")[1];
+            setFormData(prev => ({
+                ...prev,
+                custom_fields: {
+                    ...prev.custom_fields,
+                    [fieldName]: type === 'checkbox' ? checked : value
+                }
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+        }
+    };
+
     const addOsintField = () => setCurrentOsintData([...currentOsintData, { id: generateId(), type: osintDataTypes[0], value: '', platform: '', notes: '', url: '' }]);
     const handleOsintFieldChange = (index, field, value) => { const updated = [...currentOsintData]; updated[index][field] = value; setCurrentOsintData(updated); };
     const removeOsintField = (idOrIndex) => setCurrentOsintData(currentOsintData.filter((f, i) => (f.id || i) !== idOrIndex));
@@ -623,7 +834,8 @@ function App() {
         aliases: formData.aliases.split(',').map(a => a.trim()).filter(a => a),
         dateOfBirth: formData.dateOfBirth || null,
         osint_data: currentOsintData,
-        attachments: currentAttachments.map(({ fileObject, ...rest }) => rest)
+        // attachments: currentAttachments.map(({ fileObject, ...rest }) => rest)
+        custom_fields: formData.custom_fields // Already in correct format
       };
       onSave(dataToSave);
     };
@@ -635,6 +847,78 @@ function App() {
         <InputField label="Profile Picture URL" name="profilePictureUrl" value={formData.profilePictureUrl} onChange={handleChange} placeholder="https://example.com/image.png" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <SelectField label="Category" name="category" value={formData.category} onChange={handleChange} options={personCategories} /> <SelectField label="Status" name="status" value={formData.status} onChange={handleChange} options={personStatuses} /> <SelectField label="CRM Status" name="crmStatus" value={formData.crmStatus} onChange={handleChange} options={crmStatuses} /> </div>
         <div> <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label> <textarea name="notes" value={formData.notes} onChange={handleChange} rows="3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea> </div>
+
+        {/* --- NEW --- Render Custom Fields --- */}
+        {customFieldDefinitions.filter(def => def.is_active).length > 0 && (
+            <div className="space-y-4 border-t border-slate-200 pt-4">
+                <h4 className="text-md font-semibold text-slate-700">Additional Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {customFieldDefinitions.filter(def => def.is_active).map(fieldDef => {
+                        const fieldName = `custom_${fieldDef.field_name}`;
+                        const fieldValue = formData.custom_fields?.[fieldDef.field_name] ?? (fieldDef.field_type === 'checkbox' ? false : '');
+
+                        if (fieldDef.field_type === 'textarea') {
+                            return (
+                                <div key={fieldDef.id} className="md:col-span-2">
+                                    <label htmlFor={fieldName} className="block text-sm font-medium text-slate-700 mb-1">{fieldDef.field_label}</label>
+                                    <textarea
+                                        id={fieldName}
+                                        name={fieldName}
+                                        value={fieldValue}
+                                        onChange={handleChange}
+                                        rows="3"
+                                        className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                                    />
+                                </div>
+                            );
+                        } else if (fieldDef.field_type === 'select') {
+                            return (
+                                <div key={fieldDef.id}>
+                                    <SelectField
+                                        label={fieldDef.field_label}
+                                        name={fieldName}
+                                        value={fieldValue}
+                                        onChange={handleChange}
+                                        options={(fieldDef.options || []).map(opt => opt.label ? opt : ({ value: opt, label: opt }))} // Ensure options are in {value, label} or string format
+                                        valueKey="value" // if options are objects
+                                        labelKey="label" // if options are objects
+                                    />
+                                </div>
+                            );
+                        } else if (fieldDef.field_type === 'checkbox') {
+                             return (
+                                <div key={fieldDef.id} className="flex items-center pt-5">
+                                    <input
+                                        id={fieldName}
+                                        name={fieldName}
+                                        type="checkbox"
+                                        checked={!!fieldValue} // Ensure boolean
+                                        onChange={handleChange}
+                                        className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor={fieldName} className="ml-2 block text-sm text-slate-700">{fieldDef.field_label}</label>
+                                </div>
+                            );
+                        }
+                        // Default to InputField for text, number, date
+                        return (
+                            <div key={fieldDef.id}>
+                                <InputField
+                                    label={fieldDef.field_label}
+                                    name={fieldName}
+                                    type={fieldDef.field_type === 'number' ? 'number' : fieldDef.field_type === 'date' ? 'date' : 'text'}
+                                    value={fieldValue}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+        {/* --- END NEW --- */}
+
+
         <div className="space-y-4 border-t border-slate-200 pt-4">
             <h4 className="text-md font-semibold text-slate-700">OSINT Data Points</h4>
             {currentOsintData.map((field, index) => ( <div key={field.id || index} className="p-3 border border-slate-200 rounded-md space-y-2 relative"> <button type="button" onClick={() => removeOsintField(field.id || index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"> <Icon name="Trash2" className="w-4 h-4" /> </button> <SelectField label="Type" value={field.type} onChange={(e) => handleOsintFieldChange(index, 'type', e.target.value)} options={osintDataTypes} small /> { (field.type === 'social_media' || field.type === 'username') && <InputField label="Platform/Site" value={field.platform || ''} onChange={(e) => handleOsintFieldChange(index, 'platform', e.target.value)} small /> } <InputField label={field.type === 'social_media' ? 'Handle/ID' : field.type === 'email' ? 'Email Address' : field.type === 'phone' ? 'Phone Number' : field.type === 'location' ? 'Address/Coordinates' : 'Value'} value={field.value || ''} onChange={(e) => handleOsintFieldChange(index, 'value', e.target.value)} small /> <InputField label="URL (if applicable)" value={field.url || ''} onChange={(e) => handleOsintFieldChange(index, 'url', e.target.value)} small /> <InputField label="Notes" value={field.notes || ''} onChange={(e) => handleOsintFieldChange(index, 'notes', e.target.value)} small /> </div> ))}
@@ -644,13 +928,17 @@ function App() {
       </form>
     );
   };
+  // --- END MODIFIED ---
+
+  // --- MODIFIED --- PersonDetailModal to display custom fields
   const PersonDetailModal = ({ person, onClose, onEdit }) => {
     if (!person) return null;
+    const activeCustomDefs = customFieldDefinitions.filter(def => def.is_active);
     return (
       <Modal isOpen={!!person} onClose={onClose} title={`Details: ${person.name}`} maxWidth="max-w-4xl">
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start space-x-0 sm:space-x-6">
-            <img src={person.profile_picture_url || `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`} alt={person.name} className="w-32 h-32 rounded-lg object-cover border border-slate-200 shadow-md mb-4 sm:mb-0" />
+            <img src={person.profile_picture_url || `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`} alt={person.name} className="w-32 h-32 rounded-lg object-cover border border-slate-200 shadow-md mb-4 sm:mb-0" onError={(e) => {e.target.src = `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`; e.target.onerror=null;}} />
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-slate-800">{person.name}</h2>
               {person.aliases && person.aliases.length > 0 && <p className="text-sm text-slate-500">Also known as: {person.aliases.join(', ')}</p>}
@@ -661,6 +949,33 @@ function App() {
             </div>
           </div>
           {person.notes && ( <DetailSection title="Notes"> <p className="text-sm text-slate-700 whitespace-pre-wrap">{person.notes}</p> </DetailSection> )}
+
+          {/* --- NEW --- Display Custom Fields --- */}
+          {activeCustomDefs.length > 0 && Object.keys(person.custom_fields || {}).length > 0 && (
+            <DetailSection title="Additional Information">
+                <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                    {activeCustomDefs.map(def => {
+                        const value = person.custom_fields?.[def.field_name];
+                        if (value !== undefined && value !== null && value !== '') {
+                            return (
+                                <React.Fragment key={def.id}>
+                                    <dt className="text-sm font-medium text-slate-500">{def.field_label}:</dt>
+                                    <dd className="text-sm text-slate-800 break-words">
+                                        {def.field_type === 'checkbox' ? (value ? 'Yes' : 'No') :
+                                         def.field_type === 'date' ? formatDate(value).split(',')[0] : // Just date part
+                                         String(value)}
+                                    </dd>
+                                </React.Fragment>
+                            );
+                        }
+                        return null;
+                    })}
+                </dl>
+            </DetailSection>
+          )}
+          {/* --- END NEW --- */}
+
+
           {person.osint_data && person.osint_data.length > 0 && ( <DetailSection title="OSINT Data Points"> <ul className="space-y-3"> {person.osint_data.map((data, index) => ( <li key={data.id || index} className="p-3 bg-slate-50 rounded-md border border-slate-200"> <strong className="capitalize text-sm text-slate-700">{data.type?.replace('_', ' ') || 'Data'}:</strong> {data.platform && <span className="text-sm text-slate-600"> ({data.platform})</span>} <p className="text-sm text-slate-800">{data.url ? <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{data.handle || data.value || data.url}</a> : (data.address || data.value || data.handle)}</p> {data.notes && <p className="text-xs text-slate-500 italic mt-1">{data.notes}</p>} </li> ))} </ul> </DetailSection> )}
           <DetailSection title="Location Map (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="MapPin" className="w-10 h-10 mr-2" /> Map visualization will be here. </div> </DetailSection>
           <DetailSection title="Relationship Chart (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="Network" className="w-10 h-10 mr-2" /> Relationship graph will be here. </div> </DetailSection>
@@ -669,6 +984,9 @@ function App() {
       </Modal>
     );
   };
+  // --- END MODIFIED ---
+
+
   const AddEditToolForm = ({ tool, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
       name: tool?.name || '',
@@ -726,21 +1044,199 @@ function App() {
     );
   };
 
+  // --- NEW --- CustomFieldDefinitionForm Component ---
+  const CustomFieldDefinitionForm = ({ fieldDefinition, onSave, onCancel }) => {
+    const isEditing = !!fieldDefinition;
+    const [formData, setFormData] = useState({
+        field_name: fieldDefinition?.field_name || '',
+        field_label: fieldDefinition?.field_label || '',
+        field_type: fieldDefinition?.field_type || defaultCustomFieldTypes[0].value,
+        options: fieldDefinition?.options || [{ value: '', label: '' }], // For select type
+        is_active: fieldDefinition?.is_active !== undefined ? fieldDefinition.is_active : true,
+    });
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleOptionChange = (index, prop, value) => {
+        const updatedOptions = [...formData.options];
+        updatedOptions[index][prop] = value;
+        setFormData(prev => ({ ...prev, options: updatedOptions }));
+    };
+
+    const addOption = () => {
+        setFormData(prev => ({ ...prev, options: [...prev.options, { value: '', label: '' }] }));
+    };
+
+    const removeOption = (index) => {
+        const updatedOptions = formData.options.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, options: updatedOptions.length > 0 ? updatedOptions : [{ value: '', label: '' }] }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.field_name.trim() || !formData.field_label.trim()) {
+            alert('Field Name and Field Label are required.');
+            return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(formData.field_name)) {
+             alert('Field Name can only contain alphanumeric characters and underscores (e.g., "custom_info", "user_id").');
+             return;
+        }
+        const dataToSave = { ...formData };
+        if (formData.field_type !== 'select') {
+            dataToSave.options = []; // Clear options if not a select type
+        } else {
+            // Ensure options are valid
+            dataToSave.options = dataToSave.options.filter(opt => opt.value.trim() && opt.label.trim());
+            if (dataToSave.options.length === 0 && formData.field_type === 'select') {
+                alert('For "Select" type, at least one valid option (with value and label) is required.');
+                return;
+            }
+        }
+        onSave(dataToSave);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <InputField label="Field Label (e.g., 'Passport Number')" name="field_label" value={formData.field_label} onChange={handleChange} required />
+            <InputField
+                label="Field Name / Key (e.g., 'passport_number', no spaces/special chars)"
+                name="field_name"
+                value={formData.field_name}
+                onChange={handleChange}
+                required
+                disabled={isEditing} // Field name cannot be changed after creation for data integrity
+                helperText={isEditing ? "Cannot be changed after creation." : "Use a unique key, like 'middle_name' or 'employee_id'."}
+            />
+             {isEditing && <p className="text-xs text-slate-500 -mt-4">Field Name cannot be changed after creation to maintain data integrity.</p>}
+
+            <SelectField label="Field Type" name="field_type" value={formData.field_type} onChange={handleChange} options={defaultCustomFieldTypes.map(t=>t.label)} valueKey="value" labelKey="label" realValueOptions={defaultCustomFieldTypes} />
+
+            {formData.field_type === 'select' && (
+                <div className="space-y-3 border p-4 rounded-md">
+                    <h4 className="text-sm font-medium text-slate-700">Dropdown Options</h4>
+                    {formData.options.map((opt, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                            <InputField small label={`Opt ${index + 1} Value`} placeholder="Value" value={opt.value} onChange={e => handleOptionChange(index, 'value', e.target.value)} />
+                            <InputField small label="Label (display)" placeholder="Label" value={opt.label} onChange={e => handleOptionChange(index, 'label', e.target.value)} />
+                            {formData.options.length > 1 && <button type="button" onClick={() => removeOption(index)} className="text-red-500 hover:text-red-700 mt-5 p-1"><Icon name="Trash2" className="w-4 h-4" /></button>}
+                        </div>
+                    ))}
+                    <button type="button" onClick={addOption} className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                        <Icon name="PlusCircle" className="w-4 h-4" /><span>Add Option</span>
+                    </button>
+                </div>
+            )}
+
+            <div className="flex items-center">
+                <input id="is_active" name="is_active" type="checkbox" checked={formData.is_active} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                <label htmlFor="is_active" className="ml-2 block text-sm text-slate-700">Active (field will be available in forms)</label>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200">Cancel</button>
+                <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                    {isEditing ? 'Save Changes' : 'Add Custom Field'}
+                </button>
+            </div>
+        </form>
+    );
+  };
+  // --- END NEW ---
+
+
   const DetailSection = ({ title, children }) => ( <div className="border-t border-slate-200 pt-4 mt-4"> <h4 className="text-lg font-semibold text-slate-700 mb-3">{title}</h4> {children} </div> );
-  const InputField = ({ label, name, type = "text", value, onChange, required, placeholder, small, list, ...props }) => ( <div> {label && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>} <input type={type} name={name} id={name} value={value} onChange={onChange} required={required} placeholder={placeholder} list={list} className={`mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2'}`} {...props} /> </div> );
-  const SelectField = ({ label, name, value, onChange, options, required, small, className, noLabel, ...props }) => ( <div className={className}> {!noLabel && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>} <select name={name} id={name} value={value} onChange={onChange} required={required} className={`block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2 h-[38px]'} ${noLabel ? '' : 'mt-1'}`} {...props} > {options.map(opt => <option key={opt} value={opt === 'All Categories' || opt === 'All Statuses' ? '' : opt}>{opt}</option>)} </select> </div> );
+
+  // --- MODIFIED InputField and SelectField to handle realValueOptions for SelectField mapping ---
+  const InputField = ({ label, name, type = "text", value, onChange, required, placeholder, small, list, disabled, helperText, ...props }) => (
+    <div>
+        {label && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>}
+        <input
+            type={type}
+            name={name}
+            id={name}
+            value={value}
+            onChange={onChange}
+            required={required}
+            placeholder={placeholder}
+            list={list}
+            disabled={disabled}
+            className={`mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2'} ${disabled ? 'bg-slate-50 cursor-not-allowed' : ''}`}
+            {...props}
+        />
+        {helperText && <p className="mt-1 text-xs text-slate-500">{helperText}</p>}
+    </div>
+  );
+
+  const SelectField = ({ label, name, value, onChange, options, required, small, className, noLabel, valueKey = 'value', labelKey = 'label', realValueOptions, ...props }) => {
+    // If realValueOptions is provided, it means `options` are just labels, and we need to map to actual values from realValueOptions
+    const currentVal = realValueOptions ? (realValueOptions.find(opt => opt[labelKey] === value)?.[valueKey] || value) : value;
+
+    const handleChange = (e) => {
+        if (realValueOptions) {
+            const selectedLabel = e.target.value;
+            const actualOption = realValueOptions.find(opt => opt[labelKey] === selectedLabel);
+            // Create a synthetic event object that mimics the original event structure
+            // but replaces the value with the actual value we want to pass to the parent's onChange
+            const syntheticEvent = {
+                target: {
+                    name: e.target.name,
+                    value: actualOption ? actualOption[valueKey] : selectedLabel, // Fallback to label if no match
+                    type: e.target.type,
+                },
+                // You can add other event properties if needed by your handlers
+            };
+            onChange(syntheticEvent);
+        } else {
+            onChange(e);
+        }
+    };
+
+    return (
+        <div className={className}>
+            {!noLabel && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>}
+            <select
+                name={name}
+                id={name}
+                value={realValueOptions ? (realValueOptions.find(opt => opt[valueKey] === value)?.[labelKey] || value) : value} // For display, show label if mapping
+                onChange={handleChange}
+                required={required}
+                className={`block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2 h-[38px]'} ${noLabel ? '' : 'mt-1'}`}
+                {...props}
+            >
+                {options.map((opt, index) => {
+                    const optionValue = typeof opt === 'object' ? opt[valueKey] : opt;
+                    const optionLabel = typeof opt === 'object' ? opt[labelKey] : opt;
+                    const displayLabel = realValueOptions ? optionLabel : optionValue; // If realValueOptions, opt is already a label
+
+                    return (
+                        <option
+                            key={realValueOptions ? realValueOptions[index]?.[valueKey] || index : optionValue} // Use actual value for key if available
+                            value={displayLabel} // Value in <option> should be what's displayed if realValueOptions is used
+                        >
+                            {optionLabel}
+                        </option>
+                    );
+                })}
+            </select>
+        </div>
+    );
+};
+// --- END MODIFIED ---
+
 
   // --- Main Render ---
   return (
     <div className="flex h-screen bg-slate-100 font-sans">
       <style jsx global>{`
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; }
-        /* Leaflet CSS */
         @import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
-        /* ReactFlow CSS */
         @import url("https://unpkg.com/reactflow@latest/dist/style.css");
 
-        .leaflet-container { height: 100%; width: 100%; border-radius: 0.375rem; /* Tailwind's rounded-md */ }
+        .leaflet-container { height: 100%; width: 100%; border-radius: 0.375rem; }
         .react-flow__node { font-size: 10px; }
         .react-flow__attribution { display: none; }
 
@@ -775,6 +1271,21 @@ function App() {
       <Modal isOpen={isTodoModalOpen} onClose={() => setIsTodoModalOpen(false)} title={editingTodo ? 'Edit Task' : 'Add New Task'} maxWidth="max-w-lg">
         <AddEditTodoForm todo={editingTodo} onSave={handleSaveTodo} onCancel={() => setIsTodoModalOpen(false)} />
       </Modal>
+
+      {/* --- NEW --- Modal for Custom Field Definition Form --- */}
+      <Modal
+        isOpen={isCustomFieldModalOpen}
+        onClose={() => { setIsCustomFieldModalOpen(false); setEditingCustomField(null); }}
+        title={editingCustomField ? 'Edit Custom Field Definition' : 'Add New Custom Field Definition'}
+        maxWidth="max-w-2xl"
+      >
+        <CustomFieldDefinitionForm
+          fieldDefinition={editingCustomField}
+          onSave={handleSaveCustomFieldDefinition}
+          onCancel={() => { setIsCustomFieldModalOpen(false); setEditingCustomField(null); }}
+        />
+      </Modal>
+      {/* --- END NEW --- */}
     </div>
   );
 }
