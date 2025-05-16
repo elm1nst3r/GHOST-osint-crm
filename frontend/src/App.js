@@ -8,14 +8,15 @@ import ReactFlow, {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge as rfAddEdge, // aliased to avoid conflict
-  MarkerType // For edge markers
+  addEdge as rfAddEdge, // aliased to avoid conflict with our addEdge
+  Handle,
+  Position
 } from 'reactflow';
 
 const API_BASE_URL = 'http://localhost:3001/api'; // Backend API
 const BACKEND_PUBLIC_URL = 'http://localhost:3001'; // For accessing static files
 
-// --- Icon Component (Placeholder - replace with lucide-react if installed) ---
+// --- Icon Component (Placeholder) ---
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const iconMap = {
     LayoutDashboard: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
@@ -44,7 +45,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
   return IconComponent ? <IconComponent /> : <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 2L2 22h20L12 2zm0 4l7 12H5l7-12z" /></svg>;
 };
 
-// --- Constants and Helpers ---
+// --- Constants and Helpers (same as before) ---
 const defaultPersonCategories = ['Person of Interest', 'Possible Client', 'Client', 'Connected Person', 'Non Client', 'Asset', 'Organization', 'Event'];
 const defaultPersonStatuses = ['Open', 'Being Investigated', 'Completed', 'Closed'];
 const defaultCrmStatuses = ['N/A', 'Open', 'Contacted', 'Active', 'Non-Responsive', 'Closed'];
@@ -119,9 +120,36 @@ function App() {
   }, []);
 
   // --- Data Fetching Callbacks ---
-  const fetchPeople = useCallback(async () => { /* ... (Same as before) ... */ }, []);
-  const fetchTools = useCallback(async () => { /* ... (Same as before) ... */ }, []);
-  const fetchTodos = useCallback(async () => { /* ... (Same as before) ... */ }, []);
+  const fetchPeople = useCallback(async () => {
+    setIsPeopleLoading(true); setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/people`);
+      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
+      const data = await response.json(); setPeople(data);
+    } catch (e) { console.error("Failed to fetch people:", e); setError(`People: ${e.message}`); setPeople([]); }
+    finally { setIsPeopleLoading(false); }
+  }, []);
+
+  const fetchTools = useCallback(async () => {
+    setIsToolsLoading(true); setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/tools`);
+      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
+      const data = await response.json(); setTools(data);
+    } catch (e) { console.error("Failed to fetch tools:", e); setError(`Tools: ${e.message}`); setTools([]); }
+    finally { setIsToolsLoading(false); }
+  }, []);
+
+  const fetchTodos = useCallback(async () => {
+    setIsTodosLoading(true); setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos`);
+      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
+      const data = await response.json(); setTodos(data);
+    } catch (e) { console.error("Failed to fetch todos:", e); setError(`To-Dos: ${e.message}`); setTodos([]); }
+    finally { setIsTodosLoading(false); }
+  }, []);
+
 
   useEffect(() => {
     fetchPeople();
@@ -129,23 +157,129 @@ function App() {
     fetchTodos();
   }, [fetchPeople, fetchTools, fetchTodos]);
 
-  // --- CRUD Handlers (People, Tools, Todos - same as before) ---
+  // --- CRUD Handlers ---
   const handleOpenAddPersonModal = () => { setEditingPerson(null); setIsPersonModalOpen(true); };
   const handleOpenEditPersonModal = (person) => { setEditingPerson(person); setIsPersonModalOpen(true); };
   const handleViewPersonDetails = (person) => { setSelectedPersonDetails(person); };
-  const handleSavePerson = async (personData) => { /* ... (Same as before) ... */ };
-  const handleDeletePerson = async (personId) => { /* ... (Same as before) ... */ };
+  const handleSavePerson = async (personData) => {
+    setIsPeopleLoading(true); setError(null);
+    const method = editingPerson ? 'PUT' : 'POST';
+    const url = editingPerson ? `${API_BASE_URL}/people/${editingPerson.id}` : `${API_BASE_URL}/people`;
+    const processedPersonData = { ...personData, attachments: personData.attachments?.map(({ fileObject, ...rest }) => rest) || [] };
+    try {
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(processedPersonData) });
+      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+      addAuditLogEntry(editingPerson ? 'UPDATE' : 'CREATE', 'Person', personData.name);
+      await fetchPeople();
+      setIsPersonModalOpen(false); setEditingPerson(null);
+    } catch (e) { console.error("Failed to save person:", e); setError(`Save Person: ${e.message}`); }
+    finally { setIsPeopleLoading(false); }
+  };
+  const handleDeletePerson = async (personId) => {
+    const personToDelete = people.find(p => p.id === personId);
+    if (window.confirm(`Are you sure you want to delete ${personToDelete?.name || 'this person'}?`)) {
+      setIsPeopleLoading(true); setError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}/people/${personId}`, { method: 'DELETE' });
+        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`);}
+        const deletedData = await response.json();
+        addAuditLogEntry('DELETE', 'Person', deletedData.deletedPerson?.name || personId);
+        await fetchPeople();
+      } catch (e) { console.error("Failed to delete person:", e); setError(`Delete Person: ${e.message}`); }
+      finally { setIsPeopleLoading(false); }
+    }
+  };
+
   const handleOpenAddToolModal = () => { setEditingTool(null); setIsToolModalOpen(true); };
   const handleOpenEditToolModal = (tool) => { setEditingTool(tool); setIsToolModalOpen(true); };
-  const handleSaveTool = async (toolData) => { /* ... (Same as before) ... */ };
-  const handleDeleteTool = async (toolId) => { /* ... (Same as before) ... */ };
+  const handleSaveTool = async (toolData) => {
+    setIsToolsLoading(true); setError(null);
+    const method = editingTool ? 'PUT' : 'POST';
+    const url = editingTool ? `${API_BASE_URL}/tools/${editingTool.id}` : `${API_BASE_URL}/tools`;
+    try {
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toolData) });
+      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+      addAuditLogEntry(editingTool ? 'UPDATE' : 'CREATE', 'Tool', toolData.name);
+      await fetchTools();
+      setIsToolModalOpen(false); setEditingTool(null);
+    } catch (e) { console.error("Failed to save tool:", e); setError(`Save Tool: ${e.message}`); }
+    finally { setIsToolsLoading(false); }
+  };
+  const handleDeleteTool = async (toolId) => {
+    const toolToDelete = tools.find(t => t.id === toolId);
+    if (window.confirm(`Are you sure you want to delete ${toolToDelete?.name || 'this tool'}?`)) {
+      setIsToolsLoading(true); setError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, { method: 'DELETE' });
+        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+        const deletedData = await response.json();
+        addAuditLogEntry('DELETE', 'Tool', deletedData.deletedTool?.name || toolId);
+        await fetchTools();
+      } catch (e) { console.error("Failed to delete tool:", e); setError(`Delete Tool: ${e.message}`); }
+      finally { setIsToolsLoading(false); }
+    }
+  };
+
   const handleOpenAddEditTodoModal = (todo = null) => { setEditingTodo(todo); setIsTodoModalOpen(true); };
-  const handleSaveTodo = async (todoData) => { /* ... (Same as before) ... */ };
-  const handleDeleteTodo = async (todoId) => { /* ... (Same as before) ... */ };
-  const handleToggleTodoStatus = async (todoId) => { /* ... (Same as before) ... */ };
+  const handleSaveTodo = async (todoData) => {
+    setIsTodosLoading(true); setError(null);
+    const method = editingTodo ? 'PUT' : 'POST';
+    const url = editingTodo ? `${API_BASE_URL}/todos/${editingTodo.id}` : `${API_BASE_URL}/todos`;
+    try {
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todoData) });
+      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+      addAuditLogEntry(editingTodo ? 'UPDATE' : 'CREATE', 'Todo', todoData.text.substring(0,20));
+      await fetchTodos();
+      setIsTodoModalOpen(false); setEditingTodo(null);
+    } catch (e) { console.error("Failed to save todo:", e); setError(`Save To-Do: ${e.message}`); }
+    finally { setIsTodosLoading(false); }
+  };
+  const handleDeleteTodo = async (todoId) => {
+    const todoToDelete = todos.find(t => t.id === todoId);
+    if (window.confirm(`Are you sure you want to delete task: "${todoToDelete?.text || 'this task'}"?`)) {
+      setIsTodosLoading(true); setError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}/todos/${todoId}`, { method: 'DELETE' });
+        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+        const deletedData = await response.json();
+        addAuditLogEntry('DELETE', 'Todo', deletedData.deletedTodo?.text.substring(0,20) || todoId);
+        await fetchTodos();
+      } catch (e) { console.error("Failed to delete todo:", e); setError(`Delete To-Do: ${e.message}`); }
+      finally { setIsTodosLoading(false); }
+    }
+  };
+  const handleToggleTodoStatus = async (todoId) => {
+    const todoToToggle = todos.find(t => t.id === todoId);
+    if (!todoToToggle) return;
+    const updatedStatus = todoToToggle.status === 'open' ? 'done' : 'open';
+    const updatedTodoPayload = { ...todoToToggle, text: todoToToggle.text, status: updatedStatus, last_update_comment: `Status changed to ${updatedStatus}` };
+    setIsTodosLoading(true); setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos/${todoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedTodoPayload) });
+      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+      addAuditLogEntry('UPDATE', 'Todo', todoToToggle.text.substring(0,20), `Toggled status to ${updatedStatus}`);
+      await fetchTodos();
+    } catch (e) { console.error("Failed to toggle todo status:", e); setError(`Toggle To-Do: ${e.message}`); }
+    finally { setIsTodosLoading(false); }
+  };
 
   // --- Logo Upload Handler ---
-  const handleLogoUpload = async (file) => { /* ... (Same as before) ... */ };
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    setIsUploadingLogo(true); setError(null);
+    const formData = new FormData();
+    formData.append('appLogo', file);
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload/logo`, { method: 'POST', body: formData });
+      if (!response.ok) { const errData = await response.json().catch(() => ({ error: 'Failed to upload logo.' })); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
+      const result = await response.json();
+      setAppLogoUrl(BACKEND_PUBLIC_URL + result.logoUrl);
+      setAppLogoFilePreview(null);
+      addAuditLogEntry('UPDATE_SETTING', 'Setting', 'Application Logo', `Uploaded new logo: ${result.logoUrl}`);
+      alert('Logo uploaded successfully!');
+    } catch (e) { console.error("Failed to upload logo:", e); setError(`Logo Upload: ${e.message}`); alert(`Logo upload failed: ${e.message}`); }
+    finally { setIsUploadingLogo(false); }
+  };
 
   // Filtered Data
   const filteredPeople = useMemo(() => {
@@ -170,108 +304,66 @@ function App() {
     return Array.from(cases);
   }, [people]);
 
-  // --- React Flow Data Preparation ---
-  const getGlobalRelationshipData = useCallback(() => {
-    console.log("Generating global relationship data with people:", people);
-    const initialNodes = [];
-    const initialEdges = [];
-    const osintNodeMap = new Map(); // To track shared OSINT data points
-
-    if (!Array.isArray(people) || people.length === 0) {
-      console.log("No people data for global graph.");
-      return { nodes: [], edges: [] };
-    }
-
-    people.forEach((person, pIndex) => {
-      const personNodeId = `person-${person.id}`;
-      initialNodes.push({
-        id: personNodeId,
-        type: 'default', // You can create custom node types
-        data: { label: `${person.name || 'Unknown Person'} (${person.category || 'N/A'})` },
-        position: { x: pIndex * 280, y: 50 + (pIndex % 3) * 120 }, // Adjust layout
-        style: { backgroundColor: '#c3e6cb', color: '#155724', border: '1px solid #8fd19e', width: 200, padding: 10, textAlign: 'center', borderRadius: '8px' },
-      });
-
-      // Direct connections between people
-      (Array.isArray(person.connections) ? person.connections : []).forEach(conn => {
-        if (conn.personId) {
-          initialEdges.push({
-            id: `e-${personNodeId}-conn-person-${conn.personId}`,
-            source: personNodeId,
-            target: `person-${conn.personId}`,
-            label: conn.relationshipType || 'connected',
-            animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#0ea5e9' },
-            style: { stroke: '#0ea5e9', strokeWidth: 2 },
-          });
-        }
-      });
-
-      // Connections to OSINT data points
-      (Array.isArray(person.osint_data) ? person.osint_data : []).forEach((item, itemIndex) => {
-        let itemValue = item.value || item.address || item.handle;
-        if (!itemValue || typeof itemValue !== 'string') return; // Ensure itemValue is a string
-
-        const itemKey = `${item.type}:${itemValue}`;
-        let osintNodeId = osintNodeMap.get(itemKey);
-
-        if (!osintNodeId) {
-          osintNodeId = `osint-${itemKey.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 50)}`; // Sanitize & shorten ID
-          osintNodeMap.set(itemKey, osintNodeId);
-          initialNodes.push({
-            id: osintNodeId,
-            type: 'default',
-            data: { label: `${item.type}: ${itemValue.substring(0,25)}${itemValue.length > 25 ? '...' : ''}` },
-            position: { x: pIndex * 280 + (itemIndex % 2 === 0 ? -120 : 120), y: 200 + Math.floor(pIndex / 3) * 150 + (itemIndex * 40) },
-            style: { backgroundColor: '#e0f2fe', color: '#075985', border: '1px solid #7dd3fc', fontSize: '0.8em', padding: 5, width: 180, textAlign: 'center', borderRadius: '4px' },
-          });
-        }
-        initialEdges.push({
-          id: `e-${personNodeId}-osint-${osintNodeId}-${itemIndex}`,
-          source: personNodeId,
-          target: osintNodeId,
-          label: 'has',
-          style: { stroke: '#60a5fa', strokeWidth: 1.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' },
-        });
-      });
-    });
-    console.log("Generated global nodes:", initialNodes.length, "Generated global edges:", initialEdges.length);
-    return { nodes: initialNodes, edges: initialEdges };
-  }, [people]);
-
-
   // --- UI Components ---
-  const Sidebar = () => ( /* ... (Same as previous full version) ... */ );
-  const NavItem = ({ iconName, text, viewName }) => ( /* ... (Same as previous full version) ... */ );
-  const Header = ({ title }) => ( /* ... (Same as previous full version) ... */ );
+  const Sidebar = () => (
+    <div className="w-64 bg-slate-800 text-slate-100 p-5 space-y-4 fixed top-0 left-0 h-full shadow-lg z-30">
+      <div className="text-center mb-8">
+        {appLogoUrl ? (
+          <img src={appLogoUrl} alt={`${appName} Logo`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" onError={(e) => { e.target.src = 'https://placehold.co/64x64/3B82F6/FFFFFF?text=Logo'; }} />
+        ) : appLogoFilePreview ? (
+          <img src={appLogoFilePreview} alt={`${appName} Logo Preview`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" />
+        ) : (
+          <div className="h-16 w-16 mx-auto mb-2 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold">
+            {appName.substring(0,1) || 'C'}
+          </div>
+        )}
+        <div className={`text-2xl font-bold bg-gradient-to-r from-blue-500 to-teal-400 text-white py-3 rounded-lg shadow-md mt-2`}>
+          {appName}
+        </div>
+      </div>
+      <nav>
+        <ul>
+          <NavItem iconName="LayoutDashboard" text="Dashboard" viewName="dashboard" />
+          <NavItem iconName="Target" text="People" viewName="people" />
+          <NavItem iconName="Briefcase" text="OSINT Tools" viewName="tools" />
+          <NavItem iconName="Settings" text="Settings" viewName="settings" />
+        </ul>
+      </nav>
+      <div className="absolute bottom-5 left-5 text-xs text-slate-400">Version 0.9.0</div> {/* Updated Version */}
+    </div>
+  );
+  const NavItem = ({ iconName, text, viewName }) => (
+     <li
+      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors ${currentView === viewName ? 'bg-slate-700 border-l-4 border-blue-500' : ''}`}
+      onClick={() => setCurrentView(viewName)}
+    >
+      <Icon name={iconName} className="w-6 h-6 text-blue-400" />
+      <span>{text}</span>
+    </li>
+  );
+  const Header = ({ title }) => (
+    <header className="bg-white shadow-sm p-6 mb-6 rounded-lg">
+      <h1 className="text-3xl font-semibold text-slate-800">{title}</h1>
+    </header>
+  );
 
-  const renderContent = () => { /* ... (Same as previous full version) ... */ };
+  const renderContent = () => {
+    if (error) { return <div className="p-6 text-center text-red-600 bg-red-100 rounded-md shadow-md">{error}</div>; }
+    switch (currentView) {
+      case 'dashboard': return <DashboardView />;
+      case 'people': return <PeopleView />;
+      case 'tools': return <ToolsView />;
+      case 'settings': return <SettingsView />;
+      default: return <DashboardView />;
+    }
+  };
 
   const DashboardView = () => {
-    const { nodes: initialGlobalNodes, edges: initialGlobalEdges } = getGlobalRelationshipData();
-    const [globalNodes, setGlobalNodes, onGlobalNodesChange] = useNodesState(initialGlobalNodes);
-    const [globalEdges, setGlobalEdges, onGlobalEdgesChange] = useEdgesState(initialGlobalEdges);
-
-    useEffect(() => {
-        const { nodes, edges } = getGlobalRelationshipData();
-        setGlobalNodes(nodes);
-        setGlobalEdges(edges);
-    }, [people, getGlobalRelationshipData, setGlobalNodes, setGlobalEdges]);
-
-    const onGlobalConnect = useCallback((params) => setGlobalEdges((eds) => rfAddEdge(params, eds)), [setGlobalEdges]);
-    const onNodeClick = (event, node) => {
-        console.log('Clicked node:', node);
-        if (node.id.startsWith('person-')) {
-            const personId = parseInt(node.id.split('-')[1]);
-            const personToView = people.find(p => p.id === personId);
-            if (personToView) {
-                handleViewPersonDetails(personToView);
-            }
-        }
-    };
-
-    const activeInvestigations = useMemo(() => (Array.isArray(people) ? people : []).filter(p => p.status === 'Being Investigated' || p.status === 'Open').sort((a,b) => new Date(b.updated_at) - new Date(a.created_at)).slice(0,5), [people]);
+    const activeInvestigations = useMemo(() =>
+        (Array.isArray(people) ? people : []).filter(p => p.status === 'Being Investigated' || p.status === 'Open')
+              .sort((a,b) => new Date(b.updated_at) - new Date(a.created_at))
+              .slice(0,5),
+    [people]);
     const openTodos = (Array.isArray(todos) ? todos : []).filter(t => t.status === 'open');
 
     return (
@@ -282,7 +374,7 @@ function App() {
                 <DashboardCard iconName="Users" title="Active Investigations" value={(Array.isArray(people) ? people : []).filter(p => p.status === 'Being Investigated' || p.status === 'Open').length} subtitle="People under review" color="purple" />
                 <DashboardCard iconName="ListChecks" title="Open Tasks" value={openTodos.length} subtitle="Pending to-do items" color="yellow" />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                     <h3 className="text-xl font-semibold text-slate-700 mb-4">Recent Active People/Cases</h3>
                     {isPeopleLoading ? <p className="text-slate-500">Loading people...</p> : activeInvestigations.length > 0 ? (
@@ -326,120 +418,237 @@ function App() {
             </div>
              <div className="mt-6 grid grid-cols-1 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <h3 className="text-xl font-semibold text-slate-700 mb-4">Global Relationship Overview</h3>
-                    <div className="h-[600px] w-full bg-slate-100 rounded-md border border-slate-300">
-                        { (globalNodes && globalNodes.length > 0) ? (
-                            <ReactFlowProvider>
-                                <ReactFlow
-                                    nodes={globalNodes}
-                                    edges={globalEdges}
-                                    onNodesChange={onGlobalNodesChange}
-                                    onEdgesChange={onGlobalEdgesChange}
-                                    onConnect={onGlobalConnect}
-                                    onNodeClick={onNodeClick}
-                                    fitView
-                                    className="bg-gradient-to-br from-slate-50 to-slate-200"
-                                >
-                                    <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                                    <Controls />
-                                    <Background color="#ccc" gap={20} />
-                                </ReactFlow>
-                            </ReactFlowProvider>
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-slate-500">
-                                <Icon name="Network" className="w-16 h-16 mr-2" />
-                                <p>No relationship data to display. Add people, OSINT data, and connections.</p>
-                            </div>
-                        )}
-                    </div>
+                    <h3 className="text-xl font-semibold text-slate-700 mb-4">Global Relationship Overview (Placeholder)</h3>
+                    <div className="h-[400px] bg-slate-200 rounded-md flex items-center justify-center text-slate-500"><Icon name="Network" className="w-16 h-16 mr-2" /><p>Graph here.</p></div>
                 </div>
             </div>
         </div>
     );
   };
-  const DashboardCard = ({iconName, title, value, subtitle, color}) => { /* ... (Same as previous full version) ... */ };
-  const PeopleView = () => { /* ... (Same as previous full version) ... */ };
-  const ToolsView = () => { /* ... (Same as previous full version) ... */ };
-  const SettingsView = () => { /* ... (Same as previous full version) ... */ };
+  const DashboardCard = ({iconName, title, value, subtitle, color}) => {
+    const colors = { blue: 'text-blue-500', green: 'text-green-500', purple: 'text-purple-500', yellow: 'text-yellow-500', };
+    return ( <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"> <div className="flex items-center space-x-3 mb-3"> <Icon name={iconName} className={`w-8 h-8 ${colors[color] || 'text-slate-500'}`} /> <h2 className="text-xl font-semibold text-slate-700">{title}</h2> </div> <p className="text-4xl font-bold text-slate-800">{value}</p> <p className="text-sm text-slate-500 mt-1">{subtitle}</p> </div> );
+  };
 
-  const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => { /* ... (Same as previous full version) ... */ };
-  const AddEditPersonForm = ({ person, onSave, onCancel }) => { /* ... (Same as previous full version) ... */ };
+  const PeopleView = () => {
+    return (
+    <div>
+      <Header title="People" />
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+          <div className="relative flex-grow">
+            <input type="text" placeholder="Search name, alias, case..." className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full" value={searchTermPeople} onChange={(e) => setSearchTermPeople(e.target.value)} />
+            <Icon name="Search" className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          </div>
+          <SelectField value={filterPersonCategory} onChange={(e) => setFilterPersonCategory(e.target.value)} options={['All Categories', ...personCategories]} className="w-full sm:w-48" noLabel />
+          <SelectField value={filterPersonStatus} onChange={(e) => setFilterPersonStatus(e.target.value)} options={['All Statuses', ...personStatuses]} className="w-full sm:w-48" noLabel />
+        </div>
+        <button onClick={handleOpenAddPersonModal} className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 w-full sm:w-auto">
+          <Icon name="PlusCircle" /> <span>Add Person</span>
+        </button>
+      </div>
+      {isPeopleLoading && <p className="text-center text-slate-500 py-10">Loading people...</p>}
+      {!isPeopleLoading && !error && (
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name / Case</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CRM Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Last Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {filteredPeople.length > 0 ? filteredPeople.map(person => (
+                  <tr key={person.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img className="h-10 w-10 rounded-full mr-3 object-cover" src={person.profile_picture_url || `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`} alt={person.name} />
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{person.name}</div>
+                          <div className="text-xs text-slate-500">Case: {person.case_name || 'N/A'}</div>
+                          {person.aliases && person.aliases.length > 0 && <div className="text-xs text-slate-500">AKA: {person.aliases.join(', ')}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{person.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ person.status === 'Open' ? 'bg-blue-100 text-blue-800' : person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' : person.status === 'Completed' ? 'bg-green-100 text-green-800' : person.status === 'Closed' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800' }`}>{person.status}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{person.crm_status}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{formatDate(person.updated_at)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button onClick={() => handleViewPersonDetails(person)} className="text-blue-600 hover:text-blue-800 transition-colors p-1" title="View Details"><Icon name="Eye" /></button>
+                      <button onClick={() => handleOpenEditPersonModal(person)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1" title="Edit"><Icon name="Edit2" /></button>
+                      <button onClick={() => handleDeletePerson(person.id)} className="text-red-600 hover:text-red-800 transition-colors p-1" title="Delete"><Icon name="Trash2" /></button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500">No people found. Try adding some or check backend connection.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )};
 
-  const PersonDetailModal = ({ person, onClose, onEdit }) => {
-    if (!person) return null;
-    const personLocations = useMemo(() => (Array.isArray(person.osint_data) ? person.osint_data : [])
-        .filter(d => d.type === 'location' && d.coordinates && typeof d.coordinates.lat === 'number' && typeof d.coordinates.lng === 'number')
-    , [person.osint_data]);
+  const ToolsView = () => {
+    return (
+    <div>
+      <Header title="OSINT Tools Directory" />
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+        <div className="relative w-full sm:w-auto">
+          <input type="text" placeholder="Search tools by name, category, tag..." className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full sm:w-80" value={searchTermTools} onChange={(e) => setSearchTermTools(e.target.value)} />
+          <Icon name="Search" className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+        </div>
+        <button onClick={handleOpenAddToolModal} className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg shadow hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 w-full sm:w-auto">
+          <Icon name="PlusCircle" /> <span>Add New Tool</span>
+        </button>
+      </div>
+      {isToolsLoading && <p className="text-center text-slate-500 py-10">Loading tools...</p>}
+      {!isToolsLoading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTools.length > 0 ? filteredTools.map(tool => (
+              <div key={tool.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+                <div className="p-6 flex-grow">
+                  <div className="flex justify-between items-start mb-2"> <h3 className="text-xl font-semibold text-slate-800">{tool.name}</h3> <span className={`px-3 py-1 text-xs font-semibold rounded-full ${ tool.status === 'Active' ? 'bg-green-100 text-green-800' : tool.status === 'Deprecated' ? 'bg-red-100 text-red-800' : tool.status === 'Beta' ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-800' }`}>{tool.status}</span> </div>
+                  <p className="text-sm text-slate-600 mb-3 h-20 overflow-y-auto">{tool.description}</p>
+                  <p className="text-sm text-slate-500 mb-1"><span className="font-medium">Category:</span> {tool.category}</p>
+                  {tool.tags && tool.tags.length > 0 && ( <div className="mt-2 mb-3"> {tool.tags.map(tag => ( <span key={tag} className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold mr-2 mb-1 px-2.5 py-0.5 rounded-full">{tag}</span> ))} </div> )}
+                  {tool.notes && <p className="text-xs text-slate-500 italic mt-2"><span className="font-medium">Notes:</span> {tool.notes}</p>}
+                </div>
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                  <a href={tool.link} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:text-blue-800 hover:underline transition-colors text-sm font-medium"> <Icon name="Link" className="w-4 h-4 mr-1" /> Visit Tool </a>
+                  <div className="space-x-2"> <button onClick={() => handleOpenEditToolModal(tool)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1" title="Edit"><Icon name="Edit2" className="w-4 h-4"/></button> <button onClick={() => handleDeleteTool(tool.id)} className="text-red-600 hover:text-red-800 transition-colors p-1" title="Delete"><Icon name="Trash2" className="w-4 h-4"/></button> </div>
+                </div>
+              </div>
+            )) : ( <p className="col-span-full text-center py-10 text-slate-500">No tools found. Try adding some!</p> )}
+          </div>
+        )}
+    </div>
+  )};
+  const SettingsView = () => {
+    const [localAppName, setLocalAppName] = useState(appName);
+    const [logoFile, setLogoFile] = useState(null);
+    const logoInputRef = useRef(null);
 
-    const getPersonSpecificRelationshipData = useCallback(() => {
-        console.log("Generating person-specific relationship data for:", person?.name);
-        const initialNodes = [];
-        const initialEdges = [];
-        if (!person || !person.id) {
-            console.log("No person data for specific graph.");
-            return { nodes: [], edges: [] };
+    const handleLocalLogoChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { alert("File is too large. Max 5MB allowed."); return; }
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) { alert("Invalid file type. Only JPG, PNG, GIF, SVG allowed."); return; }
+            setLogoFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => { setAppLogoFilePreview(reader.result); };
+            reader.readAsDataURL(file);
         }
+    };
+    const handleApplyGeneralSettings = () => {
+        setAppName(localAppName);
+        if (logoFile) { handleLogoUpload(logoFile); }
+        addAuditLogEntry('UPDATE_SETTINGS', 'System', 'General Config', `App name changed to: ${localAppName}`);
+        alert("General settings applied!");
+    };
+    return (
+    <div>
+        <Header title="Settings" />
+        <div className="space-y-8">
+            <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-6">General Configuration</h3>
+                <div className="space-y-6">
+                    <InputField label="Application Name" name="localAppName" value={localAppName} onChange={(e) => setLocalAppName(e.target.value)} />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Application Logo</label>
+                        <div className="mt-1 flex items-center space-x-4">
+                            {appLogoFilePreview ? ( <img src={appLogoFilePreview} alt="New Logo Preview" className="h-16 w-16 rounded-full object-cover" /> ) : appLogoUrl ? ( <img src={appLogoUrl} alt="Current Logo" className="h-16 w-16 rounded-full object-cover" onError={(e) => e.target.style.display='none'}/> ) : ( <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500"> <Icon name="Image" className="w-8 h-8" /> </div> )}
+                            <input type="file" ref={logoInputRef} className="sr-only" accept="image/png, image/jpeg, image/gif, image/svg+xml" onChange={handleLocalLogoChange} />
+                            <button type="button" onClick={() => logoInputRef.current?.click()} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-md border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"> Change Logo </button>
+                        </div>
+                        {isUploadingLogo && <p className="text-sm text-blue-600 mt-2">Uploading logo...</p>}
+                    </div>
+                    <div className="pt-4"> <button onClick={handleApplyGeneralSettings} disabled={isUploadingLogo} className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"> {isUploadingLogo ? 'Saving...' : 'Save General Settings'} </button> </div>
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Data Model Options</h3> <p className="text-slate-500">Data model customization to be implemented.</p> </div>
+            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Data Management</h3> <p className="text-slate-500">Data import/export to be implemented.</p> </div>
+            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Audit Log</h3> <p className="text-slate-500">Audit log display to be implemented.</p> </div>
+        </div>
+    </div>
+    );
+  };
 
-        const personNodeId = `person-${person.id}`;
-        initialNodes.push({ id: personNodeId, data: { label: person.name }, position: { x: 350, y: 25 }, type: 'input', style: { backgroundColor: '#86efac', width: 180, padding: 10, textAlign: 'center', borderRadius: '8px' } });
+  const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 ease-in-out">
+        <div className={`bg-white rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0 animate-modalShow`}>
+          <div className="flex justify-between items-center p-5 border-b border-slate-200"> <h3 className="text-xl font-semibold text-slate-700">{title}</h3> <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors"> <Icon name="X" className="w-6 h-6" /> </button> </div>
+          <div className="p-6 overflow-y-auto">{children}</div>
+        </div>
+      </div>
+    );
+  };
+  const AddEditPersonForm = ({ person, onSave, onCancel }) => {
+    const [formData, setFormData] = useState({
+      name: person?.name || '',
+      aliases: person?.aliases?.join(', ') || '',
+      dateOfBirth: formatInputDate(person?.date_of_birth),
+      category: person?.category || (personCategories.length > 0 ? personCategories[0] : ''),
+      status: person?.status || (personStatuses.length > 0 ? personStatuses[0] : ''),
+      crmStatus: person?.crm_status || (crmStatuses.length > 0 ? crmStatuses[0] : ''),
+      caseName: person?.case_name || '',
+      profilePictureUrl: person?.profile_picture_url || '',
+      notes: person?.notes || '',
+    });
+    const [currentOsintData, setCurrentOsintData] = useState(person?.osint_data || []);
+    const [currentAttachments, setCurrentAttachments] = useState(person?.attachments || []);
 
-        let yOffsetOsint = 150;
-        (Array.isArray(person.osint_data) ? person.osint_data : []).forEach((item, index) => {
-            const itemValue = item.value || item.address || item.handle || `item-${index}`;
-            if (typeof itemValue !== 'string') return;
-            const nodeId = `osint-${person.id}-${item.type}-${itemValue.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0,50)}`;
-            initialNodes.push({
-                id: nodeId,
-                data: { label: `${item.type}: ${itemValue.substring(0, 25)}${itemValue.length > 25 ? '...' : ''}` },
-                position: { x: 100 + (index % 3) * 220, y: yOffsetOsint + Math.floor(index / 3) * 90 },
-                style: { fontSize: '0.8em', padding: 5, width: 180, backgroundColor: '#e0f2fe', textAlign: 'center', borderRadius: '4px' },
-            });
-            initialEdges.push({ id: `e-${personNodeId}-${nodeId}`, source: personNodeId, target: nodeId, label: 'has', animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' }, style: {stroke: '#60a5fa'} });
-        });
-        
-        let yOffsetConnections = yOffsetOsint + Math.ceil(((Array.isArray(person.osint_data) ? person.osint_data : []).length || 0) / 3) * 90 + 60;
-        (Array.isArray(person.connections) ? person.connections : []).forEach((conn, index) => {
-            const connectedP = people.find(p => p.id === conn.personId);
-            if (connectedP) {
-                const connectedNodeId = `person-${connectedP.id}`; // Use the same prefix for consistency
-                 if (!initialNodes.find(n => n.id === connectedNodeId)) {
-                    initialNodes.push({ id: connectedNodeId, data: { label: connectedP.name }, position: { x: 350, y: yOffsetConnections + index * 90 }, type: 'default', style: { backgroundColor: '#fecaca', width: 180, padding: 10, textAlign: 'center', borderRadius: '8px' } });
-                 }
-                initialEdges.push({ id: `e-${personNodeId}-conn-${connectedNodeId}`, source: personNodeId, target: connectedNodeId, label: conn.relationshipType || 'connected', style: { stroke: '#f87171', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f87171' } });
-            }
-        });
-        console.log("Generated person-specific nodes:", initialNodes.length, "Generated person-specific edges:", initialEdges.length);
-        return { nodes: initialNodes, edges: initialEdges };
-    }, [person, people]); // Added people to dependency array
+    const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+    const addOsintField = () => setCurrentOsintData([...currentOsintData, { id: generateId(), type: osintDataTypes[0], value: '', platform: '', notes: '', url: '' }]);
+    const handleOsintFieldChange = (index, field, value) => { const updated = [...currentOsintData]; updated[index][field] = value; setCurrentOsintData(updated); };
+    const removeOsintField = (idOrIndex) => setCurrentOsintData(currentOsintData.filter((f, i) => (f.id || i) !== idOrIndex));
 
-    const { nodes: initialPersonNodes, edges: initialPersonEdges } = getPersonSpecificRelationshipData();
-    const [personNodes, setPersonNodes, onPersonNodesChange] = useNodesState(initialPersonNodes);
-    const [personEdges, setPersonEdges, onPersonEdgesChange] = useEdgesState(initialPersonEdges);
-
-    useEffect(() => {
-        const { nodes, edges } = getPersonSpecificRelationshipData();
-        setPersonNodes(nodes);
-        setPersonEdges(edges);
-    }, [person, getPersonSpecificRelationshipData, setPersonNodes, setPersonEdges]);
-
-
-    const onPersonConnect = useCallback((params) => setPersonEdges((eds) => rfAddEdge(params, eds)), [setPersonEdges]);
-    const onNodeClick = (event, node) => {
-        console.log('Clicked person-specific node:', node);
-        if (node.id.startsWith('person-') && node.id !== `person-${person.id}`) { // Don't re-open self
-            const personId = parseInt(node.id.split('-')[1]);
-            const personToView = people.find(p => p.id === personId);
-            if (personToView) {
-                onClose(); // Close current modal
-                handleViewPersonDetails(personToView); // Open new detail modal
-            }
-        }
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!formData.name.trim()) { alert("Name is required."); return; }
+      const dataToSave = {
+        ...formData,
+        aliases: formData.aliases.split(',').map(a => a.trim()).filter(a => a),
+        dateOfBirth: formData.dateOfBirth || null,
+        osint_data: currentOsintData,
+        attachments: currentAttachments.map(({ fileObject, ...rest }) => rest)
+      };
+      onSave(dataToSave);
     };
 
     return (
-      <Modal isOpen={!!person} onClose={onClose} title={`Details: ${person.name}`} maxWidth="max-w-5xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <InputField label="Full Name" name="name" value={formData.name} onChange={handleChange} required /> <InputField label="Aliases (comma-separated)" name="aliases" value={formData.aliases} onChange={handleChange} /> </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <InputField label="Date of Birth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleChange} /> <InputField label="Case Name" name="caseName" value={formData.caseName} onChange={handleChange} list="caseNamesList" /> <datalist id="caseNamesList">{uniqueCaseNames.map(caseN => <option key={caseN} value={caseN} />)}</datalist> </div>
+        <InputField label="Profile Picture URL" name="profilePictureUrl" value={formData.profilePictureUrl} onChange={handleChange} placeholder="https://example.com/image.png" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <SelectField label="Category" name="category" value={formData.category} onChange={handleChange} options={personCategories} /> <SelectField label="Status" name="status" value={formData.status} onChange={handleChange} options={personStatuses} /> <SelectField label="CRM Status" name="crmStatus" value={formData.crmStatus} onChange={handleChange} options={crmStatuses} /> </div>
+        <div> <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label> <textarea name="notes" value={formData.notes} onChange={handleChange} rows="3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea> </div>
+        <div className="space-y-4 border-t border-slate-200 pt-4">
+            <h4 className="text-md font-semibold text-slate-700">OSINT Data Points</h4>
+            {currentOsintData.map((field, index) => ( <div key={field.id || index} className="p-3 border border-slate-200 rounded-md space-y-2 relative"> <button type="button" onClick={() => removeOsintField(field.id || index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"> <Icon name="Trash2" className="w-4 h-4" /> </button> <SelectField label="Type" value={field.type} onChange={(e) => handleOsintFieldChange(index, 'type', e.target.value)} options={osintDataTypes} small /> { (field.type === 'social_media' || field.type === 'username') && <InputField label="Platform/Site" value={field.platform || ''} onChange={(e) => handleOsintFieldChange(index, 'platform', e.target.value)} small /> } <InputField label={field.type === 'social_media' ? 'Handle/ID' : field.type === 'email' ? 'Email Address' : field.type === 'phone' ? 'Phone Number' : field.type === 'location' ? 'Address/Coordinates' : 'Value'} value={field.value || ''} onChange={(e) => handleOsintFieldChange(index, 'value', e.target.value)} small /> <InputField label="URL (if applicable)" value={field.url || ''} onChange={(e) => handleOsintFieldChange(index, 'url', e.target.value)} small /> <InputField label="Notes" value={field.notes || ''} onChange={(e) => handleOsintFieldChange(index, 'notes', e.target.value)} small /> </div> ))}
+            <button type="button" onClick={addOsintField} className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1"> <Icon name="PlusCircle" className="w-4 h-4" /> <span>Add OSINT Data Point</span> </button>
+        </div>
+        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"> <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Cancel</button> <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-md shadow-sm hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"> {person ? 'Save Changes' : 'Add Person'} </button> </div>
+      </form>
+    );
+  };
+  const PersonDetailModal = ({ person, onClose, onEdit }) => {
+    if (!person) return null;
+    return (
+      <Modal isOpen={!!person} onClose={onClose} title={`Details: ${person.name}`} maxWidth="max-w-4xl">
         <div className="space-y-6">
-          {/* Person Header Info */}
           <div className="flex flex-col sm:flex-row items-start space-x-0 sm:space-x-6">
             <img src={person.profile_picture_url || `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`} alt={person.name} className="w-32 h-32 rounded-lg object-cover border border-slate-200 shadow-md mb-4 sm:mb-0" />
             <div className="flex-1">
@@ -451,123 +660,75 @@ function App() {
               <div className="mt-3 text-xs text-slate-400"> <p>Created: {formatDate(person.created_at)}</p> <p>Last Updated: {formatDate(person.updated_at)}</p> </div>
             </div>
           </div>
-          {/* Notes and OSINT Data */}
           {person.notes && ( <DetailSection title="Notes"> <p className="text-sm text-slate-700 whitespace-pre-wrap">{person.notes}</p> </DetailSection> )}
           {person.osint_data && person.osint_data.length > 0 && ( <DetailSection title="OSINT Data Points"> <ul className="space-y-3"> {person.osint_data.map((data, index) => ( <li key={data.id || index} className="p-3 bg-slate-50 rounded-md border border-slate-200"> <strong className="capitalize text-sm text-slate-700">{data.type?.replace('_', ' ') || 'Data'}:</strong> {data.platform && <span className="text-sm text-slate-600"> ({data.platform})</span>} <p className="text-sm text-slate-800">{data.url ? <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{data.handle || data.value || data.url}</a> : (data.address || data.value || data.handle)}</p> {data.notes && <p className="text-xs text-slate-500 italic mt-1">{data.notes}</p>} </li> ))} </ul> </DetailSection> )}
-          
-          {/* Location Map */}
-          <DetailSection title="Location Map">
-            <div className="h-96 w-full rounded-md overflow-hidden border border-slate-300">
-              {personLocations.length > 0 ? (
-                <PersonLocationMap locations={personLocations} />
-              ) : (
-                <div className="h-full bg-slate-100 flex items-center justify-center text-slate-500"><Icon name="MapPin" className="w-8 h-8 mr-2"/>No location data with coordinates available.</div>
-              )}
-            </div>
-          </DetailSection>
-
-          {/* Relationship Chart */}
-          <DetailSection title="Relationship Chart (Person Specific)">
-            <div className="h-[500px] w-full bg-slate-100 rounded-md border border-slate-300">
-                { (personNodes && personNodes.length > 1) ? (
-                    <ReactFlowProvider>
-                        <ReactFlow
-                            nodes={personNodes}
-                            edges={personEdges}
-                            onNodesChange={onPersonNodesChange}
-                            onEdgesChange={onPersonEdgesChange}
-                            onConnect={onPersonConnect}
-                            onNodeClick={onNodeClick}
-                            fitView
-                            className="bg-slate-50"
-                        >
-                            <MiniMap nodeColor={n => {
-                                if (n.type === 'input') return '#86efac'; // Person node
-                                if (n.id.startsWith('osint-')) return '#e0f2fe'; // OSINT data
-                                return '#fecaca'; // Other connected people
-                            }}/>
-                            <Controls />
-                            <Background variant="dots" gap={12} size={1} />
-                        </ReactFlow>
-                    </ReactFlowProvider>
-                ) : (
-                     <div className="flex items-center justify-center h-full text-slate-500">
-                        <Icon name="Network" className="w-10 h-10 mr-2" />
-                        <p>Not enough data for a specific relationship chart (needs OSINT data or connections).</p>
-                    </div>
-                )}
-            </div>
-          </DetailSection>
+          <DetailSection title="Location Map (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="MapPin" className="w-10 h-10 mr-2" /> Map visualization will be here. </div> </DetailSection>
+          <DetailSection title="Relationship Chart (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="Network" className="w-10 h-10 mr-2" /> Relationship graph will be here. </div> </DetailSection>
           <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"> <button onClick={() => { onClose(); onEdit(person); }} className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-md shadow-sm hover:from-indigo-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all transform hover:scale-105"> <Icon name="Edit2" className="w-4 h-4 inline-block mr-1" /> Edit Person </button> <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Close</button> </div>
         </div>
       </Modal>
     );
   };
+  const AddEditToolForm = ({ tool, onSave, onCancel }) => {
+    const [formData, setFormData] = useState({
+      name: tool?.name || '',
+      link: tool?.link || '',
+      description: tool?.description || '',
+      category: tool?.category || (toolCategories.length > 0 ? toolCategories[0] : ''),
+      status: tool?.status || (toolStatuses.length > 0 ? toolStatuses[0] : ''),
+      tags: tool?.tags?.join(', ') || '',
+      notes: tool?.notes || '',
+    });
 
-  // --- Leaflet Map Component ---
-  const PersonLocationMap = ({ locations }) => {
-    const mapRef = useRef(null);
-    const validLocations = useMemo(() =>
-        (Array.isArray(locations) ? locations : [])
-        .filter(loc => loc.coordinates && typeof loc.coordinates.lat === 'number' && typeof loc.coordinates.lng === 'number')
-    , [locations]);
+    const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
 
-    const mapCenter = useMemo(() =>
-        validLocations.length > 0 ? [validLocations[0].coordinates.lat, validLocations[0].coordinates.lng] : [20, 0] // Default center if no locations, more global
-    , [validLocations]);
-    
-    const defaultZoom = validLocations.length > 0 ? 6 : 2; // Zoom out more if no specific locations
-
-    // Component to auto-fit bounds or set view
-    const FitBounds = ({ locs }) => {
-        const map = useMap();
-        useEffect(() => {
-            if (locs && locs.length > 0) {
-                const bounds = locs.map(l => [l.coordinates.lat, l.coordinates.lng]);
-                if (bounds.length > 1) {
-                    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-                } else if (bounds.length === 1) { // Single location
-                    map.setView(bounds[0], 13);
-                }
-            } else { // No valid locations, set a default global view
-                 map.setView(mapCenter, defaultZoom);
-            }
-        }, [locs, map]); // mapCenter and defaultZoom are stable from outer scope
-        return null;
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!formData.name.trim()) { alert("Tool Name is required."); return; }
+      onSave({ ...formData, tags: formData.tags.split(',').map(t => t.trim()).filter(t => t) });
     };
-    
-    console.log("Map rendering with locations:", validLocations);
-
-    if (!Array.isArray(locations)) {
-        return <div className="h-full bg-slate-100 flex items-center justify-center text-slate-500"><Icon name="MapPin" className="w-8 h-8 mr-2"/>Location data is unavailable.</div>;
-    }
 
     return (
-        <MapContainer center={mapCenter} zoom={defaultZoom} scrollWheelZoom={true} style={{ height: '100%', minHeight: '300px', width: '100%' }} ref={mapRef} >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {validLocations.map(loc => (
-                <Marker key={loc.id || generateId()} position={[loc.coordinates.lat, loc.coordinates.lng]}>
-                    <Popup>
-                        <strong>{loc.address || loc.value || 'Location'}</strong><br/>
-                        {loc.notes && <p>{loc.notes}</p>}
-                        Lat: {loc.coordinates.lat.toFixed(4)}, Lng: {loc.coordinates.lng.toFixed(4)}
-                    </Popup>
-                </Marker>
-            ))}
-            <FitBounds locs={validLocations} />
-        </MapContainer>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <InputField label="Tool Name" name="name" value={formData.name} onChange={handleChange} required />
+        <InputField label="Link (URL)" name="link" type="url" value={formData.link} onChange={handleChange} placeholder="https://example.com" />
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><SelectField label="Category" name="category" value={formData.category} onChange={handleChange} options={toolCategories} /><SelectField label="Status" name="status" value={formData.status} onChange={handleChange} options={toolStatuses} /></div>
+        <InputField label="Tags (comma-separated)" name="tags" value={formData.tags} onChange={handleChange} />
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label><textarea name="notes" value={formData.notes} onChange={handleChange} rows="2" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea></div>
+        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"><button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400">Cancel</button><button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-md shadow-sm hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all transform hover:scale-105">{tool ? 'Save Changes' : 'Add Tool'}</button></div>
+      </form>
+    );
+  };
+  const AddEditTodoForm = ({ todo, onSave, onCancel }) => {
+    const [text, setText] = useState(todo?.text || '');
+    const [status, setStatus] = useState(todo?.status || 'open');
+    const [last_update_comment, setLastUpdateComment] = useState(todo?.last_update_comment || '');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!text.trim()) { alert("Task description cannot be empty."); return; }
+        onSave({ text, status, last_update_comment });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <InputField label="Task Description" name="text" value={text} onChange={(e) => setText(e.target.value)} required />
+            <SelectField label="Status" name="status" value={status} onChange={(e) => setStatus(e.target.value)} options={['open', 'done']} />
+            <InputField label="Update Comment (Optional)" name="last_update_comment" value={last_update_comment} onChange={(e) => setLastUpdateComment(e.target.value)} />
+            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200">Cancel</button>
+                <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md">
+                    {todo ? 'Save Changes' : 'Add Task'}
+                </button>
+            </div>
+        </form>
     );
   };
 
-
-  const AddEditToolForm = ({ tool, onSave, onCancel }) => { /* ... (Same as previous full version) ... */ };
-  const AddEditTodoForm = ({ todo, onSave, onCancel }) => { /* ... (Same as previous full version) ... */ };
-  const DetailSection = ({ title, children }) => ( /* ... (Same as previous full version) ... */ );
-  const InputField = ({ label, name, type = "text", value, onChange, required, placeholder, small, list, ...props }) => ( /* ... (Same as previous full version) ... */ );
-  const SelectField = ({ label, name, value, onChange, options, required, small, className, noLabel, ...props }) => ( /* ... (Same as previous full version) ... */ );
+  const DetailSection = ({ title, children }) => ( <div className="border-t border-slate-200 pt-4 mt-4"> <h4 className="text-lg font-semibold text-slate-700 mb-3">{title}</h4> {children} </div> );
+  const InputField = ({ label, name, type = "text", value, onChange, required, placeholder, small, list, ...props }) => ( <div> {label && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>} <input type={type} name={name} id={name} value={value} onChange={onChange} required={required} placeholder={placeholder} list={list} className={`mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2'}`} {...props} /> </div> );
+  const SelectField = ({ label, name, value, onChange, options, required, small, className, noLabel, ...props }) => ( <div className={className}> {!noLabel && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>} <select name={name} id={name} value={value} onChange={onChange} required={required} className={`block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2 h-[38px]'} ${noLabel ? '' : 'mt-1'}`} {...props} > {options.map(opt => <option key={opt} value={opt === 'All Categories' || opt === 'All Statuses' ? '' : opt}>{opt}</option>)} </select> </div> );
 
   // --- Main Render ---
   return (
@@ -579,9 +740,8 @@ function App() {
         /* ReactFlow CSS */
         @import url("https://unpkg.com/reactflow@latest/dist/style.css");
 
-        .leaflet-container { height: 100%; width: 100%; border-radius: 0.375rem; }
-        .react-flow__node { font-size: 10px; background: #fff; border: 1px solid #ddd; padding: 5px; border-radius: 3px;}
-        .react-flow__edge-text { font-size: 8px; }
+        .leaflet-container { height: 100%; width: 100%; border-radius: 0.375rem; /* Tailwind's rounded-md */ }
+        .react-flow__node { font-size: 10px; }
         .react-flow__attribution { display: none; }
 
         .animate-modalShow { animation: modalShow 0.3s ease-out forwards; }
