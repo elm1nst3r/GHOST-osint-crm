@@ -1,6 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var DefineOwnProperty = require('../helpers/DefineOwnProperty');
 
@@ -8,8 +9,6 @@ var FromPropertyDescriptor = require('./FromPropertyDescriptor');
 var IsDataDescriptor = require('./IsDataDescriptor');
 var isPropertyKey = require('../helpers/isPropertyKey');
 var SameValue = require('./SameValue');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-createmethodproperty
 

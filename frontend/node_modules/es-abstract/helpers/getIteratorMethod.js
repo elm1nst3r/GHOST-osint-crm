@@ -9,11 +9,13 @@ var $iterator = GetIntrinsic('%Symbol.iterator%', true);
 var $stringSlice = callBound('String.prototype.slice');
 var $String = GetIntrinsic('%String%');
 
+var IsArray = require('./IsArray');
+
 module.exports = function getIteratorMethod(ES, iterable) {
 	var usingIterator;
 	if (hasSymbols) {
 		usingIterator = ES.GetMethod(iterable, $iterator);
-	} else if (ES.IsArray(iterable)) {
+	} else if (IsArray(iterable)) {
 		usingIterator = function () {
 			var i = -1;
 			var arr = this; // eslint-disable-line no-invalid-this

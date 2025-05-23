@@ -4,8 +4,9 @@ var $TypeError = require('es-errors/type');
 
 var inspect = require('object-inspect');
 
-var isObject = require('../helpers/isObject');
 var isPropertyKey = require('../helpers/isPropertyKey');
+
+var isObject = require('es-object-atoms/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-get-o-p
 

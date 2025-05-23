@@ -3,6 +3,7 @@
 var $gOPD = require('gopd');
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var isPropertyDescriptor = require('../helpers/records/property-descriptor');
 
@@ -12,8 +13,6 @@ var isPropertyKey = require('../helpers/isPropertyKey');
 var ToPropertyDescriptor = require('./ToPropertyDescriptor');
 var SameValue = require('./SameValue');
 var ValidateAndApplyPropertyDescriptor = require('./ValidateAndApplyPropertyDescriptor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-ordinarydefineownproperty
 

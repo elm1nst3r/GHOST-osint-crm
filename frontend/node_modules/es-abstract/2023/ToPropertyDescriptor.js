@@ -3,11 +3,10 @@
 var hasOwn = require('hasown');
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var IsCallable = require('./IsCallable');
 var ToBoolean = require('./ToBoolean');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/5.1/#sec-8.10.5
 

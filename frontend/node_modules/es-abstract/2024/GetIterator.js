@@ -12,12 +12,10 @@ var AdvanceStringIndex = require('./AdvanceStringIndex');
 var CreateAsyncFromSyncIterator = require('./CreateAsyncFromSyncIterator');
 var GetIteratorFromMethod = require('./GetIteratorFromMethod');
 var GetMethod = require('./GetMethod');
-var IsArray = require('./IsArray');
 
 var ES = {
 	AdvanceStringIndex: AdvanceStringIndex,
-	GetMethod: GetMethod,
-	IsArray: IsArray
+	GetMethod: GetMethod
 };
 
 var getIteratorMethod = require('../helpers/getIteratorMethod');

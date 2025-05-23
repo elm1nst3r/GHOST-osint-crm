@@ -1,8 +1,8 @@
 'use strict';
 
-var inspect = require('object-inspect');
-
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
+var inspect = require('object-inspect');
 
 var Call = require('./Call');
 var Get = require('./Get');
@@ -12,8 +12,6 @@ var IteratorClose = require('./IteratorClose');
 var IteratorStep = require('./IteratorStep');
 var IteratorValue = require('./IteratorValue');
 var ThrowCompletion = require('./ThrowCompletion');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/14.0/#sec-add-entries-from-iterable
 

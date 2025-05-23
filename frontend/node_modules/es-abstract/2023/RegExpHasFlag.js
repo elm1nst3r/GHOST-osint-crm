@@ -4,11 +4,10 @@ var GetIntrinsic = require('get-intrinsic');
 var callBound = require('call-bound');
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var $RegExpPrototype = GetIntrinsic('%RegExp.prototype%');
 
 var SameValue = require('./SameValue');
-
-var isObject = require('../helpers/isObject');
 
 var $indexOf = callBound('String.prototype.indexOf');
 

@@ -2,18 +2,38 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
+
 "use strict";
 
-const Source = require("./Source");
 const RawSource = require("./RawSource");
-const streamChunks = require("./helpers/streamChunks");
+const Source = require("./Source");
 const { getMap, getSourceAndMap } = require("./helpers/getFromStreamChunks");
+const streamChunks = require("./helpers/streamChunks");
+
+/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").MapOptions} MapOptions */
+/** @typedef {import("./Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./Source").SourceAndMap} SourceAndMap */
+/** @typedef {import("./Source").SourceValue} SourceValue */
+/** @typedef {import("./helpers/getGeneratedSourceInfo").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./helpers/streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./helpers/streamChunks").OnName} OnName */
+/** @typedef {import("./helpers/streamChunks").OnSource} OnSource */
+/** @typedef {import("./helpers/streamChunks").Options} Options */
 
 const REPLACE_REGEX = /\n(?=.|\s)/g;
 
 class PrefixSource extends Source {
+	/**
+	 * @param {string} prefix prefix
+	 * @param {string | Buffer | Source} source source
+	 */
 	constructor(prefix, source) {
 		super();
+		/**
+		 * @private
+		 * @type {Source}
+		 */
 		this._source =
 			typeof source === "string" || Buffer.isBuffer(source)
 				? new RawSource(source, true)
@@ -29,22 +49,40 @@ class PrefixSource extends Source {
 		return this._source;
 	}
 
+	/**
+	 * @returns {SourceValue} source
+	 */
 	source() {
-		const node = this._source.source();
+		const node = /** @type {string} */ (this._source.source());
 		const prefix = this._prefix;
 		return prefix + node.replace(REPLACE_REGEX, "\n" + prefix);
 	}
 
 	// TODO efficient buffer() implementation
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {RawSourceMap | null} map
+	 */
 	map(options) {
 		return getMap(this, options);
 	}
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {SourceAndMap} source and map
+	 */
 	sourceAndMap(options) {
 		return getSourceAndMap(this, options);
 	}
 
+	/**
+	 * @param {Options} options options
+	 * @param {OnChunk} onChunk called for each chunk of code
+	 * @param {OnSource} onSource called for each source
+	 * @param {OnName} onName called for each name
+	 * @returns {GeneratedSourceInfo} generated source info
+	 */
 	streamChunks(options, onChunk, onSource, onName) {
 		const prefix = this._prefix;
 		const prefixOffset = prefix.length;
@@ -96,7 +134,9 @@ class PrefixSource extends Source {
 		return {
 			generatedLine,
 			generatedColumn:
-				generatedColumn === 0 ? 0 : prefixOffset + generatedColumn,
+				generatedColumn === 0
+					? 0
+					: prefixOffset + /** @type {number} */ (generatedColumn),
 			source:
 				source !== undefined
 					? prefix + source.replace(REPLACE_REGEX, "\n" + prefix)
@@ -104,6 +144,10 @@ class PrefixSource extends Source {
 		};
 	}
 
+	/**
+	 * @param {Hash} hash hash
+	 * @returns {void}
+	 */
 	updateHash(hash) {
 		hash.update("PrefixSource");
 		this._source.updateHash(hash);

@@ -4,8 +4,9 @@ var GetIntrinsic = require('get-intrinsic');
 
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
-var $preventExtensions = GetIntrinsic('%Object.preventExtensions%', true);
+var isObject = require('es-object-atoms/isObject');
 var $gOPD = require('gopd');
+var $preventExtensions = GetIntrinsic('%Object.preventExtensions%', true);
 var $gOPN = GetIntrinsic('%Object.getOwnPropertyNames%', true);
 
 var forEach = require('../helpers/forEach');
@@ -13,8 +14,6 @@ var forEach = require('../helpers/forEach');
 var DefinePropertyOrThrow = require('./DefinePropertyOrThrow');
 var IsAccessorDescriptor = require('./IsAccessorDescriptor');
 var ToPropertyDescriptor = require('./ToPropertyDescriptor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-setintegritylevel
 

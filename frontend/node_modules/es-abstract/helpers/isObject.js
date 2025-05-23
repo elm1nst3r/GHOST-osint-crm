@@ -1,5 +1,5 @@
 'use strict';
 
-module.exports = function isObject(x) {
-	return !!x && (typeof x === 'function' || typeof x === 'object');
-};
+// TODO: remove, semver-major
+
+module.exports = require('es-object-atoms/isObject');

@@ -1,6 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var inspect = require('object-inspect');
 var isInteger = require('math-intrinsics/isInteger');
 var regexTester = require('safe-regex-test');
@@ -14,7 +15,6 @@ var substring = require('./substring');
 var ToString = require('./ToString');
 
 var every = require('../helpers/every');
-var isObject = require('../helpers/isObject');
 var isPrefixOf = require('../helpers/isPrefixOf');
 var isStringOrUndefined = require('../helpers/isStringOrUndefined');
 

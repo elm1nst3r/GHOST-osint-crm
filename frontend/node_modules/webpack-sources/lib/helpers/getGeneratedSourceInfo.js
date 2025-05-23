@@ -7,7 +7,18 @@
 
 const CHAR_CODE_NEW_LINE = "\n".charCodeAt(0);
 
-const getGeneratedSourceInfo = source => {
+/**
+ * @typedef {object} GeneratedSourceInfo
+ * @property {number=} generatedLine
+ * @property {number=} generatedColumn
+ * @property {string=} source
+ */
+
+/**
+ * @param {string | undefined} source source
+ * @returns {GeneratedSourceInfo} source info
+ */
+const getGeneratedSourceInfo = (source) => {
 	if (source === undefined) {
 		return {};
 	}

@@ -8,7 +8,7 @@ This package contains type definitions for qs (https://github.com/ljharb/qs).
 Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qs.
 
 ### Additional Details
- * Last updated: Tue, 14 Jan 2025 01:30:27 GMT
+ * Last updated: Sat, 17 May 2025 04:36:54 GMT
  * Dependencies: none
 
 # Credits

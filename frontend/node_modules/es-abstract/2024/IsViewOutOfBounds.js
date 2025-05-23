@@ -3,6 +3,7 @@
 var $TypeError = require('es-errors/type');
 
 var IsDetachedBuffer = require('./IsDetachedBuffer');
+var IsFixedLengthArrayBuffer = require('./IsFixedLengthArrayBuffer');
 
 var isDataViewWithBufferWitnessRecord = require('../helpers/records/data-view-with-buffer-witness-record');
 
@@ -32,8 +33,10 @@ module.exports = function IsViewOutOfBounds(viewRecord) {
 
 	var byteOffsetStart = dataViewByteOffset(view); // step 5
 
-	var dvByteLength = dataViewByteLength(view);
-	var byteOffsetEnd = dvByteLength === 'AUTO' ? bufferByteLength : byteOffsetStart + dvByteLength; // steps 6 - 7
+	var isFixed = IsFixedLengthArrayBuffer(dataViewBuffer(view));
+
+	var viewByteLength = isFixed ? dataViewByteLength(view) : 'AUTO'; // view.[[ByteLength]]
+	var byteOffsetEnd = viewByteLength === 'AUTO' ? bufferByteLength : byteOffsetStart + viewByteLength; // steps 6 - 7
 
 	if (byteOffsetStart > bufferByteLength || byteOffsetEnd > bufferByteLength) {
 		return true; // step 8

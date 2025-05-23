@@ -25,9 +25,11 @@ const ccToValue = new Uint8Array("z".charCodeAt(0) + 1);
 }
 const ccMax = ccToValue.length - 1;
 
+/** @typedef {function(number, number, number, number, number, number): void} OnMapping */
+
 /**
  * @param {string} mappings the mappings string
- * @param {function(number, number, number, number, number, number): void} onMapping called for each mapping
+ * @param {OnMapping} onMapping called for each mapping
  * @returns {void}
  */
 const readMappings = (mappings, onMapping) => {

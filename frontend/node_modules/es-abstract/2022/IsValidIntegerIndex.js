@@ -4,8 +4,8 @@ var $TypeError = require('es-errors/type');
 var isNegativeZero = require('math-intrinsics/isNegativeZero');
 
 var IsDetachedBuffer = require('./IsDetachedBuffer');
-var IsIntegralNumber = require('./IsIntegralNumber');
 
+var isInteger = require('math-intrinsics/isInteger');
 var typedArrayBuffer = require('typed-array-buffer');
 
 // https://262.ecma-international.org/12.0/#sec-isvalidintegerindex
@@ -20,7 +20,7 @@ module.exports = function IsValidIntegerIndex(O, index) {
 
 	if (IsDetachedBuffer(buffer)) { return false; } // step 2
 
-	if (!IsIntegralNumber(index)) { return false; } // step 3
+	if (!isInteger(index)) { return false; } // step 3
 
 	if (isNegativeZero(index)) { return false; } // step 4
 

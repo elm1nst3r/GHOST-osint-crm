@@ -1,8 +1,8 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
-var isObject = require('../helpers/isObject');
 var isPropertyKey = require('../helpers/isPropertyKey');
 
 // https://262.ecma-international.org/6.0/#sec-ordinaryhasproperty

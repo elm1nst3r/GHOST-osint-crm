@@ -5,12 +5,11 @@ var $TypeError = require('es-errors/type');
 
 var every = require('../helpers/every');
 var OwnPropertyKeys = require('own-keys');
+var isObject = require('es-object-atoms/isObject');
 
 var IsDataDescriptor = require('./IsDataDescriptor');
 var IsExtensible = require('./IsExtensible');
 var ToPropertyDescriptor = require('./ToPropertyDescriptor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-testintegritylevel
 

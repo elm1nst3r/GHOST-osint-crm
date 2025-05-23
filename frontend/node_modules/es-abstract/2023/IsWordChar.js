@@ -18,7 +18,6 @@ var isChar = function isChar(c) {
 
 // https://262.ecma-international.org/14.0/#sec-runtime-semantics-iswordchar-abstract-operation
 
-// note: prior to ES2023, this AO erroneously omitted the latter of its arguments.
 module.exports = function IsWordChar(rer, Input, e) {
 	if (!isRegExpRecord(rer)) {
 		throw new $TypeError('Assertion failed: `rer` must be a RegExp Record');

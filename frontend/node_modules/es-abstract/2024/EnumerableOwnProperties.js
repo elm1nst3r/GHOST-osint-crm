@@ -1,7 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
-
+var isObject = require('es-object-atoms/isObject');
 var objectKeys = require('object-keys');
 var safePushApply = require('safe-push-apply');
 var callBound = require('call-bound');
@@ -9,7 +9,6 @@ var callBound = require('call-bound');
 var $isEnumerable = callBound('Object.prototype.propertyIsEnumerable');
 
 var forEach = require('../helpers/forEach');
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/14.0/#sec-enumerableownproperties
 

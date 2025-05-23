@@ -13,7 +13,7 @@ var typedArrayBuffer = require('typed-array-buffer');
 var typedArrayByteOffset = require('typed-array-byte-offset');
 var typedArrayLength = require('typed-array-length');
 
-// http://www.ecma-international.org/ecma-262/15.0/#sec-typedarraylength
+// https://www.ecma-international.org/ecma-262/15.0/#sec-typedarraylength
 
 module.exports = function TypedArrayLength(taRecord) {
 	if (!isTypedArrayWithBufferWitnessRecord(taRecord)) {
@@ -26,12 +26,14 @@ module.exports = function TypedArrayLength(taRecord) {
 
 	var O = taRecord['[[Object]]']; // step 2
 
-	var length = typedArrayLength(O);
+	var isFixed = IsFixedLengthArrayBuffer(typedArrayBuffer(O));
+
+	var length = isFixed ? typedArrayLength(O) : 'AUTO';
 	if (length !== 'AUTO') {
 		return length; // step 3
 	}
 
-	if (IsFixedLengthArrayBuffer(typedArrayBuffer(O))) {
+	if (isFixed) {
 		throw new $TypeError('Assertion failed: array buffer is not fixed length'); // step 4
 	}
 

@@ -1,6 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var Call = require('./Call');
 var CreateDataProperty = require('./CreateDataProperty');
@@ -11,7 +12,6 @@ var ToLength = require('./ToLength');
 var ToString = require('./ToString');
 
 var forEach = require('../helpers/forEach');
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/9.0/#sec-internalizejsonproperty
 

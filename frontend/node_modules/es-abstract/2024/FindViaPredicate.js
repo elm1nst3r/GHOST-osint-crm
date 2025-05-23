@@ -2,14 +2,13 @@
 
 var $TypeError = require('es-errors/type');
 var isInteger = require('math-intrinsics/isInteger');
+var isObject = require('es-object-atoms/isObject');
 
 var Call = require('./Call');
 var Get = require('./Get');
 var ToBoolean = require('./ToBoolean');
 var IsCallable = require('./IsCallable');
 var ToString = require('./ToString');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/15.0/#sec-findviapredicate
 

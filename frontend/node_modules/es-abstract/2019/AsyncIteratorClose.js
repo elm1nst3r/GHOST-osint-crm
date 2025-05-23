@@ -4,13 +4,13 @@ var GetIntrinsic = require('get-intrinsic');
 
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var $Promise = GetIntrinsic('%Promise%', true);
 
 var Call = require('./Call');
 var CompletionRecord = require('./CompletionRecord');
 var GetMethod = require('./GetMethod');
 
-var isObject = require('../helpers/isObject');
 var isIteratorRecord = require('../helpers/records/iterator-record-2023');
 
 var callBound = require('call-bound');

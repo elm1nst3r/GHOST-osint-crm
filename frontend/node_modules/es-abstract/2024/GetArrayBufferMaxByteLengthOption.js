@@ -1,9 +1,9 @@
 'use strict';
 
+var isObject = require('es-object-atoms/isObject');
+
 var Get = require('./Get');
 var ToIndex = require('./ToIndex');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/15.0/#sec-getarraybuffermaxbytelengthoption
 

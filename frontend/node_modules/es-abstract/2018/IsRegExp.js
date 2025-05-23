@@ -5,10 +5,9 @@ var GetIntrinsic = require('get-intrinsic');
 var $match = GetIntrinsic('%Symbol.match%', true);
 
 var hasRegExpMatcher = require('is-regex');
+var isObject = require('es-object-atoms/isObject');
 
 var ToBoolean = require('./ToBoolean');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-isregexp
 

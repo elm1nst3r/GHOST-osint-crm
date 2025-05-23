@@ -50,7 +50,7 @@ module.exports = function SetValueInBuffer(arrayBuffer, byteIndex, type, value) 
 	}
 
 	if (typeof type !== 'string' || !hasOwn(tableTAO.size, '$' + type)) {
-		throw new $TypeError('Assertion failed: `type` must be a Typed Array Element Type');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	if (typeof value !== 'number') {
@@ -79,7 +79,7 @@ module.exports = function SetValueInBuffer(arrayBuffer, byteIndex, type, value) 
 
 	var elementSize = tableTAO.size['$' + type]; // step 7
 	if (!elementSize) {
-		throw new $TypeError('Assertion failed: `type` must be one of "Int8", "Uint8", "Uint8C", "Int16", "Uint16", "Int32", "Uint32", "Float32", or "Float64"');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	// 8. If isLittleEndian is not present, set isLittleEndian to either true or false. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the GetValueFromBuffer abstract operation.

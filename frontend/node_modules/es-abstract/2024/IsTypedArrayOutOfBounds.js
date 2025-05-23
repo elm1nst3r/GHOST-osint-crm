@@ -3,6 +3,7 @@
 var $TypeError = require('es-errors/type');
 
 var IsDetachedBuffer = require('./IsDetachedBuffer');
+var IsFixedLengthArrayBuffer = require('./IsFixedLengthArrayBuffer');
 var TypedArrayElementSize = require('./TypedArrayElementSize');
 
 var isTypedArrayWithBufferWitnessRecord = require('../helpers/records/typed-array-with-buffer-witness-record');
@@ -32,8 +33,10 @@ module.exports = function IsTypedArrayOutOfBounds(taRecord) {
 
 	var byteOffsetStart = typedArrayByteOffset(O); // step 5
 
+	var isFixed = IsFixedLengthArrayBuffer(typedArrayBuffer(O));
+
 	var byteOffsetEnd;
-	var length = typedArrayLength(O);
+	var length = isFixed ? typedArrayLength(O) : 'AUTO';
 	// TODO: probably use package for array length
 	// seems to apply when TA is backed by a resizable/growable AB
 	if (length === 'AUTO') { // step 6

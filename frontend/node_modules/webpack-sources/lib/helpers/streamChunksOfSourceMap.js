@@ -10,6 +10,20 @@ const getSource = require("./getSource");
 const readMappings = require("./readMappings");
 const splitIntoLines = require("./splitIntoLines");
 
+/** @typedef {import("../Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./getGeneratedSourceInfo").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./streamChunks").OnName} OnName */
+/** @typedef {import("./streamChunks").OnSource} OnSource */
+
+/**
+ * @param {string} source source
+ * @param {RawSourceMap} sourceMap source map
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} onName on name
+ * @returns {GeneratedSourceInfo} generated source info
+ */
 const streamChunksOfSourceMapFull = (
 	source,
 	sourceMap,
@@ -52,6 +66,15 @@ const streamChunksOfSourceMapFull = (
 	let activeMappingOriginalColumn = -1;
 	let activeMappingNameIndex = -1;
 
+	/**
+	 * @param {number} generatedLine generated line
+	 * @param {number} generatedColumn generated column
+	 * @param {number} sourceIndex source index
+	 * @param {number} originalLine original line
+	 * @param {number} originalColumn original column
+	 * @param {number} nameIndex name index
+	 * @returns {void}
+	 */
 	const onMapping = (
 		generatedLine,
 		generatedColumn,
@@ -156,6 +179,14 @@ const streamChunksOfSourceMapFull = (
 	};
 };
 
+/**
+ * @param {string} source source
+ * @param {RawSourceMap} sourceMap source map
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} _onName on name
+ * @returns {GeneratedSourceInfo} generated source info
+ */
 const streamChunksOfSourceMapLinesFull = (
 	source,
 	sourceMap,
@@ -181,6 +212,15 @@ const streamChunksOfSourceMapLinesFull = (
 
 	let currentGeneratedLine = 1;
 
+	/**
+	 * @param {number} generatedLine generated line
+	 * @param {number} _generatedColumn generated column
+	 * @param {number} sourceIndex source index
+	 * @param {number} originalLine original line
+	 * @param {number} originalColumn original column
+	 * @param {number} _nameIndex name index
+	 * @returns {void}
+	 */
 	const onMapping = (
 		generatedLine,
 		_generatedColumn,
@@ -248,6 +288,14 @@ const streamChunksOfSourceMapLinesFull = (
 	};
 };
 
+/**
+ * @param {string} source source
+ * @param {RawSourceMap} sourceMap source map
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} onName on name
+ * @returns {GeneratedSourceInfo} generated source info
+ */
 const streamChunksOfSourceMapFinal = (
 	source,
 	sourceMap,
@@ -275,6 +323,15 @@ const streamChunksOfSourceMapFinal = (
 
 	let mappingActiveLine = 0;
 
+	/**
+	 * @param {number} generatedLine generated line
+	 * @param {number} generatedColumn generated column
+	 * @param {number} sourceIndex source index
+	 * @param {number} originalLine original line
+	 * @param {number} originalColumn original column
+	 * @param {number} nameIndex name index
+	 * @returns {void}
+	 */
 	const onMapping = (
 		generatedLine,
 		generatedColumn,
@@ -284,8 +341,9 @@ const streamChunksOfSourceMapFinal = (
 		nameIndex
 	) => {
 		if (
-			generatedLine >= finalLine &&
-			(generatedColumn >= finalColumn || generatedLine > finalLine)
+			generatedLine >= /** @type {number} */ (finalLine) &&
+			(generatedColumn >= /** @type {number} */ (finalColumn) ||
+				generatedLine > /** @type {number} */ (finalLine))
 		) {
 			return;
 		}
@@ -309,6 +367,14 @@ const streamChunksOfSourceMapFinal = (
 	return result;
 };
 
+/**
+ * @param {string} source source
+ * @param {RawSourceMap} sourceMap source map
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} _onName on name
+ * @returns {GeneratedSourceInfo} generated source info
+ */
 const streamChunksOfSourceMapLinesFinal = (
 	source,
 	sourceMap,
@@ -334,10 +400,22 @@ const streamChunksOfSourceMapLinesFinal = (
 		);
 	}
 
-	const finalLine = generatedColumn === 0 ? generatedLine - 1 : generatedLine;
+	const finalLine =
+		generatedColumn === 0
+			? /** @type {number} */ (generatedLine) - 1
+			: /** @type {number} */ (generatedLine);
 
 	let currentGeneratedLine = 1;
 
+	/**
+	 * @param {number} generatedLine generated line
+	 * @param {number} _generatedColumn generated column
+	 * @param {number} sourceIndex source index
+	 * @param {number} originalLine original line
+	 * @param {number} originalColumn original column
+	 * @param {number} _nameIndex name index
+	 * @returns {void}
+	 */
 	const onMapping = (
 		generatedLine,
 		_generatedColumn,
@@ -367,6 +445,16 @@ const streamChunksOfSourceMapLinesFinal = (
 	return result;
 };
 
+/**
+ * @param {string} source source
+ * @param {RawSourceMap} sourceMap source map
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} onName on name
+ * @param {boolean} finalSource final source
+ * @param {boolean} columns columns
+ * @returns {GeneratedSourceInfo} generated source info
+ */
 module.exports = (
 	source,
 	sourceMap,

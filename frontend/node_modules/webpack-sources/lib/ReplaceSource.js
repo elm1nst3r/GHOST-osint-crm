@@ -2,12 +2,24 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
+
 "use strict";
 
-const { getMap, getSourceAndMap } = require("./helpers/getFromStreamChunks");
-const streamChunks = require("./helpers/streamChunks");
 const Source = require("./Source");
+const { getMap, getSourceAndMap } = require("./helpers/getFromStreamChunks");
 const splitIntoLines = require("./helpers/splitIntoLines");
+const streamChunks = require("./helpers/streamChunks");
+
+/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").MapOptions} MapOptions */
+/** @typedef {import("./Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./Source").SourceAndMap} SourceAndMap */
+/** @typedef {import("./Source").SourceValue} SourceValue */
+/** @typedef {import("./helpers/getGeneratedSourceInfo").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./helpers/streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./helpers/streamChunks").OnName} OnName */
+/** @typedef {import("./helpers/streamChunks").OnSource} OnSource */
+/** @typedef {import("./helpers/streamChunks").Options} Options */
 
 // since v8 7.0, Array.prototype.sort is stable
 const hasStableSort =
@@ -20,6 +32,12 @@ const hasStableSort =
 const MAX_SOURCE_POSITION = 0x20000000;
 
 class Replacement {
+	/**
+	 * @param {number} start start
+	 * @param {number} end end
+	 * @param {string} content content
+	 * @param {string=} name name
+	 */
 	constructor(start, end, content, name) {
 		this.start = start;
 		this.end = end;
@@ -32,6 +50,10 @@ class Replacement {
 }
 
 class ReplaceSource extends Source {
+	/**
+	 * @param {Source} source source
+	 * @param {string=} name name
+	 */
 	constructor(source, name) {
 		super();
 		this._source = source;
@@ -50,6 +72,13 @@ class ReplaceSource extends Source {
 		return this._replacements;
 	}
 
+	/**
+	 * @param {number} start start
+	 * @param {number} end end
+	 * @param {string} newValue new value
+	 * @param {string=} name name
+	 * @returns {void}
+	 */
 	replace(start, end, newValue, name) {
 		if (typeof newValue !== "string")
 			throw new Error(
@@ -59,6 +88,12 @@ class ReplaceSource extends Source {
 		this._isSorted = false;
 	}
 
+	/**
+	 * @param {number} pos pos
+	 * @param {string} newValue new value
+	 * @param {string=} name name
+	 * @returns {void}
+	 */
 	insert(pos, newValue, name) {
 		if (typeof newValue !== "string")
 			throw new Error(
@@ -71,6 +106,9 @@ class ReplaceSource extends Source {
 		this._isSorted = false;
 	}
 
+	/**
+	 * @returns {SourceValue} source
+	 */
 	source() {
 		if (this._replacements.length === 0) {
 			return this._source.source();
@@ -100,6 +138,10 @@ class ReplaceSource extends Source {
 		return result.join("");
 	}
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {RawSourceMap | null} map
+	 */
 	map(options) {
 		if (this._replacements.length === 0) {
 			return this._source.map(options);
@@ -107,6 +149,10 @@ class ReplaceSource extends Source {
 		return getMap(this, options);
 	}
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {SourceAndMap} source and map
+	 */
 	sourceAndMap(options) {
 		if (this._replacements.length === 0) {
 			return this._source.sourceAndMap(options);
@@ -135,27 +181,49 @@ class ReplaceSource extends Source {
 				if (diff1 !== 0) return diff1;
 				const diff2 = a.end - b.end;
 				if (diff2 !== 0) return diff2;
-				return a.index - b.index;
+				return (
+					/** @type {number} */ (a.index) - /** @type {number} */ (b.index)
+				);
 			});
 		}
 		this._isSorted = true;
 	}
 
+	/**
+	 * @param {Options} options options
+	 * @param {OnChunk} onChunk called for each chunk of code
+	 * @param {OnSource} onSource called for each source
+	 * @param {OnName} onName called for each name
+	 * @returns {GeneratedSourceInfo} generated source info
+	 */
 	streamChunks(options, onChunk, onSource, onName) {
 		this._sortReplacements();
-		const repls = this._replacements;
+		const replacements = this._replacements;
 		let pos = 0;
 		let i = 0;
 		let replacmentEnd = -1;
 		let nextReplacement =
-			i < repls.length ? Math.floor(repls[i].start) : MAX_SOURCE_POSITION;
+			i < replacements.length
+				? Math.floor(replacements[i].start)
+				: MAX_SOURCE_POSITION;
 		let generatedLineOffset = 0;
 		let generatedColumnOffset = 0;
 		let generatedColumnOffsetLine = 0;
+		/** @type {(string | string[] | undefined)[]} */
 		const sourceContents = [];
+		/** @type {Map<string, number>} */
 		const nameMapping = new Map();
+		/** @type {number[]} */
 		const nameIndexMapping = [];
+		/**
+		 * @param {number} sourceIndex source index
+		 * @param {number} line line
+		 * @param {number} column column
+		 * @param {string} expectedChunk expected chunk
+		 * @returns {boolean} result
+		 */
 		const checkOriginalContent = (sourceIndex, line, column, expectedChunk) => {
+			/** @type {undefined | string | string[]} */
 			let content =
 				sourceIndex < sourceContents.length
 					? sourceContents[sourceIndex]
@@ -176,7 +244,7 @@ class ReplaceSource extends Source {
 			this._source,
 			Object.assign({}, options, { finalSource: false }),
 			(
-				chunk,
+				_chunk,
 				generatedLine,
 				generatedColumn,
 				sourceIndex,
@@ -185,6 +253,7 @@ class ReplaceSource extends Source {
 				nameIndex
 			) => {
 				let chunkPos = 0;
+				const chunk = /** @type {string} */ (_chunk);
 				let endPos = pos + chunk.length;
 
 				// Skip over when it has been replaced
@@ -269,7 +338,7 @@ class ReplaceSource extends Source {
 						}
 
 						// Insert replacement content splitted into chunks by lines
-						const { content, name } = repls[i];
+						const { content, name } = replacements[i];
 						let matches = splitIntoLines(content);
 						let replacementNameIndex = nameIndex;
 						if (sourceIndex >= 0 && name) {
@@ -317,14 +386,14 @@ class ReplaceSource extends Source {
 						// Remove replaced content by settings this variable
 						replacmentEnd = Math.max(
 							replacmentEnd,
-							Math.floor(repls[i].end + 1)
+							Math.floor(replacements[i].end + 1)
 						);
 
 						// Move to next replacment
 						i++;
 						nextReplacement =
-							i < repls.length
-								? Math.floor(repls[i].start)
+							i < replacements.length
+								? Math.floor(replacements[i].start)
 								: MAX_SOURCE_POSITION;
 
 						// Skip over when it has been replaced
@@ -410,19 +479,20 @@ class ReplaceSource extends Source {
 
 		// Handle remaining replacements
 		let remainer = "";
-		for (; i < repls.length; i++) {
-			remainer += repls[i].content;
+		for (; i < replacements.length; i++) {
+			remainer += replacements[i].content;
 		}
 
 		// Insert remaining replacements content splitted into chunks by lines
-		let line = generatedLine + generatedLineOffset;
+		let line = /** @type {number} */ (generatedLine) + generatedLineOffset;
 		let matches = splitIntoLines(remainer);
 		for (let m = 0; m < matches.length; m++) {
 			const contentLine = matches[m];
 			onChunk(
 				contentLine,
 				line,
-				generatedColumn +
+				/** @type {number} */
+				(generatedColumn) +
 					(line === generatedColumnOffsetLine ? generatedColumnOffset : 0),
 				-1,
 				-1,
@@ -440,7 +510,7 @@ class ReplaceSource extends Source {
 			} else {
 				generatedLineOffset++;
 				line++;
-				generatedColumnOffset = -generatedColumn;
+				generatedColumnOffset = -(/** @type {number} */ (generatedColumn));
 				generatedColumnOffsetLine = line;
 			}
 		}
@@ -448,20 +518,28 @@ class ReplaceSource extends Source {
 		return {
 			generatedLine: line,
 			generatedColumn:
-				generatedColumn +
+				/** @type {number} */
+				(generatedColumn) +
 				(line === generatedColumnOffsetLine ? generatedColumnOffset : 0)
 		};
 	}
 
+	/**
+	 * @param {Hash} hash hash
+	 * @returns {void}
+	 */
 	updateHash(hash) {
 		this._sortReplacements();
 		hash.update("ReplaceSource");
 		this._source.updateHash(hash);
 		hash.update(this._name || "");
 		for (const repl of this._replacements) {
-			hash.update(`${repl.start}${repl.end}${repl.content}${repl.name}`);
+			hash.update(
+				`${repl.start}${repl.end}${repl.content}${repl.name ? repl.name : ""}`
+			);
 		}
 	}
 }
 
 module.exports = ReplaceSource;
+module.exports.Replacement = Replacement;

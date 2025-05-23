@@ -3,7 +3,7 @@
 var $RangeError = require('es-errors/range');
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
-var callBound = require('call-bound');
+var GetIntrinsic = require('get-intrinsic');
 var isInteger = require('math-intrinsics/isInteger');
 var typedArrayBuffer = require('typed-array-buffer');
 var typedArrayByteLength = require('typed-array-byte-length');
@@ -20,7 +20,7 @@ var SetValueInBuffer = require('./SetValueInBuffer');
 var TypedArrayElementSize = require('./TypedArrayElementSize');
 var TypedArrayElementType = require('./TypedArrayElementType');
 
-var $ArrayBuffer = callBound('ArrayBuffer', true);
+var $ArrayBuffer = GetIntrinsic('%ArrayBuffer%', true);
 
 // https://262.ecma-international.org/14.0/#sec-settypedarrayfromtypedarray
 

@@ -4,6 +4,7 @@ var GetIntrinsic = require('get-intrinsic');
 
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var $Promise = GetIntrinsic('%Promise%', true);
 
 var callBound = require('call-bound');
@@ -12,8 +13,6 @@ var CreateIterResultObject = require('./CreateIterResultObject');
 var IteratorComplete = require('./IteratorComplete');
 var IteratorValue = require('./IteratorValue');
 var PromiseResolve = require('./PromiseResolve');
-
-var isObject = require('../helpers/isObject');
 
 var $then = callBound('Promise.prototype.then', true);
 

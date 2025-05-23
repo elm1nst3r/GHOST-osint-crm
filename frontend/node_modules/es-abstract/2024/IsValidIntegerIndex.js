@@ -3,11 +3,11 @@
 var $TypeError = require('es-errors/type');
 
 var IsDetachedBuffer = require('./IsDetachedBuffer');
-var IsIntegralNumber = require('./IsIntegralNumber');
 var IsTypedArrayOutOfBounds = require('./IsTypedArrayOutOfBounds');
 var MakeTypedArrayWithBufferWitnessRecord = require('./MakeTypedArrayWithBufferWitnessRecord');
 var TypedArrayLength = require('./TypedArrayLength');
 
+var isInteger = require('math-intrinsics/isInteger');
 var isNegativeZero = require('math-intrinsics/isNegativeZero');
 
 var isTypedArray = require('is-typed-array');
@@ -27,7 +27,7 @@ module.exports = function IsValidIntegerIndex(O, index) {
 
 	if (IsDetachedBuffer(buffer)) { return false; } // step 1
 
-	if (!IsIntegralNumber(index)) { return false; } // step 2
+	if (!isInteger(index)) { return false; } // step 2
 
 	if (isNegativeZero(index)) { return false; } // step 3
 

@@ -4,6 +4,7 @@ var GetIntrinsic = require('get-intrinsic');
 var hasSymbols = require('has-symbols')();
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var IteratorPrototype = GetIntrinsic('%IteratorPrototype%', true);
 
 var AdvanceStringIndex = require('./AdvanceStringIndex');
@@ -15,8 +16,6 @@ var RegExpExec = require('./RegExpExec');
 var Set = require('./Set');
 var ToLength = require('./ToLength');
 var ToString = require('./ToString');
-
-var isObject = require('../helpers/isObject');
 
 var SLOT = require('internal-slot');
 var setToStringTag = require('es-set-tostringtag');

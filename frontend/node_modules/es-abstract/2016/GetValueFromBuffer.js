@@ -59,7 +59,7 @@ module.exports = function GetValueFromBuffer(arrayBuffer, byteIndex, type) {
 
 	var elementSize = tableTAO.size['$' + type]; // step 5
 	if (!elementSize) {
-		throw new $TypeError('Assertion failed: `type` must be one of "Int8", "Uint8", "Uint8C", "Int16", "Uint16", "Int32", "Uint32", "Float32", or "Float64"');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	// 6. Let rawValue be a List of elementSize containing, in order, the elementSize sequence of bytes starting with block[byteIndex].

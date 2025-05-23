@@ -34,7 +34,7 @@ module.exports = function GetValueFromBuffer(arrayBuffer, byteIndex, type, isTyp
 	}
 
 	if (typeof type !== 'string' || typeof tableTAO.size['$' + type] !== 'number') {
-		throw new $TypeError('Assertion failed: `type` must be a Typed Array element type');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	if (typeof isTypedArray !== 'boolean') {
@@ -63,7 +63,7 @@ module.exports = function GetValueFromBuffer(arrayBuffer, byteIndex, type, isTyp
 
 	var elementSize = tableTAO.size['$' + type]; // step 5
 	if (!elementSize) {
-		throw new $TypeError('Assertion failed: `type` must be one of "INT8", "UINT8", "UINT8C", "INT16", "UINT16", "INT32", "UINT32", "BIGINT64", "BIGUINT64", "FLOAT32", or "FLOAT64"');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	var rawValue;

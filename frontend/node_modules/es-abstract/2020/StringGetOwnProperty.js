@@ -1,6 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var callBound = require('call-bound');
 var $charAt = callBound('String.prototype.charAt');
@@ -9,7 +10,6 @@ var $stringToString = callBound('String.prototype.toString');
 var CanonicalNumericIndexString = require('./CanonicalNumericIndexString');
 var IsInteger = require('./IsInteger');
 
-var isObject = require('../helpers/isObject');
 var isPropertyKey = require('../helpers/isPropertyKey');
 
 var isNegativeZero = require('math-intrinsics/isNegativeZero');

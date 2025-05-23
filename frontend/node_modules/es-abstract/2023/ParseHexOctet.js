@@ -3,9 +3,9 @@
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
 
-var IsIntegralNumber = require('./IsIntegralNumber');
 var substring = require('./substring');
 
+var isInteger = require('math-intrinsics/isInteger');
 var isNaN = require('math-intrinsics/isNaN');
 
 // https://262.ecma-international.org/14.0/#sec-parsehexoctet
@@ -14,7 +14,7 @@ module.exports = function ParseHexOctet(string, position) {
 	if (typeof string !== 'string') {
 		throw new $TypeError('Assertion failed: `string` must be a String');
 	}
-	if (!IsIntegralNumber(position) || position < 0) {
+	if (!isInteger(position) || position < 0) {
 		throw new $TypeError('Assertion failed: `position` must be a nonnegative integer');
 	}
 

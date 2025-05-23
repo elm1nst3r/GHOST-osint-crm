@@ -4,6 +4,7 @@ var GetIntrinsic = require('get-intrinsic');
 
 var $SyntaxError = require('es-errors/syntax');
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 var $Promise = GetIntrinsic('%Promise%', true);
 
 var Call = require('./Call');
@@ -16,7 +17,6 @@ var IteratorValue = require('./IteratorValue');
 var ObjectCreate = require('./ObjectCreate');
 var PromiseResolve = require('./PromiseResolve');
 
-var isObject = require('../helpers/isObject');
 var isIteratorRecord = require('../helpers/records/iterator-record-2023');
 
 var SLOT = require('internal-slot');

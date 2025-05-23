@@ -70,7 +70,7 @@ wp.watch({
 // directories: only directories, directory content (and content of children, ...) and
 //              existence changes are tracked.
 //              assumed to exist, when directory is not found without further information a remove event is emitted
-// missing: can be files or directorees,
+// missing: can be files or directories,
 //          only existence changes are tracked
 //          expected to not exist, no remove event is emitted when not found initially
 // files and directories are assumed to exist, when they are not found without further information a remove event is emitted

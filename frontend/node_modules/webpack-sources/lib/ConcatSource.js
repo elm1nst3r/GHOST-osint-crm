@@ -2,21 +2,45 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
+
 "use strict";
 
-const Source = require("./Source");
 const RawSource = require("./RawSource");
-const streamChunks = require("./helpers/streamChunks");
+const Source = require("./Source");
 const { getMap, getSourceAndMap } = require("./helpers/getFromStreamChunks");
+const streamChunks = require("./helpers/streamChunks");
+
+/** @typedef {import("./CompatSource").SourceLike} SourceLike */
+/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").MapOptions} MapOptions */
+/** @typedef {import("./Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./Source").SourceAndMap} SourceAndMap */
+/** @typedef {import("./Source").SourceValue} SourceValue */
+/** @typedef {import("./helpers/getGeneratedSourceInfo").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./helpers/streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./helpers/streamChunks").OnName} OnName */
+/** @typedef {import("./helpers/streamChunks").OnSource} OnSource */
+/** @typedef {import("./helpers/streamChunks").Options} Options */
+
+/** @typedef {string | Source | SourceLike} Child */
 
 const stringsAsRawSources = new WeakSet();
 
 class ConcatSource extends Source {
-	constructor() {
+	/**
+	 *
+	 * @param {Child[]} args children
+	 */
+	constructor(...args) {
 		super();
+		/**
+		 * @private
+		 * @type {Child[]}
+		 */
 		this._children = [];
-		for (let i = 0; i < arguments.length; i++) {
-			const item = arguments[i];
+
+		for (let i = 0; i < args.length; i++) {
+			const item = args[i];
 			if (item instanceof ConcatSource) {
 				for (const child of item._children) {
 					this._children.push(child);
@@ -25,14 +49,22 @@ class ConcatSource extends Source {
 				this._children.push(item);
 			}
 		}
-		this._isOptimized = arguments.length === 0;
+
+		this._isOptimized = args.length === 0;
 	}
 
+	/**
+	 * @returns {Source[]} children
+	 */
 	getChildren() {
 		if (!this._isOptimized) this._optimize();
-		return this._children;
+		return /** @type {Source[]} */ (this._children);
 	}
 
+	/**
+	 * @param {Child} item item
+	 * @returns {void}
+	 */
 	add(item) {
 		if (item instanceof ConcatSource) {
 			for (const child of item._children) {
@@ -44,6 +76,10 @@ class ConcatSource extends Source {
 		this._isOptimized = false;
 	}
 
+	/**
+	 * @param {Child[]} items items
+	 * @returns {void}
+	 */
 	addAllSkipOptimizing(items) {
 		for (const item of items) {
 			this._children.push(item);
@@ -52,8 +88,9 @@ class ConcatSource extends Source {
 
 	buffer() {
 		if (!this._isOptimized) this._optimize();
+		/** @type {Buffer[]} */
 		const buffers = [];
-		for (const child of this._children) {
+		for (const child of /** @type {SourceLike[]} */ (this._children)) {
 			if (typeof child.buffer === "function") {
 				buffers.push(child.buffer());
 			} else {
@@ -69,11 +106,14 @@ class ConcatSource extends Source {
 		return Buffer.concat(buffers);
 	}
 
+	/**
+	 * @returns {SourceValue} source
+	 */
 	source() {
 		if (!this._isOptimized) this._optimize();
 		let source = "";
 		for (const child of this._children) {
-			source += child.source();
+			source += /** @type {Source} */ (child).source();
 		}
 		return source;
 	}
@@ -82,23 +122,44 @@ class ConcatSource extends Source {
 		if (!this._isOptimized) this._optimize();
 		let size = 0;
 		for (const child of this._children) {
-			size += child.size();
+			size += /** @type {Source} */ (child).size();
 		}
 		return size;
 	}
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {RawSourceMap | null} map
+	 */
 	map(options) {
 		return getMap(this, options);
 	}
 
+	/**
+	 * @param {MapOptions=} options map options
+	 * @returns {SourceAndMap} source and map
+	 */
 	sourceAndMap(options) {
 		return getSourceAndMap(this, options);
 	}
 
+	/**
+	 * @param {Options} options options
+	 * @param {OnChunk} onChunk called for each chunk of code
+	 * @param {OnSource} onSource called for each source
+	 * @param {OnName} onName called for each name
+	 * @returns {GeneratedSourceInfo} generated source info
+	 */
 	streamChunks(options, onChunk, onSource, onName) {
 		if (!this._isOptimized) this._optimize();
-		if (this._children.length === 1)
-			return this._children[0].streamChunks(options, onChunk, onSource, onName);
+		if (this._children.length === 1) {
+			return /** @type {ConcatSource[]} */ (this._children)[0].streamChunks(
+				options,
+				onChunk,
+				onSource,
+				onName
+			);
+		}
 		let currentLineOffset = 0;
 		let currentColumnOffset = 0;
 		let sourceMapping = new Map();
@@ -106,8 +167,10 @@ class ConcatSource extends Source {
 		const finalSource = !!(options && options.finalSource);
 		let code = "";
 		let needToCloseMapping = false;
-		for (const item of this._children) {
+		for (const item of /** @type {Source[]} */ (this._children)) {
+			/** @type {number[]} */
 			const sourceIndexMapping = [];
+			/** @type {number[]} */
 			const nameIndexMapping = [];
 			let lastMappingLine = 0;
 			const { generatedLine, generatedColumn, source } = streamChunks(
@@ -212,15 +275,15 @@ class ConcatSource extends Source {
 					needToCloseMapping = false;
 				}
 			}
-			if (generatedLine > 1) {
-				currentColumnOffset = generatedColumn;
+			if (/** @type {number} */ (generatedLine) > 1) {
+				currentColumnOffset = /** @type {number} */ (generatedColumn);
 			} else {
-				currentColumnOffset += generatedColumn;
+				currentColumnOffset += /** @type {number} */ (generatedColumn);
 			}
 			needToCloseMapping =
 				needToCloseMapping ||
 				(finalSource && lastMappingLine === generatedLine);
-			currentLineOffset += generatedLine - 1;
+			currentLineOffset += /** @type {number} */ (generatedLine) - 1;
 		}
 		return {
 			generatedLine: currentLineOffset + 1,
@@ -229,19 +292,29 @@ class ConcatSource extends Source {
 		};
 	}
 
+	/**
+	 * @param {Hash} hash hash
+	 * @returns {void}
+	 */
 	updateHash(hash) {
 		if (!this._isOptimized) this._optimize();
 		hash.update("ConcatSource");
 		for (const item of this._children) {
-			item.updateHash(hash);
+			/** @type {Source} */
+			(item).updateHash(hash);
 		}
 	}
 
 	_optimize() {
 		const newChildren = [];
 		let currentString = undefined;
+		/** @type {undefined | string | [string, string] | SourceLike} */
 		let currentRawSources = undefined;
-		const addStringToRawSources = string => {
+		/**
+		 * @param {string} string string
+		 * @returns {void}
+		 */
+		const addStringToRawSources = (string) => {
 			if (currentRawSources === undefined) {
 				currentRawSources = string;
 			} else if (Array.isArray(currentRawSources)) {
@@ -250,22 +323,30 @@ class ConcatSource extends Source {
 				currentRawSources = [
 					typeof currentRawSources === "string"
 						? currentRawSources
-						: currentRawSources.source(),
+						: /** @type {string} */ (currentRawSources.source()),
 					string
 				];
 			}
 		};
-		const addSourceToRawSources = source => {
+		/**
+		 * @param {SourceLike} source source
+		 * @returns {void}
+		 */
+		const addSourceToRawSources = (source) => {
 			if (currentRawSources === undefined) {
 				currentRawSources = source;
 			} else if (Array.isArray(currentRawSources)) {
-				currentRawSources.push(source.source());
+				currentRawSources.push(
+					/** @type {string} */
+					(source.source())
+				);
 			} else {
 				currentRawSources = [
 					typeof currentRawSources === "string"
 						? currentRawSources
-						: currentRawSources.source(),
-					source.source()
+						: /** @type {string} */ (currentRawSources.source()),
+					/** @type {string} */
+					(source.source())
 				];
 			}
 		};
@@ -295,7 +376,10 @@ class ConcatSource extends Source {
 					currentString = undefined;
 				}
 				if (stringsAsRawSources.has(child)) {
-					addSourceToRawSources(child);
+					addSourceToRawSources(
+						/** @type {SourceLike} */
+						(child)
+					);
 				} else {
 					if (currentRawSources !== undefined) {
 						mergeRawSources();

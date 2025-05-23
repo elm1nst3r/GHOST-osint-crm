@@ -5,6 +5,13 @@
 
 "use strict";
 
+/** @typedef {import("../Source").RawSourceMap} RawSourceMap */
+
+/**
+ * @param {RawSourceMap} sourceMap source map
+ * @param {number} index index
+ * @returns {string | undefined | null} name
+ */
 const getName = (sourceMap, index) => {
 	if (index < 0) return null;
 	const { names } = sourceMap;

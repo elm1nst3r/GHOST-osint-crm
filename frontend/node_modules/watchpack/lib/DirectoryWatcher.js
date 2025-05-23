@@ -15,6 +15,8 @@ const EXISTANCE_ONLY_TIME_ENTRY = Object.freeze({});
 let FS_ACCURACY = 2000;
 
 const IS_OSX = require("os").platform() === "darwin";
+const IS_WIN = require("os").platform() === "win32";
+
 const WATCHPACK_POLLING = process.env.WATCHPACK_POLLING;
 const FORCE_POLLING =
 	`${+WATCHPACK_POLLING}` === WATCHPACK_POLLING
@@ -633,7 +635,9 @@ class DirectoryWatcher extends EventEmitter {
 								err2.code === "ENOENT" ||
 								err2.code === "EPERM" ||
 								err2.code === "EACCES" ||
-								err2.code === "EBUSY"
+								err2.code === "EBUSY" ||
+								// TODO https://github.com/libuv/libuv/pull/4566
+								(err2.code === "EINVAL" && IS_WIN)
 							) {
 								this.setMissing(itemPath, initial, "scan (" + err2.code + ")");
 							} else {

@@ -9,7 +9,7 @@ var $SyntaxError = require('es-errors/syntax');
 var Get = require('./Get');
 var IsConstructor = require('./IsConstructor');
 
-var isObject = require('../helpers/isObject');
+var isObject = require('es-object-atoms/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-getprototypefromconstructor
 

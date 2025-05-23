@@ -2,10 +2,6 @@
 
 var $TypeError = require('es-errors/type');
 
-var callBound = require('call-bound');
-
-var $push = callBound('Array.prototype.push');
-
 var SameValue = require('./SameValue');
 
 var IsArray = require('../helpers/IsArray');
@@ -35,13 +31,15 @@ module.exports = function AddValueToKeyedGroup(groups, key, value) {
 				throw new $TypeError('Assertion failed: Exactly one element of groups meets this criterion'); // step 2.a
 			}
 
-			$push(g['[[Elements]]'], value); // step 2.b
+			var arr = g['[[Elements]]'];
+			arr[arr.length] = value; // step 2.b
 		}
 	});
 
 	if (matched === 0) {
 		var group = { '[[Key]]': key, '[[Elements]]': [value] }; // step 2
 
-		$push(groups, group); // step 3
+		// eslint-disable-next-line no-param-reassign
+		groups[groups.length] = group; // step 3
 	}
 };

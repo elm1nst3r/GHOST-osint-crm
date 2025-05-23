@@ -1,11 +1,10 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var isPropertyKey = require('../helpers/isPropertyKey');
 var SameValue = require('./SameValue');
-
-var isObject = require('../helpers/isObject');
 
 // IE 9 does not throw in strict mode when writability/configurability/extensibility is violated
 var noThrowOnStrictViolation = (function () {

@@ -1,3 +1,52 @@
+1.23.10 / 2025-05-21
+=================
+ - [Fix] properly handle Float16Array
+ - [Fix] `ES2024`+: `IsViewOutOfBounds`: properly handle resizable array buffers
+ - [Fix] `ES2024`+: `IsTypedArrayOutOfBounds`: properly handle resizable arrays
+ - [Fix] `ES2024`+: `GetViewByteLength`, `TypedArrayByteLength`, `TypedArrayLength`: properly handle resizable arrays
+ - [Fix] `ES2020`+: `abs` should accept bigints too
+ - [Fix] `ES2024`+: `ArrayBufferByteLength`: return the byte length for SABs, not NaN
+ - [Fix] `ES2024`+: `ArrayBufferCopyAndDetach`: properly handle resizable ArrayBuffers; add tests
+ - [Fix] `ES2021`: `SetTypedArrayFromTypedArray`: get proper source element size
+ - [Fix] `ES2023`+: `SetTypedArrayFromTypedArray`: ArrayBuffer shouldn‘t be bound
+ - [Fix] `ES2022`,`ES2023`: `ValidateIntegerTypedArray`: return the buffer
+ - [patch] `ES2023`+: `SortIndexedProperties`: improve error message
+ - [patch] clean up some comments
+ - [patch] `ES2023`+: `InternalizeJSONProperty`: remove extra argument
+ - [patch] `ES2020`+`: `GetIterator`: fix comment to indicate that it changed in ES2018
+ - [Refactor] Typed Array stuff: store "choices" string in the table file
+ - [Refactor] `ES2021`+: use isInteger directly in a few AOs
+ - [Refactor] `ES2022`+: `ValidateAndApplyPropertyDescriptor`: use `typeof` over `Type()`
+ - [Refactor] `helpers/getIteratorMethod`: no longer require a passed-in `IsArray`
+ - [Refactor] `ES2017`+: `Num{ber,eric}ToRawBytes`, `RawBytesToNum{ber,eric}`: use TAO table sizes
+ - [Refactor] `ES2015`+: `{,Ordinary}ObjectCreate`: prefer `__proto__` syntax over `Object.create`
+ - [Refactor] `CopyDataProperties` tests are the same in ES2020 as in ES2018
+ - [Refactor] `ES2016` - `ES2020`: `UTF16Encoding`: match `UTF16EncodeCodePoint`
+ - [Refactor] use `es-object-atoms/isObject` directly
+ - [Refactor] add `isSameType` helper, and use it
+ - [Refactor] `ES2017`+: `WordCharacters`: `String.prototype.indexOf` should always be present
+ - [Refactor] use `arr[arr.length] = x` instead of `$push(arr, x)`
+ - [Robustness] `ES2015`+: `ObjectDefineProperties`: use `OrdinaryGetOwnProperty` to handle a missing `gOPD`
+ - [meta] add missing comments
+ - [meta] fix operations npmignores
+ - [meta] fix URL in comment
+ - [meta] note `isNegativeZero` helper is slated for removal (#155)
+ - [Deps] update `call-bound`, `which-typed-array`, `es-object-atoms`, `get-intrinsic`, `get-proto`, `regexp.prototype.flags`, `is-weakref`, `object-inspect`
+ - [Dev Deps] pin `glob` to v7
+ - [Dev Deps] update `@unicode/unicode-15.0.0`, `es-value-fixtures`, `for-each`, `has-strict-mode`, `ses`
+ - [Tests] avoid an OOM in node 20 on SES tests
+ - [Tests] compare correct TA type
+ - [Tests] consolidate map of AO property names to prose names
+ - [Tests] extract common helpers
+ - [Tests] increase coverage
+ - [Tests] increase coverage
+ - [Tests] node 20 throws with RABs that are not a multiple of 4 and 8
+ - [Tests] refactor TA types arrays to year-taking functions
+ - [Tests] refactor test megafile into file-per-method tests
+ - [Tests] remove now-unused test mega-file
+ - [Tests] some cleanups
+ - [Tests] use proper import
+
 1.23.9 / 2025-01-02
 =================
   * [Refactor] use `get-proto` directly

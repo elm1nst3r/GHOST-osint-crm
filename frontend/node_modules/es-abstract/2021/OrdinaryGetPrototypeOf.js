@@ -1,9 +1,9 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var $getProto = require('get-proto');
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/7.0/#sec-ordinarygetprototypeof
 

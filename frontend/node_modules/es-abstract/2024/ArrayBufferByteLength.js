@@ -10,6 +10,9 @@ var isArrayBuffer = require('is-array-buffer');
 var isSharedArrayBuffer = require('is-shared-array-buffer');
 var arrayBufferByteLength = require('array-buffer-byte-length');
 
+var callBound = require('call-bound');
+var $sabByteLength = callBound('SharedArrayBuffer.prototype.byteLength', true);
+
 var isGrowable = false; // TODO: support this
 
 module.exports = function ArrayBufferByteLength(arrayBuffer, order) {
@@ -34,5 +37,5 @@ module.exports = function ArrayBufferByteLength(arrayBuffer, order) {
 		throw new $TypeError('Assertion failed: `arrayBuffer` must not be detached'); // step 2
 	}
 
-	return arrayBufferByteLength(arrayBuffer);
+	return isSAB ? $sabByteLength(arrayBuffer) : arrayBufferByteLength(arrayBuffer);
 };

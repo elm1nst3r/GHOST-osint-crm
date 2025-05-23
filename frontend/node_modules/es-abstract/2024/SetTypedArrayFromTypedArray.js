@@ -19,10 +19,10 @@ var TypedArrayLength = require('./TypedArrayLength');
 var typedArrayBuffer = require('typed-array-buffer');
 var typedArrayByteOffset = require('typed-array-byte-offset');
 var whichTypedArray = require('which-typed-array');
-var callBound = require('call-bound');
+var GetIntrinsic = require('call-bound');
 var isInteger = require('math-intrinsics/isInteger');
 
-var $ArrayBuffer = callBound('ArrayBuffer', true);
+var $ArrayBuffer = GetIntrinsic('%ArrayBuffer%', true);
 
 // https://262.ecma-international.org/15.0/#sec-settypedarrayfromtypedarray
 

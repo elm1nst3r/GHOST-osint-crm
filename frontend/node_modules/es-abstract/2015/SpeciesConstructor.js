@@ -4,10 +4,9 @@ var GetIntrinsic = require('get-intrinsic');
 
 var $species = GetIntrinsic('%Symbol.species%', true);
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var IsConstructor = require('./IsConstructor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-speciesconstructor
 

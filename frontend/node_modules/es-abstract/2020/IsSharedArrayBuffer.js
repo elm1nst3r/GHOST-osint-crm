@@ -1,8 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
-
-var isObject = require('../helpers/isObject');
+var isObject = require('es-object-atoms/isObject');
 
 var isSharedArrayBuffer = require('is-shared-array-buffer');
 

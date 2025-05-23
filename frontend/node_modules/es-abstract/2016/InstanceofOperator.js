@@ -3,6 +3,7 @@
 var GetIntrinsic = require('get-intrinsic');
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var $hasInstance = GetIntrinsic('%Symbol.hasInstance%', true);
 
@@ -11,8 +12,6 @@ var GetMethod = require('./GetMethod');
 var IsCallable = require('./IsCallable');
 var OrdinaryHasInstance = require('./OrdinaryHasInstance');
 var ToBoolean = require('./ToBoolean');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-instanceofoperator
 

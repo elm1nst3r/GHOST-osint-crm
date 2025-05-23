@@ -1,1293 +1,2215 @@
-// frontend/src/App.js
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import ReactFlow, {
-  ReactFlowProvider,
-  MiniMap,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  addEdge as rfAddEdge, // aliased to avoid conflict with our addEdge
-  Handle,
-  Position
-} from 'reactflow';
+// File: frontend/src/App.js
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import ReactFlow, { MiniMap, Controls, Background, useNodesState, useEdgesState } from 'reactflow';
+import 'reactflow/dist/style.css';
+import { User, Database, Mail, Phone, Globe, MapPin, Hash, Link, Search, Plus, Edit2, Trash2, X, Calendar, Tag, Briefcase, Home, Settings, ChevronDown, Check, Upload, Save, RefreshCw, FileText, Download, Activity, Users, Wrench, Shield, Network, Eye, EyeOff, Maximize2 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Backend API
-const BACKEND_PUBLIC_URL = 'http://localhost:3001'; // For accessing static files
+// Import the relationship components
+import RelationshipDiagram from './components/RelationshipDiagram';
+import RelationshipManager from './components/RelationshipManager';
 
-// --- Icon Component (Placeholder - assuming it's the same as before) ---
-const Icon = ({ name, className = "w-5 h-5" }) => {
-  const iconMap = {
-    LayoutDashboard: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
-    Users: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 016-6h6a6 6 0 016 6v1h-3" /></svg>,
-    Target: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-4a2 2 0 100-4 2 2 0 000 4z" /></svg>,
-    Briefcase: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-    Link: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656-5.656l-4-4a4 4 0 00-5.656 0l-1.1 1.1" /></svg>,
-    Search: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-    PlusCircle: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-    Edit2: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-    Trash2: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-    Eye: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-    Settings: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-    X: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
-    ListChecks: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>,
-    UploadCloud: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17a4 4 0 014 4v5a4 4 0 01-4 4H7zm0 0l3 3m0 0l3-3m-3 3V6" /></svg>,
-    DownloadCloud: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17a4 4 0 014 4v5a4 4 0 01-4 4H7zm0 0l3 3m0 0l3-3m-3 3V6m-7 12h14" /></svg>,
-    FileText: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-    MapPin: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-    Network: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2zM9 7h6" /></svg>,
-    Image: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
-    Type: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4M12 4v16" /></svg>,
-    Activity: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>,
-    FilePlus: () => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2v6h6M12 18v-6M9 15h6" /></svg>,
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  };
-  const IconComponent = iconMap[name];
-  return IconComponent ? <IconComponent /> : <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 2L2 22h20L12 2zm0 4l7 12H5l7-12z" /></svg>;
-};
+// Fix for default markers in React-Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
-// --- Constants and Helpers ---
-const defaultPersonCategories = ['Person of Interest', 'Possible Client', 'Client', 'Connected Person', 'Non Client', 'Asset', 'Organization', 'Event'];
-const defaultPersonStatuses = ['Open', 'Being Investigated', 'Completed', 'Closed'];
-const defaultCrmStatuses = ['N/A', 'Open', 'Contacted', 'Active', 'Non-Responsive', 'Closed'];
-const defaultToolCategories = ['Search Engines', 'Social Media Analysis', 'Username Checkers', 'Email Verification/Lookup', 'Phone Number Lookup', 'Domain/IP Research', 'Image Analysis', 'Dark Web Search', 'Data Breach Checkers', 'Mapping/Geolocation', 'Document Analysis', 'Business/Company Research', 'Link Analysis', 'Vulnerability Scanners', 'Network Analysis', 'Other'];
-const defaultToolStatuses = ['Active', 'Deprecated', 'Beta', 'Planned', 'Internal'];
-const defaultOsintDataTypes = ['social_media', 'email', 'location', 'phone', 'username', 'website', 'document', 'note', 'vehicle', 'financial', 'employment', 'education', 'ip_address', 'domain_registration', 'image_attachment'];
-// --- NEW --- Default custom field types
-const defaultCustomFieldTypes = [
-    { value: 'text', label: 'Text (Single Line)'},
-    { value: 'textarea', label: 'Text (Multi-Line)'},
-    { value: 'number', label: 'Number'},
-    { value: 'date', label: 'Date'},
-    { value: 'select', label: 'Select (Dropdown)'},
-    { value: 'checkbox', label: 'Checkbox (Yes/No)'} // Added checkbox as an example
-];
-
-
-function generateId() { return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
-const formatDate = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'Invalid Date'; } };
-const formatInputDate = (dateString) => { if (!dateString) return ''; try { return new Date(dateString).toISOString().split('T')[0]; } catch (e) { return ''; } };
-const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-// --- Main Application Component ---
-function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
-  const [isPeopleLoading, setIsPeopleLoading] = useState(false);
-  const [isToolsLoading, setIsToolsLoading] = useState(false);
-  const [isTodosLoading, setIsTodosLoading] = useState(false);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Settings State
-  const [appName, setAppName] = useState(() => localStorage.getItem('osintCrmAppName') || 'OSINT CRM');
-  const [appLogoUrl, setAppLogoUrl] = useState(() => localStorage.getItem('osintCrmAppLogoUrl') || '');
-  const [appLogoFilePreview, setAppLogoFilePreview] = useState(null);
-  const [personCategories, setPersonCategories] = useState(() => JSON.parse(localStorage.getItem('osintCrmPersonCategories')) || defaultPersonCategories);
-  const [personStatuses, setPersonStatuses] = useState(() => JSON.parse(localStorage.getItem('osintCrmPersonStatuses')) || defaultPersonStatuses);
-  const [crmStatuses, setCrmStatuses] = useState(() => JSON.parse(localStorage.getItem('osintCrmCrmStatuses')) || defaultCrmStatuses);
-  const [toolCategories, setToolCategories] = useState(() => JSON.parse(localStorage.getItem('osintCrmToolCategories')) || defaultToolCategories);
-  const [toolStatuses, setToolStatuses] = useState(() => JSON.parse(localStorage.getItem('osintCrmToolStatuses')) || defaultToolStatuses);
-  const [osintDataTypes, setOsintDataTypes] = useState(() => JSON.parse(localStorage.getItem('osintCrmOsintDataTypes')) || defaultOsintDataTypes);
-
-  // Data State
+const App = () => {
   const [people, setPeople] = useState([]);
   const [tools, setTools] = useState([]);
   const [todos, setTodos] = useState([]);
-  const [auditLog, setAuditLog] = useState(() => JSON.parse(localStorage.getItem('osintCrmAuditLog')) || []);
-
-  // --- NEW --- Custom Fields State
-  const [customFieldDefinitions, setCustomFieldDefinitions] = useState([]);
-  const [isLoadingCustomFields, setIsLoadingCustomFields] = useState(false);
-  const [isCustomFieldModalOpen, setIsCustomFieldModalOpen] = useState(false);
-  const [editingCustomField, setEditingCustomField] = useState(null); // For Add/Edit Custom Field Definition
-
-  // UI State
-  const [searchTermPeople, setSearchTermPeople] = useState('');
-  const [filterPersonCategory, setFilterPersonCategory] = useState('');
-  const [filterPersonStatus, setFilterPersonStatus] = useState('');
-  const [searchTermTools, setSearchTermTools] = useState('');
-  const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [selectedTool, setSelectedTool] = useState(null);
+  const [showAddPersonForm, setShowAddPersonForm] = useState(false);
+  const [showAddToolForm, setShowAddToolForm] = useState(false);
   const [editingPerson, setEditingPerson] = useState(null);
-  const [selectedPersonDetails, setSelectedPersonDetails] = useState(null);
-  const [isToolModalOpen, setIsToolModalOpen] = useState(false);
   const [editingTool, setEditingTool] = useState(null);
-  const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
-  const [editingTodo, setEditingTodo] = useState(null);
-
-  // Persist settings and auditLog to localStorage
-  useEffect(() => { localStorage.setItem('osintCrmAppName', appName); }, [appName]);
-  useEffect(() => { localStorage.setItem('osintCrmAppLogoUrl', appLogoUrl); }, [appLogoUrl]);
-  useEffect(() => { localStorage.setItem('osintCrmPersonCategories', JSON.stringify(personCategories)); }, [personCategories]);
-  useEffect(() => { localStorage.setItem('osintCrmPersonStatuses', JSON.stringify(personStatuses)); }, [personStatuses]);
-  useEffect(() => { localStorage.setItem('osintCrmCrmStatuses', JSON.stringify(crmStatuses)); }, [crmStatuses]);
-  useEffect(() => { localStorage.setItem('osintCrmToolCategories', JSON.stringify(toolCategories)); }, [toolCategories]);
-  useEffect(() => { localStorage.setItem('osintCrmToolStatuses', JSON.stringify(toolStatuses)); }, [toolStatuses]);
-  useEffect(() => { localStorage.setItem('osintCrmOsintDataTypes', JSON.stringify(osintDataTypes)); }, [osintDataTypes]);
-  useEffect(() => { localStorage.setItem('osintCrmAuditLog', JSON.stringify(auditLog)); }, [auditLog]);
-
-  const addAuditLogEntry = useCallback((action, entityType, entityNameOrId, details = '') => {
-    const newEntry = { id: generateId(), timestamp: new Date().toISOString(), action, entityType, entityNameOrId, details };
-    setAuditLog(prevLog => [newEntry, ...prevLog].slice(0, 100)); // Keep last 100 entries
-  }, []);
-
-  // --- Data Fetching Callbacks ---
-  const fetchPeople = useCallback(async () => {
-    setIsPeopleLoading(true); setError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/people`);
-      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
-      const data = await response.json(); setPeople(data);
-    } catch (e) { console.error("Failed to fetch people:", e); setError(prev => `${prev ? prev + '; ' : ''}People: ${e.message}`); setPeople([]); }
-    finally { setIsPeopleLoading(false); }
-  }, []);
-
-  const fetchTools = useCallback(async () => {
-    setIsToolsLoading(true); setError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/tools`);
-      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
-      const data = await response.json(); setTools(data);
-    } catch (e) { console.error("Failed to fetch tools:", e); setError(prev => `${prev ? prev + '; ' : ''}Tools: ${e.message}`); setTools([]); }
-    finally { setIsToolsLoading(false); }
-  }, []);
-
-  const fetchTodos = useCallback(async () => {
-    setIsTodosLoading(true); setError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/todos`);
-      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
-      const data = await response.json(); setTodos(data);
-    } catch (e) { console.error("Failed to fetch todos:", e); setError(prev => `${prev ? prev + '; ' : ''}To-Dos: ${e.message}`); setTodos([]); }
-    finally { setIsTodosLoading(false); }
-  }, []);
-
-  // --- NEW --- Fetch Custom Field Definitions
-  const fetchCustomFieldDefinitions = useCallback(async () => {
-    setIsLoadingCustomFields(true); setError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/settings/custom-fields`);
-      if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status} - ${errorText}`); }
-      const data = await response.json();
-      setCustomFieldDefinitions(data.map(field => ({...field, options: typeof field.options === 'string' ? JSON.parse(field.options) : field.options || [] }))); // Ensure options is an array
-    } catch (e) {
-      console.error("Failed to fetch custom field definitions:", e);
-      setError(prev => `${prev ? prev + '; ' : ''}Custom Fields: ${e.message}`);
-      setCustomFieldDefinitions([]);
-    } finally {
-      setIsLoadingCustomFields(false);
-    }
-  }, []);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [toolSearchTerm, setToolSearchTerm] = useState('');
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [selectedPersonForDetail, setSelectedPersonForDetail] = useState(null);
+  const [appSettings, setAppSettings] = useState({
+    appName: 'OSINT Investigation CRM',
+    appLogo: null
+  });
+  const [customFields, setCustomFields] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchPeople();
     fetchTools();
     fetchTodos();
-    fetchCustomFieldDefinitions(); // --- NEW --- Call fetch for custom fields
-  }, [fetchPeople, fetchTools, fetchTodos, fetchCustomFieldDefinitions]); // --- NEW --- Added fetchCustomFieldDefinitions
+    fetchCustomFields();
+    
+    const savedSettings = localStorage.getItem('appSettings');
+    if (savedSettings) {
+      setAppSettings(JSON.parse(savedSettings));
+    }
+  }, []);
 
-  // --- CRUD Handlers ---
-  const handleOpenAddPersonModal = () => { setEditingPerson(null); setIsPersonModalOpen(true); };
-  const handleOpenEditPersonModal = (person) => { setEditingPerson(person); setIsPersonModalOpen(true); };
-  const handleViewPersonDetails = (person) => { setSelectedPersonDetails(person); };
-  const handleSavePerson = async (personData) => {
-    setIsPeopleLoading(true); setError(null);
-    const method = editingPerson ? 'PUT' : 'POST';
-    const url = editingPerson ? `${API_BASE_URL}/people/${editingPerson.id}` : `${API_BASE_URL}/people`;
-    // Ensure custom_fields is an object
-    const processedPersonData = {
-        ...personData,
-        attachments: personData.attachments?.map(({ fileObject, ...rest }) => rest) || [],
-        custom_fields: personData.custom_fields || {} // Ensure custom_fields is at least an empty object
-    };
+  const fetchPeople = async () => {
     try {
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(processedPersonData) });
-      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-      addAuditLogEntry(editingPerson ? 'UPDATE' : 'CREATE', 'Person', personData.name);
-      await fetchPeople();
-      setIsPersonModalOpen(false); setEditingPerson(null);
-    } catch (e) { console.error("Failed to save person:", e); setError(prev => `${prev ? prev + '; ' : ''}Save Person: ${e.message}`); }
-    finally { setIsPeopleLoading(false); }
-  };
-  const handleDeletePerson = async (personId) => {
-    const personToDelete = people.find(p => p.id === personId);
-    if (window.confirm(`Are you sure you want to delete ${personToDelete?.name || 'this person'}?`)) {
-      setIsPeopleLoading(true); setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}/people/${personId}`, { method: 'DELETE' });
-        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`);}
-        const deletedData = await response.json();
-        addAuditLogEntry('DELETE', 'Person', deletedData.deletedPerson?.name || personId);
-        await fetchPeople();
-      } catch (e) { console.error("Failed to delete person:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete Person: ${e.message}`); }
-      finally { setIsPeopleLoading(false); }
+      const response = await fetch(`${API_BASE_URL}/people`);
+      const data = await response.json();
+      setPeople(data);
+    } catch (error) {
+      console.error('Error fetching people:', error);
     }
   };
 
-  const handleOpenAddToolModal = () => { setEditingTool(null); setIsToolModalOpen(true); };
-  const handleOpenEditToolModal = (tool) => { setEditingTool(tool); setIsToolModalOpen(true); };
-  const handleSaveTool = async (toolData) => {
-    setIsToolsLoading(true); setError(null);
-    const method = editingTool ? 'PUT' : 'POST';
-    const url = editingTool ? `${API_BASE_URL}/tools/${editingTool.id}` : `${API_BASE_URL}/tools`;
+  const fetchTools = async () => {
     try {
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toolData) });
-      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-      addAuditLogEntry(editingTool ? 'UPDATE' : 'CREATE', 'Tool', toolData.name);
-      await fetchTools();
-      setIsToolModalOpen(false); setEditingTool(null);
-    } catch (e) { console.error("Failed to save tool:", e); setError(prev => `${prev ? prev + '; ' : ''}Save Tool: ${e.message}`); }
-    finally { setIsToolsLoading(false); }
-  };
-  const handleDeleteTool = async (toolId) => {
-    const toolToDelete = tools.find(t => t.id === toolId);
-    if (window.confirm(`Are you sure you want to delete ${toolToDelete?.name || 'this tool'}?`)) {
-      setIsToolsLoading(true); setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, { method: 'DELETE' });
-        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-        const deletedData = await response.json();
-        addAuditLogEntry('DELETE', 'Tool', deletedData.deletedTool?.name || toolId);
-        await fetchTools();
-      } catch (e) { console.error("Failed to delete tool:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete Tool: ${e.message}`); }
-      finally { setIsToolsLoading(false); }
+      const response = await fetch(`${API_BASE_URL}/tools`);
+      const data = await response.json();
+      setTools(data);
+    } catch (error) {
+      console.error('Error fetching tools:', error);
     }
   };
 
-  const handleOpenAddEditTodoModal = (todo = null) => { setEditingTodo(todo); setIsTodoModalOpen(true); };
-  const handleSaveTodo = async (todoData) => {
-    setIsTodosLoading(true); setError(null);
-    const method = editingTodo ? 'PUT' : 'POST';
-    const url = editingTodo ? `${API_BASE_URL}/todos/${editingTodo.id}` : `${API_BASE_URL}/todos`;
+  const fetchTodos = async () => {
     try {
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todoData) });
-      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-      addAuditLogEntry(editingTodo ? 'UPDATE' : 'CREATE', 'Todo', todoData.text.substring(0,20));
-      await fetchTodos();
-      setIsTodoModalOpen(false); setEditingTodo(null);
-    } catch (e) { console.error("Failed to save todo:", e); setError(prev => `${prev ? prev + '; ' : ''}Save To-Do: ${e.message}`); }
-    finally { setIsTodosLoading(false); }
-  };
-  const handleDeleteTodo = async (todoId) => {
-    const todoToDelete = todos.find(t => t.id === todoId);
-    if (window.confirm(`Are you sure you want to delete task: "${todoToDelete?.text || 'this task'}"?`)) {
-      setIsTodosLoading(true); setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}/todos/${todoId}`, { method: 'DELETE' });
-        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-        const deletedData = await response.json();
-        addAuditLogEntry('DELETE', 'Todo', deletedData.deletedTodo?.text.substring(0,20) || todoId);
-        await fetchTodos();
-      } catch (e) { console.error("Failed to delete todo:", e); setError(prev => `${prev ? prev + '; ' : ''}Delete To-Do: ${e.message}`); }
-      finally { setIsTodosLoading(false); }
+      const response = await fetch(`${API_BASE_URL}/todos`);
+      const data = await response.json();
+      setTodos(data);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
     }
   };
-  const handleToggleTodoStatus = async (todoId) => {
-    const todoToToggle = todos.find(t => t.id === todoId);
-    if (!todoToToggle) return;
-    const updatedStatus = todoToToggle.status === 'open' ? 'done' : 'open';
-    const updatedTodoPayload = { ...todoToToggle, text: todoToToggle.text, status: updatedStatus, last_update_comment: `Status changed to ${updatedStatus}` };
-    setIsTodosLoading(true); setError(null);
+
+  const fetchCustomFields = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${todoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedTodoPayload) });
-      if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-      addAuditLogEntry('UPDATE', 'Todo', todoToToggle.text.substring(0,20), `Toggled status to ${updatedStatus}`);
-      await fetchTodos();
-    } catch (e) { console.error("Failed to toggle todo status:", e); setError(prev => `${prev ? prev + '; ' : ''}Toggle To-Do: ${e.message}`); }
-    finally { setIsTodosLoading(false); }
+      const response = await fetch(`${API_BASE_URL}/settings/custom-fields`);
+      const data = await response.json();
+      setCustomFields(data);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+    }
   };
 
-  // --- Logo Upload Handler ---
-  const handleLogoUpload = async (file) => {
+  const handleAppNameChange = (newName) => {
+    const updatedSettings = { ...appSettings, appName: newName };
+    setAppSettings(updatedSettings);
+    localStorage.setItem('appSettings', JSON.stringify(updatedSettings));
+  };
+
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files[0];
     if (!file) return;
-    setIsUploadingLogo(true); setError(null);
+
     const formData = new FormData();
     formData.append('appLogo', file);
-    try {
-      const response = await fetch(`${API_BASE_URL}/upload/logo`, { method: 'POST', body: formData });
-      if (!response.ok) { const errData = await response.json().catch(() => ({ error: 'Failed to upload logo.' })); throw new Error(errData.error || `HTTP error! status: ${response.status}`); }
-      const result = await response.json();
-      setAppLogoUrl(BACKEND_PUBLIC_URL + result.logoUrl);
-      setAppLogoFilePreview(null); // Clear preview after successful upload
-      addAuditLogEntry('UPDATE_SETTING', 'Setting', 'Application Logo', `Uploaded new logo: ${result.logoUrl}`);
-      alert('Logo uploaded successfully!');
-    } catch (e) { console.error("Failed to upload logo:", e); setError(prev => `${prev ? prev + '; ' : ''}Logo Upload: ${e.message}`); alert(`Logo upload failed: ${e.message}`); }
-    finally { setIsUploadingLogo(false); }
-  };
-
-  // --- NEW --- Custom Field Definition CRUD Handlers ---
-  const handleOpenAddEditCustomFieldModal = (field = null) => {
-    setEditingCustomField(field);
-    setIsCustomFieldModalOpen(true);
-  };
-
-  const handleSaveCustomFieldDefinition = async (fieldData) => {
-    setIsLoadingCustomFields(true); setError(null);
-    const method = editingCustomField ? 'PUT' : 'POST';
-    const url = editingCustomField
-      ? `${API_BASE_URL}/settings/custom-fields/${editingCustomField.id}`
-      : `${API_BASE_URL}/settings/custom-fields`;
-
-    // Ensure options is an array of objects if it exists
-    let processedFieldData = {...fieldData};
-    if (fieldData.options && Array.isArray(fieldData.options)) {
-        processedFieldData.options = fieldData.options.map(opt => typeof opt === 'string' ? {value: opt, label: opt} : opt);
-    } else if (fieldData.field_type !== 'select') {
-        processedFieldData.options = []; // Ensure options is empty if not a select
-    }
-
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(processedFieldData),
+      const response = await fetch(`${API_BASE_URL}/upload/logo`, {
+        method: 'POST',
+        body: formData
       });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedSettings = { ...appSettings, appLogo: `${API_BASE_URL.replace('/api', '')}${data.logoUrl}` };
+        setAppSettings(updatedSettings);
+        localStorage.setItem('appSettings', JSON.stringify(updatedSettings));
+      } else {
+        console.error('Logo upload failed');
       }
-      addAuditLogEntry(
-        editingCustomField ? 'UPDATE' : 'CREATE',
-        'CustomFieldDefinition',
-        fieldData.field_name,
-        `Label: ${fieldData.field_label}, Type: ${fieldData.field_type}`
-      );
-      await fetchCustomFieldDefinitions();
-      setIsCustomFieldModalOpen(false);
-      setEditingCustomField(null);
-    } catch (e) {
-      console.error("Failed to save custom field definition:", e);
-      setError(prev => `${prev ? prev + '; ' : ''}Save Custom Field Def: ${e.message}`);
-      alert(`Error saving custom field: ${e.message}`); // Show error to user
-    } finally {
-      setIsLoadingCustomFields(false);
+    } catch (error) {
+      console.error('Error uploading logo:', error);
     }
   };
 
-  const handleDeleteCustomFieldDefinition = async (fieldId, fieldName) => {
-    if (window.confirm(`Are you sure you want to delete the custom field definition "${fieldName}"? This action cannot be undone and might affect existing person records if not handled carefully on the backend.`)) {
-      setIsLoadingCustomFields(true); setError(null);
+  const getRelationshipCount = (personId) => {
+    const person = people.find(p => p.id === personId);
+    if (!person) return 0;
+    
+    const directConnections = person.connections?.length || 0;
+    const reverseConnections = people.filter(p => 
+      p.connections?.some(c => c.person_id === personId)
+    ).length;
+    
+    return Math.max(directConnections, reverseConnections);
+  };
+
+  const Dashboard = () => {
+    const activePeople = people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').slice(0, 5);
+    const [newTodo, setNewTodo] = useState('');
+
+    const handleAddTodo = async () => {
+      if (!newTodo.trim()) return;
+
       try {
-        const response = await fetch(`${API_BASE_URL}/settings/custom-fields/${fieldId}`, { method: 'DELETE' });
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+        const response = await fetch(`${API_BASE_URL}/todos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: newTodo, status: 'open' })
+        });
+
+        if (response.ok) {
+          const todo = await response.json();
+          setTodos([todo, ...todos]);
+          setNewTodo('');
         }
-        const deletedData = await response.json();
-        addAuditLogEntry('DELETE', 'CustomFieldDefinition', deletedData.deletedField?.field_name || fieldName);
-        await fetchCustomFieldDefinitions();
-      } catch (e) {
-        console.error("Failed to delete custom field definition:", e);
-        setError(prev => `${prev ? prev + '; ' : ''}Delete Custom Field Def: ${e.message}`);
-      } finally {
-        setIsLoadingCustomFields(false);
+      } catch (error) {
+        console.error('Error adding todo:', error);
       }
-    }
-  };
-  // --- END NEW ---
+    };
 
+    const handleUpdateTodo = async (id, updates) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
 
-  // Filtered Data
-  const filteredPeople = useMemo(() => {
-    if (!Array.isArray(people)) return [];
-    return people.filter(person =>
-      (person.name?.toLowerCase() || '').includes(searchTermPeople.toLowerCase()) &&
-      (filterPersonCategory ? person.category === filterPersonCategory : true) &&
-      (filterPersonStatus ? person.status === filterPersonStatus : true)
-    );
-  }, [people, searchTermPeople, filterPersonCategory, filterPersonStatus]);
-  const filteredTools = useMemo(() => {
-    if (!Array.isArray(tools)) return [];
-    return tools.filter(tool =>
-      (tool.name?.toLowerCase() || '').includes(searchTermTools.toLowerCase()) ||
-      (tool.category?.toLowerCase() || '').includes(searchTermTools.toLowerCase()) ||
-      (tool.tags && tool.tags.some(tag => tag.toLowerCase().includes(searchTermTools.toLowerCase())))
-    );
-  }, [tools, searchTermTools]);
-  const uniqueCaseNames = useMemo(() => {
-    if (!Array.isArray(people)) return [];
-    const cases = new Set(people.map(p => p.case_name).filter(Boolean));
-    return Array.from(cases);
-  }, [people]);
+        if (response.ok) {
+          const updatedTodo = await response.json();
+          setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
+        }
+      } catch (error) {
+        console.error('Error updating todo:', error);
+      }
+    };
 
-  // --- UI Components ---
-  const Sidebar = () => (
-    <div className="w-64 bg-slate-800 text-slate-100 p-5 space-y-4 fixed top-0 left-0 h-full shadow-lg z-30">
-      <div className="text-center mb-8">
-        {appLogoUrl ? (
-          <img src={appLogoUrl} alt={`${appName} Logo`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" onError={(e) => { e.target.src = 'https://placehold.co/64x64/3B82F6/FFFFFF?text=Logo'; e.target.onerror = null; }} />
-        ) : appLogoFilePreview ? (
-          <img src={appLogoFilePreview} alt={`${appName} Logo Preview`} className="h-16 w-auto max-w-full mx-auto mb-2 object-contain" />
-        ) : (
-          <div className="h-16 w-16 mx-auto mb-2 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold">
-            {appName.substring(0,1) || 'C'}
-          </div>
-        )}
-        <div className={`text-2xl font-bold bg-gradient-to-r from-blue-500 to-teal-400 text-white py-3 rounded-lg shadow-md mt-2`}>
-          {appName}
-        </div>
-      </div>
-      <nav>
-        <ul>
-          <NavItem iconName="LayoutDashboard" text="Dashboard" viewName="dashboard" />
-          <NavItem iconName="Target" text="People" viewName="people" />
-          <NavItem iconName="Briefcase" text="OSINT Tools" viewName="tools" />
-          <NavItem iconName="Settings" text="Settings" viewName="settings" />
-        </ul>
-      </nav>
-      <div className="absolute bottom-5 left-5 text-xs text-slate-400">Version 0.9.1</div> {/* Updated Version */}
-    </div>
-  );
-  const NavItem = ({ iconName, text, viewName }) => (
-     <li
-      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors ${currentView === viewName ? 'bg-slate-700 border-l-4 border-blue-500' : ''}`}
-      onClick={() => setCurrentView(viewName)}
-    >
-      <Icon name={iconName} className="w-6 h-6 text-blue-400" />
-      <span>{text}</span>
-    </li>
-  );
-  const Header = ({ title }) => (
-    <header className="bg-white shadow-sm p-6 mb-6 rounded-lg">
-      <h1 className="text-3xl font-semibold text-slate-800">{title}</h1>
-    </header>
-  );
+    const handleDeleteTodo = async (id) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+          method: 'DELETE'
+        });
 
-  const renderContent = () => {
-    if (error) {
-        // Display multiple errors if they are concatenated with '; '
-        const errorMessages = error.split('; ').map((msg, index) => <div key={index}>{msg}</div>);
-        return <div className="p-6 text-center text-red-600 bg-red-100 rounded-md shadow-md">{errorMessages}</div>;
-    }
-    switch (currentView) {
-      case 'dashboard': return <DashboardView />;
-      case 'people': return <PeopleView />;
-      case 'tools': return <ToolsView />;
-      case 'settings': return <SettingsView />;
-      default: return <DashboardView />;
-    }
-  };
-
-  const DashboardView = () => {
-    const activeInvestigations = useMemo(() =>
-        (Array.isArray(people) ? people : []).filter(p => p.status === 'Being Investigated' || p.status === 'Open')
-              .sort((a,b) => new Date(b.updated_at) - new Date(a.created_at))
-              .slice(0,5),
-    [people]);
-    const openTodos = (Array.isArray(todos) ? todos : []).filter(t => t.status === 'open');
+        if (response.ok) {
+          setTodos(todos.filter(todo => todo.id !== id));
+        }
+      } catch (error) {
+        console.error('Error deleting todo:', error);
+      }
+    };
 
     return (
-        <div>
-            <Header title="Dashboard" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <DashboardCard iconName="Briefcase" title="OSINT Tools" value={tools.length} subtitle="Registered tools" color="green" />
-                <DashboardCard iconName="Users" title="Active Investigations" value={(Array.isArray(people) ? people : []).filter(p => p.status === 'Being Investigated' || p.status === 'Open').length} subtitle="People under review" color="purple" />
-                <DashboardCard iconName="ListChecks" title="Open Tasks" value={openTodos.length} subtitle="Pending to-do items" color="yellow" />
+      <div className="p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">OSINT Tools</p>
+                <p className="text-3xl font-bold text-gray-900">{tools.length}</p>
+              </div>
+              <Wrench className="w-8 h-8 text-blue-500" />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <h3 className="text-xl font-semibold text-slate-700 mb-4">Recent Active People/Cases</h3>
-                    {isPeopleLoading ? <p className="text-slate-500">Loading people...</p> : activeInvestigations.length > 0 ? (
-                        <ul className="space-y-3">
-                            {activeInvestigations.map(person => (
-                                <li key={person.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-md hover:bg-slate-100 transition-colors">
-                                    <div><p className="font-medium text-slate-800">{person.name}</p><p className="text-xs text-slate-500">Case: {person.case_name || 'N/A'} - Updated: {formatDate(person.updated_at)}</p></div>
-                                    <button onClick={() => handleViewPersonDetails(person)} className="text-blue-600 hover:text-blue-800 text-sm p-1"><Icon name="Eye" /></button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p className="text-slate-500">No active people.</p>}
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-semibold text-slate-700">To-Do List</h3>
-                        <button onClick={() => handleOpenAddEditTodoModal()} className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md flex items-center space-x-1">
-                            <Icon name="PlusCircle" className="w-4 h-4" /><span>Add Task</span>
-                        </button>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-6 border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Investigations</p>
+                <p className="text-3xl font-bold text-gray-900">{people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').length}</p>
+              </div>
+              <Users className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-6 border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Open To-Dos</p>
+                <p className="text-3xl font-bold text-gray-900">{todos.filter(t => t.status === 'open').length}</p>
+              </div>
+              <Activity className="w-8 h-8 text-yellow-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Active People/Cases</h3>
+            <div className="space-y-3">
+              {activePeople.map(person => (
+                <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">{person.name}</p>
+                    <p className="text-sm text-gray-600">{person.case_name || 'No case assigned'}</p>
+                    <div className="flex items-center mt-1 text-xs text-gray-500">
+                      <Network className="w-3 h-3 mr-1" />
+                      {getRelationshipCount(person.id)} connections
                     </div>
-                    {isTodosLoading ? <p className="text-slate-500">Loading to-dos...</p> : todos.length > 0 ? (
-                        <ul className="space-y-2 max-h-96 overflow-y-auto">
-                            {todos.map(todo => (
-                                <li key={todo.id} className={`p-3 rounded-md flex items-center justify-between ${todo.status === 'done' ? 'bg-green-50 line-through text-slate-500' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                                    <div className="flex items-center space-x-2 flex-1">
-                                        <input type="checkbox" checked={todo.status === 'done'} onChange={() => handleToggleTodoStatus(todo.id)} className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" />
-                                        <div className="flex-1">
-                                            <p className={`font-medium ${todo.status === 'done' ? '' : 'text-slate-800'}`}>{todo.text}</p>
-                                            {todo.last_update_comment && <p className="text-xs text-slate-400 italic">Update: {todo.last_update_comment}</p>}
-                                        </div>
-                                    </div>
-                                    <div className="space-x-1">
-                                        <button onClick={() => handleOpenAddEditTodoModal(todo)} className="text-indigo-500 hover:text-indigo-700 p-1 disabled:opacity-50" disabled={todo.status === 'done'}><Icon name="Edit2" className="w-4 h-4"/></button>
-                                        <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-500 hover:text-red-700 p-1"><Icon name="Trash2" className="w-4 h-4"/></button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p className="text-slate-500">No tasks yet. Add some!</p>}
+                  </div>
+                  <button onClick={() => setSelectedPersonForDetail(person)} className="text-blue-600 hover:text-blue-700 text-sm">
+                    View Details
+                  </button>
                 </div>
+              ))}
             </div>
-             <div className="mt-6 grid grid-cols-1 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <h3 className="text-xl font-semibold text-slate-700 mb-4">Global Relationship Overview (Placeholder)</h3>
-                    <div className="h-[400px] bg-slate-200 rounded-md flex items-center justify-center text-slate-500"><Icon name="Network" className="w-16 h-16 mr-2" /><p>Graph here.</p></div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">To-Do List</h3>
+            <div className="mb-4 flex space-x-2">
+              <input
+                type="text"
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddTodo()}
+                placeholder="Add a new task..."
+                className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button onClick={handleAddTodo} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                Add
+              </button>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {todos.map(todo => (
+                <div key={todo.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                  <input
+                    type="checkbox"
+                    checked={todo.status === 'done'}
+                    onChange={(e) => handleUpdateTodo(todo.id, { status: e.target.checked ? 'done' : 'open' })}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <span className={`flex-1 ${todo.status === 'done' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                    {todo.text}
+                  </span>
+                  <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-600 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
+              ))}
             </div>
+          </div>
         </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Global Relationship Overview</h3>
+            <button
+              onClick={() => setActiveSection('relationships')}
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
+              View Full Network →
+            </button>
+          </div>
+          <div className="h-64 bg-gray-50 rounded-lg overflow-hidden">
+            <RelationshipManager 
+              showInModal={true}
+              onClose={() => {}}
+            />
+          </div>
+        </div>
+      </div>
     );
   };
-  const DashboardCard = ({iconName, title, value, subtitle, color}) => {
-    const colors = { blue: 'text-blue-500', green: 'text-green-500', purple: 'text-purple-500', yellow: 'text-yellow-500', };
-    return ( <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"> <div className="flex items-center space-x-3 mb-3"> <Icon name={iconName} className={`w-8 h-8 ${colors[color] || 'text-slate-500'}`} /> <h2 className="text-xl font-semibold text-slate-700">{title}</h2> </div> <p className="text-4xl font-bold text-slate-800">{value}</p> <p className="text-sm text-slate-500 mt-1">{subtitle}</p> </div> );
+
+  const PersonNode = ({ data }) => {
+    return (
+      <div className="px-4 py-2 shadow-md rounded-md border-2 border-stone-400">
+        <div className="flex items-center">
+          <User className="w-4 h-4 mr-2" />
+          <div className="text-sm font-bold">{data.label}</div>
+        </div>
+      </div>
+    );
   };
 
-  const PeopleView = () => {
+  const OsintDataNode = ({ data }) => {
+    const iconMap = {
+      'Social Media': <Database className="w-4 h-4" />,
+      'Email': <Mail className="w-4 h-4" />,
+      'Phone': <Phone className="w-4 h-4" />,
+      'Website': <Globe className="w-4 h-4" />,
+      'Location': <MapPin className="w-4 h-4" />,
+      'Username': <Hash className="w-4 h-4" />,
+      'Other': <Link className="w-4 h-4" />
+    };
+    
+    const icon = iconMap[data.type] || iconMap['Other'];
+    
     return (
-    <div>
-      <Header title="People" />
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-          <div className="relative flex-grow">
-            <input type="text" placeholder="Search name, alias, case..." className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full" value={searchTermPeople} onChange={(e) => setSearchTermPeople(e.target.value)} />
-            <Icon name="Search" className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+      <div className="px-3 py-2 shadow-sm rounded-md bg-gray-50 border border-gray-200">
+        <div className="flex items-center">
+          {icon}
+          <div className="ml-2">
+            <div className="text-xs font-medium">{data.type}</div>
+            <div className="text-xs text-gray-600">{data.value}</div>
           </div>
-          <SelectField value={filterPersonCategory} onChange={(e) => setFilterPersonCategory(e.target.value)} options={['All Categories', ...personCategories]} className="w-full sm:w-48" noLabel />
-          <SelectField value={filterPersonStatus} onChange={(e) => setFilterPersonStatus(e.target.value)} options={['All Statuses', ...personStatuses]} className="w-full sm:w-48" noLabel />
         </div>
-        <button onClick={handleOpenAddPersonModal} className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 w-full sm:w-auto">
-          <Icon name="PlusCircle" /> <span>Add Person</span>
-        </button>
       </div>
-      {isPeopleLoading && <p className="text-center text-slate-500 py-10">Loading people...</p>}
-      {!isPeopleLoading && !error?.includes('People:') && ( // Only hide if no specific people error
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name / Case</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CRM Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Last Updated</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {filteredPeople.length > 0 ? filteredPeople.map(person => (
-                  <tr key={person.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img className="h-10 w-10 rounded-full mr-3 object-cover" src={person.profile_picture_url || `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`} alt={person.name} onError={(e) => {e.target.src = `https://placehold.co/40x40/E0E0E0/333?text=${person.name?.substring(0,1) || 'P'}`; e.target.onerror=null;}}/>
-                        <div>
-                          <div className="text-sm font-medium text-slate-900">{person.name}</div>
-                          <div className="text-xs text-slate-500">Case: {person.case_name || 'N/A'}</div>
-                          {person.aliases && person.aliases.length > 0 && <div className="text-xs text-slate-500">AKA: {person.aliases.join(', ')}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{person.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ person.status === 'Open' ? 'bg-blue-100 text-blue-800' : person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' : person.status === 'Completed' ? 'bg-green-100 text-green-800' : person.status === 'Closed' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800' }`}>{person.status}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{person.crm_status}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{formatDate(person.updated_at)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button onClick={() => handleViewPersonDetails(person)} className="text-blue-600 hover:text-blue-800 transition-colors p-1" title="View Details"><Icon name="Eye" /></button>
-                      <button onClick={() => handleOpenEditPersonModal(person)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1" title="Edit"><Icon name="Edit2" /></button>
-                      <button onClick={() => handleDeletePerson(person.id)} className="text-red-600 hover:text-red-800 transition-colors p-1" title="Delete"><Icon name="Trash2" /></button>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500">No people found.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  )};
+    );
+  };
 
-  const ToolsView = () => {
+  const nodeTypes = {
+    person: PersonNode,
+    osintData: OsintDataNode,
+  };
+
+  const PersonDetailModal = ({ person, onClose, onEdit }) => {
+    const [activeTab, setActiveTab] = useState('details');
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    
+    useEffect(() => {
+      if (!person) return;
+      
+      const newNodes = [];
+      const newEdges = [];
+      
+      const personNode = {
+        id: 'person-1',
+        type: 'person',
+        position: { x: 250, y: 25 },
+        data: { label: person.name }
+      };
+      newNodes.push(personNode);
+      
+      if (person.osint_data && Array.isArray(person.osint_data)) {
+        person.osint_data.forEach((osint, index) => {
+          const angle = (2 * Math.PI * index) / person.osint_data.length;
+          const radius = 150;
+          const x = 250 + radius * Math.cos(angle);
+          const y = 150 + radius * Math.sin(angle);
+          
+          newNodes.push({
+            id: `osint-${index}`,
+            type: 'osintData',
+            position: { x, y },
+            data: { type: osint.type, value: osint.value }
+          });
+          
+          newEdges.push({
+            id: `edge-person-osint-${index}`,
+            source: 'person-1',
+            target: `osint-${index}`,
+            animated: true,
+            style: { stroke: '#888' }
+          });
+        });
+      }
+      
+      if (person.connections && Array.isArray(person.connections)) {
+        person.connections.forEach((conn, index) => {
+          const connectedPerson = people.find(p => p.id === conn.person_id);
+          if (connectedPerson) {
+            const angle = (2 * Math.PI * (index + (person.osint_data?.length || 0))) / 
+                          ((person.connections?.length || 0) + (person.osint_data?.length || 0));
+            const radius = 200;
+            const x = 250 + radius * Math.cos(angle);
+            const y = 150 + radius * Math.sin(angle);
+            
+            newNodes.push({
+              id: `connected-person-${conn.person_id}`,
+              type: 'person',
+              position: { x, y },
+              data: { label: connectedPerson.name }
+            });
+            
+            newEdges.push({
+              id: `edge-connection-${conn.person_id}`,
+              source: 'person-1',
+              target: `connected-person-${conn.person_id}`,
+              label: conn.type || 'Connected',
+              style: { stroke: '#3b82f6', strokeWidth: 2 }
+            });
+          }
+        });
+      }
+      
+      setNodes(newNodes);
+      setEdges(newEdges);
+    }, [person, people, setNodes, setEdges]);
+
+    if (!person) return null;
+
+    const validLocations = person.osint_data?.filter(
+      osint => osint.type === 'Location' && osint.lat && osint.lng
+    ) || [];
+
     return (
-    <div>
-      <Header title="OSINT Tools Directory" />
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-        <div className="relative w-full sm:w-auto">
-          <input type="text" placeholder="Search tools by name, category, tag..." className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full sm:w-80" value={searchTermTools} onChange={(e) => setSearchTermTools(e.target.value)} />
-          <Icon name="Search" className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-        </div>
-        <button onClick={handleOpenAddToolModal} className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg shadow hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 w-full sm:w-auto">
-          <Icon name="PlusCircle" /> <span>Add New Tool</span>
-        </button>
-      </div>
-      {isToolsLoading && <p className="text-center text-slate-500 py-10">Loading tools...</p>}
-      {!isToolsLoading && !error?.includes('Tools:') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTools.length > 0 ? filteredTools.map(tool => (
-              <div key={tool.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
-                <div className="p-6 flex-grow">
-                  <div className="flex justify-between items-start mb-2"> <h3 className="text-xl font-semibold text-slate-800">{tool.name}</h3> <span className={`px-3 py-1 text-xs font-semibold rounded-full ${ tool.status === 'Active' ? 'bg-green-100 text-green-800' : tool.status === 'Deprecated' ? 'bg-red-100 text-red-800' : tool.status === 'Beta' ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-800' }`}>{tool.status}</span> </div>
-                  <p className="text-sm text-slate-600 mb-3 h-20 overflow-y-auto">{tool.description}</p>
-                  <p className="text-sm text-slate-500 mb-1"><span className="font-medium">Category:</span> {tool.category}</p>
-                  {tool.tags && tool.tags.length > 0 && ( <div className="mt-2 mb-3"> {tool.tags.map(tag => ( <span key={tag} className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold mr-2 mb-1 px-2.5 py-0.5 rounded-full">{tag}</span> ))} </div> )}
-                  {tool.notes && <p className="text-xs text-slate-500 italic mt-2"><span className="font-medium">Notes:</span> {tool.notes}</p>}
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-900">{person.name}</h2>
+            <div className="flex space-x-2">
+              <button onClick={() => onEdit(person)} className="text-blue-600 hover:text-blue-700">
+                <Edit2 className="w-5 h-5" />
+              </button>
+              <button onClick={onClose} className="text-gray-600 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="border-b">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 ${
+                  activeTab === 'details' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Details
+              </button>
+              <button
+                onClick={() => setActiveTab('relationships')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 ${
+                  activeTab === 'relationships' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Relationships
+              </button>
+              <button
+                onClick={() => setActiveTab('locations')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 ${
+                  activeTab === 'locations' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Locations
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+            {activeTab === 'details' && (
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
+                    <div className="space-y-2">
+                      {person.aliases && person.aliases.length > 0 && (
+                        <div><span className="font-medium">Aliases:</span> {person.aliases.join(', ')}</div>
+                      )}
+                      {person.date_of_birth && (
+                        <div><span className="font-medium">Date of Birth:</span> {new Date(person.date_of_birth).toLocaleDateString()}</div>
+                      )}
+                      <div><span className="font-medium">Category:</span> {person.category || 'N/A'}</div>
+                      <div><span className="font-medium">Status:</span> {person.status || 'N/A'}</div>
+                      <div><span className="font-medium">CRM Status:</span> {person.crm_status || 'N/A'}</div>
+                      {person.case_name && (
+                        <div><span className="font-medium">Case:</span> {person.case_name}</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Additional Details</h3>
+                    {person.notes && (
+                      <div className="mb-3">
+                        <span className="font-medium">Notes:</span>
+                        <p className="mt-1 text-gray-700">{person.notes}</p>
+                      </div>
+                    )}
+                    {person.profile_picture_url && (
+                      <div>
+                        <span className="font-medium">Profile Picture:</span>
+                        <img src={person.profile_picture_url} alt={person.name} className="mt-2 w-32 h-32 object-cover rounded-lg" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                  <a href={tool.link} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:text-blue-800 hover:underline transition-colors text-sm font-medium"> <Icon name="Link" className="w-4 h-4 mr-1" /> Visit Tool </a>
-                  <div className="space-x-2"> <button onClick={() => handleOpenEditToolModal(tool)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1" title="Edit"><Icon name="Edit2" className="w-4 h-4"/></button> <button onClick={() => handleDeleteTool(tool.id)} className="text-red-600 hover:text-red-800 transition-colors p-1" title="Delete"><Icon name="Trash2" className="w-4 h-4"/></button> </div>
+                
+                {person.osint_data && person.osint_data.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">OSINT Data</h3>
+                    <div className="space-y-2">
+                      {person.osint_data.map((osint, index) => (
+                        <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="text-gray-600">
+                            {osint.type === 'Social Media' && <Database className="w-5 h-5" />}
+                            {osint.type === 'Email' && <Mail className="w-5 h-5" />}
+                            {osint.type === 'Phone' && <Phone className="w-5 h-5" />}
+                            {osint.type === 'Website' && <Globe className="w-5 h-5" />}
+                            {osint.type === 'Location' && <MapPin className="w-5 h-5" />}
+                            {osint.type === 'Username' && <Hash className="w-5 h-5" />}
+                            {!['Social Media', 'Email', 'Phone', 'Website', 'Location', 'Username'].includes(osint.type) && <Link className="w-5 h-5" />}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium">{osint.type}:</span> {osint.value}
+                            {osint.notes && <p className="text-sm text-gray-600 mt-1">{osint.notes}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {person.custom_fields && Object.keys(person.custom_fields).length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Custom Fields</h3>
+                    <div className="space-y-2">
+                      {Object.entries(person.custom_fields).map(([key, value]) => {
+                        const fieldDef = customFields.find(f => f.field_name === key);
+                        return (
+                          <div key={key} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <span className="font-medium">{fieldDef?.field_label || key}:</span>
+                            <span>{value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {activeTab === 'relationships' && (
+              <div className="h-[500px]">
+                <RelationshipManager 
+                  personId={person.id} 
+                  showInModal={true}
+                  onClose={() => setActiveTab('details')}
+                />
+              </div>
+            )}
+            
+            {activeTab === 'locations' && (
+              <div className="p-6">
+                {validLocations.length > 0 ? (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Location Map</h3>
+                    <div className="h-96 rounded-lg overflow-hidden">
+                      <MapContainer center={[validLocations[0].lat, validLocations[0].lng]} zoom={10} style={{ height: '100%', width: '100%' }}>
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        {validLocations.map((loc, index) => (
+                          <Marker key={index} position={[loc.lat, loc.lng]}>
+                            <Popup>
+                              <div>
+                                <p className="font-medium">{loc.value}</p>
+                                {loc.notes && <p className="text-sm">{loc.notes}</p>}
+                              </div>
+                            </Popup>
+                          </Marker>
+                        ))}
+                      </MapContainer>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    No location data with coordinates available
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AddEditPersonForm = ({ person, onSave, onCancel }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      aliases: [],
+      dateOfBirth: '',
+      category: '',
+      status: '',
+      crmStatus: '',
+      caseName: '',
+      profilePictureUrl: '',
+      notes: '',
+      osintData: [],
+      attachments: [],
+      connections: [],
+      custom_fields: {}
+    });
+    const [newAlias, setNewAlias] = useState('');
+    const [newOsintData, setNewOsintData] = useState({ type: 'Email', value: '', notes: '', lat: '', lng: '' });
+
+    useEffect(() => {
+      if (person) {
+        setFormData({
+          name: person.name || '',
+          aliases: person.aliases || [],
+          dateOfBirth: person.date_of_birth ? person.date_of_birth.split('T')[0] : '',
+          category: person.category || '',
+          status: person.status || '',
+          crmStatus: person.crm_status || '',
+          caseName: person.case_name || '',
+          profilePictureUrl: person.profile_picture_url || '',
+          notes: person.notes || '',
+          osintData: person.osint_data || [],
+          attachments: person.attachments || [],
+          connections: person.connections || [],
+          custom_fields: person.custom_fields || {}
+        });
+      }
+    }, [person]);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      const dataToSend = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth || null
+      };
+
+      try {
+        let response;
+        if (person) {
+          response = await fetch(`${API_BASE_URL}/people/${person.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSend)
+          });
+        } else {
+          response = await fetch(`${API_BASE_URL}/people`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSend)
+          });
+        }
+
+        if (response.ok) {
+          const savedPerson = await response.json();
+          onSave(savedPerson);
+          fetchPeople(); // Refresh the list
+        }
+      } catch (error) {
+        console.error('Error saving person:', error);
+      }
+    };
+
+    const addAlias = () => {
+      if (newAlias.trim()) {
+        setFormData({ ...formData, aliases: [...formData.aliases, newAlias.trim()] });
+        setNewAlias('');
+      }
+    };
+
+    const removeAlias = (index) => {
+      setFormData({
+        ...formData,
+        aliases: formData.aliases.filter((_, i) => i !== index)
+      });
+    };
+
+    const addOsintData = () => {
+      if (newOsintData.value.trim()) {
+        const osintToAdd = { ...newOsintData };
+        if (newOsintData.type === 'Location' && newOsintData.lat && newOsintData.lng) {
+          osintToAdd.lat = parseFloat(newOsintData.lat);
+          osintToAdd.lng = parseFloat(newOsintData.lng);
+        }
+        setFormData({ ...formData, osintData: [...formData.osintData, osintToAdd] });
+        setNewOsintData({ type: 'Email', value: '', notes: '', lat: '', lng: '' });
+      }
+    };
+
+    const removeOsintData = (index) => {
+      setFormData({
+        ...formData,
+        osintData: formData.osintData.filter((_, i) => i !== index)
+      });
+    };
+
+    const addConnection = () => {
+      const selectedPersonId = parseInt(document.getElementById('connectionSelect').value);
+      const connectionType = document.getElementById('connectionType').value;
+      const connectionNote = document.getElementById('connectionNote').value;
+      
+      if (selectedPersonId) {
+        const newConnection = {
+          person_id: selectedPersonId,
+          type: connectionType,
+          note: connectionNote
+        };
+        setFormData({ ...formData, connections: [...formData.connections, newConnection] });
+        document.getElementById('connectionSelect').value = '';
+        document.getElementById('connectionType').value = 'associate';
+        document.getElementById('connectionNote').value = '';
+      }
+    };
+
+    const removeConnection = (index) => {
+      setFormData({
+        ...formData,
+        connections: formData.connections.filter((_, i) => i !== index)
+      });
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {person ? 'Edit Person' : 'Add New Person'}
+            </h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  <option value="Person of Interest">Person of Interest</option>
+                  <option value="Client">Client</option>
+                  <option value="Witness">Witness</option>
+                  <option value="Victim">Victim</option>
+                  <option value="Suspect">Suspect</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Status</option>
+                  <option value="Open">Open</option>
+                  <option value="Being Investigated">Being Investigated</option>
+                  <option value="Closed">Closed</option>
+                  <option value="On Hold">On Hold</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">CRM Status</label>
+                <input
+                  type="text"
+                  value={formData.crmStatus}
+                  onChange={(e) => setFormData({ ...formData, crmStatus: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Case Name</label>
+                <input
+                  type="text"
+                  value={formData.caseName}
+                  onChange={(e) => setFormData({ ...formData, caseName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture URL</label>
+              <input
+                type="url"
+                value={formData.profilePictureUrl}
+                onChange={(e) => setFormData({ ...formData, profilePictureUrl: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Aliases</label>
+              <div className="flex space-x-2 mb-2">
+                <input
+                  type="text"
+                  value={newAlias}
+                  onChange={(e) => setNewAlias(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAlias())}
+                  placeholder="Add an alias"
+                  className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button type="button" onClick={addAlias} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.aliases.map((alias, index) => (
+                  <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100">
+                    {alias}
+                    <button
+                      type="button"
+                      onClick={() => removeAlias(index)}
+                      className="ml-2 text-gray-500 hover:text-red-500"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">OSINT Data</label>
+              <div className="space-y-2 mb-2">
+                <div className="flex space-x-2">
+                  <select
+                    value={newOsintData.type}
+                    onChange={(e) => setNewOsintData({ ...newOsintData, type: e.target.value })}
+                    className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Email">Email</option>
+                    <option value="Phone">Phone</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Website">Website</option>
+                    <option value="Location">Location</option>
+                    <option value="Username">Username</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={newOsintData.value}
+                    onChange={(e) => setNewOsintData({ ...newOsintData, value: e.target.value })}
+                    placeholder="Value"
+                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={newOsintData.notes}
+                    onChange={(e) => setNewOsintData({ ...newOsintData, notes: e.target.value })}
+                    placeholder="Notes (optional)"
+                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {newOsintData.type === 'Location' && (
+                  <div className="flex space-x-2">
+                    <input
+                      type="number"
+                      step="any"
+                      value={newOsintData.lat}
+                      onChange={(e) => setNewOsintData({ ...newOsintData, lat: e.target.value })}
+                      placeholder="Latitude"
+                      className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="number"
+                      step="any"
+                      value={newOsintData.lng}
+                      onChange={(e) => setNewOsintData({ ...newOsintData, lng: e.target.value })}
+                      placeholder="Longitude"
+                      className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+                <button type="button" onClick={addOsintData} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Add OSINT Data
+                </button>
+              </div>
+              <div className="space-y-2">
+                {formData.osintData.map((osint, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <span className="font-medium">{osint.type}:</span> {osint.value}
+                      {osint.notes && <span className="text-sm text-gray-600 ml-2">({osint.notes})</span>}
+                      {osint.lat && osint.lng && <span className="text-sm text-gray-600 ml-2">[{osint.lat}, {osint.lng}]</span>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeOsintData(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Connections</label>
+              <div className="space-y-2 mb-2">
+                <div className="flex space-x-2">
+                  <select
+                    id="connectionSelect"
+                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a person</option>
+                    {people.filter(p => !person || p.id !== person.id).map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    id="connectionType"
+                    className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="associate">Associate</option>
+                    <option value="family">Family</option>
+                    <option value="employer">Employer/Employee</option>
+                    <option value="suspect">Suspect Connection</option>
+                    <option value="witness">Witness</option>
+                    <option value="victim">Victim</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <input
+                  type="text"
+                  id="connectionNote"
+                  placeholder="Connection notes (optional)"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button type="button" onClick={addConnection} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Add Connection
+                </button>
+              </div>
+              <div className="space-y-2">
+                {formData.connections.map((conn, index) => {
+                  const connectedPerson = people.find(p => p.id === conn.person_id);
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium">{connectedPerson?.name || 'Unknown'}</span>
+                        <span className="text-sm text-gray-600 ml-2">({conn.type})</span>
+                        {conn.note && <p className="text-sm text-gray-600">{conn.note}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeConnection(index)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {customFields.filter(f => f.is_active).length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Custom Fields</h3>
+                <div className="space-y-4">
+                  {customFields.filter(f => f.is_active).map(field => (
+                    <div key={field.id}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {field.field_label}
+                      </label>
+                      {field.field_type === 'text' && (
+                        <input
+                          type="text"
+                          value={formData.custom_fields[field.field_name] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            custom_fields: {
+                              ...formData.custom_fields,
+                              [field.field_name]: e.target.value
+                            }
+                          })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      )}
+                      {field.field_type === 'select' && (
+                        <select
+                          value={formData.custom_fields[field.field_name] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            custom_fields: {
+                              ...formData.custom_fields,
+                              [field.field_name]: e.target.value
+                            }
+                          })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select {field.field_label}</option>
+                          {field.options && field.options.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      )}
+                      {field.field_type === 'textarea' && (
+                        <textarea
+                          value={formData.custom_fields[field.field_name] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            custom_fields: {
+                              ...formData.custom_fields,
+                              [field.field_name]: e.target.value
+                            }
+                          })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows="3"
+                        />
+                      )}
+                      {field.field_type === 'date' && (
+                        <input
+                          type="date"
+                          value={formData.custom_fields[field.field_name] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            custom_fields: {
+                              ...formData.custom_fields,
+                              [field.field_name]: e.target.value
+                            }
+                          })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            )) : ( <p className="col-span-full text-center py-10 text-slate-500">No tools found.</p> )}
-          </div>
-        )}
-    </div>
-  )};
+            )}
 
-  // --- MODIFIED --- SettingsView to include Custom Person Fields management
-  const SettingsView = () => {
-    const [localAppName, setLocalAppName] = useState(appName);
-    const [logoFile, setLogoFile] = useState(null);
-    const logoInputRef = useRef(null);
-
-    const handleLocalLogoChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) { alert("File is too large. Max 5MB allowed."); return; }
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
-            if (!validTypes.includes(file.type)) { alert("Invalid file type. Only JPG, PNG, GIF, SVG allowed."); return; }
-            setLogoFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => { setAppLogoFilePreview(reader.result); };
-            reader.readAsDataURL(file);
-        }
-    };
-    const handleApplyGeneralSettings = () => {
-        setAppName(localAppName);
-        if (logoFile) { handleLogoUpload(logoFile); }
-        addAuditLogEntry('UPDATE_SETTINGS', 'System', 'General Config', `App name changed to: ${localAppName}${logoFile ? ', New Logo Uploaded' : ''}`);
-        alert("General settings applied!");
-    };
-    return (
-    <div>
-        <Header title="Settings" />
-        <div className="space-y-8">
-            {/* General Configuration */}
-            <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-6">General Configuration</h3>
-                <div className="space-y-6">
-                    <InputField label="Application Name" name="localAppName" value={localAppName} onChange={(e) => setLocalAppName(e.target.value)} />
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Application Logo</label>
-                        <div className="mt-1 flex items-center space-x-4">
-                            {appLogoFilePreview ? ( <img src={appLogoFilePreview} alt="New Logo Preview" className="h-16 w-16 rounded-full object-cover" /> ) : appLogoUrl ? ( <img src={appLogoUrl} alt="Current Logo" className="h-16 w-16 rounded-full object-cover" onError={(e) => {e.target.style.display='none';}}/> ) : ( <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500"> <Icon name="Image" className="w-8 h-8" /> </div> )}
-                            <input type="file" ref={logoInputRef} className="sr-only" accept="image/png, image/jpeg, image/gif, image/svg+xml" onChange={handleLocalLogoChange} />
-                            <button type="button" onClick={() => logoInputRef.current?.click()} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-md border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"> Change Logo </button>
-                        </div>
-                        {isUploadingLogo && <p className="text-sm text-blue-600 mt-2">Uploading logo...</p>}
-                    </div>
-                    <div className="pt-4"> <button onClick={handleApplyGeneralSettings} disabled={isUploadingLogo} className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"> {isUploadingLogo ? 'Saving...' : 'Save General Settings'} </button> </div>
-                </div>
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                {person ? 'Update' : 'Create'} Person
+              </button>
             </div>
-
-            {/* Person Custom Fields (Data Model Options) --- NEW SECTION --- */}
-            <div className="bg-white p-6 rounded-lg shadow">
-                <div className="flex justify-between items-center border-b pb-3 mb-4">
-                    <h3 className="text-xl font-semibold text-slate-700">Person Custom Fields</h3>
-                    <button
-                        onClick={() => handleOpenAddEditCustomFieldModal(null)}
-                        className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow text-sm"
-                    >
-                        <Icon name="FilePlus" className="w-4 h-4" />
-                        <span>Add Custom Field</span>
-                    </button>
-                </div>
-                {isLoadingCustomFields && <p className="text-slate-500">Loading custom field definitions...</p>}
-                {!isLoadingCustomFields && !error?.includes('Custom Fields:') && (
-                    customFieldDefinitions.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Label</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Field Name (Key)</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Active</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-slate-200">
-                                    {customFieldDefinitions.map(field => (
-                                        <tr key={field.id}>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700">{field.field_label}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-500 font-mono">{field.field_name}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{defaultCustomFieldTypes.find(t => t.value === field.field_type)?.label || field.field_type}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${field.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                    {field.is_active ? 'Yes' : 'No'}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-2 whitespace-nowrap text-sm space-x-2">
-                                                <button onClick={() => handleOpenAddEditCustomFieldModal(field)} className="text-indigo-600 hover:text-indigo-800 p-1" title="Edit"><Icon name="Edit2" /></button>
-                                                <button onClick={() => handleDeleteCustomFieldDefinition(field.id, field.field_name)} className="text-red-600 hover:text-red-800 p-1" title="Delete"><Icon name="Trash2" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <p className="text-slate-500">No custom person fields defined yet.</p>
-                    )
-                )}
-            </div>
-
-
-            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Data Management</h3> <p className="text-slate-500">Data import/export to be implemented.</p> </div>
-            <div className="bg-white p-6 rounded-lg shadow"> <h3 className="text-xl font-semibold text-slate-700 border-b pb-3 mb-4">Audit Log</h3> <p className="text-slate-500">Audit log display to be implemented.</p> </div>
-        </div>
-    </div>
-    );
-  };
-  // --- END MODIFIED ---
-
-
-  const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => {
-    if (!isOpen) return null;
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 ease-in-out">
-        <div className={`bg-white rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0 animate-modalShow`}>
-          <div className="flex justify-between items-center p-5 border-b border-slate-200"> <h3 className="text-xl font-semibold text-slate-700">{title}</h3> <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors"> <Icon name="X" className="w-6 h-6" /> </button> </div>
-          <div className="p-6 overflow-y-auto">{children}</div>
+          </form>
         </div>
       </div>
     );
   };
 
-  // --- MODIFIED --- AddEditPersonForm to include custom fields
-  const AddEditPersonForm = ({ person, onSave, onCancel }) => {
-    const initialCustomFields = useMemo(() => {
-        const fields = {};
-        customFieldDefinitions.filter(def => def.is_active).forEach(def => {
-            fields[def.field_name] = person?.custom_fields?.[def.field_name] ?? (def.field_type === 'checkbox' ? false : '');
-        });
-        return fields;
-    }, [person, customFieldDefinitions]);
-
-
-    const [formData, setFormData] = useState({
-      name: person?.name || '',
-      aliases: person?.aliases?.join(', ') || '',
-      dateOfBirth: formatInputDate(person?.date_of_birth),
-      category: person?.category || (personCategories.length > 0 ? personCategories[0] : ''),
-      status: person?.status || (personStatuses.length > 0 ? personStatuses[0] : ''),
-      crmStatus: person?.crm_status || (crmStatuses.length > 0 ? crmStatuses[0] : ''),
-      caseName: person?.case_name || '',
-      profilePictureUrl: person?.profile_picture_url || '',
-      notes: person?.notes || '',
-      custom_fields: initialCustomFields, // --- NEW --- Initialize custom fields
+  const PeopleList = () => {
+    const filteredPeople = people.filter(person => {
+      const matchesSearch = searchTerm === '' || 
+        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (person.aliases && person.aliases.some(alias => alias.toLowerCase().includes(searchTerm.toLowerCase()))) ||
+        (person.case_name && person.case_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesCategory = filterCategory === '' || person.category === filterCategory;
+      const matchesStatus = filterStatus === '' || person.status === filterStatus;
+      
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-    const [currentOsintData, setCurrentOsintData] = useState(person?.osint_data || []);
-    // const [currentAttachments, setCurrentAttachments] = useState(person?.attachments || []); // Attachment logic can be added later
 
-    useEffect(() => { // Re-initialize custom_fields if person or definitions change
-        const fields = {};
-        customFieldDefinitions.filter(def => def.is_active).forEach(def => {
-            fields[def.field_name] = person?.custom_fields?.[def.field_name] ?? (def.field_type === 'checkbox' ? false : '');
-        });
-        setFormData(prev => ({...prev, custom_fields: fields}));
-    }, [person, customFieldDefinitions]);
-
-
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        if (name.startsWith("custom_")) { // Handle custom fields
-            const fieldName = name.split("custom_")[1];
-            setFormData(prev => ({
-                ...prev,
-                custom_fields: {
-                    ...prev.custom_fields,
-                    [fieldName]: type === 'checkbox' ? checked : value
-                }
-            }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    const handleDelete = async (id) => {
+      if (window.confirm('Are you sure you want to delete this person?')) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/people/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            fetchPeople();
+          }
+        } catch (error) {
+          console.error('Error deleting person:', error);
         }
-    };
-
-    const addOsintField = () => setCurrentOsintData([...currentOsintData, { id: generateId(), type: osintDataTypes[0], value: '', platform: '', notes: '', url: '' }]);
-    const handleOsintFieldChange = (index, field, value) => { const updated = [...currentOsintData]; updated[index][field] = value; setCurrentOsintData(updated); };
-    const removeOsintField = (idOrIndex) => setCurrentOsintData(currentOsintData.filter((f, i) => (f.id || i) !== idOrIndex));
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (!formData.name.trim()) { alert("Name is required."); return; }
-      const dataToSave = {
-        ...formData,
-        aliases: formData.aliases.split(',').map(a => a.trim()).filter(a => a),
-        dateOfBirth: formData.dateOfBirth || null,
-        osint_data: currentOsintData,
-        // attachments: currentAttachments.map(({ fileObject, ...rest }) => rest)
-        custom_fields: formData.custom_fields // Already in correct format
-      };
-      onSave(dataToSave);
+      }
     };
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <InputField label="Full Name" name="name" value={formData.name} onChange={handleChange} required /> <InputField label="Aliases (comma-separated)" name="aliases" value={formData.aliases} onChange={handleChange} /> </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <InputField label="Date of Birth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleChange} /> <InputField label="Case Name" name="caseName" value={formData.caseName} onChange={handleChange} list="caseNamesList" /> <datalist id="caseNamesList">{uniqueCaseNames.map(caseN => <option key={caseN} value={caseN} />)}</datalist> </div>
-        <InputField label="Profile Picture URL" name="profilePictureUrl" value={formData.profilePictureUrl} onChange={handleChange} placeholder="https://example.com/image.png" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <SelectField label="Category" name="category" value={formData.category} onChange={handleChange} options={personCategories} /> <SelectField label="Status" name="status" value={formData.status} onChange={handleChange} options={personStatuses} /> <SelectField label="CRM Status" name="crmStatus" value={formData.crmStatus} onChange={handleChange} options={crmStatuses} /> </div>
-        <div> <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label> <textarea name="notes" value={formData.notes} onChange={handleChange} rows="3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea> </div>
-
-        {/* --- NEW --- Render Custom Fields --- */}
-        {customFieldDefinitions.filter(def => def.is_active).length > 0 && (
-            <div className="space-y-4 border-t border-slate-200 pt-4">
-                <h4 className="text-md font-semibold text-slate-700">Additional Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    {customFieldDefinitions.filter(def => def.is_active).map(fieldDef => {
-                        const fieldName = `custom_${fieldDef.field_name}`;
-                        const fieldValue = formData.custom_fields?.[fieldDef.field_name] ?? (fieldDef.field_type === 'checkbox' ? false : '');
-
-                        if (fieldDef.field_type === 'textarea') {
-                            return (
-                                <div key={fieldDef.id} className="md:col-span-2">
-                                    <label htmlFor={fieldName} className="block text-sm font-medium text-slate-700 mb-1">{fieldDef.field_label}</label>
-                                    <textarea
-                                        id={fieldName}
-                                        name={fieldName}
-                                        value={fieldValue}
-                                        onChange={handleChange}
-                                        rows="3"
-                                        className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                                    />
-                                </div>
-                            );
-                        } else if (fieldDef.field_type === 'select') {
-                            return (
-                                <div key={fieldDef.id}>
-                                    <SelectField
-                                        label={fieldDef.field_label}
-                                        name={fieldName}
-                                        value={fieldValue}
-                                        onChange={handleChange}
-                                        options={(fieldDef.options || []).map(opt => opt.label ? opt : ({ value: opt, label: opt }))} // Ensure options are in {value, label} or string format
-                                        valueKey="value" // if options are objects
-                                        labelKey="label" // if options are objects
-                                    />
-                                </div>
-                            );
-                        } else if (fieldDef.field_type === 'checkbox') {
-                             return (
-                                <div key={fieldDef.id} className="flex items-center pt-5">
-                                    <input
-                                        id={fieldName}
-                                        name={fieldName}
-                                        type="checkbox"
-                                        checked={!!fieldValue} // Ensure boolean
-                                        onChange={handleChange}
-                                        className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-                                    />
-                                    <label htmlFor={fieldName} className="ml-2 block text-sm text-slate-700">{fieldDef.field_label}</label>
-                                </div>
-                            );
-                        }
-                        // Default to InputField for text, number, date
-                        return (
-                            <div key={fieldDef.id}>
-                                <InputField
-                                    label={fieldDef.field_label}
-                                    name={fieldName}
-                                    type={fieldDef.field_type === 'number' ? 'number' : fieldDef.field_type === 'date' ? 'date' : 'text'}
-                                    value={fieldValue}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        )}
-        {/* --- END NEW --- */}
-
-
-        <div className="space-y-4 border-t border-slate-200 pt-4">
-            <h4 className="text-md font-semibold text-slate-700">OSINT Data Points</h4>
-            {currentOsintData.map((field, index) => ( <div key={field.id || index} className="p-3 border border-slate-200 rounded-md space-y-2 relative"> <button type="button" onClick={() => removeOsintField(field.id || index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"> <Icon name="Trash2" className="w-4 h-4" /> </button> <SelectField label="Type" value={field.type} onChange={(e) => handleOsintFieldChange(index, 'type', e.target.value)} options={osintDataTypes} small /> { (field.type === 'social_media' || field.type === 'username') && <InputField label="Platform/Site" value={field.platform || ''} onChange={(e) => handleOsintFieldChange(index, 'platform', e.target.value)} small /> } <InputField label={field.type === 'social_media' ? 'Handle/ID' : field.type === 'email' ? 'Email Address' : field.type === 'phone' ? 'Phone Number' : field.type === 'location' ? 'Address/Coordinates' : 'Value'} value={field.value || ''} onChange={(e) => handleOsintFieldChange(index, 'value', e.target.value)} small /> <InputField label="URL (if applicable)" value={field.url || ''} onChange={(e) => handleOsintFieldChange(index, 'url', e.target.value)} small /> <InputField label="Notes" value={field.notes || ''} onChange={(e) => handleOsintFieldChange(index, 'notes', e.target.value)} small /> </div> ))}
-            <button type="button" onClick={addOsintField} className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1"> <Icon name="PlusCircle" className="w-4 h-4" /> <span>Add OSINT Data Point</span> </button>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">People Management</h1>
+          <button
+            onClick={() => setShowAddPersonForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Person
+          </button>
         </div>
-        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"> <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Cancel</button> <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-md shadow-sm hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105"> {person ? 'Save Changes' : 'Add Person'} </button> </div>
-      </form>
-    );
-  };
-  // --- END MODIFIED ---
 
-  // --- MODIFIED --- PersonDetailModal to display custom fields
-  const PersonDetailModal = ({ person, onClose, onEdit }) => {
-    if (!person) return null;
-    const activeCustomDefs = customFieldDefinitions.filter(def => def.is_active);
-    return (
-      <Modal isOpen={!!person} onClose={onClose} title={`Details: ${person.name}`} maxWidth="max-w-4xl">
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start space-x-0 sm:space-x-6">
-            <img src={person.profile_picture_url || `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`} alt={person.name} className="w-32 h-32 rounded-lg object-cover border border-slate-200 shadow-md mb-4 sm:mb-0" onError={(e) => {e.target.src = `https://placehold.co/150x150/E0E0E0/333?text=${person.name?.substring(0,2) || 'P'}`; e.target.onerror=null;}} />
+        <div className="mb-6 space-y-4">
+          <div className="flex space-x-4">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-slate-800">{person.name}</h2>
-              {person.aliases && person.aliases.length > 0 && <p className="text-sm text-slate-500">Also known as: {person.aliases.join(', ')}</p>}
-              {person.date_of_birth && <p className="text-sm text-slate-600 mt-1">Born: {new Date(person.date_of_birth).toLocaleDateString()}</p>}
-              <p className="text-sm text-slate-600 mt-1">Case: <span className="font-medium">{person.case_name || 'N/A'}</span></p>
-              <div className="mt-3 flex flex-wrap gap-2"> <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Category: {person.category}</span> <span className={`px-3 py-1 text-xs font-semibold rounded-full ${ person.status === 'Open' ? 'bg-blue-100 text-blue-800' : person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' : person.status === 'Completed' ? 'bg-green-100 text-green-800' : person.status === 'Closed' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800' }`}>Status: {person.status}</span> {person.crm_status && person.crm_status !== 'N/A' && <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">CRM: {person.crm_status}</span>} </div>
-              <div className="mt-3 text-xs text-slate-400"> <p>Created: {formatDate(person.created_at)}</p> <p>Last Updated: {formatDate(person.updated_at)}</p> </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by name, alias, or case..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Categories</option>
+              <option value="Person of Interest">Person of Interest</option>
+              <option value="Client">Client</option>
+              <option value="Witness">Witness</option>
+              <option value="Victim">Victim</option>
+              <option value="Suspect">Suspect</option>
+              <option value="Other">Other</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="Being Investigated">Being Investigated</option>
+              <option value="Closed">Closed</option>
+              <option value="On Hold">On Hold</option>
+            </select>
           </div>
-          {person.notes && ( <DetailSection title="Notes"> <p className="text-sm text-slate-700 whitespace-pre-wrap">{person.notes}</p> </DetailSection> )}
-
-          {/* --- NEW --- Display Custom Fields --- */}
-          {activeCustomDefs.length > 0 && Object.keys(person.custom_fields || {}).length > 0 && (
-            <DetailSection title="Additional Information">
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-                    {activeCustomDefs.map(def => {
-                        const value = person.custom_fields?.[def.field_name];
-                        if (value !== undefined && value !== null && value !== '') {
-                            return (
-                                <React.Fragment key={def.id}>
-                                    <dt className="text-sm font-medium text-slate-500">{def.field_label}:</dt>
-                                    <dd className="text-sm text-slate-800 break-words">
-                                        {def.field_type === 'checkbox' ? (value ? 'Yes' : 'No') :
-                                         def.field_type === 'date' ? formatDate(value).split(',')[0] : // Just date part
-                                         String(value)}
-                                    </dd>
-                                </React.Fragment>
-                            );
-                        }
-                        return null;
-                    })}
-                </dl>
-            </DetailSection>
-          )}
-          {/* --- END NEW --- */}
-
-
-          {person.osint_data && person.osint_data.length > 0 && ( <DetailSection title="OSINT Data Points"> <ul className="space-y-3"> {person.osint_data.map((data, index) => ( <li key={data.id || index} className="p-3 bg-slate-50 rounded-md border border-slate-200"> <strong className="capitalize text-sm text-slate-700">{data.type?.replace('_', ' ') || 'Data'}:</strong> {data.platform && <span className="text-sm text-slate-600"> ({data.platform})</span>} <p className="text-sm text-slate-800">{data.url ? <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{data.handle || data.value || data.url}</a> : (data.address || data.value || data.handle)}</p> {data.notes && <p className="text-xs text-slate-500 italic mt-1">{data.notes}</p>} </li> ))} </ul> </DetailSection> )}
-          <DetailSection title="Location Map (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="MapPin" className="w-10 h-10 mr-2" /> Map visualization will be here. </div> </DetailSection>
-          <DetailSection title="Relationship Chart (Placeholder)"> <div className="h-64 bg-slate-200 rounded-md flex items-center justify-center text-slate-500"> <Icon name="Network" className="w-10 h-10 mr-2" /> Relationship graph will be here. </div> </DetailSection>
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"> <button onClick={() => { onClose(); onEdit(person); }} className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-md shadow-sm hover:from-indigo-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all transform hover:scale-105"> <Icon name="Edit2" className="w-4 h-4 inline-block mr-1" /> Edit Person </button> <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Close</button> </div>
         </div>
-      </Modal>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPeople.map(person => (
+            <div key={person.id} className="bg-white rounded-lg shadow-sm p-6 border hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center space-x-3">
+                  {person.profile_picture_url ? (
+                    <img src={person.profile_picture_url} alt={person.name} className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-6 h-6 text-gray-500" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{person.name}</h3>
+                    {person.aliases && person.aliases.length > 0 && (
+                      <p className="text-sm text-gray-500">AKA: {person.aliases.join(', ')}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setSelectedPersonForDetail(person)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setEditingPerson(person)}
+                    className="text-gray-600 hover:text-gray-700"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(person.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {person.category && (
+                  <div className="flex items-center text-sm">
+                    <Tag className="w-4 h-4 mr-2 text-gray-400" />
+                    <span className="text-gray-600">{person.category}</span>
+                  </div>
+                )}
+                {person.case_name && (
+                  <div className="flex items-center text-sm">
+                    <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
+                    <span className="text-gray-600">{person.case_name}</span>
+                  </div>
+                )}
+                <div className="flex items-center text-sm">
+                  <Network className="w-4 h-4 mr-2 text-gray-400" />
+                  <span className="text-gray-600">{getRelationshipCount(person.id)} connections</span>
+                </div>
+              </div>
+              
+              {person.status && (
+                <div className="mt-4">
+                  <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                    person.status === 'Open' ? 'bg-green-100 text-green-800' :
+                    person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' :
+                    person.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {person.status}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     );
   };
-  // --- END MODIFIED ---
-
 
   const AddEditToolForm = ({ tool, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
-      name: tool?.name || '',
-      link: tool?.link || '',
-      description: tool?.description || '',
-      category: tool?.category || (toolCategories.length > 0 ? toolCategories[0] : ''),
-      status: tool?.status || (toolStatuses.length > 0 ? toolStatuses[0] : ''),
-      tags: tool?.tags?.join(', ') || '',
-      notes: tool?.notes || '',
+      name: '',
+      link: '',
+      description: '',
+      category: '',
+      status: '',
+      tags: [],
+      notes: ''
     });
+    const [newTag, setNewTag] = useState('');
 
-    const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+    useEffect(() => {
+      if (tool) {
+        setFormData({
+          name: tool.name || '',
+          link: tool.link || '',
+          description: tool.description || '',
+          category: tool.category || '',
+          status: tool.status || '',
+          tags: tool.tags || [],
+          notes: tool.notes || ''
+        });
+      }
+    }, [tool]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
-      if (!formData.name.trim()) { alert("Tool Name is required."); return; }
-      onSave({ ...formData, tags: formData.tags.split(',').map(t => t.trim()).filter(t => t) });
+      
+      try {
+        let response;
+        if (tool) {
+          response = await fetch(`${API_BASE_URL}/tools/${tool.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+        } else {
+          response = await fetch(`${API_BASE_URL}/tools`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          const savedTool = await response.json();
+          onSave(savedTool);
+          fetchTools();
+        }
+      } catch (error) {
+        console.error('Error saving tool:', error);
+      }
+    };
+
+    const addTag = () => {
+      if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+        setFormData({ ...formData, tags: [...formData.tags, newTag.trim()] });
+        setNewTag('');
+      }
+    };
+
+    const removeTag = (tagToRemove) => {
+      setFormData({
+        ...formData,
+        tags: formData.tags.filter(tag => tag !== tagToRemove)
+      });
     };
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <InputField label="Tool Name" name="name" value={formData.name} onChange={handleChange} required />
-        <InputField label="Link (URL)" name="link" type="url" value={formData.link} onChange={handleChange} placeholder="https://example.com" />
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><SelectField label="Category" name="category" value={formData.category} onChange={handleChange} options={toolCategories} /><SelectField label="Status" name="status" value={formData.status} onChange={handleChange} options={toolStatuses} /></div>
-        <InputField label="Tags (comma-separated)" name="tags" value={formData.tags} onChange={handleChange} />
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label><textarea name="notes" value={formData.notes} onChange={handleChange} rows="2" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea></div>
-        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200"><button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400">Cancel</button><button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-md shadow-sm hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all transform hover:scale-105">{tool ? 'Save Changes' : 'Add Tool'}</button></div>
-      </form>
-    );
-  };
-  const AddEditTodoForm = ({ todo, onSave, onCancel }) => {
-    const [text, setText] = useState(todo?.text || '');
-    const [status, setStatus] = useState(todo?.status || 'open');
-    const [last_update_comment, setLastUpdateComment] = useState(todo?.last_update_comment || '');
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!text.trim()) { alert("Task description cannot be empty."); return; }
-        onSave({ text, status, last_update_comment });
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <InputField label="Task Description" name="text" value={text} onChange={(e) => setText(e.target.value)} required />
-            <SelectField label="Status" name="status" value={status} onChange={(e) => setStatus(e.target.value)} options={['open', 'done']} />
-            <InputField label="Update Comment (Optional)" name="last_update_comment" value={last_update_comment} onChange={(e) => setLastUpdateComment(e.target.value)} />
-            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200">Cancel</button>
-                <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md">
-                    {todo ? 'Save Changes' : 'Add Task'}
-                </button>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+          <div className="p-6 border-b">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {tool ? 'Edit Tool' : 'Add New Tool'}
+            </h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tool Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
             </div>
-        </form>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Link</label>
+              <input
+                type="url"
+                value={formData.link}
+                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  <option value="Search Engines">Search Engines</option>
+                  <option value="Social Media">Social Media</option>
+                  <option value="People Search">People Search</option>
+                  <option value="Data Analysis">Data Analysis</option>
+                  <option value="Geolocation">Geolocation</option>
+                  <option value="Documentation">Documentation</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Testing">Testing</option>
+                  <option value="Deprecated">Deprecated</option>
+                  <option value="Offline">Offline</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+              <div className="flex space-x-2 mb-2">
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  placeholder="Add a tag"
+                  className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag, index) => (
+                  <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                {tool ? 'Update' : 'Create'} Tool
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     );
   };
 
-  // --- NEW --- CustomFieldDefinitionForm Component ---
-  const CustomFieldDefinitionForm = ({ fieldDefinition, onSave, onCancel }) => {
-    const isEditing = !!fieldDefinition;
-    const [formData, setFormData] = useState({
-        field_name: fieldDefinition?.field_name || '',
-        field_label: fieldDefinition?.field_label || '',
-        field_type: fieldDefinition?.field_type || defaultCustomFieldTypes[0].value,
-        options: fieldDefinition?.options || [{ value: '', label: '' }], // For select type
-        is_active: fieldDefinition?.is_active !== undefined ? fieldDefinition.is_active : true,
+  const ToolsList = () => {
+    const filteredTools = tools.filter(tool => {
+      const matchesSearch = toolSearchTerm === '' || 
+        tool.name.toLowerCase().includes(toolSearchTerm.toLowerCase()) ||
+        (tool.category && tool.category.toLowerCase().includes(toolSearchTerm.toLowerCase())) ||
+        (tool.tags && tool.tags.some(tag => tag.toLowerCase().includes(toolSearchTerm.toLowerCase())));
+      
+      return matchesSearch;
     });
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    const handleDelete = async (id) => {
+      if (window.confirm('Are you sure you want to delete this tool?')) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/tools/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            fetchTools();
+          }
+        } catch (error) {
+          console.error('Error deleting tool:', error);
+        }
+      }
     };
 
-    const handleOptionChange = (index, prop, value) => {
-        const updatedOptions = [...formData.options];
-        updatedOptions[index][prop] = value;
-        setFormData(prev => ({ ...prev, options: updatedOptions }));
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">OSINT Tools Directory</h1>
+          <button
+            onClick={() => setShowAddToolForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Tool
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search tools by name, category, or tag..."
+              value={toolSearchTerm}
+              onChange={(e) => setToolSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTools.map(tool => (
+            <div key={tool.id} className="bg-white rounded-lg shadow-sm p-6 border hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">{tool.name}</h3>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setEditingTool(tool)}
+                    className="text-gray-600 hover:text-gray-700"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tool.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              {tool.description && (
+                <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
+              )}
+              
+              {tool.category && (
+                <div className="mb-2">
+                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                    {tool.category}
+                  </span>
+                </div>
+              )}
+              
+              {tool.tags && tool.tags.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1">
+                  {tool.tags.map((tag, index) => (
+                    <span key={index} className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              {tool.link && (
+                <a
+                  href={tool.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm"
+                >
+                  Visit Tool
+                  <Globe className="w-3 h-3 ml-1" />
+                </a>
+              )}
+              
+              {tool.status && (
+                <div className="mt-3">
+                  <span className={`inline-block px-2 py-1 text-xs rounded ${
+                    tool.status === 'Active' ? 'bg-green-100 text-green-800' :
+                    tool.status === 'Testing' ? 'bg-yellow-100 text-yellow-800' :
+                    tool.status === 'Deprecated' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {tool.status}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const CustomFieldManager = () => {
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [editingField, setEditingField] = useState(null);
+    const [formData, setFormData] = useState({
+      field_name: '',
+      field_label: '',
+      field_type: 'text',
+      options: [],
+      is_active: true
+    });
+    const [newOption, setNewOption] = useState('');
+
+    const resetForm = () => {
+      setFormData({
+        field_name: '',
+        field_label: '',
+        field_type: 'text',
+        options: [],
+        is_active: true
+      });
+      setNewOption('');
+      setEditingField(null);
+      setShowAddForm(false);
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      try {
+        let response;
+        if (editingField) {
+          response = await fetch(`${API_BASE_URL}/settings/custom-fields/${editingField.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+        } else {
+          response = await fetch(`${API_BASE_URL}/settings/custom-fields`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          fetchCustomFields();
+          resetForm();
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to save custom field');
+        }
+      } catch (error) {
+        console.error('Error saving custom field:', error);
+        alert('Failed to save custom field');
+      }
+    };
+
+    const handleEdit = (field) => {
+      setEditingField(field);
+      setFormData({
+        field_name: field.field_name,
+        field_label: field.field_label,
+        field_type: field.field_type,
+        options: field.options || [],
+        is_active: field.is_active
+      });
+      setShowAddForm(true);
+    };
+
+    const handleDelete = async (id) => {
+      if (window.confirm('Are you sure you want to delete this custom field? This will not delete existing data.')) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/settings/custom-fields/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            fetchCustomFields();
+          }
+        } catch (error) {
+          console.error('Error deleting custom field:', error);
+        }
+      }
     };
 
     const addOption = () => {
-        setFormData(prev => ({ ...prev, options: [...prev.options, { value: '', label: '' }] }));
+      if (newOption.trim() && !formData.options.includes(newOption.trim())) {
+        setFormData({ ...formData, options: [...formData.options, newOption.trim()] });
+        setNewOption('');
+      }
     };
 
-    const removeOption = (index) => {
-        const updatedOptions = formData.options.filter((_, i) => i !== index);
-        setFormData(prev => ({ ...prev, options: updatedOptions.length > 0 ? updatedOptions : [{ value: '', label: '' }] }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.field_name.trim() || !formData.field_label.trim()) {
-            alert('Field Name and Field Label are required.');
-            return;
-        }
-        if (!/^[a-zA-Z0-9_]+$/.test(formData.field_name)) {
-             alert('Field Name can only contain alphanumeric characters and underscores (e.g., "custom_info", "user_id").');
-             return;
-        }
-        const dataToSave = { ...formData };
-        if (formData.field_type !== 'select') {
-            dataToSave.options = []; // Clear options if not a select type
-        } else {
-            // Ensure options are valid
-            dataToSave.options = dataToSave.options.filter(opt => opt.value.trim() && opt.label.trim());
-            if (dataToSave.options.length === 0 && formData.field_type === 'select') {
-                alert('For "Select" type, at least one valid option (with value and label) is required.');
-                return;
-            }
-        }
-        onSave(dataToSave);
+    const removeOption = (optionToRemove) => {
+      setFormData({
+        ...formData,
+        options: formData.options.filter(option => option !== optionToRemove)
+      });
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <InputField label="Field Label (e.g., 'Passport Number')" name="field_label" value={formData.field_label} onChange={handleChange} required />
-            <InputField
-                label="Field Name / Key (e.g., 'passport_number', no spaces/special chars)"
-                name="field_name"
-                value={formData.field_name}
-                onChange={handleChange}
-                required
-                disabled={isEditing} // Field name cannot be changed after creation for data integrity
-                helperText={isEditing ? "Cannot be changed after creation." : "Use a unique key, like 'middle_name' or 'employee_id'."}
-            />
-             {isEditing && <p className="text-xs text-slate-500 -mt-4">Field Name cannot be changed after creation to maintain data integrity.</p>}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Custom Person Fields</h3>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Field
+          </button>
+        </div>
 
-            <SelectField label="Field Type" name="field_type" value={formData.field_type} onChange={handleChange} options={defaultCustomFieldTypes.map(t=>t.label)} valueKey="value" labelKey="label" realValueOptions={defaultCustomFieldTypes} />
-
-            {formData.field_type === 'select' && (
-                <div className="space-y-3 border p-4 rounded-md">
-                    <h4 className="text-sm font-medium text-slate-700">Dropdown Options</h4>
-                    {formData.options.map((opt, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                            <InputField small label={`Opt ${index + 1} Value`} placeholder="Value" value={opt.value} onChange={e => handleOptionChange(index, 'value', e.target.value)} />
-                            <InputField small label="Label (display)" placeholder="Label" value={opt.label} onChange={e => handleOptionChange(index, 'label', e.target.value)} />
-                            {formData.options.length > 1 && <button type="button" onClick={() => removeOption(index)} className="text-red-500 hover:text-red-700 mt-5 p-1"><Icon name="Trash2" className="w-4 h-4" /></button>}
-                        </div>
-                    ))}
-                    <button type="button" onClick={addOption} className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1">
-                        <Icon name="PlusCircle" className="w-4 h-4" /><span>Add Option</span>
-                    </button>
+        {showAddForm && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium mb-3">{editingField ? 'Edit' : 'Add'} Custom Field</h4>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Field Name (Internal)</label>
+                  <input
+                    type="text"
+                    value={formData.field_name}
+                    onChange={(e) => setFormData({ ...formData, field_name: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                    placeholder="e.g., security_clearance"
+                    required
+                    disabled={editingField}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Letters, numbers, underscores only</p>
                 </div>
-            )}
-
-            <div className="flex items-center">
-                <input id="is_active" name="is_active" type="checkbox" checked={formData.is_active} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                <label htmlFor="is_active" className="ml-2 block text-sm text-slate-700">Active (field will be available in forms)</label>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200">Cancel</button>
-                <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                    {isEditing ? 'Save Changes' : 'Add Custom Field'}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Field Label (Display)</label>
+                  <input
+                    type="text"
+                    value={formData.field_label}
+                    onChange={(e) => setFormData({ ...formData, field_label: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                    placeholder="e.g., Security Clearance Level"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
+                <select
+                  value={formData.field_type}
+                  onChange={(e) => setFormData({ ...formData, field_type: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="text">Text</option>
+                  <option value="textarea">Textarea</option>
+                  <option value="select">Dropdown</option>
+                  <option value="date">Date</option>
+                </select>
+              </div>
+              
+              {formData.field_type === 'select' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Options</label>
+                  <div className="flex space-x-2 mb-2">
+                    <input
+                      type="text"
+                      value={newOption}
+                      onChange={(e) => setNewOption(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                      placeholder="Add an option"
+                      className="flex-1 px-3 py-2 border rounded-md text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={addOption}
+                      className="px-3 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.options.map((option, index) => (
+                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100">
+                        {option}
+                        <button
+                          type="button"
+                          onClick={() => removeOption(option)}
+                          className="ml-1 text-gray-500 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                  Active (show this field in forms)
+                </label>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-3">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-3 py-1 text-gray-700 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
+                >
+                  Cancel
                 </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                >
+                  {editingField ? 'Update' : 'Create'} Field
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {customFields.map(field => (
+            <div key={field.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-medium">{field.field_label}</div>
+                <div className="text-sm text-gray-600">
+                  Type: {field.field_type} | Name: {field.field_name}
+                  {field.options && field.options.length > 0 && (
+                    <span> | Options: {field.options.join(', ')}</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`px-2 py-1 text-xs rounded ${
+                  field.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {field.is_active ? 'Active' : 'Inactive'}
+                </span>
+                <button
+                  onClick={() => handleEdit(field)}
+                  className="text-gray-600 hover:text-gray-700"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(field.id)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-        </form>
+          ))}
+        </div>
+      </div>
     );
   };
-  // --- END NEW ---
 
-
-  const DetailSection = ({ title, children }) => ( <div className="border-t border-slate-200 pt-4 mt-4"> <h4 className="text-lg font-semibold text-slate-700 mb-3">{title}</h4> {children} </div> );
-
-  // --- MODIFIED InputField and SelectField to handle realValueOptions for SelectField mapping ---
-  const InputField = ({ label, name, type = "text", value, onChange, required, placeholder, small, list, disabled, helperText, ...props }) => (
-    <div>
-        {label && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>}
-        <input
-            type={type}
-            name={name}
-            id={name}
-            value={value}
-            onChange={onChange}
-            required={required}
-            placeholder={placeholder}
-            list={list}
-            disabled={disabled}
-            className={`mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2'} ${disabled ? 'bg-slate-50 cursor-not-allowed' : ''}`}
-            {...props}
-        />
-        {helperText && <p className="mt-1 text-xs text-slate-500">{helperText}</p>}
-    </div>
-  );
-
-  const SelectField = ({ label, name, value, onChange, options, required, small, className, noLabel, valueKey = 'value', labelKey = 'label', realValueOptions, ...props }) => {
-    // If realValueOptions is provided, it means `options` are just labels, and we need to map to actual values from realValueOptions
-    const currentVal = realValueOptions ? (realValueOptions.find(opt => opt[labelKey] === value)?.[valueKey] || value) : value;
-
-    const handleChange = (e) => {
-        if (realValueOptions) {
-            const selectedLabel = e.target.value;
-            const actualOption = realValueOptions.find(opt => opt[labelKey] === selectedLabel);
-            // Create a synthetic event object that mimics the original event structure
-            // but replaces the value with the actual value we want to pass to the parent's onChange
-            const syntheticEvent = {
-                target: {
-                    name: e.target.name,
-                    value: actualOption ? actualOption[valueKey] : selectedLabel, // Fallback to label if no match
-                    type: e.target.type,
-                },
-                // You can add other event properties if needed by your handlers
-            };
-            onChange(syntheticEvent);
-        } else {
-            onChange(e);
-        }
-    };
+  const SettingsPage = () => {
+    const [activeTab, setActiveTab] = useState('general');
 
     return (
-        <div className={className}>
-            {!noLabel && <label htmlFor={name} className={`block text-sm font-medium text-slate-700 ${small ? 'mb-0.5' : 'mb-1'}`}>{label}{required && <span className="text-red-500">*</span>}</label>}
-            <select
-                name={name}
-                id={name}
-                value={realValueOptions ? (realValueOptions.find(opt => opt[valueKey] === value)?.[labelKey] || value) : value} // For display, show label if mapping
-                onChange={handleChange}
-                required={required}
-                className={`block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${small ? 'p-1.5 text-xs' : 'p-2 h-[38px]'} ${noLabel ? '' : 'mt-1'}`}
-                {...props}
-            >
-                {options.map((opt, index) => {
-                    const optionValue = typeof opt === 'object' ? opt[valueKey] : opt;
-                    const optionLabel = typeof opt === 'object' ? opt[labelKey] : opt;
-                    const displayLabel = realValueOptions ? optionLabel : optionValue; // If realValueOptions, opt is already a label
-
-                    return (
-                        <option
-                            key={realValueOptions ? realValueOptions[index]?.[valueKey] || index : optionValue} // Use actual value for key if available
-                            value={displayLabel} // Value in <option> should be what's displayed if realValueOptions is used
+      <div className="p-6 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+        
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="border-b">
+            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('general')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'general'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                General
+              </button>
+              <button
+                onClick={() => setActiveTab('data-model')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'data-model'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Data Model
+              </button>
+              <button
+                onClick={() => setActiveTab('import-export')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'import-export'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Import/Export
+              </button>
+              <button
+                onClick={() => setActiveTab('audit')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'audit'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Audit Log
+              </button>
+            </nav>
+          </div>
+          
+          <div className="p-6">
+            {activeTab === 'general' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Application Configuration</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Application Name</label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={appSettings.appName}
+                          onChange={(e) => handleAppNameChange(e.target.value)}
+                          className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={() => handleAppNameChange(appSettings.appName)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                         >
-                            {optionLabel}
-                        </option>
-                    );
-                })}
-            </select>
+                          <Save className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Application Logo</label>
+                      <div className="flex items-center space-x-4">
+                        {appSettings.appLogo ? (
+                          <img src={appSettings.appLogo} alt="App Logo" className="h-16 w-16 object-contain rounded" />
+                        ) : (
+                          <div className="h-16 w-16 bg-gray-200 rounded flex items-center justify-center">
+                            <Shield className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/gif,image/svg+xml"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Logo
+                          </button>
+                          <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, or SVG. Max 5MB.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">System Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Version:</span> 0.9.0</div>
+                    <div><span className="font-medium">Database:</span> PostgreSQL</div>
+                    <div><span className="font-medium">API URL:</span> {API_BASE_URL}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'data-model' && (
+              <div className="space-y-6">
+                <CustomFieldManager />
+                
+                <div className="pt-6 border-t">
+                  <h3 className="text-lg font-semibold mb-4">Predefined Options</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Configure the available options for dropdown fields in the application.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-yellow-50 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> Customization of predefined categories and statuses is coming soon. 
+                        Currently, these are defined in the application code.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'import-export' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Data Export</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Export all your data (people, tools, todos) to a JSON file for backup or migration.
+                  </p>
+                  <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export All Data
+                  </button>
+                </div>
+                
+                <div className="pt-6 border-t">
+                  <h3 className="text-lg font-semibold mb-4">Data Import</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Import data from a previously exported JSON file.
+                  </p>
+                  <div className="p-4 bg-yellow-50 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Coming Soon:</strong> Data import functionality is under development.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'audit' && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Audit Log</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  View a log of all changes made to the system.
+                </p>
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Coming Soon:</strong> Audit logging functionality is under development.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
     );
-};
-// --- END MODIFIED ---
+  };
 
-
-  // --- Main Render ---
   return (
-    <div className="flex h-screen bg-slate-100 font-sans">
-      <style jsx global>{`
-        body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; }
-        @import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
-        @import url("https://unpkg.com/reactflow@latest/dist/style.css");
-
-        .leaflet-container { height: 100%; width: 100%; border-radius: 0.375rem; }
-        .react-flow__node { font-size: 10px; }
-        .react-flow__attribution { display: none; }
-
-        .animate-modalShow { animation: modalShow 0.3s ease-out forwards; }
-        @keyframes modalShow { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      `}</style>
-      <Sidebar />
-      <main className="flex-1 p-8 ml-64 overflow-y-auto">
-        {renderContent()}
-      </main>
-
-      <Modal isOpen={isPersonModalOpen} onClose={() => setIsPersonModalOpen(false)} title={editingPerson ? 'Edit Person' : 'Add Person'} maxWidth="max-w-3xl">
-        <AddEditPersonForm person={editingPerson} onSave={handleSavePerson} onCancel={() => setIsPersonModalOpen(false)} />
-      </Modal>
-      <Modal isOpen={isToolModalOpen} onClose={() => setIsToolModalOpen(false)} title={editingTool ? 'Edit OSINT Tool' : 'Add New OSINT Tool'}>
-        <AddEditToolForm tool={editingTool} onSave={handleSaveTool} onCancel={() => setIsToolModalOpen(false)} />
-      </Modal>
-      {selectedPersonDetails && (
-        <PersonDetailModal
-            person={selectedPersonDetails}
-            onClose={() => setSelectedPersonDetails(null)}
-            onEdit={(personToEdit) => {
-                setSelectedPersonDetails(null);
-                handleOpenEditPersonModal(personToEdit);
-            }}
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-900 text-white">
+        <div className="p-6">
+          <div className="flex items-center space-x-3">
+            {appSettings.appLogo ? (
+              <img src={appSettings.appLogo} alt="Logo" className="h-10 w-10 object-contain" />
+            ) : (
+              <Shield className="w-10 h-10 text-blue-400" />
+            )}
+            <h2 className="text-xl font-bold">{appSettings.appName}</h2>
+          </div>
+        </div>
+        
+        <nav className="mt-6">
+          <button
+            onClick={() => setActiveSection('dashboard')}
+            className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
+              activeSection === 'dashboard' ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            <span>Dashboard</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveSection('people')}
+            className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
+              activeSection === 'people' ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span>People</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveSection('tools')}
+            className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
+              activeSection === 'tools' ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+            }`}
+          >
+            <Wrench className="w-5 h-5" />
+            <span>OSINT Tools</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveSection('relationships')}
+            className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
+              activeSection === 'relationships' ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+            }`}
+          >
+            <Network className="w-5 h-5" />
+            <span>Relationships</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveSection('settings')}
+            className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
+              activeSection === 'settings' ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Settings</span>
+          </button>
+        </nav>
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {activeSection === 'dashboard' && <Dashboard />}
+        {activeSection === 'people' && <PeopleList />}
+        {activeSection === 'tools' && <ToolsList />}
+        {activeSection === 'relationships' && (
+          <div className="h-full flex flex-col">
+            <div className="bg-white shadow-sm border-b px-6 py-4">
+              <h1 className="text-2xl font-bold text-gray-900">Relationship Network</h1>
+              <p className="text-gray-600 mt-1">Visualize and manage connections between people</p>
+            </div>
+            <div className="flex-1 p-6">
+              <div className="bg-white rounded-lg shadow-sm border h-full">
+                <RelationshipManager />
+              </div>
+            </div>
+          </div>
+        )}
+        {activeSection === 'settings' && <SettingsPage />}
+      </div>
+      
+      {/* Modals */}
+      {showAddPersonForm && (
+        <AddEditPersonForm
+          person={null}
+          onSave={(person) => {
+            setShowAddPersonForm(false);
+            fetchPeople();
+          }}
+          onCancel={() => setShowAddPersonForm(false)}
         />
       )}
-      <Modal isOpen={isTodoModalOpen} onClose={() => setIsTodoModalOpen(false)} title={editingTodo ? 'Edit Task' : 'Add New Task'} maxWidth="max-w-lg">
-        <AddEditTodoForm todo={editingTodo} onSave={handleSaveTodo} onCancel={() => setIsTodoModalOpen(false)} />
-      </Modal>
-
-      {/* --- NEW --- Modal for Custom Field Definition Form --- */}
-      <Modal
-        isOpen={isCustomFieldModalOpen}
-        onClose={() => { setIsCustomFieldModalOpen(false); setEditingCustomField(null); }}
-        title={editingCustomField ? 'Edit Custom Field Definition' : 'Add New Custom Field Definition'}
-        maxWidth="max-w-2xl"
-      >
-        <CustomFieldDefinitionForm
-          fieldDefinition={editingCustomField}
-          onSave={handleSaveCustomFieldDefinition}
-          onCancel={() => { setIsCustomFieldModalOpen(false); setEditingCustomField(null); }}
+      
+      {editingPerson && (
+        <AddEditPersonForm
+          person={editingPerson}
+          onSave={(person) => {
+            setEditingPerson(null);
+            fetchPeople();
+          }}
+          onCancel={() => setEditingPerson(null)}
         />
-      </Modal>
-      {/* --- END NEW --- */}
+      )}
+      
+      {selectedPersonForDetail && (
+        <PersonDetailModal
+          person={selectedPersonForDetail}
+          onClose={() => setSelectedPersonForDetail(null)}
+          onEdit={(person) => {
+            setSelectedPersonForDetail(null);
+            setEditingPerson(person);
+          }}
+        />
+      )}
+      
+      {showAddToolForm && (
+        <AddEditToolForm
+          tool={null}
+          onSave={(tool) => {
+            setShowAddToolForm(false);
+            fetchTools();
+          }}
+          onCancel={() => setShowAddToolForm(false)}
+        />
+      )}
+      
+      {editingTool && (
+        <AddEditToolForm
+          tool={editingTool}
+          onSave={(tool) => {
+            setEditingTool(null);
+            fetchTools();
+          }}
+          onCancel={() => setEditingTool(null)}
+        />
+      )}
     </div>
   );
-}
+};
 
 export default App;

@@ -8,7 +8,7 @@ var Get = require('./Get');
 var IsArray = require('./IsArray');
 var ToBoolean = require('./ToBoolean');
 
-var isObject = require('../helpers/isObject');
+var isObject = require('es-object-atoms/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-isconcatspreadable
 

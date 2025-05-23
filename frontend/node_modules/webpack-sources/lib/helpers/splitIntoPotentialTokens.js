@@ -1,3 +1,10 @@
+/*
+	MIT License http://www.opensource.org/licenses/mit-license.php
+	Author Tobias Koppers @sokra
+*/
+
+"use strict";
+
 // \n = 10
 // ; = 59
 // { = 123
@@ -6,7 +13,11 @@
 // \r = 13
 // \t = 9
 
-const splitIntoPotentialTokens = str => {
+/**
+ * @param {string} str string
+ * @returns {string[] | null} array of string separated by potential tokens
+ */
+const splitIntoPotentialTokens = (str) => {
 	const len = str.length;
 	if (len === 0) return null;
 	const results = [];
@@ -38,4 +49,5 @@ const splitIntoPotentialTokens = str => {
 	}
 	return results;
 };
+
 module.exports = splitIntoPotentialTokens;

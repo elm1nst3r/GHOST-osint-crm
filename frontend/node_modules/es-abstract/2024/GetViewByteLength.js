@@ -24,12 +24,14 @@ module.exports = function GetViewByteLength(viewRecord) {
 
 	var view = viewRecord['[[Object]]']; // step 2
 
-	var viewByteLength = dataViewByteLength(view); // view.[[ByteLength]]
+	var isFixed = IsFixedLengthArrayBuffer(dataViewBuffer(view));
+
+	var viewByteLength = isFixed ? dataViewByteLength(view) : 'AUTO'; // view.[[ByteLength]]
 	if (viewByteLength !== 'AUTO') {
 		return viewByteLength; // step 3
 	}
 
-	if (IsFixedLengthArrayBuffer(dataViewBuffer(view))) {
+	if (isFixed) {
 		throw new $TypeError('Assertion failed: DataView’s ArrayBuffer is not fixed length'); // step 4
 	}
 

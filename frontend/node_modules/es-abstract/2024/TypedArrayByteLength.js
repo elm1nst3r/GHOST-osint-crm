@@ -2,12 +2,14 @@
 
 var $TypeError = require('es-errors/type');
 
+var IsFixedLengthArrayBuffer = require('./IsFixedLengthArrayBuffer');
 var IsTypedArrayOutOfBounds = require('./IsTypedArrayOutOfBounds');
 var TypedArrayElementSize = require('./TypedArrayElementSize');
 var TypedArrayLength = require('./TypedArrayLength');
 
 var isTypedArrayWithBufferWitnessRecord = require('../helpers/records/typed-array-with-buffer-witness-record');
 
+var typedArrayByffer = require('typed-array-buffer');
 var typedArrayByteLength = require('typed-array-byte-length');
 
 // https://262.ecma-international.org/15.0/#sec-typedarraybytelength
@@ -28,7 +30,9 @@ module.exports = function TypedArrayByteLength(taRecord) {
 
 	var O = taRecord['[[Object]]']; // step 4
 
-	var byteLength = typedArrayByteLength(O);
+	var isFixed = IsFixedLengthArrayBuffer(typedArrayByffer(O));
+
+	var byteLength = isFixed ? typedArrayByteLength(O) : 'AUTO';
 	if (byteLength !== 'AUTO') {
 		return byteLength; // step 5
 	}

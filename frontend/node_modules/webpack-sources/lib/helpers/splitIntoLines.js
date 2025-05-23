@@ -1,4 +1,15 @@
-const splitIntoLines = str => {
+/*
+	MIT License http://www.opensource.org/licenses/mit-license.php
+	Author Tobias Koppers @sokra
+*/
+
+"use strict";
+
+/**
+ * @param {string} str string
+ * @returns {string[]} array of string separated by lines
+ */
+const splitIntoLines = (str) => {
 	const results = [];
 	const len = str.length;
 	let i = 0;
@@ -18,4 +29,5 @@ const splitIntoLines = str => {
 	}
 	return results;
 };
+
 module.exports = splitIntoLines;

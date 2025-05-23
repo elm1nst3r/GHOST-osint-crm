@@ -6,7 +6,6 @@ var callBound = require('call-bound');
 var $fromCharCode = GetIntrinsic('%String.fromCharCode%');
 var $TypeError = require('es-errors/type');
 var $charCodeAt = callBound('String.prototype.charCodeAt');
-var $push = callBound('Array.prototype.push');
 
 module.exports = function CharacterRange(A, B) {
 	if (A.length !== 1 || B.length !== 1) {
@@ -25,7 +24,7 @@ module.exports = function CharacterRange(A, B) {
 
 	var arr = [];
 	for (var k = i; k <= j; k += 1) {
-		$push(arr, $fromCharCode(k));
+		arr[arr.length] = $fromCharCode(k);
 	}
 	return arr;
 };

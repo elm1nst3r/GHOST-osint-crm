@@ -8,6 +8,23 @@
 const createMappingsSerializer = require("./createMappingsSerializer");
 const streamChunks = require("./streamChunks");
 
+/** @typedef {import("../Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./streamChunks").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./streamChunks").OnName} OnName */
+/** @typedef {import("./streamChunks").OnSource} OnSource */
+/** @typedef {import("./streamChunks").Options} Options */
+/** @typedef {import("./streamChunks").SourceMaybeWithStreamChunksFunction} SourceMaybeWithStreamChunksFunction */
+
+// eslint-disable-next-line valid-jsdoc
+/**
+ * @param {SourceMaybeWithStreamChunksFunction} inputSource input source
+ * @param {Options} options options
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} onName on name
+ * @returns {{ result: GeneratedSourceInfo, source: string, map: RawSourceMap | null }} result
+ */
 const streamAndGetSourceAndMap = (
 	inputSource,
 	options,
@@ -17,8 +34,11 @@ const streamAndGetSourceAndMap = (
 ) => {
 	let code = "";
 	let mappings = "";
+	/** @type {(string | null)[]} */
 	let sources = [];
+	/** @type {(string | null)[]} */
 	let sourcesContent = [];
+	/** @type {(string | null)[]} */
 	let names = [];
 	const addMapping = createMappingsSerializer(
 		Object.assign({}, options, { columns: true })
@@ -77,6 +97,7 @@ const streamAndGetSourceAndMap = (
 		}
 	);
 	const resultSource = source !== undefined ? source : code;
+
 	return {
 		result: {
 			generatedLine,
@@ -90,10 +111,13 @@ const streamAndGetSourceAndMap = (
 						version: 3,
 						file: "x",
 						mappings,
-						sources,
+						// We handle broken sources as `null`, in spec this field should be string, but no information what we should do in such cases if we change type it will be breaking change
+						sources: /** @type {string[]} */ (sources),
 						sourcesContent:
-							sourcesContent.length > 0 ? sourcesContent : undefined,
-						names
+							sourcesContent.length > 0
+								? /** @type {string[]} */ (sourcesContent)
+								: undefined,
+						names: /** @type {string[]} */ (names)
 				  }
 				: null
 	};

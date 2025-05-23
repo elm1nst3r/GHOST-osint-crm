@@ -2,8 +2,8 @@
 
 var $abs = require('math-intrinsics/abs');
 
-// http://262.ecma-international.org/5.1/#sec-5.2
+// https://262.ecma-international.org/11.0/#eqn-abs
 
 module.exports = function abs(x) {
-	return $abs(x);
+	return typeof x === 'bigint' ? BigInt($abs(Number(x))) : $abs(x);
 };

@@ -2,7 +2,7 @@
 
 var $gOPD = require('gopd');
 var $TypeError = require('es-errors/type');
-
+var isObject = require('es-object-atoms/isObject');
 var callBound = require('call-bound');
 
 var $isEnumerable = callBound('Object.prototype.propertyIsEnumerable');
@@ -13,8 +13,6 @@ var IsArray = require('./IsArray');
 var isPropertyKey = require('../helpers/isPropertyKey');
 var IsRegExp = require('./IsRegExp');
 var ToPropertyDescriptor = require('./ToPropertyDescriptor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-ordinarygetownproperty
 

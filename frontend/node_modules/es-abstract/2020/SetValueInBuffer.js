@@ -35,7 +35,7 @@ module.exports = function SetValueInBuffer(arrayBuffer, byteIndex, type, value, 
 	}
 
 	if (typeof type !== 'string' || !hasOwn(tableTAO.size, '$' + type)) {
-		throw new $TypeError('Assertion failed: `type` must be a Typed Array Element Type');
+		throw new $TypeError('Assertion failed: `type` must be one of ' + tableTAO.choices);
 	}
 
 	if (typeof value !== 'number' && typeof value !== 'bigint') {

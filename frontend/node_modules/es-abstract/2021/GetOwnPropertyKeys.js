@@ -5,12 +5,11 @@ var GetIntrinsic = require('get-intrinsic');
 var hasSymbols = require('has-symbols')();
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var $gOPN = GetIntrinsic('%Object.getOwnPropertyNames%', true);
 var $gOPS = hasSymbols && GetIntrinsic('%Object.getOwnPropertySymbols%', true);
 var keys = require('object-keys');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-getownpropertykeys
 

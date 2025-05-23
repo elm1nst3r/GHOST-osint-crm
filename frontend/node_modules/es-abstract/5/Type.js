@@ -1,6 +1,6 @@
 'use strict';
 
-var isObject = require('../helpers/isObject');
+var isObject = require('es-object-atoms/isObject');
 
 // https://262.ecma-international.org/5.1/#sec-8
 

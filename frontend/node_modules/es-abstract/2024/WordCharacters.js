@@ -3,7 +3,7 @@
 var $TypeError = require('es-errors/type');
 
 var callBound = require('call-bound');
-var $indexOf = callBound('String.prototype.indexOf', true);
+var $indexOf = callBound('String.prototype.indexOf');
 
 var Canonicalize = require('./Canonicalize');
 

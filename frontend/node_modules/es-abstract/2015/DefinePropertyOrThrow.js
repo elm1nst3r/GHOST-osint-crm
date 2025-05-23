@@ -1,6 +1,7 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var isPropertyDescriptor = require('../helpers/records/property-descriptor');
 var DefineOwnProperty = require('../helpers/DefineOwnProperty');
@@ -10,8 +11,6 @@ var IsDataDescriptor = require('./IsDataDescriptor');
 var isPropertyKey = require('../helpers/isPropertyKey');
 var SameValue = require('./SameValue');
 var ToPropertyDescriptor = require('./ToPropertyDescriptor');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/6.0/#sec-definepropertyorthrow
 

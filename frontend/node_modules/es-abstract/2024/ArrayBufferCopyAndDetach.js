@@ -36,13 +36,15 @@ var ToIndex = require('./ToIndex');
 var isArrayBuffer = require('is-array-buffer');
 var isSharedArrayBuffer = require('is-shared-array-buffer');
 
+// https://262.ecma-international.org/15.0/#sec-arraybuffercopyanddetach
+
 module.exports = function ArrayBufferCopyAndDetach(arrayBuffer, newLength, preserveResizability) {
 	if (preserveResizability !== 'PRESERVE-RESIZABILITY' && preserveResizability !== 'FIXED-LENGTH') {
 		throw new $TypeError('`preserveResizability` must be ~PRESERVE-RESIZABILITY~ or ~FIXED-LENGTH~');
 	}
 
 	if (!isArrayBuffer(arrayBuffer) || isSharedArrayBuffer(arrayBuffer)) {
-		throw new $TypeError('`arrayBuffer` must be an ArrayBuffer'); // steps 1 - 2
+		throw new $TypeError('`arrayBuffer` must be a non-shared ArrayBuffer'); // steps 1 - 2
 	}
 
 	var abByteLength;
@@ -77,7 +79,7 @@ module.exports = function ArrayBufferCopyAndDetach(arrayBuffer, newLength, prese
 		abByteLength = byteLength(arrayBuffer);
 	}
 	var copyLength = min(newByteLength, abByteLength); // step 10
-	if (newByteLength > copyLength) {
+	if (newByteLength > copyLength || newMaxByteLength !== 'EMPTY') {
 		var taNew = new $Uint8Array(newBuffer);
 		var taOld = new $Uint8Array(arrayBuffer);
 		for (var i = 0; i < copyLength; i++) {

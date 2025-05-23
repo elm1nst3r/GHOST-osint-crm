@@ -7,11 +7,26 @@
 
 const createMappingsSerializer = require("./createMappingsSerializer");
 
+/** @typedef {import("../Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("../Source").SourceAndMap} SourceAndMap */
+/** @typedef {import("./streamChunks").Options} Options */
+/** @typedef {import("./streamChunks").StreamChunksFunction} StreamChunksFunction */
+
+/** @typedef {{ streamChunks: StreamChunksFunction }} SourceLikeWithStreamChunks */
+
+/**
+ * @param {SourceLikeWithStreamChunks} inputSource input source
+ * @param {Options=} options options
+ * @returns {SourceAndMap} map
+ */
 exports.getSourceAndMap = (inputSource, options) => {
 	let code = "";
 	let mappings = "";
+	/** @type {(string | null)[]} */
 	let sources = [];
+	/** @type {(string | null)[]} */
 	let sourcesContent = [];
+	/** @type {(string | null)[]} */
 	let names = [];
 	const addMapping = createMappingsSerializer(options);
 	const { source } = inputSource.streamChunks(
@@ -62,19 +77,30 @@ exports.getSourceAndMap = (inputSource, options) => {
 						version: 3,
 						file: "x",
 						mappings,
-						sources,
+						// We handle broken sources as `null`, in spec this field should be string, but no information what we should do in such cases if we change type it will be breaking change
+						sources: /** @type {string[]} */ (sources),
 						sourcesContent:
-							sourcesContent.length > 0 ? sourcesContent : undefined,
-						names
+							sourcesContent.length > 0
+								? /** @type {string[]} */ (sourcesContent)
+								: undefined,
+						names: /** @type {string[]} */ (names)
 				  }
 				: null
 	};
 };
 
+/**
+ * @param {SourceLikeWithStreamChunks} source source
+ * @param {Options=} options options
+ * @returns {RawSourceMap | null} map
+ */
 exports.getMap = (source, options) => {
 	let mappings = "";
+	/** @type {(string | null)[]} */
 	let sources = [];
+	/** @type {(string | null)[]} */
 	let sourcesContent = [];
+	/** @type {(string | null)[]} */
 	let names = [];
 	const addMapping = createMappingsSerializer(options);
 	source.streamChunks(
@@ -121,9 +147,13 @@ exports.getMap = (source, options) => {
 				version: 3,
 				file: "x",
 				mappings,
-				sources,
-				sourcesContent: sourcesContent.length > 0 ? sourcesContent : undefined,
-				names
+				// We handle broken sources as `null`, in spec this field should be string, but no information what we should do in such cases if we change type it will be breaking change
+				sources: /** @type {string[]} */ (sources),
+				sourcesContent:
+					sourcesContent.length > 0
+						? /** @type {string[]} */ (sourcesContent)
+						: undefined,
+				names: /** @type {string[]} */ (names)
 		  }
 		: null;
 };

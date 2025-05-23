@@ -1,12 +1,11 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var Call = require('./Call');
 var Get = require('./Get');
 var IsCallable = require('./IsCallable');
-
-var isObject = require('../helpers/isObject');
 
 // https://262.ecma-international.org/15.0/#sec-getiteratorfrommethod
 

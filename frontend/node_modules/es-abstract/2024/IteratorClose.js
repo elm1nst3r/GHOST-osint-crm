@@ -1,13 +1,13 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var Call = require('./Call');
 var CompletionRecord = require('./CompletionRecord');
 var GetMethod = require('./GetMethod');
 var IsCallable = require('./IsCallable');
 
-var isObject = require('../helpers/isObject');
 var isIteratorRecord = require('../helpers/records/iterator-record');
 
 // https://262.ecma-international.org/15.0/#sec-iteratorclose

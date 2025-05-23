@@ -1,8 +1,8 @@
 'use strict';
 
-var KeyForSymbol = require('./KeyForSymbol');
+var isObject = require('es-object-atoms/isObject');
 
-var isObject = require('../helpers/isObject');
+var KeyForSymbol = require('./KeyForSymbol');
 
 // https://262.ecma-international.org/14.0/#sec-canbeheldweakly
 

@@ -1,11 +1,10 @@
 'use strict';
 
 var $TypeError = require('es-errors/type');
+var isObject = require('es-object-atoms/isObject');
 
 var IsTypedArrayOutOfBounds = require('./IsTypedArrayOutOfBounds');
 var MakeTypedArrayWithBufferWitnessRecord = require('./MakeTypedArrayWithBufferWitnessRecord');
-
-var isObject = require('../helpers/isObject');
 
 var isTypedArray = require('is-typed-array');
 

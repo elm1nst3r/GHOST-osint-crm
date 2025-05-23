@@ -66,7 +66,7 @@ module.exports = function SetTypedArrayFromTypedArray(target, targetOffset, sour
 
 	var srcType = tableTAO.name['$' + srcName]; // step 12
 
-	var srcElementSize = tableTAO.size['$' + srcName]; // step 13
+	var srcElementSize = tableTAO.size['$' + srcType]; // step 13
 
 	var srcLength = typedArrayLength(source); // step 14
 
