@@ -1,7 +1,8 @@
 // File: frontend/src/components/RelationshipManager.js
 import React, { useState, useEffect, useCallback } from 'react';
-import RelationshipDiagram from './RelationshipDiagram'; // Import the diagram component
+import RelationshipDiagram from '../RelationshipDiagram';
 import { AlertCircle, Loader2, Network, Users, Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { peopleAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -72,16 +73,32 @@ const RelationshipManager = ({
         });
       }
 
+      // Prepare the full person data for update
+      const updateData = {
+        firstName: sourcePerson.first_name,
+        lastName: sourcePerson.last_name,
+        aliases: sourcePerson.aliases,
+        dateOfBirth: sourcePerson.date_of_birth,
+        category: sourcePerson.category,
+        status: sourcePerson.status,
+        crmStatus: sourcePerson.crm_status,
+        caseName: sourcePerson.case_name,
+        profilePictureUrl: sourcePerson.profile_picture_url,
+        notes: sourcePerson.notes,
+        osintData: sourcePerson.osint_data,
+        attachments: sourcePerson.attachments,
+        connections: updatedConnections,
+        locations: sourcePerson.locations,
+        custom_fields: sourcePerson.custom_fields
+      };
+
       // Update the source person
       const response = await fetch(`${API_BASE_URL}/people/${sourceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...sourcePerson,
-          connections: updatedConnections
-        })
+        body: JSON.stringify(updateData)
       });
 
       if (!response.ok) throw new Error('Failed to update connection');
@@ -112,15 +129,30 @@ const RelationshipManager = ({
           });
         }
 
+        const targetUpdateData = {
+          firstName: targetPerson.first_name,
+          lastName: targetPerson.last_name,
+          aliases: targetPerson.aliases,
+          dateOfBirth: targetPerson.date_of_birth,
+          category: targetPerson.category,
+          status: targetPerson.status,
+          crmStatus: targetPerson.crm_status,
+          caseName: targetPerson.case_name,
+          profilePictureUrl: targetPerson.profile_picture_url,
+          notes: targetPerson.notes,
+          osintData: targetPerson.osint_data,
+          attachments: targetPerson.attachments,
+          connections: targetConnections,
+          locations: targetPerson.locations,
+          custom_fields: targetPerson.custom_fields
+        };
+
         await fetch(`${API_BASE_URL}/people/${targetId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ...targetPerson,
-            connections: targetConnections
-          })
+          body: JSON.stringify(targetUpdateData)
         });
       }
 
@@ -146,15 +178,30 @@ const RelationshipManager = ({
         conn => conn.person_id !== targetId
       );
 
+      const updateData = {
+        firstName: sourcePerson.first_name,
+        lastName: sourcePerson.last_name,
+        aliases: sourcePerson.aliases,
+        dateOfBirth: sourcePerson.date_of_birth,
+        category: sourcePerson.category,
+        status: sourcePerson.status,
+        crmStatus: sourcePerson.crm_status,
+        caseName: sourcePerson.case_name,
+        profilePictureUrl: sourcePerson.profile_picture_url,
+        notes: sourcePerson.notes,
+        osintData: sourcePerson.osint_data,
+        attachments: sourcePerson.attachments,
+        connections: updatedConnections,
+        locations: sourcePerson.locations,
+        custom_fields: sourcePerson.custom_fields
+      };
+
       await fetch(`${API_BASE_URL}/people/${sourceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...sourcePerson,
-          connections: updatedConnections
-        })
+        body: JSON.stringify(updateData)
       });
 
       // Update target person
@@ -164,15 +211,30 @@ const RelationshipManager = ({
           conn => conn.person_id !== sourceId
         );
 
+        const targetUpdateData = {
+          firstName: targetPerson.first_name,
+          lastName: targetPerson.last_name,
+          aliases: targetPerson.aliases,
+          dateOfBirth: targetPerson.date_of_birth,
+          category: targetPerson.category,
+          status: targetPerson.status,
+          crmStatus: targetPerson.crm_status,
+          caseName: targetPerson.case_name,
+          profilePictureUrl: targetPerson.profile_picture_url,
+          notes: targetPerson.notes,
+          osintData: targetPerson.osint_data,
+          attachments: targetPerson.attachments,
+          connections: targetConnections,
+          locations: targetPerson.locations,
+          custom_fields: targetPerson.custom_fields
+        };
+
         await fetch(`${API_BASE_URL}/people/${targetId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ...targetPerson,
-            connections: targetConnections
-          })
+          body: JSON.stringify(targetUpdateData)
         });
       }
 
@@ -232,15 +294,15 @@ const RelationshipManager = ({
   }
 
   const containerClass = fullScreen 
-    ? "fixed inset-0 z-50 bg-white" 
+    ? "fixed inset-0 z-50 bg-white flex flex-col" 
     : showInModal 
-      ? "h-[500px] w-full" 
-      : "h-[600px] w-full";
+      ? "h-full w-full flex flex-col" 
+      : "h-[600px] w-full flex flex-col";
 
   return (
     <div className={containerClass}>
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-3">
           <Network className="w-5 h-5 text-blue-600" />
           <h3 className="text-lg font-semibold">
@@ -261,7 +323,7 @@ const RelationshipManager = ({
             title={showOsintData ? "Hide OSINT Data" : "Show OSINT Data"}
           >
             {showOsintData ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span>OSINT Data</span>
+            <span className="hidden sm:inline">OSINT Data</span>
           </button>
           
           {/* Layout selector */}
@@ -276,20 +338,22 @@ const RelationshipManager = ({
           </select>
           
           {/* Fullscreen toggle */}
-          <button
-            onClick={() => setFullScreen(!fullScreen)}
-            className="px-3 py-1.5 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
-            title={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
+          {!showInModal && (
+            <button
+              onClick={() => setFullScreen(!fullScreen)}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
+              title={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          )}
           
           {/* Close button if in modal or fullscreen */}
           {(showInModal || fullScreen) && onClose && (
             <button
               onClick={() => {
                 setFullScreen(false);
-                if (showInModal) onClose();
+                if (showInModal || fullScreen) onClose();
               }}
               className="px-3 py-1.5 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
             >
@@ -300,7 +364,7 @@ const RelationshipManager = ({
       </div>
       
       {/* Diagram Container */}
-      <div className="flex-1 h-full">
+      <div className="flex-1 overflow-hidden">
         <RelationshipDiagram
           people={filteredPeople}
           selectedPersonId={personId}
@@ -313,7 +377,7 @@ const RelationshipManager = ({
       
       {/* Statistics Footer */}
       {!showInModal && (
-        <div className="bg-gray-50 border-t px-4 py-2">
+        <div className="bg-gray-50 border-t px-4 py-2 flex-shrink-0">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-4">
               <span>
@@ -325,19 +389,18 @@ const RelationshipManager = ({
                 {filteredPeople.reduce((acc, p) => acc + (p.connections?.length || 0), 0)} Connections
               </span>
             </div>
-            <div>
-              {personId && (
-                <button
-                  onClick={() => {
-                    // Switch to global view
-                    window.location.hash = '#relationships';
-                  }}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  View All Relationships →
-                </button>
-              )}
-            </div>
+            {personId && (
+              <button
+                onClick={() => {
+                  // Navigate to global view
+                  if (onClose) onClose();
+                  window.location.hash = '#relationships';
+                }}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                View All Relationships →
+              </button>
+            )}
           </div>
         </div>
       )}
