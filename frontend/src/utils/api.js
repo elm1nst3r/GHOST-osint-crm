@@ -81,6 +81,25 @@ export const todosAPI = {
   }),
 };
 
+// Cases API
+export const casesAPI = {
+  getAll: () => fetchAPI('/cases'),
+  
+  create: (caseData) => fetchAPI('/cases', {
+    method: 'POST',
+    body: JSON.stringify(caseData),
+  }),
+  
+  update: (id, caseData) => fetchAPI(`/cases/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(caseData),
+  }),
+  
+  delete: (id) => fetchAPI(`/cases/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Custom Fields API
 export const customFieldsAPI = {
   getAll: () => fetchAPI('/settings/custom-fields'),

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder } from 'lucide-react';
 
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI } from './utils/api';
@@ -11,6 +11,7 @@ import { DEFAULT_APP_SETTINGS } from './utils/constants';
 
 // Import components
 import Dashboard from './components/Dashboard';
+import CaseManagement from './components/CaseManagement';
 import PeopleList from './components/PeopleList';
 import PersonDetailModal from './components/PersonDetailModal';
 import AddEditPersonForm from './components/AddEditPersonForm';
@@ -106,6 +107,7 @@ const App = () => {
   // Navigation items
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'cases', label: 'Cases', icon: Folder },
     { id: 'people', label: 'People', icon: Users },
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
     { id: 'relationships', label: 'Relationships', icon: Network },
@@ -157,6 +159,16 @@ const App = () => {
             setTodos={setTodos}
             setSelectedPersonForDetail={setSelectedPersonForDetail}
             setActiveSection={setActiveSection}
+          />
+        )}
+        
+        {activeSection === 'cases' && (
+          <CaseManagement
+            people={people}
+            fetchPeople={fetchPeople}
+            setEditingPerson={setEditingPerson}
+            setShowAddPersonForm={setShowAddPersonForm}
+            setSelectedPersonForDetail={setSelectedPersonForDetail}
           />
         )}
         

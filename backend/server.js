@@ -419,6 +419,42 @@ app.post('/api/cases', async (req, res) => {
   }
 });
 
+// Update case endpoint
+app.put('/api/cases/:id', async (req, res) => {
+  const caseId = parseInt(req.params.id, 10);
+  const { case_name, description, status } = req.body;
+  
+  if (isNaN(caseId)) return res.status(400).json({ error: 'Invalid case ID' });
+  
+  try {
+    const result = await pool.query(
+      'UPDATE cases SET case_name = $1, description = $2, status = $3 WHERE id = $4 RETURNING *',
+      [case_name, description, status, caseId]
+    );
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating case:', err);
+    res.status(500).json({ error: 'Failed to update case' });
+  }
+});
+
+// Delete case endpoint
+app.delete('/api/cases/:id', async (req, res) => {
+  const caseId = parseInt(req.params.id, 10);
+  if (isNaN(caseId)) return res.status(400).json({ error: 'Invalid case ID' });
+  
+  try {
+    const result = await pool.query('DELETE FROM cases WHERE id = $1 RETURNING *', [caseId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+    res.json({ message: 'Case deleted successfully', deletedCase: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting case:', err);
+    res.status(500).json({ error: 'Failed to delete case' });
+  }
+});
+
 // People endpoints with audit logging
 app.get('/api/people', async (req, res) => {
   try {

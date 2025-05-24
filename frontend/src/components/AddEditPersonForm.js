@@ -1,8 +1,8 @@
 // File: frontend/src/components/AddEditPersonForm.js
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Plus, MapPin } from 'lucide-react';
-import { peopleAPI, modelOptionsAPI } from '../utils/api';
-import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, updateDynamicConstants } from '../utils/constants';
+import { X, Trash2, Plus, MapPin, AlertCircle } from 'lucide-react';
+import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
+import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, CRM_STATUSES, updateDynamicConstants } from '../utils/constants';
 
 const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -35,6 +35,9 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
   });
   const [connectionTypes, setConnectionTypes] = useState(CONNECTION_TYPES);
   const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
+  const [crmStatuses, setCrmStatuses] = useState(CRM_STATUSES);
+  const [existingCases, setExistingCases] = useState([]);
+  const [caseExists, setCaseExists] = useState(false);
 
   useEffect(() => {
     // Load dynamic options from database
@@ -56,12 +59,29 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
           .sort((a, b) => a.display_order - b.display_order)
           .map(opt => ({ value: opt.option_value, label: opt.option_label }));
         if (locTypes.length > 0) setLocationTypes(locTypes);
+        
+        // Update CRM statuses
+        const crmStats = options
+          .filter(opt => opt.model_type === 'crm_status' && opt.is_active)
+          .sort((a, b) => a.display_order - b.display_order)
+          .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+        if (crmStats.length > 0) setCrmStatuses(crmStats);
       } catch (error) {
         console.error('Error loading model options:', error);
       }
     };
     
+    const loadCases = async () => {
+      try {
+        const cases = await casesAPI.getAll();
+        setExistingCases(cases);
+      } catch (error) {
+        console.error('Error loading cases:', error);
+      }
+    };
+    
     loadModelOptions();
+    loadCases();
   }, []);
 
   useEffect(() => {
@@ -86,8 +106,33 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
     }
   }, [person]);
 
+  useEffect(() => {
+    // Check if case exists
+    if (formData.caseName) {
+      const exists = existingCases.some(c => 
+        c.case_name.toLowerCase() === formData.caseName.toLowerCase()
+      );
+      setCaseExists(exists);
+    } else {
+      setCaseExists(false);
+    }
+  }, [formData.caseName, existingCases]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Create case if it doesn't exist
+    if (formData.caseName && !caseExists) {
+      try {
+        await casesAPI.create({ 
+          case_name: formData.caseName, 
+          description: `Auto-created from person: ${formData.firstName} ${formData.lastName}`,
+          status: 'active'
+        });
+      } catch (error) {
+        console.error('Error creating case:', error);
+      }
+    }
     
     const dataToSend = {
       ...formData,
@@ -187,6 +232,13 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
     });
   };
 
+  const getSimilarCases = () => {
+    if (!formData.caseName || formData.caseName.length < 2) return [];
+    return existingCases.filter(c => 
+      c.case_name.toLowerCase().includes(formData.caseName.toLowerCase())
+    ).slice(0, 5);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -264,24 +316,56 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">CRM Status</label>
-              <input
-                type="text"
+              <select
                 value={formData.crmStatus}
                 onChange={(e) => setFormData({ ...formData, crmStatus: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="">Select CRM Status</option>
+                {crmStatuses.map(status => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Case Name</label>
-              <input
-                type="text"
-                value={formData.caseName}
-                onChange={(e) => setFormData({ ...formData, caseName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.caseName}
+                  onChange={(e) => setFormData({ ...formData, caseName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter or select case name"
+                />
+                {formData.caseName && !caseExists && (
+                  <div className="absolute right-2 top-2">
+                    <span className="text-xs text-orange-600 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      New case will be created
+                    </span>
+                  </div>
+                )}
+              </div>
+              {getSimilarCases().length > 0 && (
+                <div className="mt-1 p-2 bg-gray-50 rounded-md">
+                  <p className="text-xs text-gray-600 mb-1">Similar cases:</p>
+                  <div className="space-y-1">
+                    {getSimilarCases().map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, caseName: c.case_name })}
+                        className="text-xs text-blue-600 hover:text-blue-700 block"
+                      >
+                        {c.case_name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
             <div>

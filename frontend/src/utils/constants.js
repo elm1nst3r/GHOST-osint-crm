@@ -18,6 +18,18 @@ export const PERSON_CATEGORIES = [
     { value: 'On Hold', label: 'On Hold', color: 'blue' },
   ];
   
+  // CRM Statuses - DYNAMIC (will be loaded from database)
+  export let CRM_STATUSES = [
+    { value: 'new_lead', label: 'New Lead' },
+    { value: 'attempted_engage', label: 'Attempted to Engage' },
+    { value: 'engaged', label: 'Engaged' },
+    { value: 'qualified', label: 'Qualified' },
+    { value: 'follow_up', label: 'Follow Up' },
+    { value: 'archived', label: 'Archived' },
+    { value: 'active', label: 'Active' },
+    { value: 'awaiting_response', label: 'Awaiting Response' },
+  ];
+  
   // OSINT data types
   export const OSINT_DATA_TYPES = [
     { value: 'Email', label: 'Email' },
@@ -94,5 +106,14 @@ export const PERSON_CATEGORIES = [
     
     if (connectionOptions.length > 0) {
       CONNECTION_TYPES = connectionOptions;
+    }
+  
+    const crmStatuses = modelOptions
+      .filter(opt => opt.model_type === 'crm_status' && opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+    
+    if (crmStatuses.length > 0) {
+      CRM_STATUSES = crmStatuses;
     }
   };

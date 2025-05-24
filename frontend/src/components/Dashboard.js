@@ -1,5 +1,5 @@
 // File: frontend/src/components/Dashboard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Network, Trash2, Check, X, ChevronDown } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import { todosAPI } from '../utils/api';
@@ -8,6 +8,17 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
   const activePeople = people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').slice(0, 5);
   const [newTodo, setNewTodo] = useState('');
   const [editingTodoId, setEditingTodoId] = useState(null);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setEditingTodoId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getFullName = (person) => {
     return `${person.first_name || ''} ${person.last_name || ''}`.trim();
@@ -128,34 +139,35 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
               Add
             </button>
           </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto relative">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {todos.map(todo => (
-              <div key={todo.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+              <div key={todo.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded group">
+                <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
                   todo.status === 'done' || todo.status === 'cancelled' ? getStatusStyle(todo.status) : 'border-2 border-gray-300'
                 }`}>
                   {(todo.status === 'done' || todo.status === 'cancelled') && (
                     <Check className="w-3 h-3" />
                   )}
                 </div>
-                <span className={`flex-1 ${
+                <span className={`flex-1 min-w-0 ${
                   (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-gray-500' : 'text-gray-900'
                 }`}>
                   {todo.text}
                 </span>
                 
                 {/* Status Dropdown */}
-                <div className="relative">
+                <div className="relative flex-shrink-0" ref={editingTodoId === todo.id ? dropdownRef : null}>
                   <button
                     onClick={() => setEditingTodoId(editingTodoId === todo.id ? null : todo.id)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium flex items-center space-x-1 ${getStatusStyle(todo.status)}`}
+                    className={`px-2 py-1 rounded-md text-xs font-medium flex items-center space-x-1 ${getStatusStyle(todo.status)}`}
                   >
-                    <span>{statusOptions.find(s => s.value === todo.status)?.label || 'Open'}</span>
+                    <span className="hidden sm:inline">{statusOptions.find(s => s.value === todo.status)?.label || 'Open'}</span>
+                    <span className="sm:hidden">{statusOptions.find(s => s.value === todo.status)?.label.substring(0, 3) || 'Opn'}</span>
                     <ChevronDown className="w-3 h-3" />
                   </button>
                   
                   {editingTodoId === todo.id && (
-                    <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-md shadow-lg z-50 border">
+                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border">
                       {statusOptions.map(option => (
                         <button
                           key={option.value}
@@ -163,11 +175,11 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                             handleUpdateTodo(todo.id, { status: option.value });
                             setEditingTodoId(null);
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-                            todo.status === option.value ? 'font-medium' : ''
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center ${
+                            todo.status === option.value ? 'font-medium bg-gray-50' : ''
                           }`}
                         >
-                          <div className={`inline-block w-3 h-3 rounded mr-2 ${getStatusStyle(option.value)}`} />
+                          <div className={`inline-block w-3 h-3 rounded mr-2 flex-shrink-0 ${getStatusStyle(option.value)}`} />
                           {option.label}
                         </button>
                       ))}
@@ -177,7 +189,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                 
                 <button 
                   onClick={() => handleDeleteTodo(todo.id)} 
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
