@@ -6,6 +6,7 @@ import { peopleAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
+
 const RelationshipManager = ({ 
   personId = null, // If provided, shows person-specific view
   showInModal = false, // If true, renders in a more compact way
