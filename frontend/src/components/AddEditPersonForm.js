@@ -1,12 +1,13 @@
 // File: frontend/src/components/AddEditPersonForm.js
 import React, { useState, useEffect } from 'react';
-import { X, Trash2 } from 'lucide-react';
-import { peopleAPI } from '../utils/api';
-import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES } from '../utils/constants';
+import { X, Trash2, Plus, MapPin } from 'lucide-react';
+import { peopleAPI, modelOptionsAPI } from '../utils/api';
+import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, updateDynamicConstants } from '../utils/constants';
 
 const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     aliases: [],
     dateOfBirth: '',
     category: '',
@@ -18,15 +19,56 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
     osintData: [],
     attachments: [],
     connections: [],
+    locations: [],
     custom_fields: {}
   });
   const [newAlias, setNewAlias] = useState('');
-  const [newOsintData, setNewOsintData] = useState({ type: 'Email', value: '', notes: '', lat: '', lng: '' });
+  const [newOsintData, setNewOsintData] = useState({ type: 'Email', value: '', notes: '' });
+  const [newLocation, setNewLocation] = useState({ 
+    type: 'primary_residence', 
+    address: '', 
+    city: '', 
+    state: '', 
+    country: '', 
+    postal_code: '', 
+    notes: '' 
+  });
+  const [connectionTypes, setConnectionTypes] = useState(CONNECTION_TYPES);
+  const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
+
+  useEffect(() => {
+    // Load dynamic options from database
+    const loadModelOptions = async () => {
+      try {
+        const options = await modelOptionsAPI.getAll();
+        updateDynamicConstants(options);
+        
+        // Update connection types
+        const connTypes = options
+          .filter(opt => opt.model_type === 'connection_type' && opt.is_active)
+          .sort((a, b) => a.display_order - b.display_order)
+          .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+        if (connTypes.length > 0) setConnectionTypes(connTypes);
+        
+        // Update location types
+        const locTypes = options
+          .filter(opt => opt.model_type === 'location_type' && opt.is_active)
+          .sort((a, b) => a.display_order - b.display_order)
+          .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+        if (locTypes.length > 0) setLocationTypes(locTypes);
+      } catch (error) {
+        console.error('Error loading model options:', error);
+      }
+    };
+    
+    loadModelOptions();
+  }, []);
 
   useEffect(() => {
     if (person) {
       setFormData({
-        name: person.name || '',
+        firstName: person.first_name || '',
+        lastName: person.last_name || '',
         aliases: person.aliases || [],
         dateOfBirth: person.date_of_birth ? person.date_of_birth.split('T')[0] : '',
         category: person.category || '',
@@ -38,6 +80,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
         osintData: person.osint_data || [],
         attachments: person.attachments || [],
         connections: person.connections || [],
+        locations: person.locations || [],
         custom_fields: person.custom_fields || {}
       });
     }
@@ -81,13 +124,8 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
   const addOsintData = () => {
     if (newOsintData.value.trim()) {
-      const osintToAdd = { ...newOsintData };
-      if (newOsintData.type === 'Location' && newOsintData.lat && newOsintData.lng) {
-        osintToAdd.lat = parseFloat(newOsintData.lat);
-        osintToAdd.lng = parseFloat(newOsintData.lng);
-      }
-      setFormData({ ...formData, osintData: [...formData.osintData, osintToAdd] });
-      setNewOsintData({ type: 'Email', value: '', notes: '', lat: '', lng: '' });
+      setFormData({ ...formData, osintData: [...formData.osintData, { ...newOsintData }] });
+      setNewOsintData({ type: 'Email', value: '', notes: '' });
     }
   };
 
@@ -95,6 +133,32 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
     setFormData({
       ...formData,
       osintData: formData.osintData.filter((_, i) => i !== index)
+    });
+  };
+
+  const addLocation = () => {
+    if (newLocation.address.trim()) {
+      const locationToAdd = {
+        ...newLocation,
+        id: Date.now() // temporary ID for frontend tracking
+      };
+      setFormData({ ...formData, locations: [...formData.locations, locationToAdd] });
+      setNewLocation({ 
+        type: 'primary_residence', 
+        address: '', 
+        city: '', 
+        state: '', 
+        country: '', 
+        postal_code: '', 
+        notes: '' 
+      });
+    }
+  };
+
+  const removeLocation = (index) => {
+    setFormData({
+      ...formData,
+      locations: formData.locations.filter((_, i) => i !== index)
     });
   };
 
@@ -111,7 +175,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
       };
       setFormData({ ...formData, connections: [...formData.connections, newConnection] });
       document.getElementById('connectionSelect').value = '';
-      document.getElementById('connectionType').value = 'associate';
+      document.getElementById('connectionType').value = connectionTypes[0]?.value || 'associate';
       document.getElementById('connectionNote').value = '';
     }
   };
@@ -136,16 +200,28 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
               <input
@@ -155,9 +231,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
               <select
@@ -171,7 +245,9 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 ))}
               </select>
             </div>
-            
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
@@ -185,9 +261,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">CRM Status</label>
               <input
@@ -197,7 +271,9 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Case Name</label>
               <input
@@ -207,16 +283,16 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture URL</label>
-            <input
-              type="url"
-              value={formData.profilePictureUrl}
-              onChange={(e) => setFormData({ ...formData, profilePictureUrl: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture URL</label>
+              <input
+                type="url"
+                value={formData.profilePictureUrl}
+                onChange={(e) => setFormData({ ...formData, profilePictureUrl: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           <div>
@@ -261,6 +337,108 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
             </div>
           </div>
 
+          {/* Locations */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4 inline mr-1" />
+              Locations
+            </label>
+            <div className="space-y-3 mb-3 bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <select
+                    value={newLocation.type}
+                    onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {locationTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={newLocation.address}
+                    onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })}
+                    placeholder="Street Address"
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={newLocation.city}
+                  onChange={(e) => setNewLocation({ ...newLocation, city: e.target.value })}
+                  placeholder="City"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  value={newLocation.state}
+                  onChange={(e) => setNewLocation({ ...newLocation, state: e.target.value })}
+                  placeholder="State/Province"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  value={newLocation.country}
+                  onChange={(e) => setNewLocation({ ...newLocation, country: e.target.value })}
+                  placeholder="Country"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={newLocation.postal_code}
+                  onChange={(e) => setNewLocation({ ...newLocation, postal_code: e.target.value })}
+                  placeholder="Postal Code"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  value={newLocation.notes}
+                  onChange={(e) => setNewLocation({ ...newLocation, notes: e.target.value })}
+                  placeholder="Notes (optional)"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button type="button" onClick={addLocation} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Location
+              </button>
+            </div>
+            <div className="space-y-2">
+              {formData.locations.map((location, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                        {locationTypes.find(t => t.value === location.type)?.label || location.type}
+                      </span>
+                      <span className="font-medium">{location.address}</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {[location.city, location.state, location.country, location.postal_code]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </div>
+                    {location.notes && <p className="text-sm text-gray-500 mt-1">{location.notes}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeLocation(index)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* OSINT Data */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">OSINT Data</label>
@@ -289,30 +467,10 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   placeholder="Notes (optional)"
                   className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <button type="button" onClick={addOsintData} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Add
+                </button>
               </div>
-              {newOsintData.type === 'Location' && (
-                <div className="flex space-x-2">
-                  <input
-                    type="number"
-                    step="any"
-                    value={newOsintData.lat}
-                    onChange={(e) => setNewOsintData({ ...newOsintData, lat: e.target.value })}
-                    placeholder="Latitude"
-                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    value={newOsintData.lng}
-                    onChange={(e) => setNewOsintData({ ...newOsintData, lng: e.target.value })}
-                    placeholder="Longitude"
-                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
-              <button type="button" onClick={addOsintData} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                Add OSINT Data
-              </button>
             </div>
             <div className="space-y-2">
               {formData.osintData.map((osint, index) => (
@@ -320,7 +478,6 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   <div>
                     <span className="font-medium">{osint.type}:</span> {osint.value}
                     {osint.notes && <span className="text-sm text-gray-600 ml-2">({osint.notes})</span>}
-                    {osint.lat && osint.lng && <span className="text-sm text-gray-600 ml-2">[{osint.lat}, {osint.lng}]</span>}
                   </div>
                   <button
                     type="button"
@@ -345,14 +502,17 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 >
                   <option value="">Select a person</option>
                   {people.filter(p => !person || p.id !== person.id).map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.first_name} {p.last_name ? p.last_name : ''}
+                    </option>
                   ))}
                 </select>
                 <select
                   id="connectionType"
                   className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  defaultValue={connectionTypes[0]?.value || 'associate'}
                 >
-                  {CONNECTION_TYPES.map(type => (
+                  {connectionTypes.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
@@ -373,8 +533,12 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 return (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <span className="font-medium">{connectedPerson?.name || 'Unknown'}</span>
-                      <span className="text-sm text-gray-600 ml-2">({conn.type})</span>
+                      <span className="font-medium">
+                        {connectedPerson ? `${connectedPerson.first_name} ${connectedPerson.last_name || ''}` : 'Unknown'}
+                      </span>
+                      <span className="text-sm text-gray-600 ml-2">
+                        ({connectionTypes.find(t => t.value === conn.type)?.label || conn.type})
+                      </span>
                       {conn.note && <p className="text-sm text-gray-600">{conn.note}</p>}
                     </div>
                     <button

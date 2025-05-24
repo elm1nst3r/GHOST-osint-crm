@@ -296,6 +296,11 @@ const RelationshipDiagram = ({
   const [connectionType, setConnectionType] = useState('associate');
   const [connectionNote, setConnectionNote] = useState('');
 
+  // Helper function to get full name
+  const getFullName = (person) => {
+    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  };
+
   // Convert people data to nodes and edges
   useEffect(() => {
     const newNodes = [];
@@ -309,7 +314,7 @@ const RelationshipDiagram = ({
         type: 'person',
         position: { x: 0, y: 0 }, // Will be set by layout
         data: {
-          label: person.name,
+          label: getFullName(person),
           category: person.category,
           status: person.status,
           caseName: person.case_name,
@@ -389,11 +394,14 @@ const RelationshipDiagram = ({
       const sourcePersonId = params.source.replace('person-', '');
       const targetPersonId = params.target.replace('person-', '');
       
+      const sourcePerson = people.find(p => p.id === parseInt(sourcePersonId));
+      const targetPerson = people.find(p => p.id === parseInt(targetPersonId));
+      
       setConnectionModal({
         sourceId: sourcePersonId,
         targetId: targetPersonId,
-        sourceName: people.find(p => p.id === parseInt(sourcePersonId))?.name,
-        targetName: people.find(p => p.id === parseInt(targetPersonId))?.name
+        sourceName: getFullName(sourcePerson),
+        targetName: getFullName(targetPerson)
       });
     }
   }, [isAddingConnection, people]);
@@ -418,11 +426,14 @@ const RelationshipDiagram = ({
       const sourceId = selectedNodes[0].replace('person-', '');
       const targetId = selectedNodes[1].replace('person-', '');
       
+      const sourcePerson = people.find(p => p.id === parseInt(sourceId));
+      const targetPerson = people.find(p => p.id === parseInt(targetId));
+      
       setConnectionModal({
         sourceId,
         targetId,
-        sourceName: people.find(p => p.id === parseInt(sourceId))?.name,
-        targetName: people.find(p => p.id === parseInt(targetId))?.name
+        sourceName: getFullName(sourcePerson),
+        targetName: getFullName(targetPerson)
       });
     }
   }, [selectedNodes, people]);

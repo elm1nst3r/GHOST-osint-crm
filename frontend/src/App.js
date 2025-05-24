@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map } from 'lucide-react';
 
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI } from './utils/api';
@@ -19,6 +19,7 @@ import AddEditToolForm from './components/AddEditToolForm';
 import SettingsPage from './components/SettingsPage';
 import RelationshipManager from './components/visualization/RelationshipManager';
 import RelationshipDiagram from './components/RelationshipDiagram';
+import GlobalMap from './components/GlobalMap';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -108,6 +109,7 @@ const App = () => {
     { id: 'people', label: 'People', icon: Users },
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
     { id: 'relationships', label: 'Relationships', icon: Network },
+    { id: 'map', label: 'Locations', icon: Map },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -189,6 +191,10 @@ const App = () => {
               </div>
             </div>
           </div>
+        )}
+        
+        {activeSection === 'map' && (
+          <GlobalMap />
         )}
         
         {activeSection === 'settings' && (

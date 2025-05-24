@@ -1,12 +1,17 @@
 // File: frontend/src/components/Dashboard.js
 import React, { useState } from 'react';
-import { Wrench, Users, Activity, Network, Trash2 } from 'lucide-react';
+import { Network, Trash2, Check, X, ChevronDown } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import { todosAPI } from '../utils/api';
 
 const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail, setActiveSection }) => {
   const activePeople = people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').slice(0, 5);
   const [newTodo, setNewTodo] = useState('');
+  const [editingTodoId, setEditingTodoId] = useState(null);
+
+  const getFullName = (person) => {
+    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  };
 
   const getRelationshipCount = (personId) => {
     const person = people.find(p => p.id === personId);
@@ -53,46 +58,30 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
     }
   };
 
+  const getStatusStyle = (status) => {
+    const styles = {
+      'open': 'bg-gray-100 text-gray-700',
+      'in_progress': 'bg-green-50 text-green-700',
+      'on_hold': 'bg-orange-50 text-orange-700',
+      'attention': 'bg-red-50 text-red-700',
+      'done': 'bg-green-700 text-white',
+      'cancelled': 'bg-gray-700 text-white'
+    };
+    return styles[status] || styles['open'];
+  };
+
+  const statusOptions = [
+    { value: 'open', label: 'Open' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'on_hold', label: 'On Hold' },
+    { value: 'attention', label: 'Attention / Issue' },
+    { value: 'done', label: 'Done' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6 border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">OSINT Tools</p>
-              <p className="text-3xl font-bold text-gray-900">{tools.length}</p>
-            </div>
-            <Wrench className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm p-6 border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Active Investigations</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').length}
-              </p>
-            </div>
-            <Users className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm p-6 border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Open To-Dos</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {todos.filter(t => t.status === 'open').length}
-              </p>
-            </div>
-            <Activity className="w-8 h-8 text-yellow-500" />
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Active People */}
@@ -102,7 +91,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
             {activePeople.map(person => (
               <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">{person.name}</p>
+                  <p className="font-medium text-gray-900">{getFullName(person)}</p>
                   <p className="text-sm text-gray-600">{person.case_name || 'No case assigned'}</p>
                   <div className="flex items-center mt-1 text-xs text-gray-500">
                     <Network className="w-3 h-3 mr-1" />
@@ -139,18 +128,53 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
               Add
             </button>
           </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2 max-h-64 overflow-y-auto relative">
             {todos.map(todo => (
               <div key={todo.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
-                <input
-                  type="checkbox"
-                  checked={todo.status === 'done'}
-                  onChange={(e) => handleUpdateTodo(todo.id, { status: e.target.checked ? 'done' : 'open' })}
-                  className="h-4 w-4 text-blue-600 rounded"
-                />
-                <span className={`flex-1 ${todo.status === 'done' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                  todo.status === 'done' || todo.status === 'cancelled' ? getStatusStyle(todo.status) : 'border-2 border-gray-300'
+                }`}>
+                  {(todo.status === 'done' || todo.status === 'cancelled') && (
+                    <Check className="w-3 h-3" />
+                  )}
+                </div>
+                <span className={`flex-1 ${
+                  (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-gray-500' : 'text-gray-900'
+                }`}>
                   {todo.text}
                 </span>
+                
+                {/* Status Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setEditingTodoId(editingTodoId === todo.id ? null : todo.id)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium flex items-center space-x-1 ${getStatusStyle(todo.status)}`}
+                  >
+                    <span>{statusOptions.find(s => s.value === todo.status)?.label || 'Open'}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  
+                  {editingTodoId === todo.id && (
+                    <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-md shadow-lg z-50 border">
+                      {statusOptions.map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            handleUpdateTodo(todo.id, { status: option.value });
+                            setEditingTodoId(null);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                            todo.status === option.value ? 'font-medium' : ''
+                          }`}
+                        >
+                          <div className={`inline-block w-3 h-3 rounded mr-2 ${getStatusStyle(option.value)}`} />
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <button 
                   onClick={() => handleDeleteTodo(todo.id)} 
                   className="text-red-600 hover:text-red-700"
@@ -174,7 +198,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
             View Full Network →
           </button>
         </div>
-        <div className="h-64 bg-gray-50 rounded-lg overflow-hidden">
+        <div className="h-96 bg-gray-50 rounded-lg overflow-hidden">
           <RelationshipManager 
             showInModal={true}
             onClose={() => {}}

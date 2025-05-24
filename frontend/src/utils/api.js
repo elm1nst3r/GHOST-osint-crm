@@ -100,6 +100,45 @@ export const customFieldsAPI = {
   }),
 };
 
+// Model Options API
+export const modelOptionsAPI = {
+  getAll: () => fetchAPI('/settings/model-options'),
+  
+  create: (optionData) => fetchAPI('/settings/model-options', {
+    method: 'POST',
+    body: JSON.stringify(optionData),
+  }),
+  
+  update: (id, optionData) => fetchAPI(`/settings/model-options/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(optionData),
+  }),
+  
+  delete: (id) => fetchAPI(`/settings/model-options/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Audit Log API
+export const auditAPI = {
+  getAll: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return fetchAPI(`/audit-logs${queryParams ? '?' + queryParams : ''}`);
+  },
+};
+
+// Export/Import API
+export const exportAPI = {
+  export: () => fetchAPI('/export'),
+};
+
+export const importAPI = {
+  import: (data) => fetchAPI('/import', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
 // Logo Upload API
 export const uploadLogo = async (file) => {
   const formData = new FormData();

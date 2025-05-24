@@ -54,6 +54,10 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   
+  const getFullName = (person) => {
+    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  };
+
   useEffect(() => {
     if (!person) return;
     
@@ -65,7 +69,7 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
       id: 'person-1',
       type: 'person',
       position: { x: 250, y: 25 },
-      data: { label: person.name }
+      data: { label: getFullName(person) }
     };
     newNodes.push(personNode);
     
@@ -109,7 +113,7 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
             id: `connected-person-${conn.person_id}`,
             type: 'person',
             position: { x, y },
-            data: { label: connectedPerson.name }
+            data: { label: getFullName(connectedPerson) }
           });
           
           newEdges.push({
@@ -150,7 +154,7 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">{person.name}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{getFullName(person)}</h2>
           <div className="flex space-x-2">
             <button onClick={() => onEdit(person)} className="text-blue-600 hover:text-blue-700">
               <Edit2 className="w-5 h-5" />
@@ -189,6 +193,8 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
                   <div className="space-y-2">
+                    <div><span className="font-medium">First Name:</span> {person.first_name || 'N/A'}</div>
+                    <div><span className="font-medium">Last Name:</span> {person.last_name || 'N/A'}</div>
                     {person.aliases && person.aliases.length > 0 && (
                       <div><span className="font-medium">Aliases:</span> {person.aliases.join(', ')}</div>
                     )}
@@ -218,7 +224,7 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
                       <span className="font-medium">Profile Picture:</span>
                       <img 
                         src={person.profile_picture_url} 
-                        alt={person.name} 
+                        alt={getFullName(person)} 
                         className="mt-2 w-32 h-32 object-cover rounded-lg" 
                       />
                     </div>

@@ -27,9 +27,14 @@ const PeopleList = ({
     return Math.max(directConnections, reverseConnections);
   };
 
+  const getFullName = (person) => {
+    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  };
+
   const filteredPeople = people.filter(person => {
+    const fullName = getFullName(person);
     const matchesSearch = searchTerm === '' || 
-      person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (person.aliases && person.aliases.some(alias => alias.toLowerCase().includes(searchTerm.toLowerCase()))) ||
       (person.case_name && person.case_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
@@ -122,7 +127,7 @@ const PeopleList = ({
                 {person.profile_picture_url ? (
                   <img 
                     src={person.profile_picture_url} 
-                    alt={person.name} 
+                    alt={getFullName(person)} 
                     className="w-12 h-12 rounded-full object-cover" 
                   />
                 ) : (
@@ -131,7 +136,7 @@ const PeopleList = ({
                   </div>
                 )}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{person.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{getFullName(person)}</h3>
                   {person.aliases && person.aliases.length > 0 && (
                     <p className="text-sm text-gray-500">AKA: {person.aliases.join(', ')}</p>
                   )}

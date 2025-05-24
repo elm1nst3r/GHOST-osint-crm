@@ -24,19 +24,31 @@ export const PERSON_CATEGORIES = [
     { value: 'Phone', label: 'Phone' },
     { value: 'Social Media', label: 'Social Media' },
     { value: 'Website', label: 'Website' },
-    { value: 'Location', label: 'Location' },
     { value: 'Username', label: 'Username' },
     { value: 'Other', label: 'Other' },
   ];
   
-  // Connection types
-  export const CONNECTION_TYPES = [
+  // Connection types - DYNAMIC (will be loaded from database)
+  export let CONNECTION_TYPES = [
     { value: 'associate', label: 'Associate' },
     { value: 'family', label: 'Family' },
+    { value: 'friend', label: 'Friend' },
+    { value: 'enemy', label: 'Enemy' },
     { value: 'employer', label: 'Employer/Employee' },
     { value: 'suspect', label: 'Suspect Connection' },
     { value: 'witness', label: 'Witness' },
     { value: 'victim', label: 'Victim' },
+    { value: 'other', label: 'Other' },
+  ];
+  
+  // Location types
+  export const LOCATION_TYPES = [
+    { value: 'primary_residence', label: 'Primary Residence' },
+    { value: 'holiday_home', label: 'Holiday Home' },
+    { value: 'work', label: 'Work' },
+    { value: 'family_residence', label: 'Family Residence' },
+    { value: 'favorite_hotel', label: 'Favorite Hotel' },
+    { value: 'yacht_location', label: 'Yacht Location' },
     { value: 'other', label: 'Other' },
   ];
   
@@ -71,4 +83,16 @@ export const PERSON_CATEGORIES = [
   export const DEFAULT_APP_SETTINGS = {
     appName: 'OSINT Investigation CRM',
     appLogo: null,
+  };
+  
+  // Function to update dynamic constants from database
+  export const updateDynamicConstants = (modelOptions) => {
+    const connectionOptions = modelOptions
+      .filter(opt => opt.model_type === 'connection_type' && opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+    
+    if (connectionOptions.length > 0) {
+      CONNECTION_TYPES = connectionOptions;
+    }
   };
