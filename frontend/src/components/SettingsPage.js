@@ -1,6 +1,6 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User } from 'lucide-react';
+import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight } from 'lucide-react';
 import CustomFieldManager from './CustomFieldManager';
 import { uploadLogo, modelOptionsAPI, auditAPI, exportAPI, importAPI } from '../utils/api';
 
@@ -13,6 +13,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
   const [editingOption, setEditingOption] = useState(null);
   const [selectedModelType, setSelectedModelType] = useState('person_category');
   const [optionForm, setOptionForm] = useState({ option_value: '', option_label: '', display_order: 999 });
+  const [expandedGroups, setExpandedGroups] = useState({});
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
 
@@ -28,6 +29,13 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
     try {
       const data = await modelOptionsAPI.getAll();
       setModelOptions(data);
+      
+      // Initialize all groups as collapsed
+      const groups = {};
+      data.forEach(opt => {
+        groups[opt.model_type] = false;
+      });
+      setExpandedGroups(groups);
     } catch (error) {
       console.error('Error fetching model options:', error);
     }
@@ -145,6 +153,13 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
         alert('Failed to delete option');
       }
     }
+  };
+
+  const toggleGroup = (modelType) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [modelType]: !prev[modelType]
+    }));
   };
 
   const modelTypeLabels = {
@@ -361,51 +376,67 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                   if (typeOptions.length === 0) return null;
                   
                   return (
-                    <div key={modelType} className="mb-6">
-                      <h4 className="font-medium text-gray-700 mb-3">{label}</h4>
-                      <div className="space-y-2">
-                        {typeOptions
-                          .sort((a, b) => a.display_order - b.display_order)
-                          .map(option => (
-                            <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <span className="text-sm text-gray-500">#{option.display_order}</span>
-                                <div>
-                                  <div className="font-medium">{option.option_label}</div>
-                                  <div className="text-sm text-gray-600">Value: {option.option_value}</div>
+                    <div key={modelType} className="mb-4 border rounded-lg">
+                      <button
+                        onClick={() => toggleGroup(modelType)}
+                        className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-t-lg flex items-center justify-between transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          {expandedGroups[modelType] ? (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                          )}
+                          <h4 className="font-medium text-gray-700">{label}</h4>
+                          <span className="text-sm text-gray-500">({typeOptions.length} options)</span>
+                        </div>
+                      </button>
+                      
+                      {expandedGroups[modelType] && (
+                        <div className="p-4 space-y-2 bg-white rounded-b-lg">
+                          {typeOptions
+                            .sort((a, b) => a.display_order - b.display_order)
+                            .map(option => (
+                              <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-sm text-gray-500">#{option.display_order}</span>
+                                  <div>
+                                    <div className="font-medium">{option.option_label}</div>
+                                    <div className="text-sm text-gray-600">Value: {option.option_value}</div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className={`px-2 py-1 text-xs rounded ${
+                                    option.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {option.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingOption(option);
+                                      setOptionForm({
+                                        option_value: option.option_value,
+                                        option_label: option.option_label,
+                                        display_order: option.display_order
+                                      });
+                                    }}
+                                    className="text-gray-600 hover:text-gray-700"
+                                    title="Edit"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteOption(option.id)}
+                                    className="text-red-600 hover:text-red-700"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <span className={`px-2 py-1 text-xs rounded ${
-                                  option.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                  {option.is_active ? 'Active' : 'Inactive'}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setEditingOption(option);
-                                    setOptionForm({
-                                      option_value: option.option_value,
-                                      option_label: option.option_label,
-                                      display_order: option.display_order
-                                    });
-                                  }}
-                                  className="text-gray-600 hover:text-gray-700"
-                                  title="Edit"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteOption(option.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

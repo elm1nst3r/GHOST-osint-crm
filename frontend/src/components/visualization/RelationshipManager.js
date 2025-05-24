@@ -1,7 +1,7 @@
-// File: frontend/src/components/RelationshipManager.js
+// File: frontend/src/components/visualization/RelationshipManager.js
 import React, { useState, useEffect, useCallback } from 'react';
 import RelationshipDiagram from '../RelationshipDiagram';
-import { AlertCircle, Loader2, Network, Users, Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { AlertCircle, Loader2, Network, Users, Eye, EyeOff, Maximize2, RefreshCw } from 'lucide-react';
 import { peopleAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -17,6 +17,7 @@ const RelationshipManager = ({
   const [showOsintData, setShowOsintData] = useState(false);
   const [layoutType, setLayoutType] = useState('hierarchical');
   const [fullScreen, setFullScreen] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
 
   // Fetch people data
   const fetchPeople = useCallback(async () => {
@@ -25,7 +26,17 @@ const RelationshipManager = ({
       const response = await fetch(`${API_BASE_URL}/people`);
       if (!response.ok) throw new Error('Failed to fetch people');
       const data = await response.json();
-      setPeople(data);
+      
+      // Debug logging
+      console.log('Fetched people data:', data);
+      
+      // Ensure connections are properly formatted
+      const processedData = data.map(person => ({
+        ...person,
+        connections: person.connections || []
+      }));
+      
+      setPeople(processedData);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -73,6 +84,9 @@ const RelationshipManager = ({
         });
       }
 
+      // Debug logging
+      console.log('Updating connections for person:', sourceId, 'with connections:', updatedConnections);
+
       // Prepare the full person data for update
       const updateData = {
         firstName: sourcePerson.first_name,
@@ -103,63 +117,10 @@ const RelationshipManager = ({
 
       if (!response.ok) throw new Error('Failed to update connection');
 
-      // Also update the target person's connections (bidirectional)
-      const targetPerson = people.find(p => p.id === targetId);
-      if (targetPerson) {
-        const targetConnections = [...(targetPerson.connections || [])];
-        const targetExistingIndex = targetConnections.findIndex(
-          conn => conn.person_id === sourceId
-        );
-
-        if (targetExistingIndex >= 0) {
-          targetConnections[targetExistingIndex] = {
-            person_id: sourceId,
-            type,
-            note,
-            created_at: targetConnections[targetExistingIndex].created_at,
-            updated_at: new Date().toISOString()
-          };
-        } else {
-          targetConnections.push({
-            person_id: sourceId,
-            type,
-            note,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        }
-
-        const targetUpdateData = {
-          firstName: targetPerson.first_name,
-          lastName: targetPerson.last_name,
-          aliases: targetPerson.aliases,
-          dateOfBirth: targetPerson.date_of_birth,
-          category: targetPerson.category,
-          status: targetPerson.status,
-          crmStatus: targetPerson.crm_status,
-          caseName: targetPerson.case_name,
-          profilePictureUrl: targetPerson.profile_picture_url,
-          notes: targetPerson.notes,
-          osintData: targetPerson.osint_data,
-          attachments: targetPerson.attachments,
-          connections: targetConnections,
-          locations: targetPerson.locations,
-          custom_fields: targetPerson.custom_fields
-        };
-
-        await fetch(`${API_BASE_URL}/people/${targetId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(targetUpdateData)
-        });
-      }
-
       // Refresh data
       await fetchPeople();
       
-      // Show success message (you might want to use a toast library)
+      // Show success message
       alert('Connection created successfully!');
     } catch (err) {
       console.error('Error updating connection:', err);
@@ -204,40 +165,6 @@ const RelationshipManager = ({
         body: JSON.stringify(updateData)
       });
 
-      // Update target person
-      const targetPerson = people.find(p => p.id === targetId);
-      if (targetPerson) {
-        const targetConnections = (targetPerson.connections || []).filter(
-          conn => conn.person_id !== sourceId
-        );
-
-        const targetUpdateData = {
-          firstName: targetPerson.first_name,
-          lastName: targetPerson.last_name,
-          aliases: targetPerson.aliases,
-          dateOfBirth: targetPerson.date_of_birth,
-          category: targetPerson.category,
-          status: targetPerson.status,
-          crmStatus: targetPerson.crm_status,
-          caseName: targetPerson.case_name,
-          profilePictureUrl: targetPerson.profile_picture_url,
-          notes: targetPerson.notes,
-          osintData: targetPerson.osint_data,
-          attachments: targetPerson.attachments,
-          connections: targetConnections,
-          locations: targetPerson.locations,
-          custom_fields: targetPerson.custom_fields
-        };
-
-        await fetch(`${API_BASE_URL}/people/${targetId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(targetUpdateData)
-        });
-      }
-
       // Refresh data
       await fetchPeople();
       alert('Connection deleted successfully!');
@@ -275,6 +202,13 @@ const RelationshipManager = ({
     return people.filter(p => connectedIds.has(p.id));
   })() : people;
 
+  // Debug info
+  const getConnectionsDebugInfo = () => {
+    const totalConnections = people.reduce((acc, p) => acc + (p.connections?.length || 0), 0);
+    const peopleWithConnections = people.filter(p => p.connections && p.connections.length > 0).length;
+    return { totalConnections, peopleWithConnections };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -299,6 +233,8 @@ const RelationshipManager = ({
       ? "h-full w-full flex flex-col" 
       : "h-[600px] w-full flex flex-col";
 
+  const debugInfo = getConnectionsDebugInfo();
+
   return (
     <div className={containerClass}>
       {/* Header */}
@@ -316,6 +252,24 @@ const RelationshipManager = ({
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Debug toggle */}
+          <button
+            onClick={() => setDebugMode(!debugMode)}
+            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200"
+            title="Toggle Debug Info"
+          >
+            <AlertCircle className="w-4 h-4" />
+          </button>
+          
+          {/* Refresh button */}
+          <button
+            onClick={fetchPeople}
+            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200"
+            title="Refresh Data"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          
           {/* Toggle OSINT data */}
           <button
             onClick={() => setShowOsintData(!showOsintData)}
@@ -362,6 +316,27 @@ const RelationshipManager = ({
           )}
         </div>
       </div>
+      
+      {/* Debug Info */}
+      {debugMode && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm">
+          <p className="font-semibold">Debug Info:</p>
+          <p>Total People: {people.length}</p>
+          <p>People with Connections: {debugInfo.peopleWithConnections}</p>
+          <p>Total Connections: {debugInfo.totalConnections}</p>
+          <p>Filtered People (shown): {filteredPeople.length}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-blue-600">View Raw Data</summary>
+            <pre className="mt-2 text-xs overflow-auto max-h-40 bg-white p-2 rounded">
+              {JSON.stringify(filteredPeople.map(p => ({
+                id: p.id,
+                name: `${p.first_name} ${p.last_name}`,
+                connections: p.connections
+              })), null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
       
       {/* Diagram Container */}
       <div className="flex-1 overflow-hidden">
