@@ -8,11 +8,10 @@ import {
   User, Users, MapPin, Network, Clock, Shield, AlertCircle,
   ChevronRight, Loader2, X
 } from 'lucide-react';
-import { peopleAPI, casesAPI, auditAPI, todosAPI } from '../utils/api';
+import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI } from '../utils/api';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const ReportGenerator = ({ caseId = null, personId = null, onClose }) => {
-  const [loading, setLoading] = useState(false);
+const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reportOptions, setReportOptions] = useState({
     includeSummary: true,
@@ -56,17 +55,18 @@ const ReportGenerator = ({ caseId = null, personId = null, onClose }) => {
         auditLogs = await auditAPI.getAll({ limit: 100 });
       }
 
-      // Filter data based on case or person
+      // Filter data based on case, person, or custom IDs
       let filteredPeople = peopleData;
       let selectedCase = null;
       let selectedPerson = null;
 
-      if (caseId) {
+      // Handle custom people IDs (from advanced search)
+      if (customPeopleIds && customPeopleIds.length > 0) {
+        filteredPeople = peopleData.filter(p => customPeopleIds.includes(p.id));
+      } else if (caseId) {
         selectedCase = casesData.find(c => c.id === caseId);
         filteredPeople = peopleData.filter(p => p.case_name === selectedCase?.case_name);
-      }
-
-      if (personId) {
+      } else if (personId) {
         selectedPerson = peopleData.find(p => p.id === personId);
         if (!caseId && selectedPerson?.case_name) {
           selectedCase = casesData.find(c => c.case_name === selectedPerson.case_name);

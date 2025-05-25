@@ -217,14 +217,31 @@ export const uploadLogo = async (file) => {
   }
 };
 
-// Search API
-export const searchAPI = {
-  universal: (query) => fetchAPI(`/search?q=${encodeURIComponent(query)}`),
-};
-
 // Locations API
 export const locationsAPI = {
   getAll: () => fetchAPI('/locations'),
+};
+
+// Advanced Search API
+export const searchAPI = {
+  advanced: (params) => {
+    const queryParams = new URLSearchParams();
+    
+    // Convert complex search params to query string
+    Object.entries(params).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach(v => queryParams.append(`${key}[]`, v));
+      } else if (typeof value === 'object') {
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          queryParams.append(`${key}[${subKey}]`, subValue);
+        });
+      } else if (value !== '' && value !== null) {
+        queryParams.append(key, value);
+      }
+    });
+    
+    return fetchAPI(`/search/advanced?${queryParams.toString()}`);
+  }
 };
 
 export { API_BASE_URL };

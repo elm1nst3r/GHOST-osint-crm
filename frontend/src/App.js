@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search } from 'lucide-react';
 
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI } from './utils/api';
@@ -21,6 +21,7 @@ import SettingsPage from './components/SettingsPage';
 import RelationshipManager from './components/visualization/RelationshipManager';
 import RelationshipDiagram from './components/RelationshipDiagram';
 import GlobalMap from './components/GlobalMap';
+import AdvancedSearch from './components/AdvancedSearch';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -45,6 +46,7 @@ const App = () => {
   const [editingPerson, setEditingPerson] = useState(null);
   const [editingTool, setEditingTool] = useState(null);
   const [selectedPersonForDetail, setSelectedPersonForDetail] = useState(null);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   // Data fetching functions
   const fetchPeople = async () => {
@@ -147,6 +149,17 @@ const App = () => {
             );
           })}
         </nav>
+        
+        {/* Advanced Search Button */}
+        <div className="px-6 mt-6">
+          <button
+            onClick={() => setShowAdvancedSearch(true)}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            Advanced Search
+          </button>
+        </div>
       </div>
       
       {/* Main Content */}
@@ -279,6 +292,17 @@ const App = () => {
             fetchTools();
           }}
           onCancel={() => setEditingTool(null)}
+        />
+      )}
+      
+      {/* Advanced Search Modal */}
+      {showAdvancedSearch && (
+        <AdvancedSearch
+          onSelectPerson={(person) => {
+            setSelectedPersonForDetail(person);
+            setShowAdvancedSearch(false);
+          }}
+          onClose={() => setShowAdvancedSearch(false)}
         />
       )}
     </div>
