@@ -1,6 +1,6 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import CustomFieldManager from './CustomFieldManager';
 import { uploadLogo, modelOptionsAPI, auditAPI, exportAPI, importAPI } from '../utils/api';
 
@@ -12,8 +12,12 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
   const [showAddOptionForm, setShowAddOptionForm] = useState(false);
   const [editingOption, setEditingOption] = useState(null);
   const [selectedModelType, setSelectedModelType] = useState('person_category');
-  const [optionForm, setOptionForm] = useState({ option_value: '', option_label: '', display_order: 999 });
+  const [optionForm, setOptionForm] = useState({ option_value: '', option_label: '', display_order: 999, is_active: true });
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(false);
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
 
@@ -32,8 +36,9 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
       
       // Initialize all groups as collapsed
       const groups = {};
-      data.forEach(opt => {
-        groups[opt.model_type] = false;
+      const modelTypes = [...new Set(data.map(opt => opt.model_type))];
+      modelTypes.forEach(type => {
+        groups[type] = false;
       });
       setExpandedGroups(groups);
     } catch (error) {
@@ -71,19 +76,16 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
 
   const handleExport = async () => {
     try {
-      const data = await exportAPI.export();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `osint-crm-export-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      setIsExporting(true);
+      setExportSuccess(false);
+      await exportAPI.export();
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to export data');
+      alert('Failed to export data: ' + error.message);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -92,6 +94,8 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
     if (!file) return;
 
     try {
+      setIsImporting(true);
+      setImportSuccess(false);
       const text = await file.text();
       const data = JSON.parse(text);
       
@@ -101,16 +105,26 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
 
       if (window.confirm('This will import all data from the file. Existing data with the same IDs will be updated. Continue?')) {
         await importAPI.import(data);
-        alert('Data imported successfully! Please refresh the page to see the changes.');
-        window.location.reload();
+        setImportSuccess(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
     } catch (error) {
       console.error('Error importing data:', error);
       alert('Failed to import data: ' + error.message);
+    } finally {
+      setIsImporting(false);
+      event.target.value = ''; // Reset file input
     }
   };
 
   const handleAddOption = async () => {
+    if (!optionForm.option_value || !optionForm.option_label) {
+      alert('Please fill in both value and label fields');
+      return;
+    }
+
     try {
       await modelOptionsAPI.create({
         model_type: selectedModelType,
@@ -118,10 +132,10 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
       });
       fetchModelOptions();
       setShowAddOptionForm(false);
-      setOptionForm({ option_value: '', option_label: '', display_order: 999 });
+      setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
     } catch (error) {
       console.error('Error adding option:', error);
-      alert('Failed to add option');
+      alert('Failed to add option: ' + error.message);
     }
   };
 
@@ -132,11 +146,11 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
       await modelOptionsAPI.update(editingOption.id, {
         option_label: optionForm.option_label,
         display_order: optionForm.display_order,
-        is_active: editingOption.is_active
+        is_active: optionForm.is_active
       });
       fetchModelOptions();
       setEditingOption(null);
-      setOptionForm({ option_value: '', option_label: '', display_order: 999 });
+      setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
     } catch (error) {
       console.error('Error updating option:', error);
       alert('Failed to update option');
@@ -144,7 +158,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
   };
 
   const handleDeleteOption = async (id) => {
-    if (window.confirm('Are you sure you want to delete this option?')) {
+    if (window.confirm('Are you sure you want to delete this option? This action cannot be undone.')) {
       try {
         await modelOptionsAPI.delete(id);
         fetchModelOptions();
@@ -180,7 +194,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
       }
       return value;
     } catch {
-      return value;
+      return value.length > 50 ? value.substring(0, 50) + '...' : value;
     }
   };
 
@@ -276,7 +290,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
               <div>
                 <h3 className="text-lg font-semibold mb-4">System Information</h3>
                 <div className="space-y-2 text-sm">
-                  <div><span className="font-medium">Version:</span> 0.9.0</div>
+                  <div><span className="font-medium">Version:</span> 1.0.0</div>
                   <div><span className="font-medium">Database:</span> PostgreSQL</div>
                   <div><span className="font-medium">API URL:</span> {process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}</div>
                 </div>
@@ -324,38 +338,52 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                         <input
                           type="number"
                           value={optionForm.display_order}
-                          onChange={(e) => setOptionForm({ ...optionForm, display_order: parseInt(e.target.value) })}
+                          onChange={(e) => setOptionForm({ ...optionForm, display_order: parseInt(e.target.value) || 999 })}
                           className="w-full px-3 py-2 border rounded-md text-sm"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Internal Value</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Internal Value *</label>
                         <input
                           type="text"
                           value={optionForm.option_value}
                           onChange={(e) => setOptionForm({ ...optionForm, option_value: e.target.value })}
                           className="w-full px-3 py-2 border rounded-md text-sm"
                           placeholder="e.g., in_progress"
+                          required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Display Label</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Display Label *</label>
                         <input
                           type="text"
                           value={optionForm.option_label}
                           onChange={(e) => setOptionForm({ ...optionForm, option_label: e.target.value })}
                           className="w-full px-3 py-2 border rounded-md text-sm"
                           placeholder="e.g., In Progress"
+                          required
                         />
                       </div>
+                    </div>
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="new_is_active"
+                        checked={optionForm.is_active}
+                        onChange={(e) => setOptionForm({ ...optionForm, is_active: e.target.checked })}
+                        className="h-4 w-4 text-blue-600 rounded"
+                      />
+                      <label htmlFor="new_is_active" className="ml-2 text-sm text-gray-700">
+                        Active (show this option in forms)
+                      </label>
                     </div>
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => {
                           setShowAddOptionForm(false);
-                          setOptionForm({ option_value: '', option_label: '', display_order: 999 });
+                          setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
                         }}
                         className="px-3 py-1 text-gray-700 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
                       >
@@ -373,7 +401,6 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
 
                 {Object.entries(modelTypeLabels).map(([modelType, label]) => {
                   const typeOptions = modelOptions.filter(opt => opt.model_type === modelType);
-                  if (typeOptions.length === 0) return null;
                   
                   return (
                     <div key={modelType} className="mb-4 border rounded-lg">
@@ -394,47 +421,52 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                       
                       {expandedGroups[modelType] && (
                         <div className="p-4 space-y-2 bg-white rounded-b-lg">
-                          {typeOptions
-                            .sort((a, b) => a.display_order - b.display_order)
-                            .map(option => (
-                              <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-sm text-gray-500">#{option.display_order}</span>
-                                  <div>
-                                    <div className="font-medium">{option.option_label}</div>
-                                    <div className="text-sm text-gray-600">Value: {option.option_value}</div>
+                          {typeOptions.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No options defined yet</p>
+                          ) : (
+                            typeOptions
+                              .sort((a, b) => a.display_order - b.display_order)
+                              .map(option => (
+                                <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center space-x-3">
+                                    <span className="text-sm text-gray-500">#{option.display_order}</span>
+                                    <div>
+                                      <div className="font-medium">{option.option_label}</div>
+                                      <div className="text-sm text-gray-600">Value: {option.option_value}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`px-2 py-1 text-xs rounded ${
+                                      option.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {option.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        setEditingOption(option);
+                                        setOptionForm({
+                                          option_value: option.option_value,
+                                          option_label: option.option_label,
+                                          display_order: option.display_order,
+                                          is_active: option.is_active
+                                        });
+                                      }}
+                                      className="text-gray-600 hover:text-gray-700"
+                                      title="Edit"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteOption(option.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 text-xs rounded ${
-                                    option.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                                  }`}>
-                                    {option.is_active ? 'Active' : 'Inactive'}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      setEditingOption(option);
-                                      setOptionForm({
-                                        option_value: option.option_value,
-                                        option_label: option.option_label,
-                                        display_order: option.display_order
-                                      });
-                                    }}
-                                    className="text-gray-600 hover:text-gray-700"
-                                    title="Edit"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteOption(option.id)}
-                                    className="text-red-600 hover:text-red-700"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                              ))
+                          )}
                         </div>
                       )}
                     </div>
@@ -453,11 +485,27 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                 </p>
                 <button 
                   onClick={handleExport}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export All Data
+                  {isExporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export All Data
+                    </>
+                  )}
                 </button>
+                {exportSuccess && (
+                  <div className="mt-2 flex items-center text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Export completed successfully!
+                  </div>
+                )}
               </div>
               
               <div className="pt-6 border-t">
@@ -474,16 +522,41 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                 />
                 <button
                   onClick={() => importInputRef.current?.click()}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+                  disabled={isImporting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import Data
+                  {isImporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import Data
+                    </>
+                  )}
                 </button>
+                {importSuccess && (
+                  <div className="mt-2 flex items-center text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Import completed successfully! Reloading page...
+                  </div>
+                )}
                 
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> Encryption for export/import is planned for a future release to enhance data security.
-                  </p>
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-800 font-medium">Important Notes:</p>
+                      <ul className="text-sm text-amber-700 mt-1 list-disc list-inside">
+                        <li>Import will merge data with existing records</li>
+                        <li>Records with matching IDs will be updated</li>
+                        <li>Always backup your data before importing</li>
+                        <li>Encryption for export/import is planned for a future release</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -562,6 +635,16 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
             <h3 className="text-lg font-semibold mb-4">Edit Option</h3>
             <div className="space-y-3">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Value</label>
+                <input
+                  type="text"
+                  value={optionForm.option_value}
+                  disabled
+                  className="w-full px-3 py-2 border rounded-md text-sm bg-gray-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">Internal value cannot be changed</p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Display Label</label>
                 <input
                   type="text"
@@ -575,19 +658,19 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                 <input
                   type="number"
                   value={optionForm.display_order}
-                  onChange={(e) => setOptionForm({ ...optionForm, display_order: parseInt(e.target.value) })}
+                  onChange={(e) => setOptionForm({ ...optionForm, display_order: parseInt(e.target.value) || 999 })}
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 />
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id="is_active"
-                  checked={editingOption.is_active}
-                  onChange={(e) => setEditingOption({ ...editingOption, is_active: e.target.checked })}
+                  id="edit_is_active"
+                  checked={optionForm.is_active}
+                  onChange={(e) => setOptionForm({ ...optionForm, is_active: e.target.checked })}
                   className="h-4 w-4 text-blue-600 rounded"
                 />
-                <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                <label htmlFor="edit_is_active" className="ml-2 text-sm text-gray-700">
                   Active
                 </label>
               </div>
@@ -596,7 +679,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
               <button
                 onClick={() => {
                   setEditingOption(null);
-                  setOptionForm({ option_value: '', option_label: '', display_order: 999 });
+                  setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >

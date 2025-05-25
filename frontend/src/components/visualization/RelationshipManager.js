@@ -1,16 +1,15 @@
 // File: frontend/src/components/visualization/RelationshipManager.js
 import React, { useState, useEffect, useCallback } from 'react';
 import RelationshipDiagram from '../RelationshipDiagram';
-import { AlertCircle, Loader2, Network, Users, Eye, EyeOff, Maximize2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, Network, Users, Eye, EyeOff, Maximize2, RefreshCw, Bug } from 'lucide-react';
 import { peopleAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-
 const RelationshipManager = ({ 
-  personId = null, // If provided, shows person-specific view
-  showInModal = false, // If true, renders in a more compact way
-  onClose = null // Callback for closing if in modal
+  personId = null,
+  showInModal = false,
+  onClose = null
 }) => {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,24 +23,66 @@ const RelationshipManager = ({
   const fetchPeople = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('=== RelationshipManager: Fetching people ===');
       const response = await fetch(`${API_BASE_URL}/people`);
-      if (!response.ok) throw new Error('Failed to fetch people');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch people: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('Fetched people count:', data.length);
       
-      // Debug logging
-      console.log('Fetched people data:', data);
+      // Process and validate the data
+      const processedData = data.map(person => {
+        // Ensure connections is an array
+        let connections = [];
+        
+        if (person.connections) {
+          if (Array.isArray(person.connections)) {
+            connections = person.connections;
+          } else if (typeof person.connections === 'string') {
+            try {
+              connections = JSON.parse(person.connections);
+            } catch (e) {
+              console.error(`Failed to parse connections for person ${person.id}:`, e);
+              connections = [];
+            }
+          }
+        }
+        
+        // Validate each connection
+        connections = connections.filter(conn => {
+          if (!conn || typeof conn.person_id === 'undefined') {
+            console.warn(`Invalid connection found for person ${person.id}`);
+            return false;
+          }
+          return true;
+        });
+        
+        return {
+          ...person,
+          connections
+        };
+      });
       
-      // Ensure connections are properly formatted
-      const processedData = data.map(person => ({
-        ...person,
-        connections: person.connections || []
-      }));
+      // Log summary
+      const connectionSummary = processedData.reduce((acc, person) => {
+        if (person.connections && person.connections.length > 0) {
+          acc.peopleWithConnections++;
+          acc.totalConnections += person.connections.length;
+        }
+        return acc;
+      }, { peopleWithConnections: 0, totalConnections: 0 });
+      
+      console.log('Connection Summary:', connectionSummary);
       
       setPeople(processedData);
-      setError(null);
     } catch (err) {
-      setError(err.message);
       console.error('Error fetching people:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -54,10 +95,16 @@ const RelationshipManager = ({
   // Update connection between two people
   const updateConnection = useCallback(async (sourceId, targetId, type, note) => {
     try {
-      // First, get the source person's current connections
+      console.log('=== Updating connection ===');
+      console.log('Source:', sourceId, 'Target:', targetId, 'Type:', type);
+      
+      // Get the source person's current data
       const sourcePerson = people.find(p => p.id === sourceId);
-      if (!sourcePerson) throw new Error('Source person not found');
+      if (!sourcePerson) {
+        throw new Error('Source person not found');
+      }
 
+      // Create updated connections array
       const updatedConnections = [...(sourcePerson.connections || [])];
       
       // Check if connection already exists
@@ -66,33 +113,30 @@ const RelationshipManager = ({
       );
 
       if (existingIndex >= 0) {
-        // Update existing connection
+        // Update existing
         updatedConnections[existingIndex] = {
           person_id: targetId,
           type,
-          note,
-          created_at: updatedConnections[existingIndex].created_at,
+          note: note || '',
           updated_at: new Date().toISOString()
         };
       } else {
-        // Add new connection
+        // Add new
         updatedConnections.push({
           person_id: targetId,
           type,
-          note,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          note: note || '',
+          created_at: new Date().toISOString()
         });
       }
 
-      // Debug logging
-      console.log('Updating connections for person:', sourceId, 'with connections:', updatedConnections);
+      console.log('Updated connections:', updatedConnections);
 
-      // Prepare the full person data for update
+      // Prepare the full update data
       const updateData = {
         firstName: sourcePerson.first_name,
         lastName: sourcePerson.last_name,
-        aliases: sourcePerson.aliases,
+        aliases: sourcePerson.aliases || [],
         dateOfBirth: sourcePerson.date_of_birth,
         category: sourcePerson.category,
         status: sourcePerson.status,
@@ -100,14 +144,14 @@ const RelationshipManager = ({
         caseName: sourcePerson.case_name,
         profilePictureUrl: sourcePerson.profile_picture_url,
         notes: sourcePerson.notes,
-        osintData: sourcePerson.osint_data,
-        attachments: sourcePerson.attachments,
+        osintData: sourcePerson.osint_data || [],
+        attachments: sourcePerson.attachments || [],
         connections: updatedConnections,
-        locations: sourcePerson.locations,
-        custom_fields: sourcePerson.custom_fields
+        locations: sourcePerson.locations || [],
+        custom_fields: sourcePerson.custom_fields || {}
       };
 
-      // Update the source person
+      // Send update
       const response = await fetch(`${API_BASE_URL}/people/${sourceId}`, {
         method: 'PUT',
         headers: {
@@ -116,12 +160,14 @@ const RelationshipManager = ({
         body: JSON.stringify(updateData)
       });
 
-      if (!response.ok) throw new Error('Failed to update connection');
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to update connection: ${response.status} - ${errorData}`);
+      }
 
       // Refresh data
       await fetchPeople();
       
-      // Show success message
       alert('Connection created successfully!');
     } catch (err) {
       console.error('Error updating connection:', err);
@@ -132,10 +178,12 @@ const RelationshipManager = ({
   // Delete connection
   const deleteConnection = useCallback(async (sourceId, targetId) => {
     try {
-      // Update source person
       const sourcePerson = people.find(p => p.id === sourceId);
-      if (!sourcePerson) throw new Error('Source person not found');
+      if (!sourcePerson) {
+        throw new Error('Source person not found');
+      }
 
+      // Remove the connection
       const updatedConnections = (sourcePerson.connections || []).filter(
         conn => conn.person_id !== targetId
       );
@@ -143,7 +191,7 @@ const RelationshipManager = ({
       const updateData = {
         firstName: sourcePerson.first_name,
         lastName: sourcePerson.last_name,
-        aliases: sourcePerson.aliases,
+        aliases: sourcePerson.aliases || [],
         dateOfBirth: sourcePerson.date_of_birth,
         category: sourcePerson.category,
         status: sourcePerson.status,
@@ -151,11 +199,11 @@ const RelationshipManager = ({
         caseName: sourcePerson.case_name,
         profilePictureUrl: sourcePerson.profile_picture_url,
         notes: sourcePerson.notes,
-        osintData: sourcePerson.osint_data,
-        attachments: sourcePerson.attachments,
+        osintData: sourcePerson.osint_data || [],
+        attachments: sourcePerson.attachments || [],
         connections: updatedConnections,
-        locations: sourcePerson.locations,
-        custom_fields: sourcePerson.custom_fields
+        locations: sourcePerson.locations || [],
+        custom_fields: sourcePerson.custom_fields || {}
       };
 
       await fetch(`${API_BASE_URL}/people/${sourceId}`, {
@@ -166,7 +214,6 @@ const RelationshipManager = ({
         body: JSON.stringify(updateData)
       });
 
-      // Refresh data
       await fetchPeople();
       alert('Connection deleted successfully!');
     } catch (err) {
@@ -203,13 +250,6 @@ const RelationshipManager = ({
     return people.filter(p => connectedIds.has(p.id));
   })() : people;
 
-  // Debug info
-  const getConnectionsDebugInfo = () => {
-    const totalConnections = people.reduce((acc, p) => acc + (p.connections?.length || 0), 0);
-    const peopleWithConnections = people.filter(p => p.connections && p.connections.length > 0).length;
-    return { totalConnections, peopleWithConnections };
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -234,8 +274,6 @@ const RelationshipManager = ({
       ? "h-full w-full flex flex-col" 
       : "h-[600px] w-full flex flex-col";
 
-  const debugInfo = getConnectionsDebugInfo();
-
   return (
     <div className={containerClass}>
       {/* Header */}
@@ -245,24 +283,23 @@ const RelationshipManager = ({
           <h3 className="text-lg font-semibold">
             {personId ? 'Person Relationships' : 'Global Relationship Network'}
           </h3>
-          {personId && (
-            <span className="text-sm text-gray-500">
-              ({filteredPeople.length} people in network)
-            </span>
-          )}
+          <span className="text-sm text-gray-500">
+            ({filteredPeople.length} people)
+          </span>
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Debug toggle */}
           <button
             onClick={() => setDebugMode(!debugMode)}
-            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200"
+            className={`px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 ${
+              debugMode ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 hover:bg-gray-200'
+            }`}
             title="Toggle Debug Info"
           >
-            <AlertCircle className="w-4 h-4" />
+            <Bug className="w-4 h-4" />
+            <span className="hidden sm:inline">Debug</span>
           </button>
           
-          {/* Refresh button */}
           <button
             onClick={fetchPeople}
             className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200"
@@ -271,17 +308,6 @@ const RelationshipManager = ({
             <RefreshCw className="w-4 h-4" />
           </button>
           
-          {/* Toggle OSINT data */}
-          <button
-            onClick={() => setShowOsintData(!showOsintData)}
-            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200"
-            title={showOsintData ? "Hide OSINT Data" : "Show OSINT Data"}
-          >
-            {showOsintData ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span className="hidden sm:inline">OSINT Data</span>
-          </button>
-          
-          {/* Layout selector */}
           <select
             value={layoutType}
             onChange={(e) => setLayoutType(e.target.value)}
@@ -289,10 +315,9 @@ const RelationshipManager = ({
           >
             <option value="hierarchical">Hierarchical</option>
             <option value="circular">Circular</option>
-            <option value="force">Force-Directed</option>
+            <option value="grid">Grid</option>
           </select>
           
-          {/* Fullscreen toggle */}
           {!showInModal && (
             <button
               onClick={() => setFullScreen(!fullScreen)}
@@ -303,7 +328,6 @@ const RelationshipManager = ({
             </button>
           )}
           
-          {/* Close button if in modal or fullscreen */}
           {(showInModal || fullScreen) && onClose && (
             <button
               onClick={() => {
@@ -321,20 +345,18 @@ const RelationshipManager = ({
       {/* Debug Info */}
       {debugMode && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm">
-          <p className="font-semibold">Debug Info:</p>
-          <p>Total People: {people.length}</p>
-          <p>People with Connections: {debugInfo.peopleWithConnections}</p>
-          <p>Total Connections: {debugInfo.totalConnections}</p>
-          <p>Filtered People (shown): {filteredPeople.length}</p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-blue-600">View Raw Data</summary>
-            <pre className="mt-2 text-xs overflow-auto max-h-40 bg-white p-2 rounded">
-              {JSON.stringify(filteredPeople.map(p => ({
-                id: p.id,
-                name: `${p.first_name} ${p.last_name}`,
-                connections: p.connections
-              })), null, 2)}
-            </pre>
+          <details>
+            <summary className="cursor-pointer font-medium">Debug Information</summary>
+            <div className="mt-2 space-y-1">
+              <div>Total People: {people.length}</div>
+              <div>Filtered People: {filteredPeople.length}</div>
+              <div>
+                People with connections: {people.filter(p => p.connections && p.connections.length > 0).length}
+              </div>
+              <div>
+                Total connections: {people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)}
+              </div>
+            </div>
           </details>
         </div>
       )}
@@ -350,36 +372,6 @@ const RelationshipManager = ({
           layoutType={layoutType}
         />
       </div>
-      
-      {/* Statistics Footer */}
-      {!showInModal && (
-        <div className="bg-gray-50 border-t px-4 py-2 flex-shrink-0">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center space-x-4">
-              <span>
-                <Users className="w-4 h-4 inline mr-1" />
-                {filteredPeople.length} People
-              </span>
-              <span>
-                <Network className="w-4 h-4 inline mr-1" />
-                {filteredPeople.reduce((acc, p) => acc + (p.connections?.length || 0), 0)} Connections
-              </span>
-            </div>
-            {personId && (
-              <button
-                onClick={() => {
-                  // Navigate to global view
-                  if (onClose) onClose();
-                  window.location.hash = '#relationships';
-                }}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                View All Relationships →
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

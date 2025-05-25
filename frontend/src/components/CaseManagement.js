@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search, 
   Edit2, Trash2, Calendar, AlertCircle, CheckCircle, User, 
-  UserPlus, X, Save, FolderOpen 
+  UserPlus, X, Save, FolderOpen, FileText 
 } from 'lucide-react';
 import { casesAPI, peopleAPI } from '../utils/api';
+import ReportGenerator from './ReportGenerator';
 
 const CaseManagement = ({ 
   people, 
@@ -24,6 +25,8 @@ const CaseManagement = ({
   const [quickAddPerson, setQuickAddPerson] = useState({ firstName: '', lastName: '' });
   const [showAddPeopleModal, setShowAddPeopleModal] = useState(null);
   const [selectedPeopleToAdd, setSelectedPeopleToAdd] = useState([]);
+  const [showReportGenerator, setShowReportGenerator] = useState(false);
+  const [reportCaseId, setReportCaseId] = useState(null);
 
   useEffect(() => {
     fetchCases();
@@ -301,6 +304,16 @@ const CaseManagement = ({
                   </span>
                 </div>
                 <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => {
+                      setReportCaseId(caseItem.id);
+                      setShowReportGenerator(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                    title="Generate Report"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Users className="w-4 h-4" />
                     <span>{caseItem.peopleCount} people</span>
@@ -585,6 +598,17 @@ const CaseManagement = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Report Generator Modal */}
+      {showReportGenerator && (
+        <ReportGenerator 
+          caseId={reportCaseId}
+          onClose={() => {
+            setShowReportGenerator(false);
+            setReportCaseId(null);
+          }}
+        />
       )}
     </div>
   );

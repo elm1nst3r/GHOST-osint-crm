@@ -1,13 +1,15 @@
 // File: frontend/src/components/Dashboard.js
 import React, { useState, useEffect, useRef } from 'react';
-import { Network, Trash2, Check, X, ChevronDown } from 'lucide-react';
+import { Network, Trash2, Check, X, ChevronDown, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
+import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
 
 const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail, setActiveSection }) => {
   const activePeople = people.filter(p => p.status === 'Open' || p.status === 'Being Investigated').slice(0, 5);
   const [newTodo, setNewTodo] = useState('');
   const [editingTodoId, setEditingTodoId] = useState(null);
+  const [showReportGenerator, setShowReportGenerator] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -92,7 +94,16 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <button
+          onClick={() => setShowReportGenerator(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Generate Report
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Active People */}
@@ -217,6 +228,13 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
           />
         </div>
       </div>
+
+      {/* Report Generator Modal */}
+      {showReportGenerator && (
+        <ReportGenerator 
+          onClose={() => setShowReportGenerator(false)}
+        />
+      )}
     </div>
   );
 };

@@ -17,6 +17,11 @@ const fetchAPI = async (endpoint, options = {}) => {
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
+    // For blob responses (like exports), return the response itself
+    if (options.responseType === 'blob') {
+      return response;
+    }
+
     return await response.json();
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
@@ -146,9 +151,40 @@ export const auditAPI = {
   },
 };
 
-// Export/Import API
+// Export/Import API - Fixed export function
 export const exportAPI = {
-  export: () => fetchAPI('/export'),
+  export: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/export`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get the JSON data
+      const data = await response.json();
+      
+      // Create a blob from the JSON data
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `osint-crm-export-${new Date().getTime()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return data;
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      throw error;
+    }
+  },
 };
 
 export const importAPI = {
@@ -179,6 +215,16 @@ export const uploadLogo = async (file) => {
     console.error('Error uploading logo:', error);
     throw error;
   }
+};
+
+// Search API
+export const searchAPI = {
+  universal: (query) => fetchAPI(`/search?q=${encodeURIComponent(query)}`),
+};
+
+// Locations API
+export const locationsAPI = {
+  getAll: () => fetchAPI('/locations'),
 };
 
 export { API_BASE_URL };
