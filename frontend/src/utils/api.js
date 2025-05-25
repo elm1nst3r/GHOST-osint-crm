@@ -244,4 +244,25 @@ export const searchAPI = {
   }
 };
 
+// Travel History API
+export const travelHistoryAPI = {
+  getByPerson: (personId) => fetchAPI(`/people/${personId}/travel-history`),
+  
+  create: (personId, travelData) => fetchAPI(`/people/${personId}/travel-history`, {
+    method: 'POST',
+    body: JSON.stringify(travelData),
+  }),
+  
+  update: (travelId, travelData) => fetchAPI(`/travel-history/${travelId}`, {
+    method: 'PUT',
+    body: JSON.stringify(travelData),
+  }),
+  
+  delete: (travelId) => fetchAPI(`/travel-history/${travelId}`, {
+    method: 'DELETE',
+  }),
+  
+  analyze: (personId) => fetchAPI(`/people/${personId}/travel-analysis`),
+};
+
 export { API_BASE_URL };

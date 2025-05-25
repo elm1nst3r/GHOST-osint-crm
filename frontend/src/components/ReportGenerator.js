@@ -8,7 +8,7 @@ import {
   User, Users, MapPin, Network, Clock, Shield, AlertCircle,
   ChevronRight, Loader2, X
 } from 'lucide-react';
-import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI } from '../utils/api';
+import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, todosAPI, auditAPI } from '../utils/api';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {  const [loading, setLoading] = useState(false);

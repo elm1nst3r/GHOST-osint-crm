@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Calendar, Briefcase, Tag, Network, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
+import TravelPatternAnalysis from './TravelPatternAnalysis';
 
 const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) => {
   const [activeTab, setActiveTab] = useState('details');
@@ -130,8 +131,8 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
           {/* Tabs */}
           <div className="border-b">
             <div className="flex">
-              {['details', 'relationships', 'locations'].map((tab) => (
-                <button
+            {['details', 'relationships', 'locations', 'travel'].map((tab) => (
+               <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 font-medium text-sm border-b-2 capitalize ${
@@ -350,6 +351,15 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
                 )}
               </div>
             )}
+{activeTab === 'travel' && (
+  <div className="p-6">
+    <TravelPatternAnalysis 
+      personId={person.id} 
+      personName={getFullName(person)}
+    />
+  </div>
+)}
+            
           </div>
         </div>
       </div>

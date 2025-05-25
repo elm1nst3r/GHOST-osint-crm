@@ -8,6 +8,7 @@ import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search } f
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI } from './utils/api';
 import { DEFAULT_APP_SETTINGS } from './utils/constants';
+import TravelPatternAnalysis from './components/TravelPatternAnalysis';
 
 // Import components
 import Dashboard from './components/Dashboard';

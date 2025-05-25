@@ -90,6 +90,33 @@ export const PERSON_CATEGORIES = [
     { value: 'select', label: 'Dropdown' },
     { value: 'date', label: 'Date' },
   ];
+
+// Travel purposes
+export const TRAVEL_PURPOSES = [
+  { value: 'business', label: 'Business' },
+  { value: 'vacation', label: 'Vacation' },
+  { value: 'family_visit', label: 'Family Visit' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'education', label: 'Education' },
+  { value: 'conference', label: 'Conference' },
+  { value: 'relocation', label: 'Relocation' },
+  { value: 'transit', label: 'Transit' },
+  { value: 'unknown', label: 'Unknown' },
+  { value: 'other', label: 'Other' },
+];
+
+// Transportation modes
+export const TRANSPORTATION_MODES = [
+  { value: 'airplane', label: 'Airplane' },
+  { value: 'train', label: 'Train' },
+  { value: 'car', label: 'Car' },
+  { value: 'bus', label: 'Bus' },
+  { value: 'ship', label: 'Ship/Cruise' },
+  { value: 'private_jet', label: 'Private Jet' },
+  { value: 'helicopter', label: 'Helicopter' },
+  { value: 'other', label: 'Other' },
+  { value: 'unknown', label: 'Unknown' },
+];
   
   // Default app settings
   export const DEFAULT_APP_SETTINGS = {

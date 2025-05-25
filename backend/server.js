@@ -297,6 +297,39 @@ const initializeDatabase = async () => {
     console.log('Checked/created "cases" table.');
     await applyUpdatedAtTrigger(client, 'cases');
 
+    // Create travel_history table for detailed travel tracking
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS travel_history (
+        id SERIAL PRIMARY KEY,
+        person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+        location_type VARCHAR(50),
+        location_name VARCHAR(255),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        arrival_date TIMESTAMPTZ,
+        departure_date TIMESTAMPTZ,
+        purpose VARCHAR(100),
+        transportation_mode VARCHAR(50),
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "travel_history" table.');
+    await applyUpdatedAtTrigger(client, 'travel_history');
+
+    // Add indexes for better query performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_travel_history_person_id ON travel_history(person_id);
+      CREATE INDEX IF NOT EXISTS idx_travel_history_dates ON travel_history(arrival_date, departure_date);
+      CREATE INDEX IF NOT EXISTS idx_travel_history_location ON travel_history(country, city);
+    `);
+
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
     process.exit(1);
@@ -703,6 +736,167 @@ app.get('/api/locations', async (req, res) => {
   }
 });
 
+// Travel History endpoints
+app.get('/api/people/:id/travel-history', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+  
+  try {
+    const result = await pool.query(
+      `SELECT * FROM travel_history 
+       WHERE person_id = $1 
+       ORDER BY arrival_date DESC`,
+      [personId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching travel history:', err);
+    res.status(500).json({ error: 'Failed to fetch travel history' });
+  }
+});
+
+app.post('/api/people/:id/travel-history', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+  
+  const {
+    location_type, location_name, address, city, state, country, postal_code,
+    latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes
+  } = req.body;
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO travel_history 
+       (person_id, location_type, location_name, address, city, state, country, postal_code,
+        latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING *`,
+      [personId, location_type, location_name, address, city, state, country, postal_code,
+       latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating travel history:', err);
+    res.status(500).json({ error: 'Failed to create travel history' });
+  }
+});
+
+app.put('/api/travel-history/:id', async (req, res) => {
+  const travelId = parseInt(req.params.id, 10);
+  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+  
+  const {
+    location_type, location_name, address, city, state, country, postal_code,
+    latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes
+  } = req.body;
+  
+  try {
+    const result = await pool.query(
+      `UPDATE travel_history 
+       SET location_type = $1, location_name = $2, address = $3, city = $4, state = $5,
+           country = $6, postal_code = $7, latitude = $8, longitude = $9,
+           arrival_date = $10, departure_date = $11, purpose = $12,
+           transportation_mode = $13, notes = $14
+       WHERE id = $15
+       RETURNING *`,
+      [location_type, location_name, address, city, state, country, postal_code,
+       latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes, travelId]
+    );
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating travel history:', err);
+    res.status(500).json({ error: 'Failed to update travel history' });
+  }
+});
+
+app.delete('/api/travel-history/:id', async (req, res) => {
+  const travelId = parseInt(req.params.id, 10);
+  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+  
+  try {
+    const result = await pool.query('DELETE FROM travel_history WHERE id = $1 RETURNING *', [travelId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
+    res.json({ message: 'Travel record deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting travel history:', err);
+    res.status(500).json({ error: 'Failed to delete travel history' });
+  }
+});
+
+// Travel pattern analysis endpoint
+app.get('/api/people/:id/travel-analysis', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+  
+  try {
+    // Get all travel history
+    const travelHistory = await pool.query(
+      `SELECT * FROM travel_history 
+       WHERE person_id = $1 
+       ORDER BY arrival_date ASC`,
+      [personId]
+    );
+    
+    // Calculate statistics
+    const stats = await pool.query(`
+      SELECT 
+        COUNT(DISTINCT country) as countries_visited,
+        COUNT(DISTINCT city) as cities_visited,
+        COUNT(*) as total_trips,
+        MIN(arrival_date) as first_trip,
+        MAX(departure_date) as last_trip,
+        AVG(EXTRACT(DAY FROM (departure_date - arrival_date))) as avg_trip_duration
+      FROM travel_history
+      WHERE person_id = $1 AND arrival_date IS NOT NULL
+    `, [personId]);
+    
+    // Most visited locations
+    const frequentLocations = await pool.query(`
+      SELECT country, city, COUNT(*) as visit_count
+      FROM travel_history
+      WHERE person_id = $1 AND country IS NOT NULL
+      GROUP BY country, city
+      ORDER BY visit_count DESC
+      LIMIT 10
+    `, [personId]);
+    
+    // Travel by purpose
+    const travelByPurpose = await pool.query(`
+      SELECT purpose, COUNT(*) as count
+      FROM travel_history
+      WHERE person_id = $1 AND purpose IS NOT NULL
+      GROUP BY purpose
+      ORDER BY count DESC
+    `, [personId]);
+    
+    // Monthly travel frequency
+    const monthlyFrequency = await pool.query(`
+      SELECT 
+        EXTRACT(YEAR FROM arrival_date) as year,
+        EXTRACT(MONTH FROM arrival_date) as month,
+        COUNT(*) as trips
+      FROM travel_history
+      WHERE person_id = $1 AND arrival_date IS NOT NULL
+      GROUP BY year, month
+      ORDER BY year DESC, month DESC
+      LIMIT 24
+    `, [personId]);
+    
+    res.json({
+      history: travelHistory.rows,
+      statistics: stats.rows[0],
+      frequentLocations: frequentLocations.rows,
+      travelByPurpose: travelByPurpose.rows,
+      monthlyFrequency: monthlyFrequency.rows
+    });
+  } catch (err) {
+    console.error('Error analyzing travel patterns:', err);
+    res.status(500).json({ error: 'Failed to analyze travel patterns' });
+  }
+});
+
 // Tools endpoints
 app.get('/api/tools', async (req, res) => {
   try {
@@ -1001,17 +1195,18 @@ app.get('/api/audit-logs', async (req, res) => {
 // Export/Import endpoints
 app.get('/api/export', async (req, res) => {
   try {
-    const [people, tools, todos, customFields, modelOptions, cases] = await Promise.all([
+    const [people, tools, todos, customFields, modelOptions, cases, travelHistory] = await Promise.all([
       pool.query('SELECT * FROM people'),
       pool.query('SELECT * FROM tools'),
       pool.query('SELECT * FROM todos'),
       pool.query('SELECT * FROM custom_person_fields'),
       pool.query('SELECT * FROM model_options'),
-      pool.query('SELECT * FROM cases')
+      pool.query('SELECT * FROM cases'),
+      pool.query('SELECT * FROM travel_history')
     ]);
     
     const exportData = {
-      version: '1.0',
+      version: '1.1',
       exportDate: new Date().toISOString(),
       data: {
         people: people.rows,
@@ -1019,7 +1214,8 @@ app.get('/api/export', async (req, res) => {
         todos: todos.rows,
         customFields: customFields.rows,
         modelOptions: modelOptions.rows,
-        cases: cases.rows
+        cases: cases.rows,
+        travelHistory: travelHistory.rows
       }
     };
     
@@ -1113,6 +1309,21 @@ app.post('/api/import', async (req, res) => {
           `INSERT INTO todos (text, status, last_update_comment)
            VALUES ($1, $2, $3)`,
           [todo.text, todo.status, todo.last_update_comment]
+        );
+      }
+    }
+    
+    if (data.data.travelHistory) {
+      for (const travel of data.data.travelHistory) {
+        await client.query(
+          `INSERT INTO travel_history 
+           (person_id, location_type, location_name, address, city, state, country, postal_code,
+            latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          [travel.person_id, travel.location_type, travel.location_name, travel.address, 
+           travel.city, travel.state, travel.country, travel.postal_code,
+           travel.latitude, travel.longitude, travel.arrival_date, travel.departure_date, 
+           travel.purpose, travel.transportation_mode, travel.notes]
         );
       }
     }
