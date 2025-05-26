@@ -1,4 +1,5 @@
-# 🕵️ OSINT Investigation CRM
+# 👻 GHOST - Global Human Operations & Surveillance Tracking
+## OSINT Investigation CRM
 
 > *"Because Excel sheets are for accountants, not investigators"*
 
