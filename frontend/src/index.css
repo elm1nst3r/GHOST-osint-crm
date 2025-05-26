@@ -31,3 +31,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8; /* Tailwind's slate-500 */
 }
+
+/* Ensure ReactFlow takes full height */
+.react-flow__renderer {
+  height: 100% !important;
+}
+
+.react-flow__container {
+  height: 100% !important;
+}
+
+/* Fix for flex containers */
+.min-h-0 {
+  min-height: 0;
+}

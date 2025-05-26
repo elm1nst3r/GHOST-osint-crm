@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, Users, Filter } from 'lucide-react';
+import { Search, MapPin, Users, Filter, RefreshCw } from 'lucide-react';
 import { peopleAPI } from '../utils/api';
 
 // Custom hook to handle map bounds
@@ -39,7 +39,7 @@ const GlobalMap = () => {
   const [includeRelated, setIncludeRelated] = useState(false);
   const [selectedLocationTypes, setSelectedLocationTypes] = useState(Object.keys(locationColors));
   const [loading, setLoading] = useState(true);
-  const [geocodedLocations, setGeocodedLocations] = useState({});
+  const [geocoding, setGeocoding] = useState(false);
 
   // Fetch people data
   useEffect(() => {
@@ -52,9 +52,6 @@ const GlobalMap = () => {
       const data = await peopleAPI.getAll();
       setPeople(data);
       setFilteredPeople(data);
-      
-      // Geocode addresses
-      await geocodeAddresses(data);
     } catch (error) {
       console.error('Error fetching people:', error);
     } finally {
@@ -62,43 +59,45 @@ const GlobalMap = () => {
     }
   };
 
-  // Geocode addresses using a free service (Nominatim)
-  const geocodeAddresses = async (peopleData) => {
-    const newGeocodedLocations = { ...geocodedLocations };
-    
-    for (const person of peopleData) {
-      if (person.locations && person.locations.length > 0) {
-        for (const location of person.locations) {
-          const addressKey = `${location.address}, ${location.city}, ${location.state}, ${location.country}`;
-          
-          if (!newGeocodedLocations[addressKey] && location.address) {
-            try {
-              // Using Nominatim (OpenStreetMap) for geocoding
-              const query = encodeURIComponent(addressKey);
-              const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`
-              );
-              const data = await response.json();
-              
-              if (data && data.length > 0) {
-                newGeocodedLocations[addressKey] = {
-                  lat: parseFloat(data[0].lat),
-                  lng: parseFloat(data[0].lon)
-                };
-              }
-              
-              // Add delay to respect rate limits
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (error) {
-              console.error('Geocoding error:', error);
-            }
-          }
-        }
+  // Trigger batch geocoding for missing coordinates
+const triggerBatchGeocode = async () => {
+  if (geocoding) return;
+  
+  try {
+    setGeocoding(true);
+    // Use the correct API base URL
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    const response = await fetch(`${API_BASE_URL}/geocode/batch`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
       }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.details || errorData.error || 'Geocoding failed');
     }
     
-    setGeocodedLocations(newGeocodedLocations);
-  };
+    const result = await response.json();
+    
+    if (result.totalGeocoded > 0) {
+      alert(`Successfully geocoded ${result.totalGeocoded} locations!`);
+      fetchPeople(); // Refresh data
+    } else if (result.totalFailed > 0) {
+      alert(`Failed to geocode ${result.totalFailed} locations. Check console for details.`);
+      console.error('Geocoding errors:', result.errors);
+    } else {
+      alert('All locations already have coordinates.');
+    }
+  } catch (error) {
+    console.error('Error batch geocoding:', error);
+    alert(`Failed to geocode locations: ${error.message}`);
+  } finally {
+    setGeocoding(false);
+  }
+};
+
 
   // Filter people based on search
   useEffect(() => {
@@ -144,42 +143,38 @@ const GlobalMap = () => {
     }
   }, [searchTerm, people, includeRelated]);
 
-  // Create markers from filtered people
+  // Create markers from filtered people - much simpler now!
   const markers = useMemo(() => {
     const markerList = [];
     
     filteredPeople.forEach(person => {
       if (person.locations && person.locations.length > 0) {
         person.locations.forEach(location => {
-          if (selectedLocationTypes.includes(location.type)) {
-            const addressKey = `${location.address}, ${location.city}, ${location.state}, ${location.country}`;
-            const coords = geocodedLocations[addressKey];
+          // Only show locations with coordinates and matching type
+          if (location.latitude && location.longitude && selectedLocationTypes.includes(location.type)) {
+            const color = locationColors[location.type] || locationColors.other;
             
-            if (coords) {
-              const color = locationColors[location.type] || locationColors.other;
-              
-              const icon = L.divIcon({
-                className: 'custom-div-icon',
-                html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-              });
-              
-              markerList.push({
-                lat: coords.lat,
-                lng: coords.lng,
-                person,
-                location,
-                icon
-              });
-            }
+            const icon = L.divIcon({
+              className: 'custom-div-icon',
+              html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            });
+            
+            markerList.push({
+              lat: location.latitude,
+              lng: location.longitude,
+              person,
+              location,
+              icon
+            });
           }
         });
       }
     });
     
     return markerList;
-  }, [filteredPeople, geocodedLocations, selectedLocationTypes]);
+  }, [filteredPeople, selectedLocationTypes]);
 
   const toggleLocationType = (type) => {
     setSelectedLocationTypes(prev => {
@@ -194,6 +189,22 @@ const GlobalMap = () => {
   const getFullName = (person) => {
     return `${person.first_name || ''} ${person.last_name || ''}`.trim();
   };
+
+  // Count locations missing coordinates
+  const missingCoordinates = useMemo(() => {
+    let count = 0;
+    people.forEach(person => {
+      if (person.locations) {
+        person.locations.forEach(location => {
+          if ((!location.latitude || !location.longitude) && 
+              (location.address || location.city || location.country)) {
+            count++;
+          }
+        });
+      }
+    });
+    return count;
+  }, [people]);
 
   if (loading) {
     return (
@@ -213,6 +224,19 @@ const GlobalMap = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Global Location Map</h1>
           <div className="flex items-center space-x-4">
+            {/* Geocode button */}
+            {missingCoordinates > 0 && (
+              <button
+                onClick={triggerBatchGeocode}
+                disabled={geocoding}
+                className="px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
+                title={`${missingCoordinates} locations need geocoding`}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${geocoding ? 'animate-spin' : ''}`} />
+                {geocoding ? 'Geocoding...' : `Geocode ${missingCoordinates} Locations`}
+              </button>
+            )}
+            
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -339,6 +363,12 @@ const GlobalMap = () => {
             <span className="text-gray-400">|</span>
             <MapPin className="w-4 h-4" />
             <span>{markers.length} locations</span>
+            {missingCoordinates > 0 && (
+              <>
+                <span className="text-gray-400">|</span>
+                <span className="text-orange-600">{missingCoordinates} need geocoding</span>
+              </>
+            )}
           </div>
         </div>
       </div>
