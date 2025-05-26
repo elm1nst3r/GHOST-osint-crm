@@ -129,7 +129,23 @@ Found a bug? Want to add a feature? Think our code is terrible?
 
 ## 📜 License
 
-MIT License - Because sharing is caring, and lawyers are expensive.
+This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+**You are free to:**
+- ✅ Use for personal investigations
+- ✅ Use for educational purposes  
+- ✅ Use for research
+- ✅ Modify and improve
+- ✅ Share with others
+
+**Under these conditions:**
+- 📝 **Attribution** - Give appropriate credit
+- 🚫 **NonCommercial** - No commercial use without permission
+- 🔄 **ShareAlike** - Share modifications under same license
+
+**Commercial use requires explicit permission from the author.**
+
+For commercial licensing, contact hurdles.remand_9g [at] icloud.com
 
 ## 🙈 Disclaimer
 
