@@ -1,17 +1,16 @@
 // File: frontend/src/components/ReportGenerator.js
 import React, { useState, useEffect } from 'react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import html2canvas from 'html2canvas';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, BorderStyle, WidthType, Header, Footer, PageBreak, UnderlineType } from 'docx';
+import { saveAs } from 'file-saver';
 import { 
   FileText, Download, Settings, Check, Calendar, 
   User, Users, MapPin, Network, Clock, Shield, AlertCircle,
   ChevronRight, Loader2, X
 } from 'lucide-react';
 import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, todosAPI, auditAPI } from '../utils/api';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {  const [loading, setLoading] = useState(false);
+const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {
+  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reportOptions, setReportOptions] = useState({
     includeSummary: true,
@@ -114,192 +113,287 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     });
   };
 
-  const generatePDF = async () => {
+  const generateWord = async () => {
     setGenerating(true);
     
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      let yPosition = margin;
+      const sections = [];
 
-      // Helper function to check if we need a new page
-      const checkNewPage = (neededSpace = 20) => {
-        if (yPosition + neededSpace > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-          return true;
-        }
-        return false;
+      // Title Page Section
+      const titleSection = {
+        properties: {},
+        children: [
+          new Paragraph({
+            text: "INVESTIGATION REPORT",
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+            style: "Title"
+          }),
+          new Paragraph({
+            text: data.selectedCase ? data.selectedCase.case_name : 
+                  data.selectedPerson ? getFullName(data.selectedPerson) : "General Report",
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 600 }
+          }),
+          new Paragraph({
+            text: `Generated: ${formatDateTime(new Date())}`,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 800 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Report Type: ",
+                bold: true
+              }),
+              new TextRun({
+                text: reportOptions.reportType.charAt(0).toUpperCase() + reportOptions.reportType.slice(1)
+              })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Total People: ",
+                bold: true
+              }),
+              new TextRun({
+                text: data.people.length.toString()
+              })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Total Connections: ",
+                bold: true
+              }),
+              new TextRun({
+                text: data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0).toString()
+              })
+            ],
+            spacing: { after: 200 }
+          }),
+          new PageBreak()
+        ]
       };
+      sections.push(titleSection);
 
-      // Helper function to add a section header
-      const addSectionHeader = (title) => {
-        checkNewPage(20);
-        pdf.setFontSize(14);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(31, 41, 55); // gray-800
-        pdf.text(title, margin, yPosition);
-        yPosition += 10;
-        
-        // Add underline
-        pdf.setDrawColor(219, 234, 254); // blue-100
-        pdf.setLineWidth(0.5);
-        pdf.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
-      };
-
-      // 1. Cover Page
-      pdf.setFillColor(59, 130, 246); // blue-600
-      pdf.rect(0, 0, pageWidth, 60, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('INVESTIGATION REPORT', pageWidth / 2, 25, { align: 'center' });
-      
-      pdf.setFontSize(16);
-      pdf.setFont(undefined, 'normal');
-      if (data.selectedCase) {
-        pdf.text(data.selectedCase.case_name, pageWidth / 2, 40, { align: 'center' });
-      } else if (data.selectedPerson) {
-        pdf.text(getFullName(data.selectedPerson), pageWidth / 2, 40, { align: 'center' });
-      }
-      
-      pdf.setTextColor(31, 41, 55);
-      pdf.setFontSize(12);
-      pdf.text(`Generated: ${formatDateTime(new Date())}`, pageWidth / 2, 80, { align: 'center' });
-      
-      // Report metadata
-      yPosition = 100;
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      
-      const metadata = [
-        ['Report Type:', reportOptions.reportType.charAt(0).toUpperCase() + reportOptions.reportType.slice(1)],
-        ['Total People:', data.people.length.toString()],
-        ['Total Connections:', data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0).toString()],
-        ['Date Range:', reportOptions.dateRange === 'all' ? 'All Time' : reportOptions.dateRange.replace('-', ' ')]
-      ];
-
-      metadata.forEach(([label, value]) => {
-        pdf.setFont(undefined, 'bold');
-        pdf.text(label, margin, yPosition);
-        pdf.setFont(undefined, 'normal');
-        pdf.text(value, margin + 35, yPosition);
-        yPosition += 7;
-      });
-
-      // 2. Executive Summary
+      // Executive Summary
       if (reportOptions.includeSummary) {
-        pdf.addPage();
-        yPosition = margin;
-        
-        addSectionHeader('Executive Summary');
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
-        
-        const summaryText = [];
-        
+        const summaryChildren = [
+          new Paragraph({
+            text: "Executive Summary",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          })
+        ];
+
         if (data.selectedCase) {
-          summaryText.push(
-            `This report covers the investigation case "${data.selectedCase.case_name}".`,
-            `Status: ${data.selectedCase.status || 'Active'}`,
-            `Created: ${formatDate(data.selectedCase.created_at)}`,
-            ``,
-            `The case involves ${data.people.length} individuals with ${data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)} documented connections.`
+          summaryChildren.push(
+            new Paragraph({
+              text: `This report covers the investigation case "${data.selectedCase.case_name}".`,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Status: ", bold: true }),
+                new TextRun({ text: data.selectedCase.status || 'Active' })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Created: ", bold: true }),
+                new TextRun({ text: formatDate(data.selectedCase.created_at) })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: `The case involves ${data.people.length} individuals with ${data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)} documented connections.`,
+              spacing: { after: 200 }
+            })
           );
           
           if (data.selectedCase.description) {
-            summaryText.push('', 'Case Description:', data.selectedCase.description);
+            summaryChildren.push(
+              new Paragraph({
+                text: "Case Description:",
+                bold: true,
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: data.selectedCase.description,
+                spacing: { after: 200 }
+              })
+            );
           }
         } else if (data.selectedPerson) {
-          summaryText.push(
-            `This report focuses on ${getFullName(data.selectedPerson)}.`,
-            `Category: ${data.selectedPerson.category || 'N/A'}`,
-            `Status: ${data.selectedPerson.status || 'N/A'}`,
-            `Connections: ${data.selectedPerson.connections?.length || 0}`
+          summaryChildren.push(
+            new Paragraph({
+              text: `This report focuses on ${getFullName(data.selectedPerson)}.`,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Category: ", bold: true }),
+                new TextRun({ text: data.selectedPerson.category || 'N/A' })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Status: ", bold: true }),
+                new TextRun({ text: data.selectedPerson.status || 'N/A' })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Connections: ", bold: true }),
+                new TextRun({ text: (data.selectedPerson.connections?.length || 0).toString() })
+              ],
+              spacing: { after: 200 }
+            })
           );
         }
-        
-        summaryText.forEach(line => {
-          if (line === '') {
-            yPosition += 5;
-          } else {
-            const lines = pdf.splitTextToSize(line, pageWidth - 2 * margin);
-            pdf.text(lines, margin, yPosition);
-            yPosition += lines.length * 5;
-          }
-        });
+
+        summaryChildren.push(new PageBreak());
+        sections.push({ children: summaryChildren });
       }
 
-      // 3. People Profiles
+      // People Profiles
       if (reportOptions.includePeople && data.people.length > 0) {
-        pdf.addPage();
-        yPosition = margin;
-        
-        addSectionHeader('People Profiles');
-        
+        const peopleChildren = [
+          new Paragraph({
+            text: "People Profiles",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          })
+        ];
+
         data.people.forEach((person, index) => {
-          checkNewPage(60);
-          
-          // Person header
-          pdf.setFillColor(248, 250, 252); // gray-50
-          pdf.rect(margin, yPosition, pageWidth - 2 * margin, 8, 'F');
-          
-          pdf.setFontSize(11);
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`${index + 1}. ${getFullName(person)}`, margin + 2, yPosition + 5);
-          yPosition += 12;
-          
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, 'normal');
-          
-          // Person details in two columns
-          const leftCol = margin + 2;
-          const rightCol = pageWidth / 2 + 5;
-          let rowY = yPosition;
-          
-          // Left column
-          pdf.text(`Category: ${person.category || 'N/A'}`, leftCol, rowY);
-          rowY += 5;
-          pdf.text(`Status: ${person.status || 'N/A'}`, leftCol, rowY);
-          rowY += 5;
+          peopleChildren.push(
+            new Paragraph({
+              text: `${index + 1}. ${getFullName(person)}`,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 }
+            })
+          );
+
+          // Basic info table
+          const infoRows = [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Category", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: person.category || 'N/A' })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Status", bold: true })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: person.status || 'N/A' })]
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Case", bold: true })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: person.case_name || 'N/A' })]
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "CRM Status", bold: true })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: person.crm_status || 'N/A' })]
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Connections", bold: true })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: (person.connections?.length || 0).toString() })]
+                })
+              ]
+            })
+          ];
+
           if (person.date_of_birth) {
-            pdf.text(`DOB: ${formatDate(person.date_of_birth)}`, leftCol, rowY);
-            rowY += 5;
+            infoRows.splice(2, 0, new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Date of Birth", bold: true })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: formatDate(person.date_of_birth) })]
+                })
+              ]
+            }));
           }
-          
-          // Right column
-          rowY = yPosition;
-          pdf.text(`Case: ${person.case_name || 'N/A'}`, rightCol, rowY);
-          rowY += 5;
-          pdf.text(`CRM Status: ${person.crm_status || 'N/A'}`, rightCol, rowY);
-          rowY += 5;
-          pdf.text(`Connections: ${person.connections?.length || 0}`, rightCol, rowY);
-          
-          yPosition = Math.max(rowY, yPosition + 20);
-          
-          // Aliases
+
+          peopleChildren.push(
+            new Table({
+              rows: infoRows,
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              margins: { bottom: 200 }
+            })
+          );
+
           if (person.aliases && person.aliases.length > 0) {
-            pdf.setFont(undefined, 'italic');
-            pdf.text(`Aliases: ${person.aliases.join(', ')}`, leftCol, yPosition);
-            yPosition += 5;
+            peopleChildren.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Aliases: ", bold: true }),
+                  new TextRun({ text: person.aliases.join(', '), italics: true })
+                ],
+                spacing: { after: 200 }
+              })
+            );
           }
-          
-          // Notes
+
           if (person.notes) {
-            pdf.setFont(undefined, 'normal');
-            const noteLines = pdf.splitTextToSize(`Notes: ${person.notes}`, pageWidth - 2 * margin - 4);
-            pdf.text(noteLines, leftCol, yPosition);
-            yPosition += noteLines.length * 4 + 5;
+            peopleChildren.push(
+              new Paragraph({
+                text: "Notes:",
+                bold: true,
+                spacing: { before: 200, after: 100 }
+              }),
+              new Paragraph({
+                text: person.notes,
+                spacing: { after: 300 }
+              })
+            );
           }
-          
-          yPosition += 5; // Space between people
         });
+
+        peopleChildren.push(new PageBreak());
+        sections.push({ children: peopleChildren });
       }
 
-      // 4. Connections Network
+      // Connections Network
       if (reportOptions.includeConnections) {
         const connectionsData = [];
         const connectionTypes = {};
@@ -323,49 +417,102 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         });
         
         if (connectionsData.length > 0) {
-          pdf.addPage();
-          yPosition = margin;
-          
-          addSectionHeader('Connections Analysis');
-          
-          // Connection statistics
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'normal');
-          pdf.text(`Total Connections: ${connectionsData.length}`, margin, yPosition);
-          yPosition += 7;
-          
-          // Connection types breakdown
-          pdf.text('Connection Types:', margin, yPosition);
-          yPosition += 5;
-          
+          const connectionChildren = [
+            new Paragraph({
+              text: "Connections Analysis",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 300 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Total Connections: ", bold: true }),
+                new TextRun({ text: connectionsData.length.toString() })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: "Connection Types Breakdown:",
+              bold: true,
+              spacing: { after: 100 }
+            })
+          ];
+
           Object.entries(connectionTypes).forEach(([type, count]) => {
-            pdf.text(`  • ${type}: ${count}`, margin + 5, yPosition);
-            yPosition += 5;
+            connectionChildren.push(
+              new Paragraph({
+                text: `• ${type}: ${count}`,
+                indent: { left: 400 },
+                spacing: { after: 50 }
+              })
+            );
           });
-          
-          yPosition += 5;
-          
+
+          connectionChildren.push(
+            new Paragraph({
+              text: "Connection Details",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 }
+            })
+          );
+
           // Connections table
-          checkNewPage(30);
-          pdf.autoTable({
-            startY: yPosition,
-            head: [['From', 'To', 'Type', 'Notes']],
-            body: connectionsData.map(conn => [
-              conn.source,
-              conn.target,
-              conn.type,
-              conn.note
-            ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [59, 130, 246] },
-            margin: { left: margin, right: margin }
+          const connectionRows = [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "From", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "To", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Type", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Notes", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                })
+              ]
+            })
+          ];
+
+          connectionsData.forEach(conn => {
+            connectionRows.push(
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({ text: conn.source, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: conn.target, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: conn.type, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: conn.note, size: 20 })]
+                  })
+                ]
+              })
+            );
           });
-          
-          yPosition = pdf.lastAutoTable.finalY + 10;
+
+          connectionChildren.push(
+            new Table({
+              rows: connectionRows,
+              width: { size: 100, type: WidthType.PERCENTAGE }
+            })
+          );
+
+          connectionChildren.push(new PageBreak());
+          sections.push({ children: connectionChildren });
         }
       }
 
-      // 5. Locations
+      // Locations
       if (reportOptions.includeLocations) {
         const locationsData = [];
         
@@ -386,36 +533,85 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         });
         
         if (locationsData.length > 0) {
-          checkNewPage(30);
-          addSectionHeader('Locations');
-          
-          pdf.autoTable({
-            startY: yPosition,
-            head: [['Person', 'Type', 'Address', 'City/State/Country', 'Notes']],
-            body: locationsData.map(loc => [
-              loc.person,
-              loc.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-              loc.address,
-              [loc.city, loc.state, loc.country].filter(Boolean).join(', '),
-              loc.notes
-            ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [59, 130, 246] },
-            margin: { left: margin, right: margin },
-            columnStyles: {
-              0: { cellWidth: 35 },
-              1: { cellWidth: 25 },
-              2: { cellWidth: 45 },
-              3: { cellWidth: 45 },
-              4: { cellWidth: 30 }
-            }
+          const locationChildren = [
+            new Paragraph({
+              text: "Locations",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 300 }
+            })
+          ];
+
+          // Locations table
+          const locationRows = [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Person", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Type", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Address", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Location", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Notes", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                })
+              ]
+            })
+          ];
+
+          locationsData.forEach(loc => {
+            locationRows.push(
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({ text: loc.person, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ 
+                      text: loc.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                      size: 20 
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: loc.address, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ 
+                      text: [loc.city, loc.state, loc.country].filter(Boolean).join(', '),
+                      size: 20 
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: loc.notes, size: 20 })]
+                  })
+                ]
+              })
+            );
           });
-          
-          yPosition = pdf.lastAutoTable.finalY + 10;
+
+          locationChildren.push(
+            new Table({
+              rows: locationRows,
+              width: { size: 100, type: WidthType.PERCENTAGE }
+            })
+          );
+
+          locationChildren.push(new PageBreak());
+          sections.push({ children: locationChildren });
         }
       }
 
-      // 6. OSINT Data
+      // OSINT Data
       if (reportOptions.includeOsintData) {
         const osintData = [];
         
@@ -433,187 +629,309 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         });
         
         if (osintData.length > 0) {
-          checkNewPage(30);
-          addSectionHeader('OSINT Data');
-          
-          pdf.autoTable({
-            startY: yPosition,
-            head: [['Person', 'Type', 'Value', 'Notes']],
-            body: osintData.map(osint => [
-              osint.person,
-              osint.type,
-              osint.value,
-              osint.notes
-            ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [59, 130, 246] },
-            margin: { left: margin, right: margin }
+          const osintChildren = [
+            new Paragraph({
+              text: "OSINT Data",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 300 }
+            })
+          ];
+
+          // OSINT table
+          const osintRows = [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: "Person", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Type", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Value", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: "Notes", bold: true })],
+                  shading: { fill: "E7E7E7" }
+                })
+              ]
+            })
+          ];
+
+          osintData.forEach(osint => {
+            osintRows.push(
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({ text: osint.person, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: osint.type, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: osint.value, size: 20 })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ text: osint.notes, size: 20 })]
+                  })
+                ]
+              })
+            );
           });
-          
-          yPosition = pdf.lastAutoTable.finalY + 10;
+
+          osintChildren.push(
+            new Table({
+              rows: osintRows,
+              width: { size: 100, type: WidthType.PERCENTAGE }
+            })
+          );
+
+          osintChildren.push(new PageBreak());
+          sections.push({ children: osintChildren });
         }
       }
 
-      // 7. Tasks/Todos
+      // Tasks/Todos
       if (reportOptions.includeTodos && data.todos.length > 0) {
-        checkNewPage(30);
-        addSectionHeader('Investigation Tasks');
-        
+        const todoChildren = [
+          new Paragraph({
+            text: "Investigation Tasks",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          })
+        ];
+
         const todosByStatus = {
           open: data.todos.filter(t => t.status === 'open'),
           in_progress: data.todos.filter(t => t.status === 'in_progress'),
           done: data.todos.filter(t => t.status === 'done')
         };
         
-        pdf.setFontSize(10);
-        pdf.text(`Open: ${todosByStatus.open.length} | In Progress: ${todosByStatus.in_progress.length} | Completed: ${todosByStatus.done.length}`, margin, yPosition);
-        yPosition += 10;
-        
-        pdf.autoTable({
-          startY: yPosition,
-          head: [['Task', 'Status', 'Created', 'Updated']],
-          body: data.todos.map(todo => [
-            todo.text,
-            todo.status.replace('_', ' ').toUpperCase(),
-            formatDate(todo.created_at),
-            formatDate(todo.updated_at)
-          ]),
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [59, 130, 246] },
-          margin: { left: margin, right: margin }
-        });
-        
-        yPosition = pdf.lastAutoTable.finalY + 10;
-      }
-
-      // 8. Timeline (Audit Log)
-      if (reportOptions.includeAuditLog && data.auditLogs.length > 0) {
-        checkNewPage(30);
-        addSectionHeader('Activity Timeline');
-        
-        const relevantLogs = data.auditLogs
-          .filter(log => {
-            if (personId) return log.entity_type === 'person' && log.entity_id === personId;
-            return true;
+        todoChildren.push(
+          new Paragraph({
+            text: `Open: ${todosByStatus.open.length} | In Progress: ${todosByStatus.in_progress.length} | Completed: ${todosByStatus.done.length}`,
+            spacing: { after: 300 }
           })
-          .slice(0, 50); // Limit to recent 50 entries
-        
-        pdf.autoTable({
-          startY: yPosition,
-          head: [['Date/Time', 'Entity', 'Action', 'Field', 'Changes']],
-          body: relevantLogs.map(log => [
-            formatDateTime(log.created_at),
-            `${log.entity_type} #${log.entity_id}`,
-            log.action,
-            log.field_name || 'N/A',
-            log.new_value ? 'Updated' : 'N/A'
-          ]),
-          styles: { fontSize: 7 },
-          headStyles: { fillColor: [59, 130, 246] },
-          margin: { left: margin, right: margin }
+        );
+
+        // Tasks table
+        const todoRows = [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph({ text: "Task", bold: true })],
+                shading: { fill: "E7E7E7" }
+              }),
+              new TableCell({
+                children: [new Paragraph({ text: "Status", bold: true })],
+                shading: { fill: "E7E7E7" }
+              }),
+              new TableCell({
+                children: [new Paragraph({ text: "Created", bold: true })],
+                shading: { fill: "E7E7E7" }
+              }),
+              new TableCell({
+                children: [new Paragraph({ text: "Updated", bold: true })],
+                shading: { fill: "E7E7E7" }
+              })
+            ]
+          })
+        ];
+
+        data.todos.forEach(todo => {
+          todoRows.push(
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ text: todo.text, size: 20 })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ 
+                    text: todo.status.replace('_', ' ').toUpperCase(),
+                    size: 20 
+                  })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: formatDate(todo.created_at), size: 20 })]
+                }),
+                new TableCell({
+                  children: [new Paragraph({ text: formatDate(todo.updated_at), size: 20 })]
+                })
+              ]
+            })
+          );
         });
+
+        todoChildren.push(
+          new Table({
+            rows: todoRows,
+            width: { size: 100, type: WidthType.PERCENTAGE }
+          })
+        );
+
+        todoChildren.push(new PageBreak());
+        sections.push({ children: todoChildren });
       }
 
-      // 9. Charts Page
+      // Statistical Analysis
       if (reportOptions.includeCharts && data.people.length > 0) {
-        pdf.addPage();
-        yPosition = margin;
+        const statsChildren = [
+          new Paragraph({
+            text: "Statistical Analysis",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          })
+        ];
+
+        // Category distribution
+        const categoryData = Object.entries(
+          data.people.reduce((acc, person) => {
+            const cat = person.category || 'Unknown';
+            acc[cat] = (acc[cat] || 0) + 1;
+            return acc;
+          }, {})
+        ).map(([name, value]) => ({ name, value }));
         
-        addSectionHeader('Statistical Analysis');
+        statsChildren.push(
+          new Paragraph({
+            text: "Category Distribution:",
+            bold: true,
+            spacing: { after: 100 }
+          })
+        );
         
-        // Create a temporary div to render charts
-        const chartContainer = document.createElement('div');
-        chartContainer.style.position = 'absolute';
-        chartContainer.style.left = '-9999px';
-        chartContainer.style.width = '800px';
-        chartContainer.style.height = '400px';
-        chartContainer.style.backgroundColor = 'white';
-        document.body.appendChild(chartContainer);
+        categoryData.forEach(({ name, value }) => {
+          statsChildren.push(
+            new Paragraph({
+              text: `• ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`,
+              indent: { left: 400 },
+              spacing: { after: 50 }
+            })
+          );
+        });
+
+        // Status distribution
+        const statusData = Object.entries(
+          data.people.reduce((acc, person) => {
+            const status = person.status || 'Unknown';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+          }, {})
+        ).map(([name, value]) => ({ name, value }));
         
-        try {
-          // Render charts using the existing chart components
-          const categoryData = Object.entries(
-            data.people.reduce((acc, person) => {
-              const cat = person.category || 'Unknown';
-              acc[cat] = (acc[cat] || 0) + 1;
-              return acc;
-            }, {})
-          ).map(([name, value]) => ({ name, value }));
-          
-          const statusData = Object.entries(
-            data.people.reduce((acc, person) => {
-              const status = person.status || 'Unknown';
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            }, {})
-          ).map(([name, value]) => ({ name, value }));
-          
-          // You would render actual React components here and capture them
-          // For now, we'll add text placeholders
-          pdf.setFontSize(10);
-          pdf.text('Category Distribution:', margin, yPosition);
-          yPosition += 7;
-          
-          categoryData.forEach(({ name, value }) => {
-            pdf.text(`  • ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`, margin + 5, yPosition);
-            yPosition += 5;
-          });
-          
-          yPosition += 10;
-          pdf.text('Status Distribution:', margin, yPosition);
-          yPosition += 7;
-          
-          statusData.forEach(({ name, value }) => {
-            pdf.text(`  • ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`, margin + 5, yPosition);
-            yPosition += 5;
-          });
-          
-        } finally {
-          document.body.removeChild(chartContainer);
-        }
+        statsChildren.push(
+          new Paragraph({
+            text: "Status Distribution:",
+            bold: true,
+            spacing: { before: 300, after: 100 }
+          })
+        );
+        
+        statusData.forEach(({ name, value }) => {
+          statsChildren.push(
+            new Paragraph({
+              text: `• ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`,
+              indent: { left: 400 },
+              spacing: { after: 50 }
+            })
+          );
+        });
+
+        statsChildren.push(new PageBreak());
+        sections.push({ children: statsChildren });
       }
 
-      // Final page - Report metadata
-      pdf.addPage();
-      yPosition = margin;
-      
-      addSectionHeader('Report Information');
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, 'normal');
-      
-      const reportInfo = [
-        ['Generated By:', 'OSINT Investigation CRM'],
-        ['Generation Date:', formatDateTime(new Date())],
-        ['Report Type:', reportOptions.reportType],
-        ['Total Pages:', pdf.internal.getNumberOfPages().toString()],
-        ['Data Sources:', 'Internal Database'],
-        ['Classification:', 'CONFIDENTIAL']
+      // Report Information (Final Page)
+      const reportInfoChildren = [
+        new Paragraph({
+          text: "Report Information",
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Generated By: ", bold: true }),
+            new TextRun({ text: "OSINT Investigation CRM" })
+          ],
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Generation Date: ", bold: true }),
+            new TextRun({ text: formatDateTime(new Date()) })
+          ],
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Report Type: ", bold: true }),
+            new TextRun({ text: reportOptions.reportType })
+          ],
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Data Sources: ", bold: true }),
+            new TextRun({ text: "Internal Database" })
+          ],
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Classification: ", bold: true }),
+            new TextRun({ text: "CONFIDENTIAL", color: "FF0000" })
+          ],
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: "Disclaimer",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: "This report contains confidential information and is intended solely for the use of authorized personnel. " +
+                "Any unauthorized disclosure, copying, or distribution is strictly prohibited.",
+          italics: true,
+          size: 20
+        })
       ];
-      
-      reportInfo.forEach(([label, value]) => {
-        pdf.setFont(undefined, 'bold');
-        pdf.text(label, margin, yPosition);
-        pdf.setFont(undefined, 'normal');
-        pdf.text(value, margin + 40, yPosition);
-        yPosition += 6;
-      });
-      
-      // Disclaimer
-      yPosition += 10;
-      pdf.setFontSize(8);
-      pdf.setFont(undefined, 'italic');
-      const disclaimer = 'This report contains confidential information and is intended solely for the use of authorized personnel. ' +
-                        'Any unauthorized disclosure, copying, or distribution is strictly prohibited.';
-      const disclaimerLines = pdf.splitTextToSize(disclaimer, pageWidth - 2 * margin);
-      pdf.text(disclaimerLines, margin, yPosition);
 
-      // Save the PDF
-      const filename = `investigation-report-${data.selectedCase?.case_name || 'general'}-${new Date().getTime()}.pdf`;
-      pdf.save(filename);
+      sections.push({ children: reportInfoChildren });
+
+      // Create the document
+      const doc = new Document({
+        sections: sections,
+        styles: {
+          paragraphStyles: [
+            {
+              id: "Title",
+              name: "Title",
+              basedOn: "Normal",
+              next: "Normal",
+              run: {
+                size: 48,
+                bold: true,
+                color: "2B5797"
+              },
+              paragraph: {
+                spacing: { after: 300 }
+              }
+            }
+          ]
+        }
+      });
+
+      // Generate and save the document
+      const blob = await Packer.toBlob(doc);
+      const filename = `investigation-report-${data.selectedCase?.case_name || 'general'}-${new Date().getTime()}.docx`;
+      saveAs(blob, filename);
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF report');
+      console.error('Error generating Word document:', error);
+      alert('Failed to generate Word document');
     } finally {
       setGenerating(false);
     }
@@ -734,20 +1052,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Estimated Pages:</span>
-                    <span className="text-sm text-gray-600">
-                      {Math.ceil(
-                        (reportOptions.includeSummary ? 1 : 0) +
-                        (reportOptions.includePeople ? Math.ceil(data.people.length / 3) : 0) +
-                        (reportOptions.includeConnections ? 2 : 0) +
-                        (reportOptions.includeLocations ? 1 : 0) +
-                        (reportOptions.includeOsintData ? 1 : 0) +
-                        (reportOptions.includeTodos ? 1 : 0) +
-                        (reportOptions.includeAuditLog ? 2 : 0) +
-                        (reportOptions.includeCharts ? 1 : 0) +
-                        1 // Report info page
-                      )} pages
-                    </span>
+                    <span className="font-medium">Document Format:</span>
+                    <span className="text-sm text-gray-600">Microsoft Word (.docx)</span>
                   </div>
                 </div>
                 
@@ -827,7 +1133,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             Cancel
           </button>
           <button
-            onClick={generatePDF}
+            onClick={generateWord}
             disabled={generating || loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -839,7 +1145,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Generate PDF
+                Generate Word Document
               </>
             )}
           </button>
