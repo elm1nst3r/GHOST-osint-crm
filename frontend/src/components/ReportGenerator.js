@@ -121,14 +121,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
 
       // Title Page Section
       const titleSection = {
-        properties: {},
         children: [
           new Paragraph({
             text: "INVESTIGATION REPORT",
             heading: HeadingLevel.TITLE,
             alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
-            style: "Title"
+            spacing: { after: 400 }
           }),
           new Paragraph({
             text: data.selectedCase ? data.selectedCase.case_name : 
@@ -302,40 +300,48 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: "Status", bold: true })]
+                  children: [new Paragraph({ text: "Status", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: person.status || 'N/A' })]
+                  children: [new Paragraph({ text: person.status || 'N/A' })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
                 })
               ]
             }),
             new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: "Case", bold: true })]
+                  children: [new Paragraph({ text: "Case", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: person.case_name || 'N/A' })]
+                  children: [new Paragraph({ text: person.case_name || 'N/A' })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
                 })
               ]
             }),
             new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: "CRM Status", bold: true })]
+                  children: [new Paragraph({ text: "CRM Status", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: person.crm_status || 'N/A' })]
+                  children: [new Paragraph({ text: person.crm_status || 'N/A' })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
                 })
               ]
             }),
             new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: "Connections", bold: true })]
+                  children: [new Paragraph({ text: "Connections", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: (person.connections?.length || 0).toString() })]
+                  children: [new Paragraph({ text: (person.connections?.length || 0).toString() })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
                 })
               ]
             })
@@ -345,10 +351,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             infoRows.splice(2, 0, new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: "Date of Birth", bold: true })]
+                  children: [new Paragraph({ text: "Date of Birth", bold: true })],
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: formatDate(person.date_of_birth) })]
+                  children: [new Paragraph({ text: formatDate(person.date_of_birth) })],
+                  width: { size: 70, type: WidthType.PERCENTAGE }
                 })
               ]
             }));
@@ -357,8 +365,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
           peopleChildren.push(
             new Table({
               rows: infoRows,
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              margins: { bottom: 200 }
+              width: { size: 100, type: WidthType.PERCENTAGE }
             })
           );
 
@@ -369,7 +376,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                   new TextRun({ text: "Aliases: ", bold: true }),
                   new TextRun({ text: person.aliases.join(', '), italics: true })
                 ],
-                spacing: { after: 200 }
+                spacing: { before: 200, after: 200 }
               })
             );
           }
@@ -461,19 +468,19 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               children: [
                 new TableCell({
                   children: [new Paragraph({ text: "From", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 25, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "To", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 25, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Type", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Notes", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 })
               ]
             })
@@ -484,16 +491,20 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ text: conn.source, size: 20 })]
+                    children: [new Paragraph({ text: conn.source })],
+                    width: { size: 25, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: conn.target, size: 20 })]
+                    children: [new Paragraph({ text: conn.target })],
+                    width: { size: 25, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: conn.type, size: 20 })]
+                    children: [new Paragraph({ text: conn.type })],
+                    width: { size: 20, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: conn.note, size: 20 })]
+                    children: [new Paragraph({ text: conn.note })],
+                    width: { size: 30, type: WidthType.PERCENTAGE }
                   })
                 ]
               })
@@ -547,23 +558,23 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               children: [
                 new TableCell({
                   children: [new Paragraph({ text: "Person", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Type", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 15, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Address", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 25, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Location", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Notes", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 })
               ]
             })
@@ -574,25 +585,28 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ text: loc.person, size: 20 })]
+                    children: [new Paragraph({ text: loc.person })],
+                    width: { size: 20, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
                     children: [new Paragraph({ 
-                      text: loc.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                      size: 20 
-                    })]
+                      text: loc.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    })],
+                    width: { size: 15, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: loc.address, size: 20 })]
+                    children: [new Paragraph({ text: loc.address })],
+                    width: { size: 25, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
                     children: [new Paragraph({ 
-                      text: [loc.city, loc.state, loc.country].filter(Boolean).join(', '),
-                      size: 20 
-                    })]
+                      text: [loc.city, loc.state, loc.country].filter(Boolean).join(', ')
+                    })],
+                    width: { size: 20, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: loc.notes, size: 20 })]
+                    children: [new Paragraph({ text: loc.notes })],
+                    width: { size: 20, type: WidthType.PERCENTAGE }
                   })
                 ]
               })
@@ -643,19 +657,19 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               children: [
                 new TableCell({
                   children: [new Paragraph({ text: "Person", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 25, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Type", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Value", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 30, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ text: "Notes", bold: true })],
-                  shading: { fill: "E7E7E7" }
+                  width: { size: 25, type: WidthType.PERCENTAGE }
                 })
               ]
             })
@@ -666,16 +680,20 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ text: osint.person, size: 20 })]
+                    children: [new Paragraph({ text: osint.person })],
+                    width: { size: 25, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: osint.type, size: 20 })]
+                    children: [new Paragraph({ text: osint.type })],
+                    width: { size: 20, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: osint.value, size: 20 })]
+                    children: [new Paragraph({ text: osint.value })],
+                    width: { size: 30, type: WidthType.PERCENTAGE }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ text: osint.notes, size: 20 })]
+                    children: [new Paragraph({ text: osint.notes })],
+                    width: { size: 25, type: WidthType.PERCENTAGE }
                   })
                 ]
               })
@@ -723,19 +741,19 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             children: [
               new TableCell({
                 children: [new Paragraph({ text: "Task", bold: true })],
-                shading: { fill: "E7E7E7" }
+                width: { size: 40, type: WidthType.PERCENTAGE }
               }),
               new TableCell({
                 children: [new Paragraph({ text: "Status", bold: true })],
-                shading: { fill: "E7E7E7" }
+                width: { size: 20, type: WidthType.PERCENTAGE }
               }),
               new TableCell({
                 children: [new Paragraph({ text: "Created", bold: true })],
-                shading: { fill: "E7E7E7" }
+                width: { size: 20, type: WidthType.PERCENTAGE }
               }),
               new TableCell({
                 children: [new Paragraph({ text: "Updated", bold: true })],
-                shading: { fill: "E7E7E7" }
+                width: { size: 20, type: WidthType.PERCENTAGE }
               })
             ]
           })
@@ -746,19 +764,22 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             new TableRow({
               children: [
                 new TableCell({
-                  children: [new Paragraph({ text: todo.text, size: 20 })]
+                  children: [new Paragraph({ text: todo.text })],
+                  width: { size: 40, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
                   children: [new Paragraph({ 
-                    text: todo.status.replace('_', ' ').toUpperCase(),
-                    size: 20 
-                  })]
+                    text: todo.status.replace('_', ' ').toUpperCase()
+                  })],
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: formatDate(todo.created_at), size: 20 })]
+                  children: [new Paragraph({ text: formatDate(todo.created_at) })],
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                  children: [new Paragraph({ text: formatDate(todo.updated_at), size: 20 })]
+                  children: [new Paragraph({ text: formatDate(todo.updated_at) })],
+                  width: { size: 20, type: WidthType.PERCENTAGE }
                 })
               ]
             })
@@ -901,27 +922,9 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
 
       sections.push({ children: reportInfoChildren });
 
-      // Create the document
+      // Create the document with fixed structure
       const doc = new Document({
-        sections: sections,
-        styles: {
-          paragraphStyles: [
-            {
-              id: "Title",
-              name: "Title",
-              basedOn: "Normal",
-              next: "Normal",
-              run: {
-                size: 48,
-                bold: true,
-                color: "2B5797"
-              },
-              paragraph: {
-                spacing: { after: 300 }
-              }
-            }
-          ]
-        }
+        sections: sections
       });
 
       // Generate and save the document
@@ -929,9 +932,11 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       const filename = `investigation-report-${data.selectedCase?.case_name || 'general'}-${new Date().getTime()}.docx`;
       saveAs(blob, filename);
       
+      alert('Report generated successfully!');
+      
     } catch (error) {
       console.error('Error generating Word document:', error);
-      alert('Failed to generate Word document');
+      alert('Failed to generate Word document: ' + error.message);
     } finally {
       setGenerating(false);
     }
