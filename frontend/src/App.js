@@ -206,7 +206,7 @@ const App = () => {
         )}
         
         {activeSection === 'relationships' && (
-  <div className="flex-1 flex flex-col overflow-hidden">
+  <div className="h-full flex flex-col overflow-hidden">
     <div className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
       <h1 className="text-2xl font-bold text-gray-900">Relationship Network</h1>
       <p className="text-gray-600 mt-1">Visualize and manage connections between people</p>

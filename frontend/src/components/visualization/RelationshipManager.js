@@ -437,8 +437,6 @@ const RelationshipManager = ({
     (filters.minConnections > 0 ? 1 : 0) +
     (filters.dateRange !== 'all' ? 1 : 0);
 
-  // ... (previous code remains the same until the return statement) ...
-
   return (
     <div className={containerClass}>
       {/* Header */}
@@ -770,6 +768,6 @@ const RelationshipManager = ({
       </div>
     </div>
   );
-}; 
+};
 
-export default RelationshipManager; 
+export default RelationshipManager;

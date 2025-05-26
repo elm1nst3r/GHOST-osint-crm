@@ -1,7 +1,7 @@
 // File: frontend/src/components/PeopleList.js
-import React, { useState } from 'react';
-import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Calendar } from 'lucide-react';
-import { peopleAPI } from '../utils/api';
+import React, { useState, useEffect } from 'react';
+import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Calendar, Users } from 'lucide-react';
+import { peopleAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
 
 const PeopleList = ({ 
@@ -15,6 +15,21 @@ const PeopleList = ({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterLastModified, setFilterLastModified] = useState('');
+  const [filterCase, setFilterCase] = useState('');
+  const [cases, setCases] = useState([]);
+
+  useEffect(() => {
+    fetchCases();
+  }, []);
+
+  const fetchCases = async () => {
+    try {
+      const casesData = await casesAPI.getAll();
+      setCases(casesData);
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+    }
+  };
 
   const getRelationshipCount = (personId) => {
     const person = people.find(p => p.id === personId);
@@ -86,9 +101,10 @@ const PeopleList = ({
     
     const matchesCategory = filterCategory === '' || person.category === filterCategory;
     const matchesStatus = filterStatus === '' || person.status === filterStatus;
+    const matchesCase = filterCase === '' || person.case_name === filterCase;
     const matchesTimeFilter = isWithinTimeFilter(person, filterLastModified);
     
-    return matchesSearch && matchesCategory && matchesStatus && matchesTimeFilter;
+    return matchesSearch && matchesCategory && matchesStatus && matchesCase && matchesTimeFilter;
   });
 
   const handleDelete = async (id) => {
@@ -117,7 +133,17 @@ const PeopleList = ({
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">People Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">People Management</h1>
+          <p className="text-sm text-gray-600 mt-1 flex items-center">
+            <Users className="w-4 h-4 mr-1" />
+            {filteredPeople.length === people.length ? (
+              <span>{people.length} people</span>
+            ) : (
+              <span>{filteredPeople.length} of {people.length} people</span>
+            )}
+          </p>
+        </div>
         <button
           onClick={() => setShowAddPersonForm(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
@@ -130,7 +156,7 @@ const PeopleList = ({
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
         <div className="flex space-x-4">
-          <div className="flex-1">
+          <div className="flex-1 max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -142,6 +168,16 @@ const PeopleList = ({
               />
             </div>
           </div>
+          <select
+            value={filterCase}
+            onChange={(e) => setFilterCase(e.target.value)}
+            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Cases</option>
+            {cases.map(caseItem => (
+              <option key={caseItem.id} value={caseItem.case_name}>{caseItem.case_name}</option>
+            ))}
+          </select>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
