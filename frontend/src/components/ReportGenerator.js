@@ -1,6 +1,6 @@
 // File: frontend/src/components/ReportGenerator.js
 import React, { useState, useEffect } from 'react';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, BorderStyle, WidthType, Header, Footer, PageBreak, UnderlineType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, BorderStyle, WidthType, PageBreak } from 'docx';
 import { saveAs } from 'file-saver';
 import { 
   FileText, Download, Settings, Check, Calendar, 
@@ -22,8 +22,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     includeTodos: true,
     includeAuditLog: false,
     includeCharts: true,
-    reportType: 'comprehensive', // 'comprehensive', 'summary', 'person-profile'
-    dateRange: 'all' // 'all', 'last-week', 'last-month', 'last-year'
+    reportType: 'comprehensive',
+    dateRange: 'all'
   });
   
   const [data, setData] = useState({
@@ -42,7 +42,6 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch all necessary data
       const [casesData, peopleData, todosData] = await Promise.all([
         casesAPI.getAll(),
         peopleAPI.getAll(),
@@ -54,12 +53,10 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         auditLogs = await auditAPI.getAll({ limit: 100 });
       }
 
-      // Filter data based on case, person, or custom IDs
       let filteredPeople = peopleData;
       let selectedCase = null;
       let selectedPerson = null;
 
-      // Handle custom people IDs (from advanced search)
       if (customPeopleIds && customPeopleIds.length > 0) {
         filteredPeople = peopleData.filter(p => customPeopleIds.includes(p.id));
       } else if (caseId) {
@@ -117,82 +114,79 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     setGenerating(true);
     
     try {
-      const sections = [];
+      const children = [];
 
-      // Title Page Section
-      const titleSection = {
-        children: [
-          new Paragraph({
-            text: "INVESTIGATION REPORT",
-            heading: HeadingLevel.TITLE,
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 400 }
-          }),
-          new Paragraph({
-            text: data.selectedCase ? data.selectedCase.case_name : 
-                  data.selectedPerson ? getFullName(data.selectedPerson) : "General Report",
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 600 }
-          }),
-          new Paragraph({
-            text: `Generated: ${formatDateTime(new Date())}`,
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 800 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Report Type: ",
-                bold: true
-              }),
-              new TextRun({
-                text: reportOptions.reportType.charAt(0).toUpperCase() + reportOptions.reportType.slice(1)
-              })
-            ],
-            spacing: { after: 200 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Total People: ",
-                bold: true
-              }),
-              new TextRun({
-                text: data.people.length.toString()
-              })
-            ],
-            spacing: { after: 200 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Total Connections: ",
-                bold: true
-              }),
-              new TextRun({
-                text: data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0).toString()
-              })
-            ],
-            spacing: { after: 200 }
-          }),
-          new PageBreak()
-        ]
-      };
-      sections.push(titleSection);
+      // Title Page
+      children.push(
+        new Paragraph({
+          text: "INVESTIGATION REPORT",
+          heading: HeadingLevel.TITLE,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: data.selectedCase ? data.selectedCase.case_name : 
+                data.selectedPerson ? getFullName(data.selectedPerson) : "General Report",
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 600 }
+        }),
+        new Paragraph({
+          text: `Generated: ${formatDateTime(new Date())}`,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 800 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Report Type: ",
+              bold: true
+            }),
+            new TextRun({
+              text: reportOptions.reportType.charAt(0).toUpperCase() + reportOptions.reportType.slice(1)
+            })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Total People: ",
+              bold: true
+            }),
+            new TextRun({
+              text: data.people.length.toString()
+            })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Total Connections: ",
+              bold: true
+            }),
+            new TextRun({
+              text: data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0).toString()
+            })
+          ],
+          spacing: { after: 200 }
+        }),
+        new PageBreak()
+      );
 
       // Executive Summary
       if (reportOptions.includeSummary) {
-        const summaryChildren = [
+        children.push(
           new Paragraph({
             text: "Executive Summary",
             heading: HeadingLevel.HEADING_1,
             spacing: { after: 300 }
           })
-        ];
+        );
 
         if (data.selectedCase) {
-          summaryChildren.push(
+          children.push(
             new Paragraph({
               text: `This report covers the investigation case "${data.selectedCase.case_name}".`,
               spacing: { after: 200 }
@@ -205,77 +199,27 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               spacing: { after: 200 }
             }),
             new Paragraph({
-              children: [
-                new TextRun({ text: "Created: ", bold: true }),
-                new TextRun({ text: formatDate(data.selectedCase.created_at) })
-              ],
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
               text: `The case involves ${data.people.length} individuals with ${data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)} documented connections.`,
-              spacing: { after: 200 }
-            })
-          );
-          
-          if (data.selectedCase.description) {
-            summaryChildren.push(
-              new Paragraph({
-                text: "Case Description:",
-                bold: true,
-                spacing: { after: 100 }
-              }),
-              new Paragraph({
-                text: data.selectedCase.description,
-                spacing: { after: 200 }
-              })
-            );
-          }
-        } else if (data.selectedPerson) {
-          summaryChildren.push(
-            new Paragraph({
-              text: `This report focuses on ${getFullName(data.selectedPerson)}.`,
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Category: ", bold: true }),
-                new TextRun({ text: data.selectedPerson.category || 'N/A' })
-              ],
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Status: ", bold: true }),
-                new TextRun({ text: data.selectedPerson.status || 'N/A' })
-              ],
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Connections: ", bold: true }),
-                new TextRun({ text: (data.selectedPerson.connections?.length || 0).toString() })
-              ],
               spacing: { after: 200 }
             })
           );
         }
 
-        summaryChildren.push(new PageBreak());
-        sections.push({ children: summaryChildren });
+        children.push(new PageBreak());
       }
 
       // People Profiles
       if (reportOptions.includePeople && data.people.length > 0) {
-        const peopleChildren = [
+        children.push(
           new Paragraph({
             text: "People Profiles",
             heading: HeadingLevel.HEADING_1,
             spacing: { after: 300 }
           })
-        ];
+        );
 
         data.people.forEach((person, index) => {
-          peopleChildren.push(
+          children.push(
             new Paragraph({
               text: `${index + 1}. ${getFullName(person)}`,
               heading: HeadingLevel.HEADING_2,
@@ -283,106 +227,40 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             })
           );
 
-          // Basic info table
-          const infoRows = [
-            new TableRow({
+          // Basic info as paragraphs instead of table
+          children.push(
+            new Paragraph({
               children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Category", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: person.category || 'N/A' })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
+                new TextRun({ text: "Category: ", bold: true }),
+                new TextRun({ text: person.category || 'N/A' })
+              ],
+              spacing: { after: 100 }
             }),
-            new TableRow({
+            new Paragraph({
               children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Status", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: person.status || 'N/A' })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
+                new TextRun({ text: "Status: ", bold: true }),
+                new TextRun({ text: person.status || 'N/A' })
+              ],
+              spacing: { after: 100 }
             }),
-            new TableRow({
+            new Paragraph({
               children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Case", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: person.case_name || 'N/A' })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
+                new TextRun({ text: "Case: ", bold: true }),
+                new TextRun({ text: person.case_name || 'N/A' })
+              ],
+              spacing: { after: 100 }
             }),
-            new TableRow({
+            new Paragraph({
               children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "CRM Status", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: person.crm_status || 'N/A' })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
-            }),
-            new TableRow({
-              children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Connections", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: (person.connections?.length || 0).toString() })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
-            })
-          ];
-
-          if (person.date_of_birth) {
-            infoRows.splice(2, 0, new TableRow({
-              children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Date of Birth", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: formatDate(person.date_of_birth) })],
-                  width: { size: 70, type: WidthType.PERCENTAGE }
-                })
-              ]
-            }));
-          }
-
-          peopleChildren.push(
-            new Table({
-              rows: infoRows,
-              width: { size: 100, type: WidthType.PERCENTAGE }
+                new TextRun({ text: "Connections: ", bold: true }),
+                new TextRun({ text: (person.connections?.length || 0).toString() })
+              ],
+              spacing: { after: 200 }
             })
           );
 
-          if (person.aliases && person.aliases.length > 0) {
-            peopleChildren.push(
-              new Paragraph({
-                children: [
-                  new TextRun({ text: "Aliases: ", bold: true }),
-                  new TextRun({ text: person.aliases.join(', '), italics: true })
-                ],
-                spacing: { before: 200, after: 200 }
-              })
-            );
-          }
-
           if (person.notes) {
-            peopleChildren.push(
+            children.push(
               new Paragraph({
                 text: "Notes:",
                 bold: true,
@@ -396,14 +274,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
           }
         });
 
-        peopleChildren.push(new PageBreak());
-        sections.push({ children: peopleChildren });
+        children.push(new PageBreak());
       }
 
-      // Connections Network
+      // Connections
       if (reportOptions.includeConnections) {
         const connectionsData = [];
-        const connectionTypes = {};
         
         data.people.forEach(person => {
           if (person.connections) {
@@ -416,15 +292,13 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                   type: conn.type || 'Unknown',
                   note: conn.note || ''
                 });
-                
-                connectionTypes[conn.type || 'Unknown'] = (connectionTypes[conn.type || 'Unknown'] || 0) + 1;
               }
             });
           }
         });
         
         if (connectionsData.length > 0) {
-          const connectionChildren = [
+          children.push(
             new Paragraph({
               text: "Connections Analysis",
               heading: HeadingLevel.HEADING_1,
@@ -435,292 +309,46 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                 new TextRun({ text: "Total Connections: ", bold: true }),
                 new TextRun({ text: connectionsData.length.toString() })
               ],
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
-              text: "Connection Types Breakdown:",
-              bold: true,
-              spacing: { after: 100 }
+              spacing: { after: 300 }
             })
-          ];
+          );
 
-          Object.entries(connectionTypes).forEach(([type, count]) => {
-            connectionChildren.push(
+          // List connections instead of table
+          connectionsData.forEach((conn, idx) => {
+            children.push(
               new Paragraph({
-                text: `• ${type}: ${count}`,
+                children: [
+                  new TextRun({ text: `${idx + 1}. `, bold: true }),
+                  new TextRun({ text: `${conn.source} → ${conn.target}` })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "   Type: ", bold: true }),
+                  new TextRun({ text: conn.type }),
+                  conn.note ? new TextRun({ text: " | Note: " }) : null,
+                  conn.note ? new TextRun({ text: conn.note }) : null
+                ].filter(Boolean),
                 indent: { left: 400 },
-                spacing: { after: 50 }
+                spacing: { after: 200 }
               })
             );
           });
 
-          connectionChildren.push(
-            new Paragraph({
-              text: "Connection Details",
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 400, after: 200 }
-            })
-          );
-
-          // Connections table
-          const connectionRows = [
-            new TableRow({
-              children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "From", bold: true })],
-                  width: { size: 25, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "To", bold: true })],
-                  width: { size: 25, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Type", bold: true })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Notes", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                })
-              ]
-            })
-          ];
-
-          connectionsData.forEach(conn => {
-            connectionRows.push(
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({ text: conn.source })],
-                    width: { size: 25, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: conn.target })],
-                    width: { size: 25, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: conn.type })],
-                    width: { size: 20, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: conn.note })],
-                    width: { size: 30, type: WidthType.PERCENTAGE }
-                  })
-                ]
-              })
-            );
-          });
-
-          connectionChildren.push(
-            new Table({
-              rows: connectionRows,
-              width: { size: 100, type: WidthType.PERCENTAGE }
-            })
-          );
-
-          connectionChildren.push(new PageBreak());
-          sections.push({ children: connectionChildren });
+          children.push(new PageBreak());
         }
       }
 
-      // Locations
-      if (reportOptions.includeLocations) {
-        const locationsData = [];
-        
-        data.people.forEach(person => {
-          if (person.locations && person.locations.length > 0) {
-            person.locations.forEach(loc => {
-              locationsData.push({
-                person: getFullName(person),
-                type: loc.type || 'Unknown',
-                address: loc.address || 'N/A',
-                city: loc.city || '',
-                state: loc.state || '',
-                country: loc.country || '',
-                notes: loc.notes || ''
-              });
-            });
-          }
-        });
-        
-        if (locationsData.length > 0) {
-          const locationChildren = [
-            new Paragraph({
-              text: "Locations",
-              heading: HeadingLevel.HEADING_1,
-              spacing: { after: 300 }
-            })
-          ];
-
-          // Locations table
-          const locationRows = [
-            new TableRow({
-              children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Person", bold: true })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Type", bold: true })],
-                  width: { size: 15, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Address", bold: true })],
-                  width: { size: 25, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Location", bold: true })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Notes", bold: true })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                })
-              ]
-            })
-          ];
-
-          locationsData.forEach(loc => {
-            locationRows.push(
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({ text: loc.person })],
-                    width: { size: 20, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ 
-                      text: loc.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                    })],
-                    width: { size: 15, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: loc.address })],
-                    width: { size: 25, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ 
-                      text: [loc.city, loc.state, loc.country].filter(Boolean).join(', ')
-                    })],
-                    width: { size: 20, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: loc.notes })],
-                    width: { size: 20, type: WidthType.PERCENTAGE }
-                  })
-                ]
-              })
-            );
-          });
-
-          locationChildren.push(
-            new Table({
-              rows: locationRows,
-              width: { size: 100, type: WidthType.PERCENTAGE }
-            })
-          );
-
-          locationChildren.push(new PageBreak());
-          sections.push({ children: locationChildren });
-        }
-      }
-
-      // OSINT Data
-      if (reportOptions.includeOsintData) {
-        const osintData = [];
-        
-        data.people.forEach(person => {
-          if (person.osint_data && person.osint_data.length > 0) {
-            person.osint_data.forEach(osint => {
-              osintData.push({
-                person: getFullName(person),
-                type: osint.type,
-                value: osint.value,
-                notes: osint.notes || ''
-              });
-            });
-          }
-        });
-        
-        if (osintData.length > 0) {
-          const osintChildren = [
-            new Paragraph({
-              text: "OSINT Data",
-              heading: HeadingLevel.HEADING_1,
-              spacing: { after: 300 }
-            })
-          ];
-
-          // OSINT table
-          const osintRows = [
-            new TableRow({
-              children: [
-                new TableCell({
-                  children: [new Paragraph({ text: "Person", bold: true })],
-                  width: { size: 25, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Type", bold: true })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Value", bold: true })],
-                  width: { size: 30, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: "Notes", bold: true })],
-                  width: { size: 25, type: WidthType.PERCENTAGE }
-                })
-              ]
-            })
-          ];
-
-          osintData.forEach(osint => {
-            osintRows.push(
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({ text: osint.person })],
-                    width: { size: 25, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: osint.type })],
-                    width: { size: 20, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: osint.value })],
-                    width: { size: 30, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({ text: osint.notes })],
-                    width: { size: 25, type: WidthType.PERCENTAGE }
-                  })
-                ]
-              })
-            );
-          });
-
-          osintChildren.push(
-            new Table({
-              rows: osintRows,
-              width: { size: 100, type: WidthType.PERCENTAGE }
-            })
-          );
-
-          osintChildren.push(new PageBreak());
-          sections.push({ children: osintChildren });
-        }
-      }
-
-      // Tasks/Todos
+      // Tasks
       if (reportOptions.includeTodos && data.todos.length > 0) {
-        const todoChildren = [
+        children.push(
           new Paragraph({
             text: "Investigation Tasks",
             heading: HeadingLevel.HEADING_1,
             spacing: { after: 300 }
           })
-        ];
+        );
 
         const todosByStatus = {
           open: data.todos.filter(t => t.status === 'open'),
@@ -728,145 +356,41 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
           done: data.todos.filter(t => t.status === 'done')
         };
         
-        todoChildren.push(
+        children.push(
           new Paragraph({
             text: `Open: ${todosByStatus.open.length} | In Progress: ${todosByStatus.in_progress.length} | Completed: ${todosByStatus.done.length}`,
             spacing: { after: 300 }
           })
         );
 
-        // Tasks table
-        const todoRows = [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [new Paragraph({ text: "Task", bold: true })],
-                width: { size: 40, type: WidthType.PERCENTAGE }
-              }),
-              new TableCell({
-                children: [new Paragraph({ text: "Status", bold: true })],
-                width: { size: 20, type: WidthType.PERCENTAGE }
-              }),
-              new TableCell({
-                children: [new Paragraph({ text: "Created", bold: true })],
-                width: { size: 20, type: WidthType.PERCENTAGE }
-              }),
-              new TableCell({
-                children: [new Paragraph({ text: "Updated", bold: true })],
-                width: { size: 20, type: WidthType.PERCENTAGE }
-              })
-            ]
-          })
-        ];
-
-        data.todos.forEach(todo => {
-          todoRows.push(
-            new TableRow({
+        // List todos
+        data.todos.forEach((todo, idx) => {
+          children.push(
+            new Paragraph({
               children: [
-                new TableCell({
-                  children: [new Paragraph({ text: todo.text })],
-                  width: { size: 40, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ 
-                    text: todo.status.replace('_', ' ').toUpperCase()
-                  })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: formatDate(todo.created_at) })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                  children: [new Paragraph({ text: formatDate(todo.updated_at) })],
-                  width: { size: 20, type: WidthType.PERCENTAGE }
-                })
-              ]
+                new TextRun({ text: `${idx + 1}. `, bold: true }),
+                new TextRun({ text: todo.text })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "   Status: ", bold: true }),
+                new TextRun({ text: todo.status.replace('_', ' ').toUpperCase() }),
+                new TextRun({ text: " | Created: " }),
+                new TextRun({ text: formatDate(todo.created_at) })
+              ],
+              indent: { left: 400 },
+              spacing: { after: 200 }
             })
           );
         });
 
-        todoChildren.push(
-          new Table({
-            rows: todoRows,
-            width: { size: 100, type: WidthType.PERCENTAGE }
-          })
-        );
-
-        todoChildren.push(new PageBreak());
-        sections.push({ children: todoChildren });
+        children.push(new PageBreak());
       }
 
-      // Statistical Analysis
-      if (reportOptions.includeCharts && data.people.length > 0) {
-        const statsChildren = [
-          new Paragraph({
-            text: "Statistical Analysis",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 300 }
-          })
-        ];
-
-        // Category distribution
-        const categoryData = Object.entries(
-          data.people.reduce((acc, person) => {
-            const cat = person.category || 'Unknown';
-            acc[cat] = (acc[cat] || 0) + 1;
-            return acc;
-          }, {})
-        ).map(([name, value]) => ({ name, value }));
-        
-        statsChildren.push(
-          new Paragraph({
-            text: "Category Distribution:",
-            bold: true,
-            spacing: { after: 100 }
-          })
-        );
-        
-        categoryData.forEach(({ name, value }) => {
-          statsChildren.push(
-            new Paragraph({
-              text: `• ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`,
-              indent: { left: 400 },
-              spacing: { after: 50 }
-            })
-          );
-        });
-
-        // Status distribution
-        const statusData = Object.entries(
-          data.people.reduce((acc, person) => {
-            const status = person.status || 'Unknown';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-          }, {})
-        ).map(([name, value]) => ({ name, value }));
-        
-        statsChildren.push(
-          new Paragraph({
-            text: "Status Distribution:",
-            bold: true,
-            spacing: { before: 300, after: 100 }
-          })
-        );
-        
-        statusData.forEach(({ name, value }) => {
-          statsChildren.push(
-            new Paragraph({
-              text: `• ${name}: ${value} (${Math.round(value / data.people.length * 100)}%)`,
-              indent: { left: 400 },
-              spacing: { after: 50 }
-            })
-          );
-        });
-
-        statsChildren.push(new PageBreak());
-        sections.push({ children: statsChildren });
-      }
-
-      // Report Information (Final Page)
-      const reportInfoChildren = [
+      // Report Information
+      children.push(
         new Paragraph({
           text: "Report Information",
           heading: HeadingLevel.HEADING_1,
@@ -888,48 +412,27 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: "Report Type: ", bold: true }),
-            new TextRun({ text: reportOptions.reportType })
-          ],
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Data Sources: ", bold: true }),
-            new TextRun({ text: "Internal Database" })
-          ],
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          children: [
             new TextRun({ text: "Classification: ", bold: true }),
             new TextRun({ text: "CONFIDENTIAL", color: "FF0000" })
           ],
           spacing: { after: 400 }
         }),
         new Paragraph({
-          text: "Disclaimer",
-          heading: HeadingLevel.HEADING_2,
-          spacing: { after: 200 }
-        }),
-        new Paragraph({
-          text: "This report contains confidential information and is intended solely for the use of authorized personnel. " +
-                "Any unauthorized disclosure, copying, or distribution is strictly prohibited.",
-          italics: true,
-          size: 20
+          text: "This report contains confidential information and is intended solely for the use of authorized personnel.",
+          italics: true
         })
-      ];
+      );
 
-      sections.push({ children: reportInfoChildren });
-
-      // Create the document with fixed structure
+      // Create the document with a single section
       const doc = new Document({
-        sections: sections
+        sections: [{
+          children: children
+        }]
       });
 
       // Generate and save the document
       const blob = await Packer.toBlob(doc);
-      const filename = `investigation-report-${data.selectedCase?.case_name || 'general'}-${new Date().getTime()}.docx`;
+      const filename = `report-${Date.now()}.docx`;
       saveAs(blob, filename);
       
       alert('Report generated successfully!');
