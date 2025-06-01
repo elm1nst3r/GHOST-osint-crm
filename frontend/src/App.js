@@ -116,7 +116,7 @@ const App = () => {
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
     { id: 'relationships', label: 'Relationships', icon: Network },
     { id: 'map', label: 'Locations', icon: Map },
-    { id: 'attack-surface', label: 'Attack Surface', icon: Shield }, // Add this
+    { id: 'attack-surface', label: 'Attack Surface', icon: Shield },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -212,18 +212,18 @@ const App = () => {
         )}
         
         {activeSection === 'relationships' && (
-  <div className="h-full flex flex-col overflow-hidden">
-    <div className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
-      <h1 className="text-2xl font-bold text-gray-900">Relationship Network</h1>
-      <p className="text-gray-600 mt-1">Visualize and manage connections between people</p>
-    </div>
-    <div className="flex-1 min-h-0 p-6">
-      <div className="bg-white rounded-lg shadow-sm border h-full overflow-hidden">
-        <RelationshipManager />
-      </div>
-    </div>
-  </div>
-)}
+          <div className="h-full flex flex-col overflow-hidden">
+            <div className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
+              <h1 className="text-2xl font-bold text-gray-900">Relationship Network</h1>
+              <p className="text-gray-600 mt-1">Visualize and manage connections between people</p>
+            </div>
+            <div className="flex-1 min-h-0 p-6">
+              <div className="bg-white rounded-lg shadow-sm border h-full overflow-hidden">
+                <RelationshipManager />
+              </div>
+            </div>
+          </div>
+        )}
         
         {activeSection === 'map' && (
           <GlobalMap />
