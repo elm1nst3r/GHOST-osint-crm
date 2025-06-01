@@ -79,8 +79,19 @@ const AttackSurface = () => {
 
   const getIconForAssetType = (iconName) => {
     const icons = {
-      Laptop, Monitor, Smartphone, Tablet: () => <Monitor className="w-5 h-5" />,
-      Camera, Speaker, Router, HardDrive, Wifi, Shield, Globe, Mail, Cloud
+      Laptop: Monitor,     // Use Monitor for Laptop
+      Monitor: Monitor,
+      Smartphone: Smartphone,
+      Tablet: Monitor,     // Use Monitor for Tablet
+      Camera: Camera,
+      Speaker: Speaker,
+      Router: Router,
+      HardDrive: HardDrive,
+      Wifi: Wifi,
+      Shield: Shield,
+      Globe: Globe,
+      Mail: Mail,
+      Cloud: Cloud
     };
     const Icon = icons[iconName] || Shield;
     return <Icon className="w-5 h-5" />;

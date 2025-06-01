@@ -406,7 +406,7 @@ const initializeDatabase = async () => {
         affected_products JSONB DEFAULT '[]',
         published_date DATE,
         last_modified DATE,
-        references JSONB DEFAULT '[]',
+        reference_links JSONB DEFAULT '[]',  -- Changed from 'references' to 'reference_links'
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
@@ -2088,14 +2088,14 @@ app.get('/api/attack-surface/cves', async (req, res) => {
 
 // Add CVE to database
 app.post('/api/attack-surface/cves', async (req, res) => {
-  const { cve_id, description, severity, cvss_score, affected_products, published_date, references } = req.body;
+  const { cve_id, description, severity, cvss_score, affected_products, published_date, reference_links } = req.body; // Changed 'references' to 'reference_links'
   
   if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
   
   try {
     const result = await pool.query(`
       INSERT INTO cve_database 
-      (cve_id, description, severity, cvss_score, affected_products, published_date, references)
+      (cve_id, description, severity, cvss_score, affected_products, published_date, reference_links)  -- Changed column name
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (cve_id) DO UPDATE
       SET description = EXCLUDED.description,
@@ -2103,11 +2103,11 @@ app.post('/api/attack-surface/cves', async (req, res) => {
           cvss_score = EXCLUDED.cvss_score,
           affected_products = EXCLUDED.affected_products,
           published_date = EXCLUDED.published_date,
-          references = EXCLUDED.references,
+          reference_links = EXCLUDED.reference_links,  -- Changed column name
           last_modified = CURRENT_DATE
       RETURNING *
     `, [cve_id, description, severity, cvss_score, JSON.stringify(affected_products || []), 
-        published_date, JSON.stringify(references || [])]);
+        published_date, JSON.stringify(reference_links || [])]);  // Changed parameter name
     
     res.json(result.rows[0]);
   } catch (err) {
