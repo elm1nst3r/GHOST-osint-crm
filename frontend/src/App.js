@@ -23,6 +23,7 @@ import RelationshipManager from './components/visualization/RelationshipManager'
 import RelationshipDiagram from './components/RelationshipDiagram';
 import GlobalMap from './components/GlobalMap';
 import AdvancedSearch from './components/AdvancedSearch';
+import AttackSurface from './components/AttackSurface';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -115,6 +116,7 @@ const App = () => {
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
     { id: 'relationships', label: 'Relationships', icon: Network },
     { id: 'map', label: 'Locations', icon: Map },
+    { id: 'attack-surface', label: 'Attack Surface', icon: Shield }, // Add this
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -203,6 +205,10 @@ const App = () => {
             setShowAddToolForm={setShowAddToolForm}
             setEditingTool={setEditingTool}
           />
+        )}
+
+        {activeSection === 'attack-surface' && (
+          <AttackSurface />
         )}
         
         {activeSection === 'relationships' && (

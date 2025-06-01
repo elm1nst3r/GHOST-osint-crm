@@ -20,7 +20,8 @@ try {
     batchGeocode: async (locations) => locations
   };
 }
-const { geocodeAddress, batchGeocode } = geocodingService;const execPromise = util.promisify(exec);
+const { geocodeAddress, batchGeocode } = geocodingService;
+const execPromise = util.promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -343,6 +344,158 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_travel_history_location ON travel_history(country, city);
     `);
 
+    // Attack Surface Module Tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS asset_types (
+        id SERIAL PRIMARY KEY,
+        type_name VARCHAR(100) UNIQUE NOT NULL,
+        type_category VARCHAR(50) NOT NULL, -- device, account, network, service
+        default_risk_weight DECIMAL(3,2) DEFAULT 1.0,
+        scan_available BOOLEAN DEFAULT false,
+        icon_name VARCHAR(50),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "asset_types" table.');
+    await applyUpdatedAtTrigger(client, 'asset_types');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS attack_surface_assets (
+        id SERIAL PRIMARY KEY,
+        person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+        asset_type_id INTEGER NOT NULL REFERENCES asset_types(id),
+        asset_name VARCHAR(255) NOT NULL,
+        asset_identifier VARCHAR(500), -- IP, URL, email, device ID, etc.
+        asset_details JSONB DEFAULT '{}',
+        location VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'active', -- active, inactive, compromised
+        risk_score INTEGER DEFAULT 50, -- 0-100
+        last_scan_date TIMESTAMPTZ,
+        scan_results JSONB DEFAULT '{}',
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "attack_surface_assets" table.');
+    await applyUpdatedAtTrigger(client, 'attack_surface_assets');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS asset_risk_assessments (
+        id SERIAL PRIMARY KEY,
+        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
+        assessment_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        risk_score INTEGER NOT NULL,
+        risk_factors JSONB DEFAULT '[]',
+        vulnerabilities JSONB DEFAULT '[]',
+        recommendations TEXT,
+        assessed_by VARCHAR(100),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "asset_risk_assessments" table.');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cve_database (
+        id SERIAL PRIMARY KEY,
+        cve_id VARCHAR(50) UNIQUE NOT NULL,
+        description TEXT,
+        severity VARCHAR(20), -- LOW, MEDIUM, HIGH, CRITICAL
+        cvss_score DECIMAL(3,1),
+        affected_products JSONB DEFAULT '[]',
+        published_date DATE,
+        last_modified DATE,
+        references JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "cve_database" table.');
+    await applyUpdatedAtTrigger(client, 'cve_database');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS asset_cves (
+        id SERIAL PRIMARY KEY,
+        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
+        cve_id INTEGER NOT NULL REFERENCES cve_database(id),
+        status VARCHAR(50) DEFAULT 'unpatched', -- unpatched, patched, mitigated
+        detected_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        patched_date TIMESTAMPTZ,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "asset_cves" table.');
+    await applyUpdatedAtTrigger(client, 'asset_cves');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS asset_scans (
+        id SERIAL PRIMARY KEY,
+        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
+        scan_type VARCHAR(50) NOT NULL, -- port_scan, ssl_check, vulnerability_scan, etc.
+        scan_status VARCHAR(50) DEFAULT 'pending', -- pending, running, completed, failed
+        scan_results JSONB DEFAULT '{}',
+        started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMPTZ,
+        error_message TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "asset_scans" table.');
+
+    // Add indexes for better performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_attack_surface_assets_person_id ON attack_surface_assets(person_id);
+      CREATE INDEX IF NOT EXISTS idx_attack_surface_assets_risk_score ON attack_surface_assets(risk_score);
+      CREATE INDEX IF NOT EXISTS idx_asset_cves_asset_id ON asset_cves(asset_id);
+      CREATE INDEX IF NOT EXISTS idx_asset_scans_asset_id ON asset_scans(asset_id);
+    `);
+
+    // Insert default asset types
+    const defaultAssetTypes = [
+      // Devices
+      { type_name: 'Laptop', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Laptop' },
+      { type_name: 'Desktop Computer', type_category: 'device', default_risk_weight: 0.8, scan_available: true, icon_name: 'Monitor' },
+      { type_name: 'Smartphone', type_category: 'device', default_risk_weight: 1.0, scan_available: false, icon_name: 'Smartphone' },
+      { type_name: 'Tablet', type_category: 'device', default_risk_weight: 0.7, scan_available: false, icon_name: 'Tablet' },
+      { type_name: 'Smart TV', type_category: 'device', default_risk_weight: 0.6, scan_available: true, icon_name: 'Tv' },
+      { type_name: 'Security Camera', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Camera' },
+      { type_name: 'Smart Speaker (Alexa/Google)', type_category: 'device', default_risk_weight: 0.8, scan_available: true, icon_name: 'Speaker' },
+      { type_name: 'Smart Home Hub', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Home' },
+      { type_name: 'Router', type_category: 'device', default_risk_weight: 1.0, scan_available: true, icon_name: 'Router' },
+      { type_name: 'NAS Device', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'HardDrive' },
+      
+      // Accounts
+      { type_name: 'Email Account', type_category: 'account', default_risk_weight: 1.0, scan_available: false, icon_name: 'Mail' },
+      { type_name: 'Social Media Account', type_category: 'account', default_risk_weight: 0.7, scan_available: false, icon_name: 'Users' },
+      { type_name: 'Cloud Storage Account', type_category: 'account', default_risk_weight: 0.9, scan_available: false, icon_name: 'Cloud' },
+      { type_name: 'Banking Account', type_category: 'account', default_risk_weight: 1.0, scan_available: false, icon_name: 'DollarSign' },
+      
+      // Network
+      { type_name: 'WiFi Network', type_category: 'network', default_risk_weight: 0.9, scan_available: true, icon_name: 'Wifi' },
+      { type_name: 'VPN Service', type_category: 'network', default_risk_weight: 0.5, scan_available: false, icon_name: 'Shield' },
+      
+      // Services
+      { type_name: 'Website', type_category: 'service', default_risk_weight: 0.8, scan_available: true, icon_name: 'Globe' },
+      { type_name: 'Web Application', type_category: 'service', default_risk_weight: 0.9, scan_available: true, icon_name: 'Code' },
+      { type_name: 'API Endpoint', type_category: 'service', default_risk_weight: 0.9, scan_available: true, icon_name: 'Terminal' }
+    ];
+
+    for (const assetType of defaultAssetTypes) {
+      await client.query(`
+        INSERT INTO asset_types (type_name, type_category, default_risk_weight, scan_available, icon_name)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (type_name) DO UPDATE
+        SET type_category = EXCLUDED.type_category,
+            default_risk_weight = EXCLUDED.default_risk_weight,
+            scan_available = EXCLUDED.scan_available,
+            icon_name = EXCLUDED.icon_name
+      `, [assetType.type_name, assetType.type_category, assetType.default_risk_weight, assetType.scan_available, assetType.icon_name]);
+    }
+    console.log('Ensured default asset types exist.');
+
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
     process.exit(1);
@@ -601,6 +754,37 @@ app.post('/api/people', async (req, res) => {
   const { firstName, lastName, aliases, dateOfBirth, category, status, crmStatus, caseName, profilePictureUrl, notes, osintData, attachments, connections, locations, custom_fields } = req.body;
   if (!firstName) return res.status(400).json({ error: 'First name is required' });
   
+  // Geocode locations before saving
+  let geocodedLocations = locations || [];
+  if (geocodedLocations.length > 0) {
+    const locationsToGeocode = geocodedLocations.filter(
+      loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
+    );
+    
+    if (locationsToGeocode.length > 0) {
+      console.log(`Geocoding ${locationsToGeocode.length} locations for new person`);
+      const geocoded = await batchGeocode(locationsToGeocode);
+      
+      geocodedLocations = geocodedLocations.map(loc => {
+        if (!loc.latitude || !loc.longitude) {
+          const geocodedLoc = geocoded.find(g => 
+            g.address === loc.address && 
+            g.city === loc.city && 
+            g.country === loc.country
+          );
+          if (geocodedLoc) {
+            return {
+              ...loc,
+              latitude: geocodedLoc.latitude,
+              longitude: geocodedLoc.longitude
+            };
+          }
+        }
+        return loc;
+      });
+    }
+  }
+  
   const query = `
     INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status, crm_status, case_name, profile_picture_url, notes, osint_data, attachments, connections, locations, custom_fields) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
@@ -621,7 +805,7 @@ app.post('/api/people', async (req, res) => {
     JSON.stringify(osintData || []), 
     JSON.stringify(attachments || []), 
     JSON.stringify(connections || []), 
-    JSON.stringify(locations || []),
+    JSON.stringify(geocodedLocations), // Use geocoded locations
     JSON.stringify(custom_fields || {})
   ];
   
@@ -717,8 +901,17 @@ app.put('/api/people/:id', async (req, res) => {
     const result = await pool.query(query, values);
     const newPerson = result.rows[0];
     
-    // Log audit changes...
-    // (rest of the audit logging code remains the same)
+    // Log audit changes
+    const changes = {};
+    if (oldPerson.first_name !== firstName) changes.first_name = { oldValue: oldPerson.first_name, newValue: firstName };
+    if (oldPerson.last_name !== lastName) changes.last_name = { oldValue: oldPerson.last_name, newValue: lastName };
+    if (oldPerson.category !== category) changes.category = { oldValue: oldPerson.category, newValue: category };
+    if (oldPerson.status !== status) changes.status = { oldValue: oldPerson.status, newValue: status };
+    if (oldPerson.case_name !== caseName) changes.case_name = { oldValue: oldPerson.case_name, newValue: caseName };
+    
+    if (Object.keys(changes).length > 0) {
+      await logAudit('person', personId, 'update', changes);
+    }
     
     res.json(newPerson);
   } catch (err) {
@@ -789,78 +982,30 @@ app.get('/api/people/:id/travel-history', async (req, res) => {
   }
 });
 
-app.post('/api/people', async (req, res) => {
-  const { firstName, lastName, aliases, dateOfBirth, category, status, crmStatus, caseName, profilePictureUrl, notes, osintData, attachments, connections, locations, custom_fields } = req.body;
-  if (!firstName) return res.status(400).json({ error: 'First name is required' });
+app.post('/api/people/:id/travel-history', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
   
-  // Geocode locations before saving
-  let geocodedLocations = locations || [];
-  if (geocodedLocations.length > 0) {
-    const locationsToGeocode = geocodedLocations.filter(
-      loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
-    );
-    
-    if (locationsToGeocode.length > 0) {
-      console.log(`Geocoding ${locationsToGeocode.length} locations for new person`);
-      const geocoded = await batchGeocode(locationsToGeocode);
-      
-      geocodedLocations = geocodedLocations.map(loc => {
-        if (!loc.latitude || !loc.longitude) {
-          const geocodedLoc = geocoded.find(g => 
-            g.address === loc.address && 
-            g.city === loc.city && 
-            g.country === loc.country
-          );
-          if (geocodedLoc) {
-            return {
-              ...loc,
-              latitude: geocodedLoc.latitude,
-              longitude: geocodedLoc.longitude
-            };
-          }
-        }
-        return loc;
-      });
-    }
-  }
-  
-  const query = `
-    INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status, crm_status, case_name, profile_picture_url, notes, osint_data, attachments, connections, locations, custom_fields) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
-    RETURNING *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name;
-  `;
-  
-  const values = [
-    firstName, 
-    lastName || null, 
-    aliases || [], 
-    dateOfBirth || null, 
-    category || null, 
-    status || null, 
-    crmStatus || null, 
-    caseName || null, 
-    profilePictureUrl || null, 
-    notes || null, 
-    JSON.stringify(osintData || []), 
-    JSON.stringify(attachments || []), 
-    JSON.stringify(connections || []), 
-    JSON.stringify(geocodedLocations), // Use geocoded locations
-    JSON.stringify(custom_fields || {})
-  ];
+  const {
+    location_type, location_name, address, city, state, country, postal_code,
+    latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes
+  } = req.body;
   
   try {
-    const result = await pool.query(query, values);
-    const newPerson = result.rows[0];
+    const result = await pool.query(
+      `INSERT INTO travel_history 
+       (person_id, location_type, location_name, address, city, state, country, postal_code,
+        latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING *`,
+      [personId, location_type, location_name, address, city, state, country, postal_code,
+       latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes]
+    );
     
-    // Log audit
-    await logAudit('person', newPerson.id, 'create', {
-      record: { oldValue: null, newValue: JSON.stringify(newPerson) }
-    });
-    
-    res.status(201).json(newPerson);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error creating person:', err.message, err.stack);
-    res.status(500).json({ error: 'Failed to create person' });
+    console.error('Error creating travel history:', err);
+    res.status(500).json({ error: 'Failed to create travel history' });
   }
 });
 
@@ -1602,6 +1747,476 @@ app.get('/api/docker/logs', async (req, res) => {
     res.json(logs);
   } catch (err) {
     res.json([]);
+  }
+});
+
+// Attack Surface API Endpoints
+
+// Get all asset types
+app.get('/api/attack-surface/asset-types', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM asset_types ORDER BY type_category, type_name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching asset types:', err);
+    res.status(500).json({ error: 'Failed to fetch asset types' });
+  }
+});
+
+// Get assets for a person or all assets
+app.get('/api/attack-surface/assets', async (req, res) => {
+  const { person_id, case_name, risk_level, asset_type } = req.query;
+  
+  try {
+    let query = `
+      SELECT 
+        asa.*,
+        at.type_name,
+        at.type_category,
+        at.icon_name,
+        at.scan_available,
+        p.first_name,
+        p.last_name,
+        p.case_name,
+        (SELECT COUNT(*) FROM asset_cves WHERE asset_id = asa.id AND status = 'unpatched') as unpatched_cves,
+        (SELECT MAX(assessment_date) FROM asset_risk_assessments WHERE asset_id = asa.id) as last_assessment
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      JOIN people p ON asa.person_id = p.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    let paramCount = 0;
+    
+    if (person_id) {
+      query += ` AND asa.person_id = $${++paramCount}`;
+      params.push(person_id);
+    }
+    
+    if (case_name) {
+      query += ` AND p.case_name = $${++paramCount}`;
+      params.push(case_name);
+    }
+    
+    if (risk_level) {
+      switch(risk_level) {
+        case 'high':
+          query += ` AND asa.risk_score >= 70`;
+          break;
+        case 'medium':
+          query += ` AND asa.risk_score >= 40 AND asa.risk_score < 70`;
+          break;
+        case 'low':
+          query += ` AND asa.risk_score < 40`;
+          break;
+      }
+    }
+    
+    if (asset_type) {
+      query += ` AND at.type_category = $${++paramCount}`;
+      params.push(asset_type);
+    }
+    
+    query += ' ORDER BY asa.risk_score DESC, asa.created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching assets:', err);
+    res.status(500).json({ error: 'Failed to fetch assets' });
+  }
+});
+
+// Create new asset
+app.post('/api/attack-surface/assets', async (req, res) => {
+  const {
+    person_id,
+    asset_type_id,
+    asset_name,
+    asset_identifier,
+    asset_details,
+    location,
+    status,
+    notes
+  } = req.body;
+  
+  if (!person_id || !asset_type_id || !asset_name) {
+    return res.status(400).json({ error: 'person_id, asset_type_id, and asset_name are required' });
+  }
+  
+  try {
+    // Get default risk weight for the asset type
+    const typeResult = await pool.query('SELECT default_risk_weight FROM asset_types WHERE id = $1', [asset_type_id]);
+    const defaultRiskWeight = typeResult.rows[0]?.default_risk_weight || 0.5;
+    const initialRiskScore = Math.round(defaultRiskWeight * 50); // Start at 50% of max risk
+    
+    const result = await pool.query(`
+      INSERT INTO attack_surface_assets 
+      (person_id, asset_type_id, asset_name, asset_identifier, asset_details, location, status, risk_score, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `, [person_id, asset_type_id, asset_name, asset_identifier, JSON.stringify(asset_details || {}), 
+        location, status || 'active', initialRiskScore, notes]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating asset:', err);
+    res.status(500).json({ error: 'Failed to create asset' });
+  }
+});
+
+// Update asset
+app.put('/api/attack-surface/assets/:id', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const updates = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(', ');
+    
+    const values = [assetId, ...Object.values(updates)];
+    
+    const result = await pool.query(
+      `UPDATE attack_surface_assets SET ${setClause} WHERE id = $1 RETURNING *`,
+      values
+    );
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating asset:', err);
+    res.status(500).json({ error: 'Failed to update asset' });
+  }
+});
+
+// Delete asset
+app.delete('/api/attack-surface/assets/:id', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const result = await pool.query('DELETE FROM attack_surface_assets WHERE id = $1 RETURNING *', [assetId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    res.json({ message: 'Asset deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting asset:', err);
+    res.status(500).json({ error: 'Failed to delete asset' });
+  }
+});
+
+// Perform basic scan on asset (simplified example)
+app.post('/api/attack-surface/assets/:id/scan', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const { scan_type } = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    // Get asset details
+    const assetResult = await pool.query(`
+      SELECT asa.*, at.type_name, at.scan_available 
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      WHERE asa.id = $1
+    `, [assetId]);
+    
+    if (assetResult.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    
+    const asset = assetResult.rows[0];
+    
+    if (!asset.scan_available) {
+      return res.status(400).json({ error: 'Scanning not available for this asset type' });
+    }
+    
+    // Create scan record
+    const scanResult = await pool.query(`
+      INSERT INTO asset_scans (asset_id, scan_type, scan_status)
+      VALUES ($1, $2, 'running')
+      RETURNING id
+    `, [assetId, scan_type || 'basic']);
+    
+    const scanId = scanResult.rows[0].id;
+    
+    // Simulate scan (in production, this would be actual scanning logic)
+    setTimeout(async () => {
+      try {
+        let scanResults = {};
+        let riskFactors = [];
+        let newRiskScore = asset.risk_score;
+        
+        // Simulate different scan types
+        switch (scan_type) {
+          case 'port_scan':
+            scanResults = {
+              open_ports: [22, 80, 443, 3389].filter(() => Math.random() > 0.5),
+              scan_time: new Date().toISOString()
+            };
+            if (scanResults.open_ports.includes(22)) {
+              riskFactors.push({ factor: 'SSH port open', severity: 'medium', score_impact: 10 });
+            }
+            if (scanResults.open_ports.includes(3389)) {
+              riskFactors.push({ factor: 'RDP port open', severity: 'high', score_impact: 20 });
+            }
+            break;
+            
+          case 'ssl_check':
+            scanResults = {
+              ssl_valid: Math.random() > 0.3,
+              expiry_date: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+              protocol_version: 'TLS 1.2',
+              vulnerabilities: Math.random() > 0.7 ? ['POODLE', 'Heartbleed'] : []
+            };
+            if (!scanResults.ssl_valid) {
+              riskFactors.push({ factor: 'Invalid SSL certificate', severity: 'high', score_impact: 25 });
+            }
+            if (scanResults.vulnerabilities.length > 0) {
+              riskFactors.push({ factor: 'SSL vulnerabilities detected', severity: 'critical', score_impact: 30 });
+            }
+            break;
+            
+          default:
+            scanResults = {
+              status: 'completed',
+              timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Calculate new risk score
+        const totalImpact = riskFactors.reduce((sum, factor) => sum + factor.score_impact, 0);
+        newRiskScore = Math.min(100, asset.risk_score + totalImpact);
+        
+        // Update scan record
+        await pool.query(`
+          UPDATE asset_scans 
+          SET scan_status = 'completed', 
+              scan_results = $1, 
+              completed_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [JSON.stringify(scanResults), scanId]);
+        
+        // Update asset with scan results and new risk score
+        await pool.query(`
+          UPDATE attack_surface_assets
+          SET last_scan_date = CURRENT_TIMESTAMP,
+              scan_results = $1,
+              risk_score = $2
+          WHERE id = $3
+        `, [JSON.stringify(scanResults), newRiskScore, assetId]);
+        
+        // Create risk assessment if risk factors found
+        if (riskFactors.length > 0) {
+          await pool.query(`
+            INSERT INTO asset_risk_assessments 
+            (asset_id, risk_score, risk_factors, assessed_by)
+            VALUES ($1, $2, $3, 'Automated Scan')
+          `, [assetId, newRiskScore, JSON.stringify(riskFactors)]);
+        }
+        
+      } catch (err) {
+        console.error('Error completing scan:', err);
+        await pool.query(`
+          UPDATE asset_scans 
+          SET scan_status = 'failed', 
+              error_message = $1,
+              completed_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [err.message, scanId]);
+      }
+    }, 5000); // Simulate 5 second scan
+    
+    res.json({ 
+      message: 'Scan started', 
+      scan_id: scanId,
+      estimated_time: '5 seconds'
+    });
+  } catch (err) {
+    console.error('Error starting scan:', err);
+    res.status(500).json({ error: 'Failed to start scan' });
+  }
+});
+
+// Get risk assessment history for an asset
+app.get('/api/attack-surface/assets/:id/risk-assessments', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const result = await pool.query(`
+      SELECT * FROM asset_risk_assessments 
+      WHERE asset_id = $1 
+      ORDER BY assessment_date DESC
+    `, [assetId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching risk assessments:', err);
+    res.status(500).json({ error: 'Failed to fetch risk assessments' });
+  }
+});
+
+// CVE Management
+app.get('/api/attack-surface/cves', async (req, res) => {
+  const { severity, search } = req.query;
+  
+  try {
+    let query = 'SELECT * FROM cve_database WHERE 1=1';
+    const params = [];
+    let paramCount = 0;
+    
+    if (severity) {
+      query += ` AND severity = $${++paramCount}`;
+      params.push(severity);
+    }
+    
+    if (search) {
+      query += ` AND (cve_id ILIKE $${++paramCount} OR description ILIKE $${paramCount})`;
+      params.push(`%${search}%`);
+    }
+    
+    query += ' ORDER BY published_date DESC LIMIT 100';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching CVEs:', err);
+    res.status(500).json({ error: 'Failed to fetch CVEs' });
+  }
+});
+
+// Add CVE to database
+app.post('/api/attack-surface/cves', async (req, res) => {
+  const { cve_id, description, severity, cvss_score, affected_products, published_date, references } = req.body;
+  
+  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
+  
+  try {
+    const result = await pool.query(`
+      INSERT INTO cve_database 
+      (cve_id, description, severity, cvss_score, affected_products, published_date, references)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (cve_id) DO UPDATE
+      SET description = EXCLUDED.description,
+          severity = EXCLUDED.severity,
+          cvss_score = EXCLUDED.cvss_score,
+          affected_products = EXCLUDED.affected_products,
+          published_date = EXCLUDED.published_date,
+          references = EXCLUDED.references,
+          last_modified = CURRENT_DATE
+      RETURNING *
+    `, [cve_id, description, severity, cvss_score, JSON.stringify(affected_products || []), 
+        published_date, JSON.stringify(references || [])]);
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error adding CVE:', err);
+    res.status(500).json({ error: 'Failed to add CVE' });
+  }
+});
+
+// Link CVE to asset
+app.post('/api/attack-surface/assets/:id/cves', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const { cve_id, status, notes } = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
+  
+  try {
+    // First check if CVE exists in database
+    const cveResult = await pool.query('SELECT id FROM cve_database WHERE cve_id = $1', [cve_id]);
+    if (cveResult.rows.length === 0) {
+      return res.status(404).json({ error: 'CVE not found in database' });
+    }
+    
+    const cveDbId = cveResult.rows[0].id;
+    
+    const result = await pool.query(`
+      INSERT INTO asset_cves (asset_id, cve_id, status, notes)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [assetId, cveDbId, status || 'unpatched', notes]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error linking CVE to asset:', err);
+    res.status(500).json({ error: 'Failed to link CVE to asset' });
+  }
+});
+
+// Get overall attack surface risk for a person
+app.get('/api/attack-surface/people/:id/risk-summary', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+  
+  try {
+    // Get all assets for the person
+    const assetsResult = await pool.query(`
+      SELECT 
+        asa.risk_score,
+        at.default_risk_weight,
+        at.type_category
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      WHERE asa.person_id = $1 AND asa.status = 'active'
+    `, [personId]);
+    
+    if (assetsResult.rows.length === 0) {
+      return res.json({
+        overall_risk_score: 0,
+        asset_count: 0,
+        high_risk_assets: 0,
+        critical_vulnerabilities: 0,
+        risk_level: 'low'
+      });
+    }
+    
+    // Calculate weighted risk score
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+    let highRiskCount = 0;
+    
+    assetsResult.rows.forEach(asset => {
+      totalWeightedScore += asset.risk_score * asset.default_risk_weight;
+      totalWeight += asset.default_risk_weight;
+      if (asset.risk_score >= 70) highRiskCount++;
+    });
+    
+    const overallRiskScore = Math.round(totalWeightedScore / totalWeight);
+    
+    // Get critical vulnerabilities count
+    const vulnResult = await pool.query(`
+      SELECT COUNT(*) as critical_count
+      FROM asset_cves ac
+      JOIN cve_database cd ON ac.cve_id = cd.id
+      JOIN attack_surface_assets asa ON ac.asset_id = asa.id
+      WHERE asa.person_id = $1 
+      AND ac.status = 'unpatched'
+      AND cd.severity = 'CRITICAL'
+    `, [personId]);
+    
+    const criticalVulns = parseInt(vulnResult.rows[0].critical_count);
+    
+    // Determine risk level
+    let riskLevel = 'low';
+    if (overallRiskScore >= 70 || criticalVulns > 0) {
+      riskLevel = 'high';
+    } else if (overallRiskScore >= 40) {
+      riskLevel = 'medium';
+    }
+    
+    res.json({
+      overall_risk_score: overallRiskScore,
+      asset_count: assetsResult.rows.length,
+      high_risk_assets: highRiskCount,
+      critical_vulnerabilities: criticalVulns,
+      risk_level: riskLevel
+    });
+  } catch (err) {
+    console.error('Error calculating risk summary:', err);
+    res.status(500).json({ error: 'Failed to calculate risk summary' });
   }
 });
 

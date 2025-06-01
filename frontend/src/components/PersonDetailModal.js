@@ -5,10 +5,14 @@ import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Calen
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
+import { attackSurfaceAPI } from '../utils/api';
+
 
 const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [showReportGenerator, setShowReportGenerator] = useState(false);
+  const [riskSummary, setRiskSummary] = useState(null);
+
   
   const getFullName = (person) => {
     return `${person.first_name || ''} ${person.last_name || ''}`.trim();
