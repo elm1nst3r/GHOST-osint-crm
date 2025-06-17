@@ -1,64 +1,57 @@
 # File: docker-compose.yml
 # This file defines how Docker should run your multi-container application.
-# Place this file in the ROOT of your osint-crm project (parent to frontend and backend folders).
-
-# The 'version' attribute is no longer strictly necessary for most modern Docker Compose versions.
-# version: '3.8'
 
 services:
   # Frontend Service (React App served by Nginx)
   frontend:
     build:
-      context: ./frontend # Path to the frontend Dockerfile and source code
-      dockerfile: Dockerfile # Assumes Dockerfile is in the frontend directory
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: osint-crm-frontend
     ports:
-      - "8080:80" # Map port 8080 on host to port 80 in container (Nginx default)
+      - "8080:80"
     restart: unless-stopped
     depends_on:
-      - backend # Ensures backend starts before frontend (optional, but good practice)
+      - backend
     networks:
       - osint-crm-network
 
   # Backend Service (Node.js/Express API)
   backend:
     build:
-      context: ./backend # Path to the backend Dockerfile and source code
-      dockerfile: Dockerfile # Assumes Dockerfile is in the backend directory
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: osint-crm-backend
     ports:
-      - "3001:3001" # Map port 3001 on host to port 3001 in container
+      - "3001:3001"
     environment:
-      # Environment variables for the backend
-      NODE_ENV: development # or production
+      NODE_ENV: production
       PORT: 3001
-      # Database connection details (will be used by server.js)
-      DB_HOST: db # This 'db' matches the service name of our postgres container
-      DB_USER: ${DB_USER:-postgres} # Use environment variable or default
-      DB_PASSWORD: ${DB_PASSWORD:-changeme} # Use environment variable or default - CHANGE THIS!
+      DB_HOST: db
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
       DB_NAME: ${DB_NAME:-osint_crm_db}
       DB_PORT: 5432
     volumes:
-      - ./backend:/usr/src/app # Mounts your local backend code into the container for development (optional)
-      - /usr/src/app/node_modules # Anonymous volume to prevent local node_modules from overwriting container's
+      - ./backend/public:/usr/src/app/public
     restart: unless-stopped
     depends_on:
-      - db # Ensures database starts before the backend
+      - db
     networks:
       - osint-crm-network
 
   # Database Service (PostgreSQL)
   db:
-    image: postgres:15-alpine # Use official PostgreSQL image
+    image: postgres:15-alpine
     container_name: osint-crm-db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme} # CHANGE THIS IN YOUR ENVIRONMENT
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       POSTGRES_DB: ${DB_NAME:-osint_crm_db}
     ports:
-      - "5432:5432" # Map port 5432 on host to port 5432 in container (PostgreSQL default)
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persist database data
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - osint-crm-network
