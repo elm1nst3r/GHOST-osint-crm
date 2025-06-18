@@ -1,20 +1,23 @@
 // File: frontend/src/components/GlobalMap.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, Users, Filter, RefreshCw } from 'lucide-react';
+import { Search, MapPin, Users, Filter, RefreshCw, Plus, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { peopleAPI } from '../utils/api';
 
-// Custom hook to handle map bounds
+// Custom hook to handle map bounds with better performance
 const MapBounds = ({ markers }) => {
   const map = useMap();
   
   useEffect(() => {
     if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50] });
+      const validMarkers = markers.filter(m => m.lat && m.lng && !isNaN(m.lat) && !isNaN(m.lng));
+      if (validMarkers.length > 0) {
+        const bounds = L.latLngBounds(validMarkers.map(m => [m.lat, m.lng]));
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      }
     }
   }, [markers, map]);
   
@@ -40,63 +43,206 @@ const GlobalMap = () => {
   const [selectedLocationTypes, setSelectedLocationTypes] = useState(Object.keys(locationColors));
   const [loading, setLoading] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
+  const [showAddLocation, setShowAddLocation] = useState(false);
+  const [newLocationData, setNewLocationData] = useState({ address: '', personId: null });
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [geocodingStats, setGeocodingStats] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  // Fetch people data
+  // Fetch people data and geocoding stats
   useEffect(() => {
     fetchPeople();
+    fetchGeocodingStats();
   }, []);
 
-  const fetchPeople = async () => {
+  const fetchPeople = async (page = 0, limit = 100) => {
     try {
       setLoading(true);
-      const data = await peopleAPI.getAll();
-      setPeople(data);
-      setFilteredPeople(data);
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      
+      // Use new optimized locations endpoint with pagination
+      const response = await fetch(
+        `${API_BASE_URL}/locations?limit=${limit}&offset=${page * limit}&confidence=30&includeUngeocoded=true`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+      
+      const result = await response.json();
+      
+      if (page === 0) {
+        setPeople(result.data || []);
+        setFilteredPeople(result.data || []);
+      } else {
+        setPeople(prev => [...prev, ...(result.data || [])]);
+        setFilteredPeople(prev => [...prev, ...(result.data || [])]);
+      }
+      
+      setCurrentPage(page);
+      setHasMore(result.pagination?.hasMore || false);
+      setTotalPages(Math.ceil((result.pagination?.total || 0) / limit));
+      
     } catch (error) {
       console.error('Error fetching people:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  // Trigger batch geocoding for missing coordinates
-const triggerBatchGeocode = async () => {
-  if (geocoding) return;
   
-  try {
-    setGeocoding(true);
-    // Use the correct API base URL
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-    const response = await fetch(`${API_BASE_URL}/geocode/batch`, { 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+  const fetchGeocodingStats = async () => {
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/geocode/stats`);
+      if (response.ok) {
+        const stats = await response.json();
+        setGeocodingStats(stats);
       }
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.details || errorData.error || 'Geocoding failed');
+    } catch (error) {
+      console.error('Error fetching geocoding stats:', error);
     }
+  };
+
+  // Enhanced batch geocoding with improved service
+  const triggerBatchGeocode = async () => {
+    if (geocoding) return;
     
-    const result = await response.json();
-    
-    if (result.totalGeocoded > 0) {
-      alert(`Successfully geocoded ${result.totalGeocoded} locations!`);
+    try {
+      setGeocoding(true);
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      
+      // First try the enhanced batch geocoding endpoint
+      const locations = people.flatMap(person => 
+        (person.locations || []).filter(loc => 
+          (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
+        ).map(loc => ({ ...loc, person_id: person.id }))
+      );
+      
+      if (locations.length === 0) {
+        alert('All locations already have coordinates.');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/geocode/batch-enhanced`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          locations: locations,
+          minConfidence: 30,
+          maxConcurrent: 3
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Enhanced geocoding failed, trying fallback...');
+      }
+      
+      const result = await response.json();
+      
+      alert(`Geocoding completed! 
+Processed: ${result.summary.total} locations
+Successfully geocoded: ${result.summary.geocoded}
+Used cache: ${result.summary.cached}`);
+      
       fetchPeople(); // Refresh data
-    } else if (result.totalFailed > 0) {
-      alert(`Failed to geocode ${result.totalFailed} locations. Check console for details.`);
-      console.error('Geocoding errors:', result.errors);
-    } else {
-      alert('All locations already have coordinates.');
+      fetchGeocodingStats(); // Refresh stats
+      
+    } catch (error) {
+      console.error('Enhanced geocoding failed, trying fallback:', error);
+      
+      // Fallback to original batch geocoding
+      try {
+        const fallbackApiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(`${fallbackApiUrl}/geocode/batch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          alert(`Fallback geocoding completed: ${result.totalGeocoded} locations geocoded`);
+          fetchPeople();
+        } else {
+          throw new Error('Both geocoding methods failed');
+        }
+      } catch (fallbackError) {
+        console.error('All geocoding failed:', fallbackError);
+        alert(`Failed to geocode locations: ${fallbackError.message}`);
+      }
+    } finally {
+      setGeocoding(false);
     }
-  } catch (error) {
-    console.error('Error batch geocoding:', error);
-    alert(`Failed to geocode locations: ${error.message}`);
-  } finally {
-    setGeocoding(false);
-  }
-};
+  };
+  
+  // Get address suggestions for autocomplete
+  const getAddressSuggestions = useCallback(async (query) => {
+    if (!query || query.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+    
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/geocode/suggestions?q=${encodeURIComponent(query)}&limit=5`);
+      
+      if (response.ok) {
+        const suggestions = await response.json();
+        setAddressSuggestions(suggestions);
+      }
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+    }
+  }, []);
+  
+  // Add new location with enhanced geocoding
+  const addLocationWithGeocoding = async () => {
+    if (!newLocationData.address.trim()) return;
+    
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/geocode/address`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          address: newLocationData.address,
+          minConfidence: 30
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          alert(`Location geocoded successfully!
+Address: ${newLocationData.address}
+Coordinates: ${result.result.lat}, ${result.result.lng}
+Confidence: ${result.result.confidence}%`);
+          setNewLocationData({ address: '', personId: null });
+          setShowAddLocation(false);
+          fetchPeople();
+        } else {
+          alert('Could not geocode the address. Please try a more specific address.');
+        }
+      }
+    } catch (error) {
+      console.error('Error geocoding new location:', error);
+      alert('Failed to geocode location');
+    }
+  };
+  
+  // Load more locations (pagination)
+  const loadMoreLocations = () => {
+    if (!loading && hasMore) {
+      fetchPeople(currentPage + 1);
+    }
+  };
 
 
   // Filter people based on search
@@ -208,10 +354,10 @@ const triggerBatchGeocode = async () => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading map data...</p>
+      <div className="h-full flex items-center justify-center glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg m-4">
+        <div className="text-center p-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-primary mx-auto"></div>
+          <p className="mt-4 text-gray-700 font-medium">Loading map data...</p>
         </div>
       </div>
     );
@@ -220,16 +366,16 @@ const triggerBatchGeocode = async () => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b px-6 py-4">
+      <div className="glass-heavy backdrop-blur-lg border-b border-white/20 px-6 py-4 rounded-glass-lg mb-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Global Location Map</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Global Location Map</h1>
           <div className="flex items-center space-x-4">
             {/* Geocode button */}
             {missingCoordinates > 0 && (
               <button
                 onClick={triggerBatchGeocode}
                 disabled={geocoding}
-                className="px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
+                className="px-4 py-2 bg-gradient-warning text-white rounded-glass hover:shadow-glow-md transition-all duration-300 flex items-center disabled:opacity-50"
                 title={`${missingCoordinates} locations need geocoding`}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${geocoding ? 'animate-spin' : ''}`} />
@@ -245,7 +391,7 @@ const triggerBatchGeocode = async () => {
                 placeholder="Search people..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                className="pl-10 pr-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary focus:shadow-glow-sm transition-all duration-300 w-64"
               />
             </div>
             
@@ -290,12 +436,13 @@ const triggerBatchGeocode = async () => {
       
       {/* Map */}
       <div className="flex-1 relative">
-        <MapContainer
-          center={[20, 0]}
-          zoom={2}
-          style={{ height: '100%', width: '100%' }}
-          worldCopyJump={true}
-        >
+        <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg h-full overflow-hidden">
+          <MapContainer
+            center={[20, 0]}
+            zoom={2}
+            style={{ height: '100%', width: '100%' }}
+            worldCopyJump={true}
+          >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -335,43 +482,155 @@ const triggerBatchGeocode = async () => {
           </MarkerClusterGroup>
           
           {markers.length > 0 && <MapBounds markers={markers} />}
-        </MapContainer>
-        
-        {/* Legend */}
-        <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 z-10">
-          <h4 className="text-sm font-semibold mb-2">Location Types</h4>
-          <div className="space-y-1">
-            {Object.entries(locationColors).map(([type, color]) => (
-              <div key={type} className="flex items-center space-x-2">
-                <div
-                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-xs text-gray-600">
-                  {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              </div>
-            ))}
+          </MapContainer>
+          
+          {/* Legend */}
+          <div className="absolute bottom-4 right-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-4 z-10">
+            <h4 className="text-sm font-semibold mb-2 text-gray-900">Location Types</h4>
+            <div className="space-y-1">
+              {Object.entries(locationColors).map(([type, color]) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <div
+                    className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-xs text-gray-700 font-medium">
+                    {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        
-        {/* Stats */}
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg px-4 py-2 z-10">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Users className="w-4 h-4" />
-            <span>{filteredPeople.length} people</span>
-            <span className="text-gray-400">|</span>
-            <MapPin className="w-4 h-4" />
-            <span>{markers.length} locations</span>
-            {missingCoordinates > 0 && (
-              <>
+          
+          {/* Enhanced Stats */}
+          <div className="absolute top-4 left-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass px-4 py-3 z-10">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 text-sm text-gray-700">
+                <Users className="w-4 h-4 text-accent-primary" />
+                <span className="font-medium">{filteredPeople.length} people</span>
                 <span className="text-gray-400">|</span>
-                <span className="text-orange-600">{missingCoordinates} need geocoding</span>
-              </>
-            )}
+                <MapPin className="w-4 h-4 text-accent-secondary" />
+                <span className="font-medium">{markers.length} locations</span>
+              </div>
+              
+              {geocodingStats && (
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <CheckCircle className="w-3 h-3 text-green-500" />
+                  <span>{geocodingStats.total_cached} cached</span>
+                  <span className="text-gray-400">|</span>
+                  <Clock className="w-3 h-3 text-blue-500" />
+                  <span>{geocodingStats.cached_today} today</span>
+                  {geocodingStats.avg_confidence && (
+                    <>
+                      <span className="text-gray-400">|</span>
+                      <span>Avg: {Math.round(geocodingStats.avg_confidence)}%</span>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {missingCoordinates > 0 && (
+                <div className="flex items-center space-x-2 text-xs">
+                  <AlertCircle className="w-3 h-3 text-amber-500" />
+                  <span className="text-accent-warning font-medium">{missingCoordinates} need geocoding</span>
+                </div>
+              )}
+              
+              {hasMore && (
+                <button
+                  onClick={loadMoreLocations}
+                  disabled={loading}
+                  className="w-full px-2 py-1 text-xs bg-accent-primary text-white rounded hover:bg-accent-primary/80 disabled:opacity-50 transition-all"
+                >
+                  {loading ? 'Loading...' : `Load More (${totalPages - currentPage - 1} pages left)`}
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Add Location Button */}
+          <div className="absolute top-4 right-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-2 z-10">
+            <button
+              onClick={() => setShowAddLocation(!showAddLocation)}
+              className="p-2 bg-accent-primary text-white rounded-glass hover:shadow-glow-sm transition-all duration-300 flex items-center"
+              title="Add New Location"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
+      
+      {/* Add Location Modal */}
+      {showAddLocation && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 w-96 max-w-90vw">
+            <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              Add New Location
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={newLocationData.address}
+                  onChange={(e) => {
+                    setNewLocationData(prev => ({ ...prev, address: e.target.value }));
+                    getAddressSuggestions(e.target.value);
+                  }}
+                  placeholder="Enter address to geocode..."
+                  className="w-full px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary focus:shadow-glow-sm transition-all duration-300"
+                />
+                
+                {/* Address Suggestions */}
+                {addressSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass overflow-hidden">
+                    {addressSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setNewLocationData(prev => ({ ...prev, address: suggestion.display_name }));
+                          setAddressSuggestions([]);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-white/50 transition-colors border-b border-white/20 last:border-b-0"
+                      >
+                        <div className="text-sm font-medium text-gray-900">{suggestion.display_name}</div>
+                        <div className="text-xs text-gray-600 flex items-center justify-between">
+                          <span>Confidence: {suggestion.confidence}%</span>
+                          <span>{suggestion.lat.toFixed(4)}, {suggestion.lng.toFixed(4)}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAddLocation(false);
+                    setNewLocationData({ address: '', personId: null });
+                    setAddressSuggestions([]);
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-glass hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addLocationWithGeocoding}
+                  disabled={!newLocationData.address.trim()}
+                  className="px-4 py-2 bg-gradient-primary text-white rounded-glass hover:shadow-glow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Test Geocoding
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

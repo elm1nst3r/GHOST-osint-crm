@@ -580,7 +580,7 @@ const EnhancedRelationshipDiagram = ({
   return (
     <div className="h-full w-full relative">
       {/* Toolbar */}
-      <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-3 space-y-2">
+      <div className="absolute top-4 left-4 z-10 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-3 space-y-2">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowDebug(!showDebug)}
@@ -653,7 +653,7 @@ const EnhancedRelationshipDiagram = ({
       </div>
 
       {/* Legend */}
-      <div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-3">
+      <div className="absolute top-4 right-4 z-10 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-3">
         <h4 className="text-sm font-semibold mb-2">Entity Types</h4>
         <div className="space-y-2 mb-3">
           <div className="flex items-center space-x-2">
@@ -737,7 +737,7 @@ const EnhancedRelationshipDiagram = ({
 
       {/* Debug Panel */}
       {showDebug && (
-        <div className="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-lg p-4 max-w-md max-h-96 overflow-auto">
+        <div className="absolute bottom-4 left-4 z-20 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-4 max-w-md max-h-96 overflow-auto">
           <h3 className="font-bold mb-2">Debug Information</h3>
           <div className="space-y-2 text-xs">
             <details>

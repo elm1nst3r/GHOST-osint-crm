@@ -10,9 +10,11 @@ const util = require('util');
 
 // Add this with the other requires at the top
 let geocodingService;
+let improvedGeocodingService;
+const ImprovedGeocodingService = require('./services/improvedGeocodingService');
 try {
   geocodingService = require('./services/geocodingService');
-  console.log('Geocoding service loaded successfully');
+  console.log('Geocoding services loaded successfully');
 } catch (err) {
   console.error('Failed to load geocoding service:', err);
   // Create dummy functions if service fails to load
@@ -355,7 +357,11 @@ const initializeDatabase = async () => {
   }
 };
 
-initializeDatabase();
+initializeDatabase().then(() => {
+  // Initialize improved geocoding service after database is ready
+  improvedGeocodingService = new ImprovedGeocodingService(pool);
+  console.log('Improved geocoding service initialized');
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -603,7 +609,7 @@ app.post('/api/people', async (req, res) => {
   const { firstName, lastName, aliases, dateOfBirth, category, status, crmStatus, caseName, profilePictureUrl, notes, osintData, attachments, connections, locations, custom_fields } = req.body;
   if (!firstName) return res.status(400).json({ error: 'First name is required' });
   
-  // Geocode locations before saving
+  // Geocode locations before saving using improved service if available
   let geocodedLocations = locations || [];
   if (geocodedLocations.length > 0) {
     const locationsToGeocode = geocodedLocations.filter(
@@ -612,25 +618,34 @@ app.post('/api/people', async (req, res) => {
     
     if (locationsToGeocode.length > 0) {
       console.log(`Geocoding ${locationsToGeocode.length} locations for new person`);
-      const geocoded = await batchGeocode(locationsToGeocode);
       
-      geocodedLocations = geocodedLocations.map(loc => {
-        if (!loc.latitude || !loc.longitude) {
-          const geocodedLoc = geocoded.find(g => 
-            g.address === loc.address && 
-            g.city === loc.city && 
-            g.country === loc.country
-          );
-          if (geocodedLoc) {
-            return {
-              ...loc,
-              latitude: geocodedLoc.latitude,
-              longitude: geocodedLoc.longitude
-            };
+      // Use improved geocoding service if available, fallback to original
+      if (improvedGeocodingService) {
+        const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
+          minConfidence: 30,
+          maxConcurrent: 3
+        });
+        geocodedLocations = geocoded;
+      } else {
+        const geocoded = await batchGeocode(locationsToGeocode);
+        geocodedLocations = geocodedLocations.map(loc => {
+          if (!loc.latitude || !loc.longitude) {
+            const geocodedLoc = geocoded.find(g => 
+              g.address === loc.address && 
+              g.city === loc.city && 
+              g.country === loc.country
+            );
+            if (geocodedLoc) {
+              return {
+                ...loc,
+                latitude: geocodedLoc.latitude,
+                longitude: geocodedLoc.longitude
+              };
+            }
           }
-        }
-        return loc;
-      });
+          return loc;
+        });
+      }
     }
   }
   
@@ -687,7 +702,7 @@ app.put('/api/people/:id', async (req, res) => {
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
     const oldPerson = oldResult.rows[0];
     
-    // Geocode any locations that don't have coordinates
+    // Geocode any locations that don't have coordinates using improved service if available
     let geocodedLocations = locations || [];
     if (geocodedLocations.length > 0) {
       const locationsToGeocode = geocodedLocations.filter(
@@ -696,26 +711,35 @@ app.put('/api/people/:id', async (req, res) => {
       
       if (locationsToGeocode.length > 0) {
         console.log(`Geocoding ${locationsToGeocode.length} locations for person ${personId}`);
-        const geocoded = await batchGeocode(locationsToGeocode);
         
-        // Merge geocoded results back
-        geocodedLocations = geocodedLocations.map(loc => {
-          if (!loc.latitude || !loc.longitude) {
-            const geocodedLoc = geocoded.find(g => 
-              g.address === loc.address && 
-              g.city === loc.city && 
-              g.country === loc.country
-            );
-            if (geocodedLoc) {
-              return {
-                ...loc,
-                latitude: geocodedLoc.latitude,
-                longitude: geocodedLoc.longitude
-              };
+        // Use improved geocoding service if available, fallback to original
+        if (improvedGeocodingService) {
+          const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
+            minConfidence: 30,
+            maxConcurrent: 3
+          });
+          geocodedLocations = geocoded;
+        } else {
+          const geocoded = await batchGeocode(locationsToGeocode);
+          // Merge geocoded results back
+          geocodedLocations = geocodedLocations.map(loc => {
+            if (!loc.latitude || !loc.longitude) {
+              const geocodedLoc = geocoded.find(g => 
+                g.address === loc.address && 
+                g.city === loc.city && 
+                g.country === loc.country
+              );
+              if (geocodedLoc) {
+                return {
+                  ...loc,
+                  latitude: geocodedLoc.latitude,
+                  longitude: geocodedLoc.longitude
+                };
+              }
             }
-          }
-          return loc;
-        });
+            return loc;
+          });
+        }
       }
     }
     
@@ -788,10 +812,18 @@ app.delete('/api/people/:id', async (req, res) => {
   }
 });
 
-// Get all locations for map view
+// Get all locations for map view with progressive loading and optimizations
 app.get('/api/locations', async (req, res) => {
   try {
-    const query = `
+    const { 
+      limit = 100, 
+      offset = 0, 
+      bbox, // bounding box: "minLng,minLat,maxLng,maxLat"
+      confidence = 30, // minimum geocoding confidence
+      includeUngeocoded = false 
+    } = req.query;
+    
+    let query = `
       SELECT 
         p.id,
         p.first_name,
@@ -799,13 +831,83 @@ app.get('/api/locations', async (req, res) => {
         p.case_name,
         p.category,
         p.locations,
-        p.connections
+        p.connections,
+        p.updated_at
       FROM people p
       WHERE p.locations IS NOT NULL AND p.locations != '[]'::jsonb
     `;
     
-    const result = await pool.query(query);
-    res.json(result.rows);
+    const params = [];
+    let paramIndex = 1;
+    
+    // Add bounding box filter if provided
+    if (bbox) {
+      const [minLng, minLat, maxLng, maxLat] = bbox.split(',').map(Number);
+      query += ` AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p.locations) AS loc
+        WHERE (loc->>'latitude')::float BETWEEN $${paramIndex++} AND $${paramIndex++}
+        AND (loc->>'longitude')::float BETWEEN $${paramIndex++} AND $${paramIndex++}
+      )`;
+      params.push(minLat, maxLat, minLng, maxLng);
+    }
+    
+    // Filter by geocoding confidence if specified
+    if (!includeUngeocoded && confidence > 0) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p.locations) AS loc
+        WHERE (loc->>'latitude') IS NOT NULL 
+        AND (loc->>'longitude') IS NOT NULL
+        AND COALESCE((loc->>'geocode_confidence')::int, 0) >= $${paramIndex++}
+      )`;
+      params.push(confidence);
+    }
+    
+    // Add ordering and pagination
+    query += ` ORDER BY p.updated_at DESC`;
+    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const result = await pool.query(query, params);
+    
+    // Process locations to add enhanced geocoding metadata
+    const processedRows = result.rows.map(row => {
+      const locations = row.locations || [];
+      const enhancedLocations = locations.map(loc => ({
+        ...loc,
+        geocoded: !!(loc.latitude && loc.longitude),
+        confidence: loc.geocode_confidence || 0,
+        provider: loc.geocode_provider || 'unknown',
+        cached: !!loc.geocoded_at
+      }));
+      
+      return {
+        ...row,
+        locations: enhancedLocations,
+        locationStats: {
+          total: locations.length,
+          geocoded: enhancedLocations.filter(l => l.geocoded).length,
+          highConfidence: enhancedLocations.filter(l => l.confidence >= 80).length
+        }
+      };
+    });
+    
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM people p
+      WHERE p.locations IS NOT NULL AND p.locations != '[]'::jsonb
+    `;
+    const countResult = await pool.query(countQuery);
+    
+    res.json({
+      data: processedRows,
+      pagination: {
+        total: countResult.rows[0].total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: parseInt(offset) + parseInt(limit) < countResult.rows[0].total
+      }
+    });
   } catch (err) {
     console.error('Error fetching locations:', err);
     res.status(500).json({ error: 'Failed to fetch locations' });
@@ -906,6 +1008,111 @@ app.post('/api/geocode/batch', async (req, res) => {
   } catch (err) {
     console.error('Error in batch geocoding:', err);
     res.status(500).json({ error: 'Batch geocoding failed' });
+  }
+});
+
+// Improved geocoding endpoints
+
+// Get address suggestions for autocomplete
+app.get('/api/geocode/suggestions', async (req, res) => {
+  const { q, limit = 5 } = req.query;
+  
+  if (!q || q.length < 3) {
+    return res.json([]);
+  }
+  
+  try {
+    if (!improvedGeocodingService) {
+      return res.status(503).json({ error: 'Geocoding service not initialized' });
+    }
+    
+    const suggestions = await improvedGeocodingService.getSuggestions(q, parseInt(limit));
+    res.json(suggestions);
+  } catch (err) {
+    console.error('Error getting address suggestions:', err);
+    res.status(500).json({ error: 'Failed to get address suggestions' });
+  }
+});
+
+// Enhanced single address geocoding
+app.post('/api/geocode/address', async (req, res) => {
+  const { address, minConfidence = 30 } = req.body;
+  
+  if (!address) {
+    return res.status(400).json({ error: 'Address is required' });
+  }
+  
+  try {
+    if (!improvedGeocodingService) {
+      return res.status(503).json({ error: 'Geocoding service not initialized' });
+    }
+    
+    const result = await improvedGeocodingService.geocodeAddress(address, { minConfidence });
+    
+    if (result) {
+      res.json({
+        success: true,
+        result: result,
+        cached: result.cached || false
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'No results found or confidence too low'
+      });
+    }
+  } catch (err) {
+    console.error('Error geocoding address:', err);
+    res.status(500).json({ error: 'Failed to geocode address' });
+  }
+});
+
+// Enhanced batch geocoding with improved service
+app.post('/api/geocode/batch-enhanced', async (req, res) => {
+  const { locations, minConfidence = 30, maxConcurrent = 3 } = req.body;
+  
+  if (!locations || !Array.isArray(locations)) {
+    return res.status(400).json({ error: 'Locations array is required' });
+  }
+  
+  try {
+    if (!improvedGeocodingService) {
+      return res.status(503).json({ error: 'Geocoding service not initialized' });
+    }
+    
+    const results = await improvedGeocodingService.batchGeocode(locations, {
+      minConfidence,
+      maxConcurrent
+    });
+    
+    const summary = {
+      total: results.length,
+      geocoded: results.filter(r => r.latitude && r.longitude).length,
+      cached: results.filter(r => r.geocoded_at && r.geocode_confidence > 0).length
+    };
+    
+    res.json({
+      results: results,
+      summary: summary
+    });
+  } catch (err) {
+    console.error('Error in enhanced batch geocoding:', err);
+    res.status(500).json({ error: 'Enhanced batch geocoding failed' });
+  }
+});
+
+// Get geocoding cache statistics
+app.get('/api/geocode/stats', async (req, res) => {
+  try {
+    if (!improvedGeocodingService) {
+      return res.status(503).json({ error: 'Geocoding service not initialized' });
+    }
+    
+    const stats = await improvedGeocodingService.getCacheStats();
+    res.json(stats);
+  } catch (err) {
+    console.error('Error getting geocoding stats:', err);
+    res.status(500).json({ error: 'Failed to get geocoding stats' });
   }
 });
 

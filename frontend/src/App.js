@@ -137,6 +137,8 @@ const App = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 relative overflow-hidden">
+      {/* Mobile overlay for small screens */}
+      <div className="lg:hidden fixed inset-0 bg-black/50 z-40" style={{ display: 'none' }} id="mobile-overlay"></div>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-cosmic opacity-20 rounded-full blur-3xl"></div>
@@ -144,10 +146,10 @@ const App = () => {
       </div>
       
       {/* Sidebar */}
-      <div className="relative w-72 glass-card m-4 mr-0 rounded-glass-lg backdrop-blur-xl border border-white/30 shadow-glass-lg">
+      <div className="relative w-72 lg:w-72 md:w-64 sm:w-56 glass-card m-4 rounded-glass-lg backdrop-blur-xl border border-white/30 shadow-glass-lg flex-shrink-0">
         {/* Header */}
         <div className="p-6 border-b border-white/20">
-          <div className="flex items-center space-x-3 animate-float">
+          <div className="flex items-center space-x-3">
             {appSettings.appLogo ? (
               <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
             ) : (
@@ -214,7 +216,7 @@ const App = () => {
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 relative flex flex-col m-4 ml-0">
+      <div className="flex-1 relative flex flex-col m-4">
         {/* Content Container */}
         <div className="flex-1 glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg overflow-hidden">
           <div className="h-full p-6 overflow-auto">
