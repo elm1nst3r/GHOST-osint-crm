@@ -2195,6 +2195,18 @@ app.get('/api/entity-network', async (req, res) => {
     const peopleResult = await pool.query(peopleQuery);
     const people = peopleResult.rows;
     
+    // Get all businesses
+    const businessQuery = `
+      SELECT id, name, type, industry, address, city, state, country, 
+             latitude, longitude, phone, email, website, owner_person_id,
+             status, employees, notes, created_at
+      FROM businesses 
+      ORDER BY created_at DESC
+    `;
+    
+    const businessResult = await pool.query(businessQuery);
+    const businesses = businessResult.rows;
+    
     const nodes = [];
     const edges = [];
     const nodeMap = new Map();
@@ -2261,6 +2273,118 @@ app.get('/api/entity-network', async (req, res) => {
           });
         }
       });
+    });
+    
+    // Create nodes for each business
+    businesses.forEach(business => {
+      const nodeId = `business-${business.id}`;
+      
+      const node = {
+        id: nodeId,
+        type: 'business',
+        data: {
+          id: business.id,
+          label: business.name,
+          type: business.type,
+          industry: business.industry,
+          status: business.status,
+          address: business.address,
+          city: business.city,
+          state: business.state,
+          country: business.country,
+          latitude: business.latitude,
+          longitude: business.longitude,
+          phone: business.phone,
+          email: business.email,
+          website: business.website,
+          owner_person_id: business.owner_person_id,
+          employees: business.employees,
+          notes: business.notes,
+          entity_type: 'business',
+          entity_id: business.id
+        },
+        position: { x: 0, y: 0 }
+      };
+      
+      nodes.push(node);
+      nodeMap.set(nodeId, node);
+      
+      // Create edge from business owner to business
+      if (business.owner_person_id) {
+        const ownerNodeId = `person-${business.owner_person_id}`;
+        if (nodeMap.has(ownerNodeId)) {
+          edges.push({
+            id: `edge-person-${business.owner_person_id}-owns-business-${business.id}`,
+            source: ownerNodeId,
+            target: nodeId,
+            type: 'owns',
+            data: {
+              relationship_type: 'owns',
+              confidence_score: 95
+            }
+          });
+        }
+      }
+      
+      // Create edges for employees
+      if (business.employees && Array.isArray(business.employees)) {
+        business.employees.forEach(employee => {
+          if (employee.personId) {
+            const employeeNodeId = `person-${employee.personId}`;
+            if (nodeMap.has(employeeNodeId)) {
+              edges.push({
+                id: `edge-person-${employee.personId}-works-at-business-${business.id}`,
+                source: employeeNodeId,
+                target: nodeId,
+                type: 'works_at',
+                data: {
+                  relationship_type: 'works_at',
+                  role: employee.role,
+                  department: employee.department,
+                  confidence_score: 85
+                }
+              });
+            }
+          }
+        });
+      }
+      
+      // Create business location node if it has address
+      if (business.latitude && business.longitude && (business.address || business.city)) {
+        const businessLocationId = `location-business-${business.id}`;
+        const locationName = [business.address, business.city, business.state, business.country].filter(Boolean).join(', ');
+        
+        const businessLocationNode = {
+          id: businessLocationId,
+          type: 'location',
+          data: {
+            label: locationName,
+            location_type: 'business_address',
+            address: business.address,
+            city: business.city,
+            state: business.state,
+            country: business.country,
+            entity_type: 'location',
+            latitude: business.latitude,
+            longitude: business.longitude
+          },
+          position: { x: 0, y: 0 }
+        };
+        
+        nodes.push(businessLocationNode);
+        
+        // Create edge from business to its location
+        edges.push({
+          id: `edge-business-${business.id}-located-at-${businessLocationId}`,
+          source: nodeId,
+          target: businessLocationId,
+          type: 'located_at',
+          data: {
+            relationship_type: 'located_at',
+            confidence_score: 90
+          }
+        });
+      }
     });
     
     // Create edges from person connections

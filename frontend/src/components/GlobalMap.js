@@ -436,7 +436,7 @@ Confidence: ${result.result.confidence}%`);
       
       {/* Map */}
       <div className="flex-1 relative">
-        <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg h-full overflow-hidden">
+        <div className="bg-white border border-gray-200 shadow-lg rounded-lg h-full overflow-hidden">
           <MapContainer
             center={[20, 0]}
             zoom={2}

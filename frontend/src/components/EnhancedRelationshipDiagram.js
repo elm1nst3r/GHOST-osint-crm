@@ -723,6 +723,7 @@ const EnhancedRelationshipDiagram = ({
         }}
         connectionMode="loose"
         className="bg-gray-50"
+        style={{ width: '100%', height: '100%' }}
         minZoom={0.1}
         maxZoom={2}
       >
