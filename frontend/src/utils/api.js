@@ -265,64 +265,6 @@ export const travelHistoryAPI = {
   analyze: (personId) => fetchAPI(`/people/${personId}/travel-analysis`),
 };
 
-// Attack Surface API
-export const attackSurfaceAPI = {
-  // Asset Types
-  getAssetTypes: () => fetchAPI('/attack-surface/asset-types'),
-  
-  // Assets
-  getAssets: (filters = {}) => {
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) queryParams.append(key, value);
-    });
-    return fetchAPI(`/attack-surface/assets?${queryParams.toString()}`);
-  },
-  
-  createAsset: (assetData) => fetchAPI('/attack-surface/assets', {
-    method: 'POST',
-    body: JSON.stringify(assetData),
-  }),
-  
-  updateAsset: (id, assetData) => fetchAPI(`/attack-surface/assets/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(assetData),
-  }),
-  
-  deleteAsset: (id) => fetchAPI(`/attack-surface/assets/${id}`, {
-    method: 'DELETE',
-  }),
-  
-  // Scanning
-  scanAsset: (id, scanType) => fetchAPI(`/attack-surface/assets/${id}/scan`, {
-    method: 'POST',
-    body: JSON.stringify({ scan_type: scanType }),
-  }),
-  
-  // Risk Assessments
-  getRiskAssessments: (assetId) => fetchAPI(`/attack-surface/assets/${assetId}/risk-assessments`),
-  
-  // CVEs
-  getCVEs: (filters = {}) => {
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) queryParams.append(key, value);
-    });
-    return fetchAPI(`/attack-surface/cves?${queryParams.toString()}`);
-  },
-  
-  addCVE: (cveData) => fetchAPI('/attack-surface/cves', {
-    method: 'POST',
-    body: JSON.stringify(cveData),
-  }),
-  
-  linkCVEToAsset: (assetId, cveData) => fetchAPI(`/attack-surface/assets/${assetId}/cves`, {
-    method: 'POST',
-    body: JSON.stringify(cveData),
-  }),
-  
-  // Risk Summary
-  getPersonRiskSummary: (personId) => fetchAPI(`/attack-surface/people/${personId}/risk-summary`),
-};
+// Removed: Attack Surface API
 
 export { API_BASE_URL };
