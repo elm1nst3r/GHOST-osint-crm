@@ -136,52 +136,89 @@ const App = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-cosmic opacity-20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-ocean opacity-15 rounded-full blur-3xl"></div>
+      </div>
+      
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900 text-white">
-        <div className="p-6">
-          <div className="flex items-center space-x-3">
+      <div className="relative w-72 glass-card m-4 mr-0 rounded-glass-lg backdrop-blur-xl border border-white/30 shadow-glass-lg">
+        {/* Header */}
+        <div className="p-6 border-b border-white/20">
+          <div className="flex items-center space-x-3 animate-float">
             {appSettings.appLogo ? (
-              <img src={appSettings.appLogo} alt="Logo" className="h-10 w-10 object-contain" />
+              <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
             ) : (
-              <Shield className="w-10 h-10 text-blue-400" />
+              <div className="p-2 rounded-xl bg-gradient-primary shadow-glow-sm">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
             )}
-            <h2 className="text-xl font-bold">{appSettings.appName}</h2>
+            <div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">{appSettings.appName}</h2>
+              <p className="text-sm text-gray-500 font-medium">OSINT Investigation Suite</p>
+            </div>
           </div>
         </div>
         
-        <nav className="mt-6">
-          {navigationItems.map((item) => {
+        {/* Navigation */}
+        <nav className="p-4 space-y-2">
+          {navigationItems.map((item, index) => {
             const Icon = item.icon;
+            const isActive = activeSection === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full text-left px-6 py-3 transition-colors duration-200 flex items-center space-x-3 ${
-                  activeSection === item.id ? 'bg-blue-700 text-white' : 'text-gray-100 hover:bg-blue-700'
+                className={`w-full text-left p-4 rounded-glass transition-all duration-300 flex items-center space-x-3 group relative overflow-hidden ${
+                  isActive 
+                    ? 'bg-gradient-primary text-white shadow-glow-md transform scale-[1.02]' 
+                    : 'glass-button text-gray-700 hover:text-gray-900 hover:scale-[1.01]'
                 }`}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50"></div>
+                )}
+                <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-accent-primary'}`} />
+                <span className="font-medium relative z-10">{item.label}</span>
+                {isActive && (
+                  <div className="absolute right-2 w-2 h-2 bg-white rounded-full animate-pulse-soft"></div>
+                )}
               </button>
             );
           })}
         </nav>
         
         {/* Advanced Search Button */}
-        <div className="px-6 mt-6">
+        <div className="p-4 border-t border-white/20">
           <button
             onClick={() => setShowAdvancedSearch(true)}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+            className="w-full p-4 glass-heavy text-gray-700 rounded-glass hover:shadow-glow-sm transition-all duration-300 flex items-center justify-center space-x-2 group"
           >
-            <Search className="w-4 h-4 mr-2" />
-            Advanced Search
+            <Search className="w-5 h-5 text-accent-primary group-hover:animate-pulse" />
+            <span className="font-medium">Advanced Search</span>
           </button>
+        </div>
+        
+        {/* Sidebar footer */}
+        <div className="absolute bottom-4 left-4 right-4 p-3 glass rounded-glass">
+          <div className="text-xs text-gray-500 text-center">
+            <div className="flex items-center justify-center space-x-1">
+              <div className="w-2 h-2 bg-accent-success rounded-full animate-pulse-soft"></div>
+              <span>System Online</span>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="flex-1 relative flex flex-col m-4 ml-0">
+        {/* Content Container */}
+        <div className="flex-1 glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg overflow-hidden">
+          <div className="h-full p-6 overflow-auto">
+            <div className="max-w-full mx-auto">
         {activeSection === 'dashboard' && (
           <Dashboard 
             people={people}
@@ -233,12 +270,12 @@ const App = () => {
 
         {activeSection === 'relationships' && (
           <div className="h-full flex flex-col overflow-hidden">
-            <div className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">Entity Relationship Network</h1>
+            <div className="glass-heavy backdrop-blur-lg border-b border-white/20 px-6 py-4 flex-shrink-0 rounded-glass-lg mb-4">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Entity Relationship Network</h1>
               <p className="text-gray-600 mt-1">Visualize connections between people, businesses, locations, and more</p>
             </div>
-            <div className="flex-1 min-h-0 p-6">
-              <div className="bg-white rounded-lg shadow-sm border h-full overflow-hidden">
+            <div className="flex-1 min-h-0">
+              <div className="glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg h-full overflow-hidden">
                 <EnhancedRelationshipManager />
               </div>
             </div>
@@ -258,6 +295,9 @@ const App = () => {
             setAppSettings={setAppSettings}
           />
         )}
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Modals */}

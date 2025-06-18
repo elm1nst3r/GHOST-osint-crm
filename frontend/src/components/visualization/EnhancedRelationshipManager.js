@@ -52,14 +52,24 @@ const EnhancedRelationshipManager = ({
         params.append('entity_id', businessId);
       }
       
+      console.log('Fetching from URL:', `/api/entity-network?${params}`);
       const response = await fetch(`/api/entity-network?${params}`);
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch entity network: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error text:', errorText);
+        throw new Error(`Failed to fetch entity network: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Entity network data:', data);
+      console.log('Entity network data received:', data);
+      
+      if (!data || (!data.nodes && !data.edges)) {
+        throw new Error('Invalid data format received from API');
+      }
       
       setEntityNetworkData(data);
     } catch (err) {
@@ -186,18 +196,31 @@ const EnhancedRelationshipManager = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600">Loading entity network...</span>
+      <div className="flex items-center justify-center h-64 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg m-4">
+        <div className="text-center p-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-accent-primary" />
+          <span className="text-gray-700 font-medium">Loading entity network...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <AlertCircle className="w-8 h-8 text-red-500" />
-        <span className="ml-2 text-red-600">Error: {error}</span>
+      <div className="flex items-center justify-center h-64 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg m-4">
+        <div className="text-center p-8 max-w-md">
+          <AlertCircle className="w-8 h-8 mx-auto mb-4 text-accent-danger" />
+          <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">Load Failed</h3>
+          <p className="text-red-600 font-medium mb-4">{error}</p>
+          <p className="text-xs text-gray-500 mb-6">Check browser console (F12) for detailed error information</p>
+          <button
+            onClick={fetchEntityNetwork}
+            className="px-6 py-3 bg-gradient-primary text-white rounded-glass hover:shadow-glow-md transition-all duration-300 flex items-center mx-auto group"
+          >
+            <RefreshCw className="w-4 h-4 mr-2 group-hover:animate-spin" />
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
