@@ -366,9 +366,9 @@ Confidence: ${result.result.confidence}%`);
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 mb-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 mb-4 transition-colors duration-300">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Global Location Map</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Global Location Map</h1>
           <div className="flex items-center space-x-4">
             {/* Geocode button */}
             {missingCoordinates > 0 && (

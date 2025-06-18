@@ -109,14 +109,14 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Active People */}
         <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 hover:shadow-glass-xl transition-all duration-300">
-          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-4">Recent Active People/Cases</h3>
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent mb-4">Recent Active People/Cases</h3>
           <div className="space-y-3">
             {activePeople.map(person => (
               <div key={person.id} className="flex items-center justify-between p-4 glass rounded-glass-lg hover:glass-heavy transition-all duration-300 group">
                 <div>
-                  <p className="font-semibold text-gray-900">{getFullName(person)}</p>
-                  <p className="text-sm text-gray-600">{person.case_name || 'No case assigned'}</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">{getFullName(person)}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{person.case_name || 'No case assigned'}</p>
+                  <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
                     <Network className="w-4 h-4 mr-1 text-accent-primary" />
                     {getRelationshipCount(person.id)} connections
                   </div>
@@ -134,7 +134,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
 
         {/* To-Do List */}
         <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 hover:shadow-glass-xl transition-all duration-300">
-          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-4">To-Do List</h3>
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent mb-4">To-Do List</h3>
           <div className="mb-4 flex space-x-3">
             <input
               type="text"
@@ -162,7 +162,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                   )}
                 </div>
                 <span className={`flex-1 min-w-0 ${
-                  (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-gray-500' : 'text-gray-900'
+                  (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'
                 }`}>
                   {todo.text}
                 </span>
@@ -214,7 +214,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
       {/* Global Relationship Overview */}
       <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 hover:shadow-glass-xl transition-all duration-300">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Global Relationship Overview</h3>
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">Global Relationship Overview</h3>
           <button
             onClick={() => setActiveSection('relationships')}
             className="px-4 py-2 text-accent-primary hover:bg-gradient-primary hover:text-white rounded-glass transition-all duration-300 font-medium hover:shadow-glow-sm"

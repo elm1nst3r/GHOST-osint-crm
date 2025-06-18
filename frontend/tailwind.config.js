@@ -5,6 +5,7 @@ module.exports = {
       "./src/**/*.{js,jsx,ts,tsx}", // Scan all JS/JSX/TS/TSX files in the src directory
       "./public/index.html",      // Scan your main HTML file
     ],
+    darkMode: 'class', // Enable class-based dark mode
     theme: {
       extend: {
         fontFamily: {
@@ -128,6 +129,13 @@ module.exports = {
             borderRadius: '16px',
             boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
           },
+          '.dark .glass-card': {
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+          },
           '.glass-button': {
             background: 'rgba(255, 255, 255, 0.15)',
             backdropFilter: 'blur(12px)',
@@ -136,6 +144,28 @@ module.exports = {
           },
           '.glass-button:hover': {
             background: 'rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 0 20px rgba(0, 122, 255, 0.3)',
+          },
+          '.dark .glass': {
+            background: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+          },
+          '.dark .glass-heavy': {
+            background: 'rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 15px 35px 0 rgba(0, 0, 0, 0.6)',
+          },
+          '.dark .glass-button': {
+            background: 'rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.3s ease',
+          },
+          '.dark .glass-button:hover': {
+            background: 'rgba(0, 0, 0, 0.35)',
             boxShadow: '0 0 20px rgba(0, 122, 255, 0.3)',
           },
         }

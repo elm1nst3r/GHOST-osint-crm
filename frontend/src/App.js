@@ -28,6 +28,7 @@ import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import EnhancedRelationshipManager from './components/visualization/EnhancedRelationshipManager';
+import DarkModeToggle from './components/DarkModeToggle';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -56,6 +57,11 @@ const App = () => {
   const [editingTool, setEditingTool] = useState(null);
   const [selectedPersonForDetail, setSelectedPersonForDetail] = useState(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Check localStorage for saved preference, default to false
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Data fetching functions
   const fetchPeople = async () => {
@@ -118,6 +124,19 @@ const App = () => {
     }
   }, []);
 
+  // Handle dark mode changes
+  useEffect(() => {
+    // Save preference to localStorage
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    
+    // Apply dark class to document element
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   // Handle app name change
   const handleAppNameChange = (newName) => {
     const updatedSettings = { ...appSettings, appName: newName };
@@ -138,7 +157,7 @@ const App = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 relative overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden transition-colors duration-500">
       {/* Mobile overlay for small screens */}
       <div className="lg:hidden fixed inset-0 bg-black/50 z-40" style={{ display: 'none' }} id="mobile-overlay"></div>
       {/* Background decoration */}
@@ -151,18 +170,22 @@ const App = () => {
       <div className="relative w-72 lg:w-72 md:w-64 sm:w-56 glass-card m-4 rounded-glass-lg backdrop-blur-xl border border-white/30 shadow-glass-lg flex-shrink-0">
         {/* Header */}
         <div className="p-6 border-b border-white/20">
-          <div className="flex items-center space-x-3">
-            {appSettings.appLogo ? (
-              <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
-            ) : (
-              <div className="p-2 rounded-xl bg-gradient-primary shadow-glow-sm">
-                <Shield className="w-8 h-8 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {appSettings.appLogo ? (
+                <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
+              ) : (
+                <div className="p-2 rounded-xl bg-gradient-primary shadow-glow-sm">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">{appSettings.appName}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">OSINT Investigation Suite</p>
               </div>
-            )}
-            <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">{appSettings.appName}</h2>
-              <p className="text-sm text-gray-500 font-medium">OSINT Investigation Suite</p>
             </div>
+            {/* Dark Mode Toggle */}
+            <DarkModeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
           </div>
         </div>
         
@@ -178,14 +201,14 @@ const App = () => {
                 className={`w-full text-left p-4 rounded-glass transition-all duration-300 flex items-center space-x-3 group relative overflow-hidden ${
                   isActive 
                     ? 'bg-gradient-primary text-white shadow-glow-md transform scale-[1.02]' 
-                    : 'glass-button text-gray-700 hover:text-gray-900 hover:scale-[1.01]'
+                    : 'glass-button text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:scale-[1.01]'
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 {isActive && (
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50"></div>
                 )}
-                <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-accent-primary'}`} />
+                <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-accent-primary'}`} />
                 <span className="font-medium relative z-10">{item.label}</span>
                 {isActive && (
                   <div className="absolute right-2 w-2 h-2 bg-white rounded-full animate-pulse-soft"></div>
@@ -208,7 +231,7 @@ const App = () => {
         
         {/* Sidebar footer */}
         <div className="absolute bottom-4 left-4 right-4 p-3 glass rounded-glass">
-          <div className="text-xs text-gray-500 text-center">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
             <div className="flex items-center justify-center space-x-1">
               <div className="w-2 h-2 bg-accent-success rounded-full animate-pulse-soft"></div>
               <span>System Online</span>
