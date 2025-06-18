@@ -276,11 +276,14 @@ const App = () => {
           <div className="h-full flex flex-col overflow-hidden">
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
               <h1 className="text-2xl font-bold text-gray-900">Entity Relationship Network</h1>
-              <p className="text-gray-600 mt-1">Visualize connections between people, businesses, locations, and more</p>
+              <p className="text-gray-600 mt-1">Visualize connections between people and businesses</p>
             </div>
             <div className="flex-1 min-h-0">
               <div className="bg-white border border-gray-200 h-full overflow-hidden">
-                <EnhancedRelationshipManager />
+                <RelationshipManager 
+                  showInModal={false}
+                  onClose={() => {}}
+                />
               </div>
             </div>
           </div>

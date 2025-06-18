@@ -6,7 +6,7 @@ import {
   Maximize2, RefreshCw, Bug, Filter, X, Search,
   Briefcase, Tag, CheckCircle
 } from 'lucide-react';
-import { peopleAPI, casesAPI } from '../../utils/api';
+import { peopleAPI, casesAPI, businessesAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -16,6 +16,7 @@ const RelationshipManager = ({
   onClose = null
 }) => {
   const [people, setPeople] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -95,6 +96,32 @@ const RelationshipManager = ({
     }
   }, []);
 
+  // Fetch businesses
+  const fetchBusinesses = useCallback(async () => {
+    try {
+      console.log('=== RelationshipManager: Fetching businesses ===');
+      const data = await businessesAPI.getAll();
+      console.log('Fetched businesses count:', data.length);
+      
+      // Transform businesses to have a similar structure to people for the diagram
+      const transformedBusinesses = data.map(business => ({
+        id: `business-${business.id}`, // Prefix to avoid ID conflicts
+        first_name: business.name,
+        last_name: '',
+        category: 'Business',
+        type: 'business',
+        businessData: business, // Keep original business data
+        connections: [], // Businesses don't have direct connections in the current schema
+        status: business.status || 'Active',
+        case_name: business.case_name
+      }));
+      
+      setBusinesses(transformedBusinesses);
+    } catch (err) {
+      console.error('Error fetching businesses:', err);
+    }
+  }, []);
+
   // Fetch cases
   const fetchCases = useCallback(async () => {
     try {
@@ -107,8 +134,9 @@ const RelationshipManager = ({
 
   useEffect(() => {
     fetchPeople();
+    fetchBusinesses();
     fetchCases();
-  }, [fetchPeople, fetchCases]);
+  }, [fetchPeople, fetchBusinesses, fetchCases]);
 
   // Update connection between two people
   const updateConnection = useCallback(async (sourceId, targetId, type, note) => {
@@ -238,9 +266,11 @@ const RelationshipManager = ({
     }
   }, [people, fetchPeople]);
 
-  // Apply filters to people
+  // Apply filters to people and businesses
   const applyFilters = useCallback(() => {
-    let filtered = [...people];
+    // Combine people and businesses
+    let allEntities = [...people, ...businesses];
+    let filtered = allEntities;
     
     // Text search
     if (filters.searchTerm) {
@@ -338,21 +368,21 @@ const RelationshipManager = ({
       });
       
       // Add people who are connected to filtered people
-      people.forEach(person => {
-        if (person.connections) {
-          person.connections.forEach(conn => {
+      allEntities.forEach(entity => {
+        if (entity.connections) {
+          entity.connections.forEach(conn => {
             if (connectedIds.has(conn.person_id)) {
-              connectedIds.add(person.id);
+              connectedIds.add(entity.id);
             }
           });
         }
       });
       
-      filtered = people.filter(p => connectedIds.has(p.id));
+      filtered = allEntities.filter(e => connectedIds.has(e.id));
     }
     
     return filtered;
-  }, [people, filters]);
+  }, [people, businesses, filters]);
 
   // Get filtered people
   const filteredPeople = personId ? (() => {
@@ -383,10 +413,11 @@ const RelationshipManager = ({
   })() : applyFilters();
 
   // Get unique values for filters
-  const uniqueCategories = [...new Set(people.map(p => p.category).filter(Boolean))];
-  const uniqueStatuses = [...new Set(people.map(p => p.status).filter(Boolean))];
+  const allEntities = [...people, ...businesses];
+  const uniqueCategories = [...new Set(allEntities.map(e => e.category).filter(Boolean))];
+  const uniqueStatuses = [...new Set(allEntities.map(e => e.status).filter(Boolean))];
   const uniqueConnectionTypes = [...new Set(
-    people.flatMap(p => (p.connections || []).map(c => c.type)).filter(Boolean)
+    allEntities.flatMap(e => (e.connections || []).map(c => c.type)).filter(Boolean)
   )];
 
   // Reset filters
@@ -447,7 +478,7 @@ const RelationshipManager = ({
             {personId ? 'Person Relationships' : 'Global Relationship Network'}
           </h3>
           <span className="text-sm text-gray-500">
-            ({filteredPeople.length} of {people.length} people)
+            ({filteredPeople.length} entities: {filteredPeople.filter(e => !e.type || e.type !== 'business').length} people, {filteredPeople.filter(e => e.type === 'business').length} businesses)
           </span>
         </div>
         
@@ -742,12 +773,13 @@ const RelationshipManager = ({
             <summary className="cursor-pointer font-medium">Debug Information</summary>
             <div className="mt-2 space-y-1">
               <div>Total People: {people.length}</div>
-              <div>Filtered People: {filteredPeople.length}</div>
+              <div>Total Businesses: {businesses.length}</div>
+              <div>Filtered Entities: {filteredPeople.length}</div>
               <div>
-                People with connections: {people.filter(p => p.connections && p.connections.length > 0).length}
+                Entities with connections: {[...people, ...businesses].filter(e => e.connections && e.connections.length > 0).length}
               </div>
               <div>
-                Total connections: {people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)}
+                Total connections: {[...people, ...businesses].reduce((sum, e) => sum + (e.connections?.length || 0), 0)}
               </div>
               <div>Active Filters: {activeFilterCount}</div>
             </div>

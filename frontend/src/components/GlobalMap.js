@@ -354,9 +354,9 @@ Confidence: ${result.result.confidence}%`);
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg m-4">
+      <div className="h-full flex items-center justify-center bg-white border border-gray-200 shadow-lg rounded-lg m-4">
         <div className="text-center p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-700 font-medium">Loading map data...</p>
         </div>
       </div>
@@ -436,11 +436,11 @@ Confidence: ${result.result.confidence}%`);
       
       {/* Map */}
       <div className="flex-1 relative">
-        <div className="bg-white border border-gray-200 shadow-lg rounded-lg h-full overflow-hidden">
+        <div className="bg-white border border-gray-200 shadow-lg rounded-lg h-full overflow-hidden" style={{ isolation: 'isolate' }}>
           <MapContainer
             center={[20, 0]}
             zoom={2}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', zIndex: 1 }}
             worldCopyJump={true}
           >
           <TileLayer
@@ -615,7 +615,7 @@ Confidence: ${result.result.confidence}%`);
                     setNewLocationData({ address: '', personId: null });
                     setAddressSuggestions([]);
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-glass hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
                 >
                   Cancel
                 </button>

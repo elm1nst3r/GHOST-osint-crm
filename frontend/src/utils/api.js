@@ -48,6 +48,25 @@ export const peopleAPI = {
   }),
 };
 
+// Businesses API
+export const businessesAPI = {
+  getAll: () => fetchAPI('/businesses'),
+  
+  create: (businessData) => fetchAPI('/businesses', {
+    method: 'POST',
+    body: JSON.stringify(businessData),
+  }),
+  
+  update: (id, businessData) => fetchAPI(`/businesses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(businessData),
+  }),
+  
+  delete: (id) => fetchAPI(`/businesses/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Tools API
 export const toolsAPI = {
   getAll: () => fetchAPI('/tools'),
