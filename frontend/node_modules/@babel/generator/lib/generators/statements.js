@@ -22,7 +22,6 @@ exports.VariableDeclarator = VariableDeclarator;
 exports.WhileStatement = WhileStatement;
 exports.WithStatement = WithStatement;
 var _t = require("@babel/types");
-var _index = require("../node/index.js");
 const {
   isFor,
   isForStatement,
@@ -78,7 +77,6 @@ function ForStatement(node) {
   this.tokenChar(40);
   {
     const exit = this.enterForStatementInit();
-    this.tokenContext |= _index.TokenContext.forHead;
     this.print(node.init);
     exit();
   }
@@ -114,8 +112,7 @@ function ForXStatement(node) {
   this.noIndentInnerCommentsHere();
   this.tokenChar(40);
   {
-    const exit = isForOf ? null : this.enterForStatementInit();
-    this.tokenContext |= isForOf ? _index.TokenContext.forOfHead : _index.TokenContext.forInHead;
+    const exit = this.enterForXStatementInit(isForOf);
     this.print(node.left);
     exit == null || exit();
   }

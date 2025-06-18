@@ -84,7 +84,7 @@ const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) =>
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-xl rounded-glass-xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-float">
+        <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-xl rounded-glass-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
           {/* Header */}
           <div className="p-6 border-b border-white/20 flex justify-between items-center">
             <div className="flex items-center space-x-4">

@@ -1,13 +1,13 @@
 // File: frontend/src/components/ReportGenerator.js
 import React, { useState, useEffect } from 'react';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, BorderStyle, WidthType, PageBreak } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { 
   FileText, Download, Settings, Check, Calendar, 
   User, Users, MapPin, Network, Clock, Shield, AlertCircle,
   ChevronRight, Loader2, X
 } from 'lucide-react';
-import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, todosAPI, auditAPI } from '../utils/api';
+import { peopleAPI, casesAPI, todosAPI, auditAPI, businessesAPI, locationsAPI } from '../utils/api';
 
 const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const [data, setData] = useState({
     cases: [],
     people: [],
+    businesses: [],
+    locations: [],
     todos: [],
     auditLogs: [],
     selectedCase: null,
@@ -42,9 +44,11 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [casesData, peopleData, todosData] = await Promise.all([
+      const [casesData, peopleData, businessesData, locationsData, todosData] = await Promise.all([
         casesAPI.getAll(),
         peopleAPI.getAll(),
+        businessesAPI.getAll(),
+        locationsAPI.getAll(),
         todosAPI.getAll()
       ]);
 
@@ -73,6 +77,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       setData({
         cases: casesData,
         people: filteredPeople,
+        businesses: businessesData,
+        locations: locationsData,
         todos: todosData,
         auditLogs,
         selectedCase,
@@ -110,102 +116,460 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     });
   };
 
+  const generateMarkdown = async () => {
+    setGenerating(true);
+    
+    try {
+      let markdown = '';
+      
+      // Title and Header
+      markdown += `# 🔍 INVESTIGATION REPORT\n\n`;
+      
+      const reportTitle = data.selectedCase ? data.selectedCase.case_name : 
+                         data.selectedPerson ? getFullName(data.selectedPerson) : "General Report";
+      
+      markdown += `## ${reportTitle}\n\n`;
+      markdown += `**Generated:** ${formatDateTime(new Date())}  \n`;
+      markdown += `**Report ID:** RPT-${Date.now()}  \n`;
+      markdown += `**Classification:** 🔒 CONFIDENTIAL\n\n`;
+      
+      markdown += `---\n\n`;
+      
+      // Summary Statistics
+      markdown += `## 📊 SUMMARY STATISTICS\n\n`;
+      
+      const totalConnections = data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+      const activeTasks = data.todos.filter(t => t.status !== 'done').length;
+      
+      markdown += `| Metric | Count |\n`;
+      markdown += `|--------|-------|\n`;
+      markdown += `| 👥 People | ${data.people.length} |\n`;
+      markdown += `| 🏢 Businesses | ${data.businesses.length} |\n`;
+      markdown += `| 📍 Locations | ${data.locations.length} |\n`;
+      markdown += `| 🔗 Connections | ${totalConnections} |\n`;
+      markdown += `| ✅ Active Tasks | ${activeTasks} |\n\n`;
+      
+      // Executive Summary
+      if (reportOptions.includeSummary) {
+        markdown += `## 📋 EXECUTIVE SUMMARY\n\n`;
+        
+        if (data.selectedCase) {
+          markdown += `This report covers the investigation case **"${data.selectedCase.case_name}"**.  \n`;
+          markdown += `**Status:** ${data.selectedCase.status || 'Active'}  \n\n`;
+          markdown += `The case involves ${data.people.length} individuals with ${totalConnections} documented connections.\n\n`;
+        } else {
+          markdown += `This comprehensive report includes ${data.people.length} individuals and ${totalConnections} documented relationships.\n\n`;
+        }
+        
+        // Key insights
+        markdown += `### 🎯 Key Insights\n\n`;
+        
+        if (data.people.length > 0) {
+          const categories = [...new Set(data.people.map(p => p.category).filter(Boolean))];
+          markdown += `- **${categories.length}** different person categories tracked\n`;
+        }
+        
+        if (totalConnections > 0) {
+          const avgConnections = (totalConnections / data.people.length).toFixed(1);
+          markdown += `- **${avgConnections}** average connections per person\n`;
+        }
+        
+        if (data.businesses.length > 0) {
+          markdown += `- **${data.businesses.length}** business entities in scope\n`;
+        }
+        
+        markdown += `\n`;
+      }
+      
+      // People Profiles
+      if (reportOptions.includePeople && data.people.length > 0) {
+        markdown += `## 👥 PEOPLE PROFILES\n\n`;
+        
+        // People summary table
+        markdown += `### Overview\n\n`;
+        markdown += `| Name | Category | Status | Connections | Case |\n`;
+        markdown += `|------|----------|--------|-------------| ---- |\n`;
+        
+        data.people.forEach(person => {
+          const name = getFullName(person);
+          const category = person.category || 'N/A';
+          const status = person.status || 'N/A';
+          const connections = person.connections?.length || 0;
+          const caseName = person.case_name || 'N/A';
+          markdown += `| ${name} | ${category} | ${status} | ${connections} | ${caseName} |\n`;
+        });
+        
+        markdown += `\n### Detailed Profiles\n\n`;
+        
+        data.people.forEach((person, index) => {
+          markdown += `#### ${index + 1}. ${getFullName(person)}\n\n`;
+          
+          markdown += `**Basic Information:**\n`;
+          markdown += `- **Category:** ${person.category || 'N/A'}\n`;
+          markdown += `- **Status:** ${person.status || 'N/A'}\n`;
+          markdown += `- **Case:** ${person.case_name || 'N/A'}\n`;
+          
+          if (person.date_of_birth) {
+            markdown += `- **Date of Birth:** ${formatDate(person.date_of_birth)}\n`;
+          }
+          
+          if (person.aliases && person.aliases.length > 0) {
+            markdown += `- **Known Aliases:** ${person.aliases.join(', ')}\n`;
+          }
+          
+          markdown += `- **Connections:** ${person.connections?.length || 0}\n\n`;
+          
+          if (person.notes) {
+            markdown += `**Notes:**\n`;
+            markdown += `> ${person.notes}\n\n`;
+          }
+        });
+      }
+      
+      // Business Profiles
+      if (data.businesses.length > 0) {
+        markdown += `## 🏢 BUSINESS PROFILES\n\n`;
+        
+        // Business summary table
+        markdown += `| Name | Industry | Address | Website |\n`;
+        markdown += `|------|----------|---------|----------|\n`;
+        
+        data.businesses.forEach(business => {
+          const name = business.name || 'Unknown';
+          const industry = business.industry || 'N/A';
+          const address = business.address || 'N/A';
+          const website = business.website || 'N/A';
+          markdown += `| ${name} | ${industry} | ${address} | ${website} |\n`;
+        });
+        
+        markdown += `\n### Detailed Business Information\n\n`;
+        
+        data.businesses.forEach((business, index) => {
+          markdown += `#### ${index + 1}. ${business.name || 'Unknown Business'}\n\n`;
+          
+          if (business.industry) {
+            markdown += `**Industry:** ${business.industry}  \n`;
+          }
+          
+          if (business.address) {
+            markdown += `**Address:** ${business.address}  \n`;
+          }
+          
+          if (business.website) {
+            markdown += `**Website:** [${business.website}](${business.website})  \n`;
+          }
+          
+          if (business.description) {
+            markdown += `\n**Description:**\n`;
+            markdown += `${business.description}\n\n`;
+          } else {
+            markdown += `\n`;
+          }
+        });
+      }
+      
+      // Connections Analysis
+      if (reportOptions.includeConnections && totalConnections > 0) {
+        markdown += `## 🔗 CONNECTIONS ANALYSIS\n\n`;
+        
+        markdown += `**Total Documented Connections:** ${totalConnections}\n\n`;
+        
+        // Connection matrix
+        markdown += `### Connection Details\n\n`;
+        markdown += `| From | To | Relationship | Notes |\n`;
+        markdown += `|------|----|--------------| ----- |\n`;
+        
+        data.people.forEach(person => {
+          if (person.connections && person.connections.length > 0) {
+            person.connections.forEach(conn => {
+              const targetPerson = data.people.find(p => p.id === conn.person_id);
+              if (targetPerson) {
+                const fromName = getFullName(person);
+                const toName = getFullName(targetPerson);
+                const type = conn.type || 'Unknown';
+                const note = conn.note || '';
+                markdown += `| ${fromName} | ${toName} | ${type} | ${note} |\n`;
+              }
+            });
+          }
+        });
+        
+        markdown += `\n`;
+      }
+      
+      // Location Analysis
+      if (reportOptions.includeLocations && data.locations.length > 0) {
+        markdown += `## 📍 LOCATION ANALYSIS\n\n`;
+        
+        markdown += `**Total Locations Tracked:** ${data.locations.length}\n\n`;
+        
+        // Group locations by type
+        const locationsByType = {};
+        data.locations.forEach(loc => {
+          const type = loc.type || 'Unknown';
+          if (!locationsByType[type]) {
+            locationsByType[type] = [];
+          }
+          locationsByType[type].push(loc);
+        });
+        
+        Object.entries(locationsByType).forEach(([type, locations]) => {
+          markdown += `### ${type} (${locations.length} locations)\n\n`;
+          
+          markdown += `| Location | Coordinates | Details |\n`;
+          markdown += `|----------|-------------|----------|\n`;
+          
+          locations.slice(0, 10).forEach(location => {
+            const name = location.address || location.name || 'Unknown Location';
+            const coords = location.coordinates ? `${location.coordinates.lat}, ${location.coordinates.lng}` : 'N/A';
+            const details = location.description || '';
+            markdown += `| ${name} | ${coords} | ${details} |\n`;
+          });
+          
+          if (locations.length > 10) {
+            markdown += `\n*... and ${locations.length - 10} more locations*\n`;
+          }
+          
+          markdown += `\n`;
+        });
+      }
+      
+      // Tasks/Todos
+      if (reportOptions.includeTodos && data.todos.length > 0) {
+        markdown += `## ✅ INVESTIGATION TASKS\n\n`;
+        
+        const openTodos = data.todos.filter(t => t.status === 'open').length;
+        const inProgressTodos = data.todos.filter(t => t.status === 'in_progress').length;
+        const doneTodos = data.todos.filter(t => t.status === 'done').length;
+        
+        markdown += `**Task Summary:** Open: ${openTodos} | In Progress: ${inProgressTodos} | Completed: ${doneTodos}\n\n`;
+        
+        // Task breakdown by status
+        const tasksByStatus = {
+          'open': data.todos.filter(t => t.status === 'open'),
+          'in_progress': data.todos.filter(t => t.status === 'in_progress'),
+          'done': data.todos.filter(t => t.status === 'done')
+        };
+        
+        Object.entries(tasksByStatus).forEach(([status, tasks]) => {
+          if (tasks.length === 0) return;
+          
+          const statusEmoji = status === 'done' ? '✅' : status === 'in_progress' ? '🔄' : '📋';
+          markdown += `### ${statusEmoji} ${status.replace('_', ' ').toUpperCase()} (${tasks.length})\n\n`;
+          
+          tasks.forEach((todo, idx) => {
+            markdown += `${idx + 1}. **${todo.text}**  \n`;
+            markdown += `   *Created: ${formatDate(todo.created_at)}*\n\n`;
+          });
+        });
+      }
+      
+      // Statistical Analysis
+      if (reportOptions.includeCharts) {
+        markdown += `## 📈 STATISTICAL ANALYSIS\n\n`;
+        
+        // People by category breakdown
+        const peopleByCategory = {};
+        data.people.forEach(person => {
+          const category = person.category || 'Unknown';
+          peopleByCategory[category] = (peopleByCategory[category] || 0) + 1;
+        });
+        
+        markdown += `### People by Category\n\n`;
+        markdown += `| Category | Count | Percentage |\n`;
+        markdown += `|----------|-------|------------|\n`;
+        
+        Object.entries(peopleByCategory).forEach(([category, count]) => {
+          const percentage = ((count / data.people.length) * 100).toFixed(1);
+          markdown += `| ${category} | ${count} | ${percentage}% |\n`;
+        });
+        
+        markdown += `\n`;
+        
+        // Task completion analysis
+        if (data.todos.length > 0) {
+          const openTodos = data.todos.filter(t => t.status === 'open').length;
+          const inProgressTodos = data.todos.filter(t => t.status === 'in_progress').length;
+          const doneTodos = data.todos.filter(t => t.status === 'done').length;
+          
+          const completionRate = ((doneTodos / data.todos.length) * 100).toFixed(1);
+          
+          markdown += `### Task Progress\n\n`;
+          markdown += `**Overall Completion Rate:** ${completionRate}%\n\n`;
+          
+          markdown += `\`\`\`\n`;
+          markdown += `Task Distribution:\n`;
+          markdown += `├─ Open: ${openTodos} (${((openTodos / data.todos.length) * 100).toFixed(1)}%)\n`;
+          markdown += `├─ In Progress: ${inProgressTodos} (${((inProgressTodos / data.todos.length) * 100).toFixed(1)}%)\n`;
+          markdown += `└─ Completed: ${doneTodos} (${((doneTodos / data.todos.length) * 100).toFixed(1)}%)\n`;
+          markdown += `\`\`\`\n\n`;
+        }
+        
+        // Network analysis
+        if (totalConnections > 0) {
+          markdown += `### Network Analysis\n\n`;
+          
+          const avgConnections = (totalConnections / data.people.length).toFixed(2);
+          markdown += `**Average connections per person:** ${avgConnections}\n\n`;
+          
+          const mostConnected = data.people
+            .map(p => ({ name: getFullName(p), connections: p.connections?.length || 0 }))
+            .sort((a, b) => b.connections - a.connections)
+            .slice(0, 5);
+          
+          markdown += `**Most Connected Individuals:**\n\n`;
+          mostConnected.forEach((person, idx) => {
+            markdown += `${idx + 1}. **${person.name}** - ${person.connections} connections\n`;
+          });
+          
+          markdown += `\n`;
+        }
+      }
+      
+      // Report Footer
+      markdown += `---\n\n`;
+      markdown += `## 📄 REPORT INFORMATION\n\n`;
+      markdown += `**Generated By:** GHOST OSINT Investigation CRM  \n`;
+      markdown += `**Generation Date:** ${formatDateTime(new Date())}  \n`;
+      markdown += `**Report ID:** RPT-${Date.now()}  \n`;
+      markdown += `**Classification:** 🔒 CONFIDENTIAL\n\n`;
+      markdown += `> This report contains confidential information and is intended solely for authorized personnel.\n\n`;
+      markdown += `---\n`;
+      markdown += `*End of Report*`;
+      
+      // Create and download the markdown file
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const filename = `investigation-report-${Date.now()}.md`;
+      saveAs(blob, filename);
+      
+      alert('Markdown report generated successfully! The file has been downloaded.');
+      
+    } catch (error) {
+      console.error('Error generating Markdown document:', error);
+      alert('Failed to generate Markdown document. Error: ' + error.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const generateWord = async () => {
     setGenerating(true);
     
     try {
+      // Create a very simple document structure
       const children = [];
 
-      // Title Page
+      // Title
       children.push(
         new Paragraph({
           text: "INVESTIGATION REPORT",
           heading: HeadingLevel.TITLE,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 400 }
-        }),
+          alignment: AlignmentType.CENTER
+        })
+      );
+
+      // Subtitle
+      const reportTitle = data.selectedCase ? data.selectedCase.case_name : 
+                         data.selectedPerson ? getFullName(data.selectedPerson) : "General Report";
+      
+      children.push(
         new Paragraph({
-          text: data.selectedCase ? data.selectedCase.case_name : 
-                data.selectedPerson ? getFullName(data.selectedPerson) : "General Report",
+          text: reportTitle,
           heading: HeadingLevel.HEADING_1,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 600 }
-        }),
+          alignment: AlignmentType.CENTER
+        })
+      );
+
+      // Generation date
+      children.push(
         new Paragraph({
           text: `Generated: ${formatDateTime(new Date())}`,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 800 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: "Report Type: ",
-              bold: true
-            }),
-            new TextRun({
-              text: reportOptions.reportType.charAt(0).toUpperCase() + reportOptions.reportType.slice(1)
-            })
-          ],
-          spacing: { after: 200 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: "Total People: ",
-              bold: true
-            }),
-            new TextRun({
-              text: data.people.length.toString()
-            })
-          ],
-          spacing: { after: 200 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: "Total Connections: ",
-              bold: true
-            }),
-            new TextRun({
-              text: data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0).toString()
-            })
-          ],
-          spacing: { after: 200 }
-        }),
-        new PageBreak()
+          alignment: AlignmentType.CENTER
+        })
       );
+
+      // Empty line
+      children.push(new Paragraph({ text: "" }));
+
+      // Summary information
+      children.push(
+        new Paragraph({
+          text: "SUMMARY STATISTICS",
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Total People: ${data.people.length}`,
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Total Businesses: ${data.businesses.length}`,
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Total Locations: ${data.locations.length}`,
+        })
+      );
+
+      const totalConnections = data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+      children.push(
+        new Paragraph({
+          text: `Total Connections: ${totalConnections}`,
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Active Tasks: ${data.todos.filter(t => t.status !== 'done').length}`,
+        })
+      );
+
+      // Empty line
+      children.push(new Paragraph({ text: "" }));
 
       // Executive Summary
       if (reportOptions.includeSummary) {
         children.push(
           new Paragraph({
             text: "Executive Summary",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 300 }
+            heading: HeadingLevel.HEADING_1
           })
         );
 
         if (data.selectedCase) {
           children.push(
             new Paragraph({
-              text: `This report covers the investigation case "${data.selectedCase.case_name}".`,
-              spacing: { after: 200 }
-            }),
+              text: `This report covers the investigation case "${data.selectedCase.case_name}".`
+            })
+          );
+          
+          children.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: "Status: ", bold: true }),
-                new TextRun({ text: data.selectedCase.status || 'Active' })
-              ],
-              spacing: { after: 200 }
-            }),
+              text: `Status: ${data.selectedCase.status || 'Active'}`
+            })
+          );
+
+          children.push(
             new Paragraph({
-              text: `The case involves ${data.people.length} individuals with ${data.people.reduce((sum, p) => sum + (p.connections?.length || 0), 0)} documented connections.`,
-              spacing: { after: 200 }
+              text: `The case involves ${data.people.length} individuals with ${totalConnections} documented connections.`
+            })
+          );
+        } else {
+          children.push(
+            new Paragraph({
+              text: `This comprehensive report includes ${data.people.length} individuals and ${totalConnections} documented relationships.`
             })
           );
         }
 
-        children.push(new PageBreak());
+        children.push(new Paragraph({ text: "" }));
       }
 
       // People Profiles
@@ -213,8 +577,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         children.push(
           new Paragraph({
             text: "People Profiles",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 300 }
+            heading: HeadingLevel.HEADING_1
           })
         );
 
@@ -222,208 +585,419 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
           children.push(
             new Paragraph({
               text: `${index + 1}. ${getFullName(person)}`,
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 400, after: 200 }
+              heading: HeadingLevel.HEADING_2
             })
           );
 
-          // Basic info as paragraphs instead of table
           children.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: "Category: ", bold: true }),
-                new TextRun({ text: person.category || 'N/A' })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Status: ", bold: true }),
-                new TextRun({ text: person.status || 'N/A' })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Case: ", bold: true }),
-                new TextRun({ text: person.case_name || 'N/A' })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Connections: ", bold: true }),
-                new TextRun({ text: (person.connections?.length || 0).toString() })
-              ],
-              spacing: { after: 200 }
+              text: `Category: ${person.category || 'N/A'}`
             })
           );
+
+          children.push(
+            new Paragraph({
+              text: `Status: ${person.status || 'N/A'}`
+            })
+          );
+
+          children.push(
+            new Paragraph({
+              text: `Case: ${person.case_name || 'N/A'}`
+            })
+          );
+
+          if (person.date_of_birth) {
+            children.push(
+              new Paragraph({
+                text: `Date of Birth: ${formatDate(person.date_of_birth)}`
+              })
+            );
+          }
+
+          children.push(
+            new Paragraph({
+              text: `Connections: ${person.connections?.length || 0}`
+            })
+          );
+
+          if (person.aliases && person.aliases.length > 0) {
+            children.push(
+              new Paragraph({
+                text: `Known Aliases: ${person.aliases.join(', ')}`
+              })
+            );
+          }
 
           if (person.notes) {
             children.push(
               new Paragraph({
-                text: "Notes:",
-                bold: true,
-                spacing: { before: 200, after: 100 }
-              }),
+                text: "Notes:"
+              })
+            );
+            
+            children.push(
               new Paragraph({
-                text: person.notes,
-                spacing: { after: 300 }
+                text: person.notes
               })
             );
           }
-        });
 
-        children.push(new PageBreak());
+          children.push(new Paragraph({ text: "" }));
+        });
       }
 
-      // Connections
-      if (reportOptions.includeConnections) {
-        const connectionsData = [];
-        
+      // Connections Analysis
+      if (reportOptions.includeConnections && totalConnections > 0) {
+        children.push(
+          new Paragraph({
+            text: "Connections Analysis",
+            heading: HeadingLevel.HEADING_1
+          })
+        );
+
+        children.push(
+          new Paragraph({
+            text: `Total Documented Connections: ${totalConnections}`
+          })
+        );
+
+        let connectionIndex = 1;
         data.people.forEach(person => {
-          if (person.connections) {
+          if (person.connections && person.connections.length > 0) {
             person.connections.forEach(conn => {
               const targetPerson = data.people.find(p => p.id === conn.person_id);
               if (targetPerson) {
-                connectionsData.push({
-                  source: getFullName(person),
-                  target: getFullName(targetPerson),
-                  type: conn.type || 'Unknown',
-                  note: conn.note || ''
-                });
+                children.push(
+                  new Paragraph({
+                    text: `${connectionIndex}. ${getFullName(person)} -> ${getFullName(targetPerson)}`
+                  })
+                );
+
+                children.push(
+                  new Paragraph({
+                    text: `   Type: ${conn.type || 'Unknown'}${conn.note ? ' | Note: ' + conn.note : ''}`
+                  })
+                );
+
+                connectionIndex++;
               }
             });
           }
         });
-        
-        if (connectionsData.length > 0) {
+
+        children.push(new Paragraph({ text: "" }));
+      }
+
+      // Business Profiles  
+      if (data.businesses.length > 0) {
+        children.push(
+          new Paragraph({
+            text: "Business Profiles",
+            heading: HeadingLevel.HEADING_1
+          })
+        );
+
+        data.businesses.forEach((business, index) => {
           children.push(
             new Paragraph({
-              text: "Connections Analysis",
-              heading: HeadingLevel.HEADING_1,
-              spacing: { after: 300 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Total Connections: ", bold: true }),
-                new TextRun({ text: connectionsData.length.toString() })
-              ],
-              spacing: { after: 300 }
+              text: `${index + 1}. ${business.name || 'Unknown Business'}`,
+              heading: HeadingLevel.HEADING_2
             })
           );
 
-          // List connections instead of table
-          connectionsData.forEach((conn, idx) => {
+          if (business.industry) {
             children.push(
               new Paragraph({
-                children: [
-                  new TextRun({ text: `${idx + 1}. `, bold: true }),
-                  new TextRun({ text: `${conn.source} → ${conn.target}` })
-                ],
-                spacing: { after: 100 }
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({ text: "   Type: ", bold: true }),
-                  new TextRun({ text: conn.type }),
-                  conn.note ? new TextRun({ text: " | Note: " }) : null,
-                  conn.note ? new TextRun({ text: conn.note }) : null
-                ].filter(Boolean),
-                indent: { left: 400 },
-                spacing: { after: 200 }
+                text: `Industry: ${business.industry}`
               })
             );
-          });
+          }
 
-          children.push(new PageBreak());
-        }
+          if (business.address) {
+            children.push(
+              new Paragraph({
+                text: `Address: ${business.address}`
+              })
+            );
+          }
+
+          if (business.website) {
+            children.push(
+              new Paragraph({
+                text: `Website: ${business.website}`
+              })
+            );
+          }
+
+          if (business.description) {
+            children.push(
+              new Paragraph({
+                text: "Description:"
+              })
+            );
+            
+            children.push(
+              new Paragraph({
+                text: business.description
+              })
+            );
+          }
+
+          children.push(new Paragraph({ text: "" }));
+        });
       }
 
-      // Tasks
+      // Location Analysis
+      if (reportOptions.includeLocations && data.locations.length > 0) {
+        children.push(
+          new Paragraph({
+            text: "Location Analysis",
+            heading: HeadingLevel.HEADING_1
+          })
+        );
+
+        children.push(
+          new Paragraph({
+            text: `Total Locations Tracked: ${data.locations.length}`
+          })
+        );
+
+        // Group locations by type if available
+        const locationsByType = {};
+        data.locations.forEach(loc => {
+          const type = loc.type || 'Unknown';
+          if (!locationsByType[type]) {
+            locationsByType[type] = [];
+          }
+          locationsByType[type].push(loc);
+        });
+
+        Object.entries(locationsByType).forEach(([type, locations]) => {
+          children.push(
+            new Paragraph({
+              text: `${type}: ${locations.length} locations`,
+              heading: HeadingLevel.HEADING_2
+            })
+          );
+
+          locations.slice(0, 10).forEach((location, idx) => {
+            children.push(
+              new Paragraph({
+                text: `   ${idx + 1}. ${location.address || location.name || 'Unknown Location'}`
+              })
+            );
+
+            if (location.coordinates) {
+              children.push(
+                new Paragraph({
+                  text: `      Coordinates: ${location.coordinates.lat}, ${location.coordinates.lng}`
+                })
+              );
+            }
+          });
+
+          if (locations.length > 10) {
+            children.push(
+              new Paragraph({
+                text: `   ... and ${locations.length - 10} more locations`
+              })
+            );
+          }
+
+          children.push(new Paragraph({ text: "" }));
+        });
+      }
+
+      // Tasks/Todos
       if (reportOptions.includeTodos && data.todos.length > 0) {
         children.push(
           new Paragraph({
             text: "Investigation Tasks",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 300 }
+            heading: HeadingLevel.HEADING_1
           })
         );
 
-        const todosByStatus = {
-          open: data.todos.filter(t => t.status === 'open'),
-          in_progress: data.todos.filter(t => t.status === 'in_progress'),
-          done: data.todos.filter(t => t.status === 'done')
-        };
-        
+        const openTodos = data.todos.filter(t => t.status === 'open').length;
+        const inProgressTodos = data.todos.filter(t => t.status === 'in_progress').length;
+        const doneTodos = data.todos.filter(t => t.status === 'done').length;
+
         children.push(
           new Paragraph({
-            text: `Open: ${todosByStatus.open.length} | In Progress: ${todosByStatus.in_progress.length} | Completed: ${todosByStatus.done.length}`,
-            spacing: { after: 300 }
+            text: `Open: ${openTodos} | In Progress: ${inProgressTodos} | Completed: ${doneTodos}`
           })
         );
 
-        // List todos
         data.todos.forEach((todo, idx) => {
           children.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: `${idx + 1}. `, bold: true }),
-                new TextRun({ text: todo.text })
-              ],
-              spacing: { after: 100 }
-            }),
+              text: `${idx + 1}. ${todo.text}`
+            })
+          );
+
+          children.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: "   Status: ", bold: true }),
-                new TextRun({ text: todo.status.replace('_', ' ').toUpperCase() }),
-                new TextRun({ text: " | Created: " }),
-                new TextRun({ text: formatDate(todo.created_at) })
-              ],
-              indent: { left: 400 },
-              spacing: { after: 200 }
+              text: `   Status: ${(todo.status || 'unknown').replace('_', ' ').toUpperCase()} | Created: ${formatDate(todo.created_at)}`
             })
           );
         });
 
-        children.push(new PageBreak());
+        children.push(new Paragraph({ text: "" }));
       }
 
-      // Report Information
+      // Statistical Analysis
+      if (reportOptions.includeCharts) {
+        children.push(
+          new Paragraph({
+            text: "Statistical Analysis",
+            heading: HeadingLevel.HEADING_1
+          })
+        );
+
+        // People by category breakdown
+        const peopleByCategory = {};
+        data.people.forEach(person => {
+          const category = person.category || 'Unknown';
+          peopleByCategory[category] = (peopleByCategory[category] || 0) + 1;
+        });
+
+        children.push(
+          new Paragraph({
+            text: "People by Category:",
+            heading: HeadingLevel.HEADING_2
+          })
+        );
+
+        Object.entries(peopleByCategory).forEach(([category, count]) => {
+          const percentage = ((count / data.people.length) * 100).toFixed(1);
+          children.push(
+            new Paragraph({
+              text: `   ${category}: ${count} (${percentage}%)`
+            })
+          );
+        });
+
+        children.push(new Paragraph({ text: "" }));
+
+        // Task completion analysis
+        if (data.todos.length > 0) {
+          const todosByStatus = {
+            'open': data.todos.filter(t => t.status === 'open').length,
+            'in_progress': data.todos.filter(t => t.status === 'in_progress').length,
+            'done': data.todos.filter(t => t.status === 'done').length
+          };
+
+          children.push(
+            new Paragraph({
+              text: "Task Progress:",
+              heading: HeadingLevel.HEADING_2
+            })
+          );
+
+          const completionRate = ((todosByStatus.done / data.todos.length) * 100).toFixed(1);
+          children.push(
+            new Paragraph({
+              text: `Overall Completion Rate: ${completionRate}%`
+            })
+          );
+
+          Object.entries(todosByStatus).forEach(([status, count]) => {
+            const percentage = ((count / data.todos.length) * 100).toFixed(1);
+            children.push(
+              new Paragraph({
+                text: `   ${status.replace('_', ' ').toUpperCase()}: ${count} (${percentage}%)`
+              })
+            );
+          });
+
+          children.push(new Paragraph({ text: "" }));
+        }
+
+        // Connection density analysis
+        if (totalConnections > 0) {
+          children.push(
+            new Paragraph({
+              text: "Network Analysis:",
+              heading: HeadingLevel.HEADING_2
+            })
+          );
+
+          const avgConnections = (totalConnections / data.people.length).toFixed(2);
+          children.push(
+            new Paragraph({
+              text: `Average connections per person: ${avgConnections}`
+            })
+          );
+
+          const mostConnected = data.people
+            .map(p => ({ name: getFullName(p), connections: p.connections?.length || 0 }))
+            .sort((a, b) => b.connections - a.connections)
+            .slice(0, 5);
+
+          children.push(
+            new Paragraph({
+              text: "Most Connected Individuals:"
+            })
+          );
+
+          mostConnected.forEach((person, idx) => {
+            children.push(
+              new Paragraph({
+                text: `   ${idx + 1}. ${person.name}: ${person.connections} connections`
+              })
+            );
+          });
+
+          children.push(new Paragraph({ text: "" }));
+        }
+      }
+
+      // Report Footer
       children.push(
         new Paragraph({
           text: "Report Information",
-          heading: HeadingLevel.HEADING_1,
-          spacing: { after: 300 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Generated By: ", bold: true }),
-            new TextRun({ text: "OSINT Investigation CRM" })
-          ],
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Generation Date: ", bold: true }),
-            new TextRun({ text: formatDateTime(new Date()) })
-          ],
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Classification: ", bold: true }),
-            new TextRun({ text: "CONFIDENTIAL", color: "FF0000" })
-          ],
-          spacing: { after: 400 }
-        }),
-        new Paragraph({
-          text: "This report contains confidential information and is intended solely for the use of authorized personnel.",
-          italics: true
+          heading: HeadingLevel.HEADING_1
         })
       );
 
-      // Create the document with a single section
+      children.push(
+        new Paragraph({
+          text: "Generated By: GHOST OSINT Investigation CRM"
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Generation Date: ${formatDateTime(new Date())}`
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: `Report ID: RPT-${Date.now()}`
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: "Classification: CONFIDENTIAL"
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: "This report contains confidential information and is intended solely for authorized personnel."
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          text: "End of Report",
+          alignment: AlignmentType.CENTER
+        })
+      );
+
+      // Create the document with minimal structure
       const doc = new Document({
         sections: [{
           children: children
@@ -432,14 +1006,14 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
 
       // Generate and save the document
       const blob = await Packer.toBlob(doc);
-      const filename = `report-${Date.now()}.docx`;
+      const filename = `investigation-report-${Date.now()}.docx`;
       saveAs(blob, filename);
       
-      alert('Report generated successfully!');
+      alert('Report generated successfully! The Word document has been downloaded.');
       
     } catch (error) {
       console.error('Error generating Word document:', error);
-      alert('Failed to generate Word document: ' + error.message);
+      alert('Failed to generate Word document. Error: ' + error.message);
     } finally {
       setGenerating(false);
     }
@@ -560,8 +1134,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Document Format:</span>
-                    <span className="text-sm text-gray-600">Microsoft Word (.docx)</span>
+                    <span className="font-medium">Export Formats:</span>
+                    <span className="text-sm text-gray-600">Markdown (.md) | Word (.docx)</span>
                   </div>
                 </div>
                 
@@ -627,6 +1201,13 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                     </div>
                   </div>
                 </div>
+
+                {/* Note about simplified format */}
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <strong>Enhanced Reports:</strong> Choose between rich Markdown format (.md) with tables and formatting, or simplified Word format (.docx) for maximum compatibility.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -641,7 +1222,14 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             Cancel
           </button>
           <button
-            onClick={generateWord}
+            onClick={() => {
+              // Show user choice between formats
+              if (window.confirm('Choose format:\nOK = Markdown (.md) with rich formatting\nCancel = Word (.docx) for compatibility')) {
+                generateMarkdown();
+              } else {
+                generateWord();
+              }
+            }}
             disabled={generating || loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -653,7 +1241,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Generate Word Document
+                Generate Report
               </>
             )}
           </button>

@@ -131,7 +131,7 @@ const PeopleList = ({
   };
 
   return (
-    <div className="p-6 animate-float">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">People Management</h1>
@@ -219,7 +219,7 @@ const PeopleList = ({
       {/* People Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPeople.map(person => (
-          <div key={person.id} className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 hover:shadow-glass-xl hover:scale-[1.02] transition-all duration-300 group">
+          <div key={person.id} className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 hover:shadow-glass-xl transition-all duration-300 group">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center space-x-3">
                 {person.profile_picture_url ? (

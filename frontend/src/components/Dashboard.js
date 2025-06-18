@@ -93,7 +93,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
   ];
 
   return (
-    <div className="p-6 space-y-6 animate-float">
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Dashboard</h1>
         <button

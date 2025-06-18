@@ -13,7 +13,7 @@ const {
 	isDualStringBufferCachingEnabled
 } = require("./helpers/stringBufferUtils");
 
-/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").HashLike} HashLike */
 /** @typedef {import("./Source").MapOptions} MapOptions */
 /** @typedef {import("./Source").RawSourceMap} RawSourceMap */
 /** @typedef {import("./Source").SourceAndMap} SourceAndMap */
@@ -350,7 +350,7 @@ class CachedSource extends Source {
 	}
 
 	/**
-	 * @param {Hash} hash hash
+	 * @param {HashLike} hash hash
 	 * @returns {void}
 	 */
 	updateHash(hash) {
@@ -387,7 +387,7 @@ class CachedSource extends Source {
 				}
 			}
 		};
-		this.original().updateHash(/** @type {Hash} */ (tracker));
+		this.original().updateHash(/** @type {HashLike} */ (tracker));
 		if (currentString !== undefined) {
 			update.push(Buffer.from(currentString));
 		}

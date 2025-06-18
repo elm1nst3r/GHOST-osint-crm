@@ -7,7 +7,7 @@
 
 const Source = require("./Source");
 
-/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").HashLike} HashLike */
 /** @typedef {import("./Source").MapOptions} MapOptions */
 /** @typedef {import("./Source").RawSourceMap} RawSourceMap */
 /** @typedef {import("./Source").SourceAndMap} SourceAndMap */
@@ -20,7 +20,7 @@ const Source = require("./Source");
  * @property {(() => number)=} size
  * @property {((options?: MapOptions) => RawSourceMap | null)=} map
  * @property {((options?: MapOptions) => SourceAndMap)=} sourceAndMap
- * @property {((hash: Hash) => void)=} updateHash
+ * @property {((hash: HashLike) => void)=} updateHash
  */
 
 class CompatSource extends Source {
@@ -86,7 +86,7 @@ class CompatSource extends Source {
 	}
 
 	/**
-	 * @param {Hash} hash hash
+	 * @param {HashLike} hash hash
 	 * @returns {void}
 	 */
 	updateHash(hash) {

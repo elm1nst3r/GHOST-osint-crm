@@ -1,6 +1,6 @@
 {
     "name": "@types/http-errors",
-    "version": "2.0.4",
+    "version": "2.0.5",
     "description": "TypeScript definitions for http-errors",
     "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-errors",
     "license": "MIT",
@@ -14,6 +14,11 @@
             "name": "BendingBender",
             "githubUsername": "BendingBender",
             "url": "https://github.com/BendingBender"
+        },
+        {
+            "name": "Sebastian Beltran",
+            "githubUsername": "bjohansebas",
+            "url": "https://github.com/bjohansebas"
         }
     ],
     "main": "",
@@ -25,6 +30,7 @@
     },
     "scripts": {},
     "dependencies": {},
-    "typesPublisherContentHash": "06e33723b60f818facd3b7dd2025f043142fb7c56ab4832babafeb9470f2086f",
-    "typeScriptVersion": "4.5"
+    "peerDependencies": {},
+    "typesPublisherContentHash": "621b9125a6493a2fa928b9150e335cb57429fb00e3bc0257426f1173903f7a4a",
+    "typeScriptVersion": "5.1"
 }

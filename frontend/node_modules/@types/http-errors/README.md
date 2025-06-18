@@ -8,8 +8,8 @@ This package contains type definitions for http-errors (https://github.com/jshtt
 Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-errors.
 
 ### Additional Details
- * Last updated: Tue, 07 Nov 2023 03:09:37 GMT
+ * Last updated: Sat, 07 Jun 2025 02:15:25 GMT
  * Dependencies: none
 
 # Credits
-These definitions were written by [Tanguy Krotoff](https://github.com/tkrotoff), and [BendingBender](https://github.com/BendingBender).
+These definitions were written by [Tanguy Krotoff](https://github.com/tkrotoff), [BendingBender](https://github.com/BendingBender), and [Sebastian Beltran](https://github.com/bjohansebas).

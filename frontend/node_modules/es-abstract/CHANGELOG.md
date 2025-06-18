@@ -1,3 +1,13 @@
+1.24.0 / 2025-05-28
+=================
+ - [New] add `ES2025` (#159)
+ - [New] `ES2023`+: add `GetNamedTimeZoneEpochNanoseconds`, `GetUTCEpochNanoseconds`, `IsTimeZoneOffsetString`
+ - [New] `ES2015`+: `CharacterRange`: also accept CharSets
+ - [New] `ES2024`+: add `AllCharacters`, `CharacterComplement`
+ - [Refactor] StringIndexOf: anticipate ES2025 not found sentinel change
+ - [Deps] update `stop-iteration-iterator`
+ - [Tests] increase coverage
+
 1.23.10 / 2025-05-21
 =================
  - [Fix] properly handle Float16Array

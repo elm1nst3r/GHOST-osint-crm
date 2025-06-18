@@ -195,8 +195,8 @@ const App = () => {
                 onClick={() => setActiveSection(item.id)}
                 className={`w-full text-left p-4 rounded-glass transition-all duration-300 flex items-center space-x-3 group relative overflow-hidden ${
                   isActive 
-                    ? 'bg-gradient-primary text-white shadow-glow-md transform scale-[1.02]' 
-                    : 'glass-button text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:scale-[1.01]'
+                    ? 'bg-gradient-primary text-white shadow-glow-md' 
+                    : 'glass-button text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >

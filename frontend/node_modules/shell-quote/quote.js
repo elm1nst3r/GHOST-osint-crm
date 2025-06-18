@@ -8,8 +8,8 @@ module.exports = function quote(xs) {
 		if (s && typeof s === 'object') {
 			return s.op.replace(/(.)/g, '\\$1');
 		}
-		if ((/["\s]/).test(s) && !(/'/).test(s)) {
-			return "'" + s.replace(/(['\\])/g, '\\$1') + "'";
+		if ((/["\s\\]/).test(s) && !(/'/).test(s)) {
+			return "'" + s.replace(/(['])/g, '\\$1') + "'";
 		}
 		if ((/["'\s]/).test(s)) {
 			return '"' + s.replace(/(["\\$`!])/g, '\\$1') + '"';

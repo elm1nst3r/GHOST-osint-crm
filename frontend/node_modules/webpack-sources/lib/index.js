@@ -9,7 +9,7 @@
 /** @typedef {import("./CompatSource").SourceLike} SourceLike */
 /** @typedef {import("./ConcatSource").Child} ConcatSourceChild */
 /** @typedef {import("./ReplaceSource").Replacement} Replacement */
-/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").HashLike} HashLike */
 /** @typedef {import("./Source").MapOptions} MapOptions */
 /** @typedef {import("./Source").RawSourceMap} RawSourceMap */
 /** @typedef {import("./Source").SourceAndMap} SourceAndMap */

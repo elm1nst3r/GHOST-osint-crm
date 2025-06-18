@@ -64,35 +64,46 @@
 'use strict';
 
 module.exports = Transform;
-var _require$codes = require('../errors').codes,
-  ERR_METHOD_NOT_IMPLEMENTED = _require$codes.ERR_METHOD_NOT_IMPLEMENTED,
-  ERR_MULTIPLE_CALLBACK = _require$codes.ERR_MULTIPLE_CALLBACK,
-  ERR_TRANSFORM_ALREADY_TRANSFORMING = _require$codes.ERR_TRANSFORM_ALREADY_TRANSFORMING,
-  ERR_TRANSFORM_WITH_LENGTH_0 = _require$codes.ERR_TRANSFORM_WITH_LENGTH_0;
+
 var Duplex = require('./_stream_duplex');
-require('inherits')(Transform, Duplex);
+
+/*<replacement>*/
+var util = Object.create(require('core-util-is'));
+util.inherits = require('inherits');
+/*</replacement>*/
+
+util.inherits(Transform, Duplex);
+
 function afterTransform(er, data) {
   var ts = this._transformState;
   ts.transforming = false;
+
   var cb = ts.writecb;
-  if (cb === null) {
-    return this.emit('error', new ERR_MULTIPLE_CALLBACK());
+
+  if (!cb) {
+    return this.emit('error', new Error('write callback called multiple times'));
   }
+
   ts.writechunk = null;
   ts.writecb = null;
-  if (data != null)
-    // single equals check for both `null` and `undefined`
+
+  if (data != null) // single equals check for both `null` and `undefined`
     this.push(data);
+
   cb(er);
+
   var rs = this._readableState;
   rs.reading = false;
   if (rs.needReadable || rs.length < rs.highWaterMark) {
     this._read(rs.highWaterMark);
   }
 }
+
 function Transform(options) {
   if (!(this instanceof Transform)) return new Transform(options);
+
   Duplex.call(this, options);
+
   this._transformState = {
     afterTransform: afterTransform.bind(this),
     needTransform: false,
@@ -109,17 +120,21 @@ function Transform(options) {
   // that Readable wants before the first _read call, so unset the
   // sync guard flag.
   this._readableState.sync = false;
+
   if (options) {
     if (typeof options.transform === 'function') this._transform = options.transform;
+
     if (typeof options.flush === 'function') this._flush = options.flush;
   }
 
   // When the writable side finishes, then flush out anything remaining.
   this.on('prefinish', prefinish);
 }
+
 function prefinish() {
   var _this = this;
-  if (typeof this._flush === 'function' && !this._readableState.destroyed) {
+
+  if (typeof this._flush === 'function') {
     this._flush(function (er, data) {
       done(_this, er, data);
     });
@@ -127,6 +142,7 @@ function prefinish() {
     done(this, null, null);
   }
 }
+
 Transform.prototype.push = function (chunk, encoding) {
   this._transformState.needTransform = false;
   return Duplex.prototype.push.call(this, chunk, encoding);
@@ -143,8 +159,9 @@ Transform.prototype.push = function (chunk, encoding) {
 // an error, then that'll put the hurt on the whole operation.  If you
 // never call cb(), then you'll never get another chunk.
 Transform.prototype._transform = function (chunk, encoding, cb) {
-  cb(new ERR_METHOD_NOT_IMPLEMENTED('_transform()'));
+  throw new Error('_transform() is not implemented');
 };
+
 Transform.prototype._write = function (chunk, encoding, cb) {
   var ts = this._transformState;
   ts.writecb = cb;
@@ -161,7 +178,8 @@ Transform.prototype._write = function (chunk, encoding, cb) {
 // That we got here means that the readable side wants more data.
 Transform.prototype._read = function (n) {
   var ts = this._transformState;
-  if (ts.writechunk !== null && !ts.transforming) {
+
+  if (ts.writechunk !== null && ts.writecb && !ts.transforming) {
     ts.transforming = true;
     this._transform(ts.writechunk, ts.writeencoding, ts.afterTransform);
   } else {
@@ -170,21 +188,27 @@ Transform.prototype._read = function (n) {
     ts.needTransform = true;
   }
 };
+
 Transform.prototype._destroy = function (err, cb) {
+  var _this2 = this;
+
   Duplex.prototype._destroy.call(this, err, function (err2) {
     cb(err2);
+    _this2.emit('close');
   });
 };
+
 function done(stream, er, data) {
   if (er) return stream.emit('error', er);
-  if (data != null)
-    // single equals check for both `null` and `undefined`
+
+  if (data != null) // single equals check for both `null` and `undefined`
     stream.push(data);
 
-  // TODO(BridgeAR): Write a test for these two error cases
   // if there's nothing in the write buffer, then that means
   // that nothing more will ever be provided
-  if (stream._writableState.length) throw new ERR_TRANSFORM_WITH_LENGTH_0();
-  if (stream._transformState.transforming) throw new ERR_TRANSFORM_ALREADY_TRANSFORMING();
+  if (stream._writableState.length) throw new Error('Calling transform done when ws.length != 0');
+
+  if (stream._transformState.transforming) throw new Error('Calling transform done when still transforming');
+
   return stream.push(null);
 }

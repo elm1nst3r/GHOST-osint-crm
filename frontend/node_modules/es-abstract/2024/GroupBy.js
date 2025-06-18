@@ -38,8 +38,7 @@ module.exports = function GroupBy(items, callbackfn, keyCoercion) {
 	while (true) { // step 6
 		if (k >= MAX_SAFE_INTEGER) { // step 6.a
 			var error = ThrowCompletion(new $TypeError('k must be less than 2 ** 53 - 1')); // step 6.a.i
-			IteratorClose(iteratorRecord, error); // step 6.a.ii
-			return void undefined;
+			return void IteratorClose(iteratorRecord, error); // step 6.a.ii
 		}
 		var next = IteratorStep(iteratorRecord); // step 6.b
 		if (!next) { // step 6.c
@@ -52,20 +51,18 @@ module.exports = function GroupBy(items, callbackfn, keyCoercion) {
 		try {
 			key = Call(callbackfn, undefined, [value, k]); // step 6.e
 		} catch (e) {
-			IteratorClose(iteratorRecord, ThrowCompletion(e)); // step 6.f
-			return void undefined;
+			return void IteratorClose(iteratorRecord, ThrowCompletion(e)); // step 6.f
 		}
 
 		if (keyCoercion === 'PROPERTY') { // step 6.g
 			try {
 				key = ToPropertyKey(key); // step 6.g.i
 			} catch (e) {
-				IteratorClose(iteratorRecord, ThrowCompletion(e)); // step 6.g.ii
-				return void undefined;
+				return void IteratorClose(iteratorRecord, ThrowCompletion(e)); // step 6.g.ii
 			}
 		} else { // step 6.h
 			if (keyCoercion !== 'ZERO') {
-				throw new $TypeError('keyCoercion must be ~PROPERTY~ or ~ZERO~'); // step 6.h.i
+				throw new $TypeError('Assertion failed: keyCoercion must be ~PROPERTY~ or ~ZERO~'); // step 6.h.i
 			}
 			if (isNegativeZero(key)) {
 				key = +0; // step 6.h.ii

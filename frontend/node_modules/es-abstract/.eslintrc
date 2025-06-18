@@ -1,6 +1,10 @@
 {
 	"root": true,
 
+	"globals": {
+		"Float16Array": "readonly",
+	},
+
 	"extends": "@ljharb",
 
 	"env": {

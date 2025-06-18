@@ -116,7 +116,7 @@ module.exports = function GetSubstitution(matched, str, position, captures, name
 			}
 		} else if (isPrefixOf('$<', templateRemainder)) { // step 5.g
 			var gtPos = StringIndexOf(templateRemainder, '>', 0); // step 5.g.i
-			if (gtPos === -1 || typeof namedCaptures === 'undefined') { // step 5.g.ii
+			if (!(gtPos > -1) || typeof namedCaptures === 'undefined') { // step 5.g.ii
 				ref = '$<'; // step 5.g.ii.1
 				refReplacement = ref; // step 5.g.ii.2
 			} else { // step 5.g.iii

@@ -37,9 +37,10 @@ module.exports = function getIteratorMethod(ES, iterable) {
 					var nextIndex = ES.AdvanceStringIndex($String(iterable), i, true);
 					var value = $stringSlice(iterable, i, nextIndex);
 					i = nextIndex;
+					var done = nextIndex > iterable.length;
 					return {
-						done: nextIndex > iterable.length,
-						value: value
+						done: done,
+						value: done ? void undefined : value
 					};
 				}
 			};

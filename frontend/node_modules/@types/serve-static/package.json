@@ -1,6 +1,6 @@
 {
     "name": "@types/serve-static",
-    "version": "1.15.7",
+    "version": "1.15.8",
     "description": "TypeScript definitions for serve-static",
     "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/serve-static",
     "license": "MIT",
@@ -19,6 +19,11 @@
             "name": "Devansh Jethmalani",
             "githubUsername": "devanshj",
             "url": "https://github.com/devanshj"
+        },
+        {
+            "name": "Sebastian Beltran",
+            "githubUsername": "bjohansebas",
+            "url": "https://github.com/bjohansebas"
         }
     ],
     "main": "",
@@ -34,6 +39,7 @@
         "@types/node": "*",
         "@types/send": "*"
     },
-    "typesPublisherContentHash": "781872d0ec274d5e3360acd4087e25d9d8440401b99181fe8cd1fc968aa78b14",
-    "typeScriptVersion": "4.7"
+    "peerDependencies": {},
+    "typesPublisherContentHash": "9ececac158c4f4a101c67a8445ba5ed874de4a77e2e20fae569f6553b86ad082",
+    "typeScriptVersion": "5.1"
 }

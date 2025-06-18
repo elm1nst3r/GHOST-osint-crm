@@ -10,7 +10,7 @@ const Source = require("./Source");
 const { getMap, getSourceAndMap } = require("./helpers/getFromStreamChunks");
 const streamChunks = require("./helpers/streamChunks");
 
-/** @typedef {import("./Source").Hash} Hash */
+/** @typedef {import("./Source").HashLike} HashLike */
 /** @typedef {import("./Source").MapOptions} MapOptions */
 /** @typedef {import("./Source").RawSourceMap} RawSourceMap */
 /** @typedef {import("./Source").SourceAndMap} SourceAndMap */
@@ -145,7 +145,7 @@ class PrefixSource extends Source {
 	}
 
 	/**
-	 * @param {Hash} hash hash
+	 * @param {HashLike} hash hash
 	 * @returns {void}
 	 */
 	updateHash(hash) {

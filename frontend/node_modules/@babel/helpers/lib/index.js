@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 exports.get = get;
 exports.getDependencies = getDependencies;
+exports.isInternal = isInternal;
 exports.list = void 0;
 exports.minVersion = minVersion;
 var _t = require("@babel/types");
@@ -109,6 +110,10 @@ function minVersion(name) {
 }
 function getDependencies(name) {
   return loadHelper(name).getDependencies();
+}
+function isInternal(name) {
+  var _helpers$name;
+  return (_helpers$name = _helpersGenerated.default[name]) == null ? void 0 : _helpers$name.metadata.internal;
 }
 {
   exports.ensure = name => {

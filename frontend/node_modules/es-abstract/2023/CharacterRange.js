@@ -7,13 +7,36 @@ var $fromCharCode = GetIntrinsic('%String.fromCharCode%');
 var $TypeError = require('es-errors/type');
 var $charCodeAt = callBound('String.prototype.charCodeAt');
 
-module.exports = function CharacterRange(A, B) {
-	if (A.length !== 1 || B.length !== 1) {
-		throw new $TypeError('Assertion failed: CharSets A and B contain exactly one character');
-	}
+var CharSet = require('../helpers/CharSet').CharSet;
 
-	var a = A[0];
-	var b = B[0];
+module.exports = function CharacterRange(A, B) {
+	var a;
+	var b;
+
+	if (A instanceof CharSet || B instanceof CharSet) {
+		if (!(A instanceof CharSet) || !(B instanceof CharSet)) {
+			throw new $TypeError('Assertion failed: CharSets A and B are not both CharSets');
+		}
+
+		A.yield(function (c) {
+			if (typeof a !== 'undefined') {
+				throw new $TypeError('Assertion failed: CharSet A has more than one character');
+			}
+			a = c;
+		});
+		B.yield(function (c) {
+			if (typeof b !== 'undefined') {
+				throw new $TypeError('Assertion failed: CharSet B has more than one character');
+			}
+			b = c;
+		});
+	} else {
+		if (A.length !== 1 || B.length !== 1) {
+			throw new $TypeError('Assertion failed: CharSets A and B contain exactly one character');
+		}
+		a = A[0];
+		b = B[0];
+	}
 
 	var i = $charCodeAt(a, 0);
 	var j = $charCodeAt(b, 0);

@@ -1,7 +1,7 @@
 {
 	"name": "shell-quote",
 	"description": "quote and parse shell commands",
-	"version": "1.8.2",
+	"version": "1.8.3",
 	"author": {
 		"name": "James Halliday",
 		"email": "mail@substack.net",

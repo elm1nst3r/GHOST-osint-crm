@@ -22,7 +22,11 @@ test('quote', function (t) {
 	t.equal(quote(['><;{}']), '\\>\\<\\;\\{\\}');
 	t.equal(quote(['a', 1, true, false]), 'a 1 true false');
 	t.equal(quote(['a', 1, null, undefined]), 'a 1 null undefined');
-	t.equal(quote(['a\\x']), 'a\\\\x');
+	t.equal(quote(['a\\x']), "'a\\x'");
+	t.equal(quote(['a"b']), '\'a"b\'');
+	t.equal(quote(['"a"b"']), '\'"a"b"\'');
+	t.equal(quote(['a\\"b']), '\'a\\"b\'');
+	t.equal(quote(['a\\b']), '\'a\\b\'');
 	t.end();
 });
 
@@ -45,7 +49,7 @@ test('quote windows paths', { skip: 'breaking change, disabled until 2.x' }, fun
 
 test("chars for windows paths don't break out", function (t) {
 	var x = '`:\\a\\b';
-	t.equal(quote([x]), '\\`\\:\\\\a\\\\b');
+	t.equal(quote([x]), "'`:\\a\\b'");
 	t.end();
 });
 
