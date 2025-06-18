@@ -243,3 +243,6 @@ yarn-debug.log*
 /tmp/*
 !/log/.keep
 !/tmp/.keep
+
+# Claude Code documentation (contains implementation details)
+CLAUDE.md
