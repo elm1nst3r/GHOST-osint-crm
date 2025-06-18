@@ -465,7 +465,7 @@ const RelationshipDiagram = ({
   }, [onDeleteConnection]);
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative" style={{ minHeight: '400px' }}>
       {/* Toolbar */}
       <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-3 space-y-2">
         <div className="flex items-center space-x-2">

@@ -221,7 +221,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
             View Full Network →
           </button>
         </div>
-        <div className="h-96 bg-white rounded-lg overflow-hidden border border-gray-200 shadow-lg">
+        <div className="h-96 bg-white rounded-lg overflow-hidden border border-gray-200 shadow-lg" style={{ minHeight: '384px' }}>
           <RelationshipManager 
             showInModal={true}
             onClose={() => {}}

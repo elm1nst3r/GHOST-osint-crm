@@ -291,12 +291,12 @@ const App = () => {
 
         {activeSection === 'relationships' && (
           <div className="h-full flex flex-col overflow-hidden">
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">Entity Relationship Network</h1>
-              <p className="text-gray-600 mt-1">Visualize connections between people and businesses</p>
+            <div className="glass border-b border-white/20 px-6 py-4 flex-shrink-0">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">Entity Relationship Network</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Visualize connections between people and businesses</p>
             </div>
-            <div className="flex-1 min-h-0">
-              <div className="bg-white border border-gray-200 h-full overflow-hidden">
+            <div className="flex-1 min-h-0 relative">
+              <div className="absolute inset-0 overflow-hidden">
                 <RelationshipManager 
                   showInModal={false}
                   onClose={() => {}}
