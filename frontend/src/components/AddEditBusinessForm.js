@@ -27,7 +27,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
     notes: ''
   });
   
-  const [newEmployee, setNewEmployee] = useState({ name: '', role: '', department: '' });
+  const [newEmployee, setNewEmployee] = useState({ name: '', role: '', department: '', email: '', notes: '' });
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         ...formData,
         employees: [...formData.employees, { ...newEmployee, id: Date.now() }]
       });
-      setNewEmployee({ name: '', role: '', department: '' });
+      setNewEmployee({ name: '', role: '', department: '', email: '', notes: '' });
       setShowEmployeeForm(false);
     }
   };
@@ -380,28 +380,44 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             </div>
             
             {showEmployeeForm && (
-              <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="mb-3 p-3 glass rounded-glass border border-white/30">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <input
                     type="text"
                     value={newEmployee.name}
                     onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
                     placeholder="Name *"
-                    className="px-3 py-2 border rounded-md text-sm"
+                    className="px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary text-sm"
                   />
                   <input
                     type="text"
                     value={newEmployee.role}
                     onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
                     placeholder="Role"
-                    className="px-3 py-2 border rounded-md text-sm"
+                    className="px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary text-sm"
                   />
                   <input
                     type="text"
                     value={newEmployee.department}
                     onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
                     placeholder="Department"
-                    className="px-3 py-2 border rounded-md text-sm"
+                    className="px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input
+                    type="email"
+                    value={newEmployee.email}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                    placeholder="Email"
+                    className="px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={newEmployee.notes}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, notes: e.target.value })}
+                    placeholder="Notes"
+                    className="px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary text-sm"
                   />
                 </div>
                 <div className="flex justify-end space-x-2 mt-2">
@@ -409,16 +425,16 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                     type="button"
                     onClick={() => {
                       setShowEmployeeForm(false);
-                      setNewEmployee({ name: '', role: '', department: '' });
+                      setNewEmployee({ name: '', role: '', department: '', email: '', notes: '' });
                     }}
-                    className="px-3 py-1 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 text-sm"
+                    className="px-3 py-1 text-gray-700 glass-button rounded-glass hover:bg-gray-200 text-sm transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={addEmployee}
-                    className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    className="px-3 py-1 bg-gradient-primary text-white rounded-glass hover:shadow-glow-sm text-sm transition-all"
                   >
                     Add
                   </button>
@@ -428,19 +444,32 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             
             <div className="space-y-2">
               {formData.employees.map((employee) => (
-                <div key={employee.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div key={employee.id} className="flex items-center justify-between p-3 glass rounded-glass border border-white/30">
                   <div className="flex items-center space-x-3">
                     <User className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <span className="font-medium">{employee.name}</span>
-                      {employee.role && <span className="text-sm text-gray-600 ml-2">- {employee.role}</span>}
-                      {employee.department && <span className="text-sm text-gray-500 ml-2">({employee.department})</span>}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">{employee.name}</span>
+                        {employee.role && <span className="text-sm text-gray-600">- {employee.role}</span>}
+                        {employee.department && <span className="text-sm text-gray-500">({employee.department})</span>}
+                      </div>
+                      <div className="flex items-center space-x-4 mt-1">
+                        {employee.email && (
+                          <div className="flex items-center space-x-1">
+                            <Mail className="w-3 h-3 text-gray-400" />
+                            <span className="text-xs text-gray-600">{employee.email}</span>
+                          </div>
+                        )}
+                        {employee.notes && (
+                          <span className="text-xs text-gray-500 italic">{employee.notes}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => removeEmployee(employee.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 transition-colors ml-3"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

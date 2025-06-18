@@ -64,7 +64,7 @@ const GlobalMap = () => {
       
       // Use new optimized locations endpoint with pagination
       const response = await fetch(
-        `${API_BASE_URL}/locations?limit=${limit}&offset=${page * limit}&confidence=30&includeUngeocoded=true`
+        `${API_BASE_URL}/locations?limit=${limit}&offset=${page * limit}&confidence=0&includeUngeocoded=true`
       );
       
       if (!response.ok) {
