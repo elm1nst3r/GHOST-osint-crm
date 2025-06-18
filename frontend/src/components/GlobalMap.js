@@ -366,16 +366,16 @@ Confidence: ${result.result.confidence}%`);
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="glass-heavy backdrop-blur-lg border-b border-white/20 px-6 py-4 rounded-glass-lg mb-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 mb-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Global Location Map</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Global Location Map</h1>
           <div className="flex items-center space-x-4">
             {/* Geocode button */}
             {missingCoordinates > 0 && (
               <button
                 onClick={triggerBatchGeocode}
                 disabled={geocoding}
-                className="px-4 py-2 bg-gradient-warning text-white rounded-glass hover:shadow-glow-md transition-all duration-300 flex items-center disabled:opacity-50"
+                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-all duration-300 flex items-center disabled:opacity-50"
                 title={`${missingCoordinates} locations need geocoding`}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${geocoding ? 'animate-spin' : ''}`} />
@@ -391,7 +391,7 @@ Confidence: ${result.result.confidence}%`);
                 placeholder="Search people..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary focus:shadow-glow-sm transition-all duration-300 w-64"
+                className="pl-10 pr-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-500 transition-all duration-300 w-64"
               />
             </div>
             
@@ -485,7 +485,7 @@ Confidence: ${result.result.confidence}%`);
           </MapContainer>
           
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-4 z-10">
+          <div className="absolute bottom-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-4 z-10">
             <h4 className="text-sm font-semibold mb-2 text-gray-900">Location Types</h4>
             <div className="space-y-1">
               {Object.entries(locationColors).map(([type, color]) => (
@@ -503,13 +503,13 @@ Confidence: ${result.result.confidence}%`);
           </div>
           
           {/* Enhanced Stats */}
-          <div className="absolute top-4 left-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass px-4 py-3 z-10">
+          <div className="absolute top-4 left-4 bg-white border border-gray-300 shadow-lg rounded px-4 py-3 z-10">
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-gray-700">
-                <Users className="w-4 h-4 text-accent-primary" />
+                <Users className="w-4 h-4 text-blue-600" />
                 <span className="font-medium">{filteredPeople.length} people</span>
                 <span className="text-gray-400">|</span>
-                <MapPin className="w-4 h-4 text-accent-secondary" />
+                <MapPin className="w-4 h-4 text-blue-600" />
                 <span className="font-medium">{markers.length} locations</span>
               </div>
               
@@ -532,7 +532,7 @@ Confidence: ${result.result.confidence}%`);
               {missingCoordinates > 0 && (
                 <div className="flex items-center space-x-2 text-xs">
                   <AlertCircle className="w-3 h-3 text-amber-500" />
-                  <span className="text-accent-warning font-medium">{missingCoordinates} need geocoding</span>
+                  <span className="text-yellow-600 font-medium">{missingCoordinates} need geocoding</span>
                 </div>
               )}
               
@@ -540,7 +540,7 @@ Confidence: ${result.result.confidence}%`);
                 <button
                   onClick={loadMoreLocations}
                   disabled={loading}
-                  className="w-full px-2 py-1 text-xs bg-accent-primary text-white rounded hover:bg-accent-primary/80 disabled:opacity-50 transition-all"
+                  className="w-full px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-all"
                 >
                   {loading ? 'Loading...' : `Load More (${totalPages - currentPage - 1} pages left)`}
                 </button>
@@ -549,10 +549,10 @@ Confidence: ${result.result.confidence}%`);
           </div>
           
           {/* Add Location Button */}
-          <div className="absolute top-4 right-4 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass p-2 z-10">
+          <div className="absolute top-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-2 z-10">
             <button
               onClick={() => setShowAddLocation(!showAddLocation)}
-              className="p-2 bg-accent-primary text-white rounded-glass hover:shadow-glow-sm transition-all duration-300 flex items-center"
+              className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-300 flex items-center"
               title="Add New Location"
             >
               <Plus className="w-4 h-4" />
@@ -563,9 +563,9 @@ Confidence: ${result.result.confidence}%`);
       
       {/* Add Location Modal */}
       {showAddLocation && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass-lg p-6 w-96 max-w-90vw">
-            <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white border border-gray-300 shadow-lg rounded-lg p-6 w-96 max-w-90vw">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">
               Add New Location
             </h3>
             
@@ -582,12 +582,12 @@ Confidence: ${result.result.confidence}%`);
                     getAddressSuggestions(e.target.value);
                   }}
                   placeholder="Enter address to geocode..."
-                  className="w-full px-3 py-2 glass border border-white/30 rounded-glass focus:outline-none focus:border-accent-primary focus:shadow-glow-sm transition-all duration-300"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-500 transition-all duration-300"
                 />
                 
                 {/* Address Suggestions */}
                 {addressSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 glass-card backdrop-blur-xl border border-white/30 shadow-glass-lg rounded-glass overflow-hidden">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 shadow-lg rounded overflow-hidden">
                     {addressSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
@@ -595,7 +595,7 @@ Confidence: ${result.result.confidence}%`);
                           setNewLocationData(prev => ({ ...prev, address: suggestion.display_name }));
                           setAddressSuggestions([]);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-white/50 transition-colors border-b border-white/20 last:border-b-0"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
                       >
                         <div className="text-sm font-medium text-gray-900">{suggestion.display_name}</div>
                         <div className="text-xs text-gray-600 flex items-center justify-between">
@@ -622,7 +622,7 @@ Confidence: ${result.result.confidence}%`);
                 <button
                   onClick={addLocationWithGeocoding}
                   disabled={!newLocationData.address.trim()}
-                  className="px-4 py-2 bg-gradient-primary text-white rounded-glass hover:shadow-glow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Test Geocoding
                 </button>

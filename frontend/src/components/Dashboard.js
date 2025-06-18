@@ -223,7 +223,10 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
           </button>
         </div>
         <div className="h-96 bg-white rounded-lg overflow-hidden border border-gray-200 shadow-lg">
-          <SimpleEntityNetwork />
+          <RelationshipManager 
+            showInModal={true}
+            onClose={() => {}}
+          />
         </div>
       </div>
 

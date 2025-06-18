@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OSINT CRM Component Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .loading { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>OSINT CRM Component Tests</h1>
+    
+    <div class="test-section">
+        <h2>1. Frontend Accessibility Test</h2>
+        <p id="frontend-test" class="loading">Testing...</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Entity Network API Test</h2>
+        <p id="entity-test" class="loading">Testing...</p>
+        <div id="entity-details"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Locations API Test</h2>
+        <p id="locations-test" class="loading">Testing...</p>
+        <div id="locations-details"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Component Verification</h2>
+        <p>After tests complete, visit <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></p>
+        <ul>
+            <li>Go to "Entity Network" tab - should show ReactFlow diagram with nodes and connections</li>
+            <li>Go to "Locations" tab - should show Leaflet map with location markers</li>
+            <li>Check Dashboard - should show entity network in the relationships section</li>
+        </ul>
+    </div>
+
+    <script>
+        // Test frontend accessibility
+        fetch('http://localhost:8080')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('frontend-test').innerHTML = '<span class="pass">✅ PASS - Frontend accessible</span>';
+                } else {
+                    document.getElementById('frontend-test').innerHTML = '<span class="fail">❌ FAIL - Frontend not accessible</span>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('frontend-test').innerHTML = '<span class="fail">❌ FAIL - ' + error.message + '</span>';
+            });
+
+        // Test entity network API
+        fetch('http://localhost:3001/api/entity-network')
+            .then(response => response.json())
+            .then(data => {
+                if (data.nodes && data.edges) {
+                    const nodeTypes = {};
+                    data.nodes.forEach(node => {
+                        nodeTypes[node.type] = (nodeTypes[node.type] || 0) + 1;
+                    });
+                    
+                    document.getElementById('entity-test').innerHTML = '<span class="pass">✅ PASS - Entity Network API working</span>';
+                    document.getElementById('entity-details').innerHTML = 
+                        `<strong>Found:</strong> ${data.nodes.length} nodes, ${data.edges.length} edges<br>` +
+                        `<strong>Node types:</strong> ${Object.entries(nodeTypes).map(([type, count]) => `${type}(${count})`).join(', ')}`;
+                } else {
+                    document.getElementById('entity-test').innerHTML = '<span class="fail">❌ FAIL - Invalid data format</span>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('entity-test').innerHTML = '<span class="fail">❌ FAIL - ' + error.message + '</span>';
+            });
+
+        // Test locations API
+        fetch('http://localhost:3001/api/locations?limit=100&confidence=0')
+            .then(response => response.json())
+            .then(data => {
+                if (data.data && Array.isArray(data.data)) {
+                    let totalLocations = 0;
+                    let geocodedLocations = 0;
+                    
+                    data.data.forEach(person => {
+                        if (person.locations) {
+                            totalLocations += person.locations.length;
+                            geocodedLocations += person.locations.filter(loc => loc.latitude && loc.longitude).length;
+                        }
+                    });
+                    
+                    document.getElementById('locations-test').innerHTML = '<span class="pass">✅ PASS - Locations API working</span>';
+                    document.getElementById('locations-details').innerHTML = 
+                        `<strong>Found:</strong> ${data.data.length} people with ${totalLocations} locations<br>` +
+                        `<strong>Geocoded:</strong> ${geocodedLocations} locations have coordinates for map display`;
+                } else {
+                    document.getElementById('locations-test').innerHTML = '<span class="fail">❌ FAIL - Invalid data format</span>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('locations-test').innerHTML = '<span class="fail">❌ FAIL - ' + error.message + '</span>';
+            });
+    </script>
+</body>
+</html>
