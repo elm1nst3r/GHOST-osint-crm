@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Network, Trash2, Check, X, ChevronDown, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
+import SimpleEntityNetwork from './SimpleEntityNetwork';
 import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
 
@@ -221,11 +222,8 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
             View Full Network →
           </button>
         </div>
-        <div className="h-96 glass-heavy rounded-glass-lg overflow-hidden border border-white/20">
-          <RelationshipManager 
-            showInModal={true}
-            onClose={() => {}}
-          />
+        <div className="h-96 bg-white rounded-lg overflow-hidden border border-gray-200 shadow-lg">
+          <SimpleEntityNetwork />
         </div>
       </div>
 

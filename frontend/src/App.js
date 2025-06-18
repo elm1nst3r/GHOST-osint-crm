@@ -22,6 +22,8 @@ import SettingsPage from './components/SettingsPage';
 import RelationshipManager from './components/visualization/RelationshipManager';
 import RelationshipDiagram from './components/RelationshipDiagram';
 import GlobalMap from './components/GlobalMap';
+import SimpleMap from './components/SimpleMap';
+import SimpleEntityNetwork from './components/SimpleEntityNetwork';
 import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
@@ -271,21 +273,15 @@ const App = () => {
         )}        
 
         {activeSection === 'relationships' && (
-          <div className="h-full flex flex-col overflow-hidden">
-            <div className="glass-heavy backdrop-blur-lg border-b border-white/20 px-6 py-4 flex-shrink-0 rounded-glass-lg mb-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Entity Relationship Network</h1>
-              <p className="text-gray-600 mt-1">Visualize connections between people, businesses, locations, and more</p>
-            </div>
-            <div className="flex-1 min-h-0">
-              <div className="glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg h-full overflow-hidden">
-                <EnhancedRelationshipManager />
-              </div>
-            </div>
+          <div className="h-full">
+            <SimpleEntityNetwork />
           </div>
         )}
         
         {activeSection === 'map' && (
-          <GlobalMap />
+          <div className="h-full">
+            <SimpleMap />
+          </div>
         )}
         
         {activeSection === 'settings' && (
