@@ -23,6 +23,7 @@ import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
+import SystemHealth from './components/SystemHealth';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -224,13 +225,8 @@ const App = () => {
         </div>
         
         {/* Sidebar footer */}
-        <div className="absolute bottom-4 left-4 right-4 p-3 glass rounded-glass">
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            <div className="flex items-center justify-center space-x-1">
-              <div className="w-2 h-2 bg-accent-success rounded-full animate-pulse-soft"></div>
-              <span>System Online</span>
-            </div>
-          </div>
+        <div className="absolute bottom-4 left-4 right-4">
+          <SystemHealth />
         </div>
       </div>
       
@@ -239,7 +235,7 @@ const App = () => {
         {/* Content Container */}
         <div className="flex-1 glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg overflow-hidden">
           <div className="h-full p-6 overflow-auto">
-            <div className="max-w-full mx-auto">
+            <div className="max-w-full mx-auto h-full">
         {activeSection === 'dashboard' && (
           <Dashboard 
             people={people}

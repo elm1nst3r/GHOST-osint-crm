@@ -305,6 +305,9 @@ export const businessAPI = {
   }),
 };
 
-
+// System Health API
+export const systemAPI = {
+  getHealth: () => fetchAPI('/system/health'),
+};
 
 export { API_BASE_URL };

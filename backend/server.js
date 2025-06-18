@@ -2050,6 +2050,69 @@ app.delete('/api/businesses/:id', async (req, res) => {
   }
 });
 
+// System Health endpoint
+app.get('/api/system/health', async (req, res) => {
+  try {
+    const health = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024), // MB
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024), // MB
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024), // MB
+        external: Math.round(process.memoryUsage().external / 1024 / 1024) // MB
+      },
+      cpu: {
+        usage: process.cpuUsage()
+      },
+      database: {
+        status: 'connected',
+        connections: pool.totalCount || 0,
+        idle: pool.idleCount || 0,
+        waiting: pool.waitingCount || 0
+      },
+      counts: {}
+    };
+
+    // Get data counts
+    try {
+      const peopleResult = await pool.query('SELECT COUNT(*) as count FROM people');
+      health.counts.people = parseInt(peopleResult.rows[0].count);
+
+      const businessesResult = await pool.query('SELECT COUNT(*) as count FROM businesses');
+      health.counts.businesses = parseInt(businessesResult.rows[0].count);
+
+      const toolsResult = await pool.query('SELECT COUNT(*) as count FROM tools');
+      health.counts.tools = parseInt(toolsResult.rows[0].count);
+
+      const todosResult = await pool.query('SELECT COUNT(*) as count FROM todos WHERE status != \'done\' AND status != \'cancelled\'');
+      health.counts.activeTodos = parseInt(todosResult.rows[0].count);
+
+      // Get recent activity
+      const recentActivityResult = await pool.query(`
+        SELECT COUNT(*) as count 
+        FROM audit_logs 
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+      `);
+      health.counts.recentActivity = parseInt(recentActivityResult.rows[0].count);
+
+    } catch (dbError) {
+      console.error('Error fetching database counts:', dbError);
+      health.database.status = 'error';
+      health.status = 'degraded';
+    }
+
+    res.json(health);
+  } catch (err) {
+    console.error('Error getting system health:', err);
+    res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: err.message
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Backend server is running on http://localhost:${PORT}`);
