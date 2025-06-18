@@ -305,34 +305,6 @@ export const businessAPI = {
   }),
 };
 
-// Entity Relationship API
-export const entityRelationshipAPI = {
-  getAll: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return fetchAPI(`/entity-relationships${queryParams ? '?' + queryParams : ''}`);
-  },
-  
-  create: (relationshipData) => fetchAPI('/entity-relationships', {
-    method: 'POST',
-    body: JSON.stringify(relationshipData),
-  }),
-  
-  delete: (id) => fetchAPI(`/entity-relationships/${id}`, {
-    method: 'DELETE',
-  }),
-};
 
-// Relationship Types API
-export const relationshipTypesAPI = {
-  getAll: () => fetchAPI('/relationship-types'),
-};
-
-// Entity Network API
-export const entityNetworkAPI = {
-  get: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return fetchAPI(`/entity-network${queryParams ? '?' + queryParams : ''}`);
-  },
-};
 
 export { API_BASE_URL };

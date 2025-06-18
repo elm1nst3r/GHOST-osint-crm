@@ -8,8 +8,6 @@ import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Bu
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI, businessAPI } from './utils/api';
 import { DEFAULT_APP_SETTINGS } from './utils/constants';
-import TravelPatternAnalysis from './components/TravelPatternAnalysis';
-
 // Import components
 import Dashboard from './components/Dashboard';
 import CaseManagement from './components/CaseManagement';
@@ -20,14 +18,10 @@ import ToolsList from './components/ToolsList';
 import AddEditToolForm from './components/AddEditToolForm';
 import SettingsPage from './components/SettingsPage';
 import RelationshipManager from './components/visualization/RelationshipManager';
-import RelationshipDiagram from './components/RelationshipDiagram';
 import GlobalMap from './components/GlobalMap';
-import SimpleMap from './components/SimpleMap';
-import SimpleEntityNetwork from './components/SimpleEntityNetwork';
 import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
-import EnhancedRelationshipManager from './components/visualization/EnhancedRelationshipManager';
 import DarkModeToggle from './components/DarkModeToggle';
 
 // Fix for default markers in React-Leaflet
