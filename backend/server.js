@@ -29,7 +29,479 @@ const PORT = process.env.PORT || 3001;
 // --- Multer Configuration for Logo Uploads ---
 const LOGO_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'logos');
 if (!fs.existsSync(LOGO_UPLOAD_DIR)) {
-  fs.mkdirSync(LOGO_UPLOAD_DIR, { recursive: true });
+  fs.mkdirSync(LOGO_UPLOAD_DIR, { recursive: true app.listen(PORT, () => {
+  console.log(`Backend server is running on http://localhost:${PORT}`);
+});
+
+// Attack Surface API Endpoints
+
+// Get all asset types
+app.get('/api/attack-surface/asset-types', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM asset_types ORDER BY type_category, type_name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching asset types:', err);
+    res.status(500).json({ error: 'Failed to fetch asset types' });
+  }
+});
+
+// Get assets for a person or all assets
+app.get('/api/attack-surface/assets', async (req, res) => {
+  const { person_id, case_name, risk_level, asset_type } = req.query;
+  
+  try {
+    let query = `
+      SELECT 
+        asa.*,
+        at.type_name,
+        at.type_category,
+        at.icon_name,
+        at.scan_available,
+        p.first_name,
+        p.last_name,
+        p.case_name,
+        (SELECT COUNT(*) FROM asset_cves WHERE asset_id = asa.id AND status = 'unpatched') as unpatched_cves,
+        (SELECT MAX(assessment_date) FROM asset_risk_assessments WHERE asset_id = asa.id) as last_assessment
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      JOIN people p ON asa.person_id = p.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    let paramCount = 0;
+    
+    if (person_id) {
+      query += ` AND asa.person_id = ${++paramCount}`;
+      params.push(person_id);
+    }
+    
+    if (case_name) {
+      query += ` AND p.case_name = ${++paramCount}`;
+      params.push(case_name);
+    }
+    
+    if (risk_level) {
+      switch(risk_level) {
+        case 'high':
+          query += ` AND asa.risk_score >= 70`;
+          break;
+        case 'medium':
+          query += ` AND asa.risk_score >= 40 AND asa.risk_score < 70`;
+          break;
+        case 'low':
+          query += ` AND asa.risk_score < 40`;
+          break;
+      }
+    }
+    
+    if (asset_type) {
+      query += ` AND at.type_category = ${++paramCount}`;
+      params.push(asset_type);
+    }
+    
+    query += ' ORDER BY asa.risk_score DESC, asa.created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching assets:', err);
+    res.status(500).json({ error: 'Failed to fetch assets' });
+  }
+});
+
+// Create new asset
+app.post('/api/attack-surface/assets', async (req, res) => {
+  const {
+    person_id,
+    asset_type_id,
+    asset_name,
+    asset_identifier,
+    asset_details,
+    location,
+    status,
+    notes
+  } = req.body;
+  
+  if (!person_id || !asset_type_id || !asset_name) {
+    return res.status(400).json({ error: 'person_id, asset_type_id, and asset_name are required' });
+  }
+  
+  try {
+    // Get default risk weight for the asset type
+    const typeResult = await pool.query('SELECT default_risk_weight FROM asset_types WHERE id = $1', [asset_type_id]);
+    const defaultRiskWeight = typeResult.rows[0]?.default_risk_weight || 0.5;
+    const initialRiskScore = Math.round(defaultRiskWeight * 50); // Start at 50% of max risk
+    
+    const result = await pool.query(`
+      INSERT INTO attack_surface_assets 
+      (person_id, asset_type_id, asset_name, asset_identifier, asset_details, location, status, risk_score, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `, [person_id, asset_type_id, asset_name, asset_identifier, JSON.stringify(asset_details || {}), 
+        location, status || 'active', initialRiskScore, notes]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating asset:', err);
+    res.status(500).json({ error: 'Failed to create asset' });
+  }
+});
+
+// Update asset
+app.put('/api/attack-surface/assets/:id', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const updates = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = ${index + 2}`)
+      .join(', ');
+    
+    const values = [assetId, ...Object.values(updates)];
+    
+    const result = await pool.query(
+      `UPDATE attack_surface_assets SET ${setClause} WHERE id = $1 RETURNING *`,
+      values
+    );
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating asset:', err);
+    res.status(500).json({ error: 'Failed to update asset' });
+  }
+});
+
+// Delete asset
+app.delete('/api/attack-surface/assets/:id', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const result = await pool.query('DELETE FROM attack_surface_assets WHERE id = $1 RETURNING *', [assetId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    res.json({ message: 'Asset deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting asset:', err);
+    res.status(500).json({ error: 'Failed to delete asset' });
+  }
+});
+
+// Perform basic scan on asset (simplified example)
+app.post('/api/attack-surface/assets/:id/scan', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const { scan_type } = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    // Get asset details
+    const assetResult = await pool.query(`
+      SELECT asa.*, at.type_name, at.scan_available 
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      WHERE asa.id = $1
+    `, [assetId]);
+    
+    if (assetResult.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    
+    const asset = assetResult.rows[0];
+    
+    if (!asset.scan_available) {
+      return res.status(400).json({ error: 'Scanning not available for this asset type' });
+    }
+    
+    // Create scan record
+    const scanResult = await pool.query(`
+      INSERT INTO asset_scans (asset_id, scan_type, scan_status)
+      VALUES ($1, $2, 'running')
+      RETURNING id
+    `, [assetId, scan_type || 'basic']);
+    
+    const scanId = scanResult.rows[0].id;
+    
+    // Simulate scan (in production, this would be actual scanning logic)
+    setTimeout(async () => {
+      try {
+        let scanResults = {};
+        let riskFactors = [];
+        let newRiskScore = asset.risk_score;
+        
+        // Simulate different scan types
+        switch (scan_type) {
+          case 'port_scan':
+            scanResults = {
+              open_ports: [22, 80, 443, 3389].filter(() => Math.random() > 0.5),
+              scan_time: new Date().toISOString()
+            };
+            if (scanResults.open_ports.includes(22)) {
+              riskFactors.push({ factor: 'SSH port open', severity: 'medium', score_impact: 10 });
+            }
+            if (scanResults.open_ports.includes(3389)) {
+              riskFactors.push({ factor: 'RDP port open', severity: 'high', score_impact: 20 });
+            }
+            break;
+            
+          case 'ssl_check':
+            scanResults = {
+              ssl_valid: Math.random() > 0.3,
+              expiry_date: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+              protocol_version: 'TLS 1.2',
+              vulnerabilities: Math.random() > 0.7 ? ['POODLE', 'Heartbleed'] : []
+            };
+            if (!scanResults.ssl_valid) {
+              riskFactors.push({ factor: 'Invalid SSL certificate', severity: 'high', score_impact: 25 });
+            }
+            if (scanResults.vulnerabilities.length > 0) {
+              riskFactors.push({ factor: 'SSL vulnerabilities detected', severity: 'critical', score_impact: 30 });
+            }
+            break;
+            
+          default:
+            scanResults = {
+              status: 'completed',
+              timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Calculate new risk score
+        const totalImpact = riskFactors.reduce((sum, factor) => sum + factor.score_impact, 0);
+        newRiskScore = Math.min(100, asset.risk_score + totalImpact);
+        
+        // Update scan record
+        await pool.query(`
+          UPDATE asset_scans 
+          SET scan_status = 'completed', 
+              scan_results = $1, 
+              completed_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [JSON.stringify(scanResults), scanId]);
+        
+        // Update asset with scan results and new risk score
+        await pool.query(`
+          UPDATE attack_surface_assets
+          SET last_scan_date = CURRENT_TIMESTAMP,
+              scan_results = $1,
+              risk_score = $2
+          WHERE id = $3
+        `, [JSON.stringify(scanResults), newRiskScore, assetId]);
+        
+        // Create risk assessment if risk factors found
+        if (riskFactors.length > 0) {
+          await pool.query(`
+            INSERT INTO asset_risk_assessments 
+            (asset_id, risk_score, risk_factors, assessed_by)
+            VALUES ($1, $2, $3, 'Automated Scan')
+          `, [assetId, newRiskScore, JSON.stringify(riskFactors)]);
+        }
+        
+      } catch (err) {
+        console.error('Error completing scan:', err);
+        await pool.query(`
+          UPDATE asset_scans 
+          SET scan_status = 'failed', 
+              error_message = $1,
+              completed_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [err.message, scanId]);
+      }
+    }, 5000); // Simulate 5 second scan
+    
+    res.json({ 
+      message: 'Scan started', 
+      scan_id: scanId,
+      estimated_time: '5 seconds'
+    });
+  } catch (err) {
+    console.error('Error starting scan:', err);
+    res.status(500).json({ error: 'Failed to start scan' });
+  }
+});
+
+// Get risk assessment history for an asset
+app.get('/api/attack-surface/assets/:id/risk-assessments', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  
+  try {
+    const result = await pool.query(`
+      SELECT * FROM asset_risk_assessments 
+      WHERE asset_id = $1 
+      ORDER BY assessment_date DESC
+    `, [assetId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching risk assessments:', err);
+    res.status(500).json({ error: 'Failed to fetch risk assessments' });
+  }
+});
+
+// CVE Management
+app.get('/api/attack-surface/cves', async (req, res) => {
+  const { severity, search } = req.query;
+  
+  try {
+    let query = 'SELECT * FROM cve_database WHERE 1=1';
+    const params = [];
+    let paramCount = 0;
+    
+    if (severity) {
+      query += ` AND severity = ${++paramCount}`;
+      params.push(severity);
+    }
+    
+    if (search) {
+      query += ` AND (cve_id ILIKE ${++paramCount} OR description ILIKE ${paramCount})`;
+      params.push(`%${search}%`);
+    }
+    
+    query += ' ORDER BY published_date DESC LIMIT 100';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching CVEs:', err);
+    res.status(500).json({ error: 'Failed to fetch CVEs' });
+  }
+});
+
+// Add CVE to database
+app.post('/api/attack-surface/cves', async (req, res) => {
+  const { cve_id, description, severity, cvss_score, affected_products, published_date, reference_links } = req.body; // Changed 'references' to 'reference_links'
+  
+  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
+  
+  try {
+    const result = await pool.query(`
+      INSERT INTO cve_database 
+      (cve_id, description, severity, cvss_score, affected_products, published_date, reference_links)  // Changed column name
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (cve_id) DO UPDATE
+      SET description = EXCLUDED.description,
+          severity = EXCLUDED.severity,
+          cvss_score = EXCLUDED.cvss_score,
+          affected_products = EXCLUDED.affected_products,
+          published_date = EXCLUDED.published_date,
+          reference_links = EXCLUDED.reference_links,  // Changed column name
+          last_modified = CURRENT_DATE
+      RETURNING *
+    `, [cve_id, description, severity, cvss_score, JSON.stringify(affected_products || []), 
+        published_date, JSON.stringify(reference_links || [])]);  // Changed parameter name
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error adding CVE:', err);
+    res.status(500).json({ error: 'Failed to add CVE' });
+  }
+});
+
+// Link CVE to asset
+app.post('/api/attack-surface/assets/:id/cves', async (req, res) => {
+  const assetId = parseInt(req.params.id, 10);
+  const { cve_id, status, notes } = req.body;
+  
+  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
+  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
+  
+  try {
+    // First check if CVE exists in database
+    const cveResult = await pool.query('SELECT id FROM cve_database WHERE cve_id = $1', [cve_id]);
+    if (cveResult.rows.length === 0) {
+      return res.status(404).json({ error: 'CVE not found in database' });
+    }
+    
+    const cveDbId = cveResult.rows[0].id;
+    
+    const result = await pool.query(`
+      INSERT INTO asset_cves (asset_id, cve_id, status, notes)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [assetId, cveDbId, status || 'unpatched', notes]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error linking CVE to asset:', err);
+    res.status(500).json({ error: 'Failed to link CVE to asset' });
+  }
+});
+
+// Get overall attack surface risk for a person
+app.get('/api/attack-surface/people/:id/risk-summary', async (req, res) => {
+  const personId = parseInt(req.params.id, 10);
+  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+  
+  try {
+    // Get all assets for the person
+    const assetsResult = await pool.query(`
+      SELECT 
+        asa.risk_score,
+        at.default_risk_weight,
+        at.type_category
+      FROM attack_surface_assets asa
+      JOIN asset_types at ON asa.asset_type_id = at.id
+      WHERE asa.person_id = $1 AND asa.status = 'active'
+    `, [personId]);
+    
+    if (assetsResult.rows.length === 0) {
+      return res.json({
+        overall_risk_score: 0,
+        asset_count: 0,
+        high_risk_assets: 0,
+        critical_vulnerabilities: 0,
+        risk_level: 'low'
+      });
+    }
+    
+    // Calculate weighted risk score
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+    let highRiskCount = 0;
+    
+    assetsResult.rows.forEach(asset => {
+      totalWeightedScore += asset.risk_score * asset.default_risk_weight;
+      totalWeight += asset.default_risk_weight;
+      if (asset.risk_score >= 70) highRiskCount++;
+    });
+    
+    const overallRiskScore = Math.round(totalWeightedScore / totalWeight);
+    
+    // Get critical vulnerabilities count
+    const vulnResult = await pool.query(`
+      SELECT COUNT(*) as critical_count
+      FROM asset_cves ac
+      JOIN cve_database cd ON ac.cve_id = cd.id
+      JOIN attack_surface_assets asa ON ac.asset_id = asa.id
+      WHERE asa.person_id = $1 
+      AND ac.status = 'unpatched'
+      AND cd.severity = 'CRITICAL'
+    `, [personId]);
+    
+    const criticalVulns = parseInt(vulnResult.rows[0].critical_count);
+    
+    // Determine risk level
+    let riskLevel = 'low';
+    if (overallRiskScore >= 70 || criticalVulns > 0) {
+      riskLevel = 'high';
+    } else if (overallRiskScore >= 40) {
+      riskLevel = 'medium';
+    }
+    
+    res.json({
+      overall_risk_score: overallRiskScore,
+      asset_count: assetsResult.rows.length,
+      high_risk_assets: highRiskCount,
+      critical_vulnerabilities: criticalVulns,
+      risk_level: riskLevel
+    });
+  } catch (err) {
+    console.error('Error calculating risk summary:', err);
+    res.status(500).json({ error: 'Failed to calculate risk summary' });
+  }
+});
   console.log(`Created logo upload directory: ${LOGO_UPLOAD_DIR}`);
 }
 
@@ -158,6 +630,135 @@ const initializeDatabase = async () => {
     console.log('Checked/created "people" table.');
     await applyUpdatedAtTrigger(client, 'people');
 
+    // Business Entity Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS businesses (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(100), -- corporation, llc, nonprofit, etc.
+        industry VARCHAR(100),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        phone VARCHAR(50),
+        email VARCHAR(255),
+        website VARCHAR(255),
+        owner_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+        registration_number VARCHAR(100),
+        registration_date DATE,
+        status VARCHAR(50) DEFAULT 'active', -- active, inactive, dissolved
+        employees JSONB DEFAULT '[]'::jsonb, -- Simple employee list with names and roles
+        financial_info JSONB DEFAULT '{}'::jsonb,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "businesses" table.');
+    await applyUpdatedAtTrigger(client, 'businesses');
+
+    // Entity Relationships Table (for all entity connections)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS entity_relationships (
+        id SERIAL PRIMARY KEY,
+        source_type VARCHAR(50) NOT NULL, -- person, business, location, etc.
+        source_id INTEGER NOT NULL,
+        target_type VARCHAR(50) NOT NULL,
+        target_id INTEGER NOT NULL,
+        relationship_type VARCHAR(100) NOT NULL, -- employs, owns, lives_at, etc.
+        relationship_subtype VARCHAR(100),
+        confidence_score INTEGER DEFAULT 50 CHECK (confidence_score >= 0 AND confidence_score <= 100),
+        start_date TIMESTAMPTZ,
+        end_date TIMESTAMPTZ,
+        attributes JSONB DEFAULT '{}'::jsonb,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(source_type, source_id, target_type, target_id, relationship_type)
+      );
+    `);
+    console.log('Checked/created "entity_relationships" table.');
+    await applyUpdatedAtTrigger(client, 'entity_relationships');
+
+    // Create indexes for better performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_entity_relationships_source 
+        ON entity_relationships(source_type, source_id);
+      CREATE INDEX IF NOT EXISTS idx_entity_relationships_target 
+        ON entity_relationships(target_type, target_id);
+      CREATE INDEX IF NOT EXISTS idx_entity_relationships_type 
+        ON entity_relationships(relationship_type);
+      CREATE INDEX IF NOT EXISTS idx_businesses_owner 
+        ON businesses(owner_person_id);
+    `);
+
+    // Relationship types configuration
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS relationship_types (
+        id SERIAL PRIMARY KEY,
+        source_type VARCHAR(50) NOT NULL,
+        target_type VARCHAR(50) NOT NULL,
+        relationship_type VARCHAR(100) NOT NULL,
+        reverse_type VARCHAR(100), -- e.g., employs <-> employed_by
+        display_name VARCHAR(255) NOT NULL,
+        icon_name VARCHAR(50),
+        color VARCHAR(7),
+        style VARCHAR(50) DEFAULT 'solid', -- solid, dashed, dotted
+        is_directional BOOLEAN DEFAULT TRUE,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(source_type, target_type, relationship_type)
+      );
+    `);
+    console.log('Checked/created "relationship_types" table.');
+
+    // Insert default relationship types
+    const defaultRelationshipTypes = [
+      // Person to Person (existing)
+      { source: 'person', target: 'person', type: 'family', reverse: 'family', name: 'Family', color: '#10b981', style: 'solid' },
+      { source: 'person', target: 'person', type: 'friend', reverse: 'friend', name: 'Friend', color: '#3b82f6', style: 'solid' },
+      { source: 'person', target: 'person', type: 'associate', reverse: 'associate', name: 'Associate', color: '#6b7280', style: 'solid' },
+      
+      // Person to Business
+      { source: 'person', target: 'business', type: 'owns', reverse: 'owned_by', name: 'Owns', color: '#10b981', style: 'solid' },
+      { source: 'person', target: 'business', type: 'works_at', reverse: 'employs', name: 'Works At', color: '#f59e0b', style: 'solid' },
+      { source: 'person', target: 'business', type: 'director_of', reverse: 'has_director', name: 'Director Of', color: '#8b5cf6', style: 'solid' },
+      { source: 'person', target: 'business', type: 'customer_of', reverse: 'has_customer', name: 'Customer Of', color: '#6366f1', style: 'dashed' },
+      
+      // Person to Location (from existing locations)
+      { source: 'person', target: 'location', type: 'lives_at', reverse: 'residence_of', name: 'Lives At', color: '#8b5cf6', style: 'solid' },
+      { source: 'person', target: 'location', type: 'works_at', reverse: 'workplace_of', name: 'Works At', color: '#f59e0b', style: 'dashed' },
+      { source: 'person', target: 'location', type: 'owns_property', reverse: 'owned_by', name: 'Owns Property', color: '#10b981', style: 'solid' },
+      { source: 'person', target: 'location', type: 'frequents', reverse: 'frequented_by', name: 'Frequents', color: '#64748b', style: 'dotted' },
+      
+      // Business to Business
+      { source: 'business', target: 'business', type: 'subsidiary_of', reverse: 'parent_of', name: 'Subsidiary Of', color: '#8b5cf6', style: 'solid' },
+      { source: 'business', target: 'business', type: 'partner_with', reverse: 'partner_with', name: 'Partner With', color: '#3b82f6', style: 'solid' },
+      { source: 'business', target: 'business', type: 'supplies', reverse: 'supplied_by', name: 'Supplies', color: '#f59e0b', style: 'dashed' },
+      
+      // Business to Location
+      { source: 'business', target: 'location', type: 'located_at', reverse: 'location_of', name: 'Located At', color: '#6366f1', style: 'solid' },
+      { source: 'business', target: 'location', type: 'has_branch', reverse: 'branch_of', name: 'Has Branch', color: '#f59e0b', style: 'dashed' }
+    ];
+
+    for (const relType of defaultRelationshipTypes) {
+      await client.query(`
+        INSERT INTO relationship_types 
+        (source_type, target_type, relationship_type, reverse_type, display_name, color, style, is_directional)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (source_type, target_type, relationship_type) DO UPDATE
+        SET reverse_type = EXCLUDED.reverse_type,
+            display_name = EXCLUDED.display_name,
+            color = EXCLUDED.color,
+            style = EXCLUDED.style
+      `, [relType.source, relType.target, relType.type, relType.reverse, relType.name, relType.color, relType.style, true]);
+    }
+    console.log('Ensured default relationship types exist.');
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS tools (
         id SERIAL PRIMARY KEY,
@@ -271,7 +872,23 @@ const initializeDatabase = async () => {
       { model_type: 'location_type', option_value: 'work', option_label: 'Work', display_order: 3 },
       { model_type: 'location_type', option_value: 'favorite_hotel', option_label: 'Favorite Hotel', display_order: 4 },
       { model_type: 'location_type', option_value: 'yacht_location', option_label: 'Yacht Location', display_order: 5 },
-      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 }
+      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 },
+      
+      // Business Types
+      { model_type: 'business_type', option_value: 'corporation', option_label: 'Corporation', display_order: 1 },
+      { model_type: 'business_type', option_value: 'llc', option_label: 'LLC', display_order: 2 },
+      { model_type: 'business_type', option_value: 'partnership', option_label: 'Partnership', display_order: 3 },
+      { model_type: 'business_type', option_value: 'sole_proprietorship', option_label: 'Sole Proprietorship', display_order: 4 },
+      { model_type: 'business_type', option_value: 'nonprofit', option_label: 'Non-Profit', display_order: 5 },
+      { model_type: 'business_type', option_value: 'government', option_label: 'Government Entity', display_order: 6 },
+      { model_type: 'business_type', option_value: 'other', option_label: 'Other', display_order: 7 },
+      
+      // Business Status
+      { model_type: 'business_status', option_value: 'active', option_label: 'Active', display_order: 1 },
+      { model_type: 'business_status', option_value: 'inactive', option_label: 'Inactive', display_order: 2 },
+      { model_type: 'business_status', option_value: 'dissolved', option_label: 'Dissolved', display_order: 3 },
+      { model_type: 'business_status', option_value: 'suspended', option_label: 'Suspended', display_order: 4 },
+      { model_type: 'business_status', option_value: 'bankruptcy', option_label: 'Bankruptcy', display_order: 5 }
     ];
 
     for (const option of defaultOptions) {
@@ -344,157 +961,7 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_travel_history_location ON travel_history(country, city);
     `);
 
-    // Attack Surface Module Tables
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS asset_types (
-        id SERIAL PRIMARY KEY,
-        type_name VARCHAR(100) UNIQUE NOT NULL,
-        type_category VARCHAR(50) NOT NULL, -- device, account, network, service
-        default_risk_weight DECIMAL(3,2) DEFAULT 1.0,
-        scan_available BOOLEAN DEFAULT false,
-        icon_name VARCHAR(50),
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "asset_types" table.');
-    await applyUpdatedAtTrigger(client, 'asset_types');
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS attack_surface_assets (
-        id SERIAL PRIMARY KEY,
-        person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
-        asset_type_id INTEGER NOT NULL REFERENCES asset_types(id),
-        asset_name VARCHAR(255) NOT NULL,
-        asset_identifier VARCHAR(500), -- IP, URL, email, device ID, etc.
-        asset_details JSONB DEFAULT '{}',
-        location VARCHAR(255),
-        status VARCHAR(50) DEFAULT 'active', -- active, inactive, compromised
-        risk_score INTEGER DEFAULT 50, -- 0-100
-        last_scan_date TIMESTAMPTZ,
-        scan_results JSONB DEFAULT '{}',
-        notes TEXT,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "attack_surface_assets" table.');
-    await applyUpdatedAtTrigger(client, 'attack_surface_assets');
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS asset_risk_assessments (
-        id SERIAL PRIMARY KEY,
-        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
-        assessment_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        risk_score INTEGER NOT NULL,
-        risk_factors JSONB DEFAULT '[]',
-        vulnerabilities JSONB DEFAULT '[]',
-        recommendations TEXT,
-        assessed_by VARCHAR(100),
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "asset_risk_assessments" table.');
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS cve_database (
-        id SERIAL PRIMARY KEY,
-        cve_id VARCHAR(50) UNIQUE NOT NULL,
-        description TEXT,
-        severity VARCHAR(20), -- LOW, MEDIUM, HIGH, CRITICAL
-        cvss_score DECIMAL(3,1),
-        affected_products JSONB DEFAULT '[]',
-        published_date DATE,
-        last_modified DATE,
-        reference_links JSONB DEFAULT '[]',  -- Changed from 'references' to 'reference_links'
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "cve_database" table.');
-    await applyUpdatedAtTrigger(client, 'cve_database');
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS asset_cves (
-        id SERIAL PRIMARY KEY,
-        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
-        cve_id INTEGER NOT NULL REFERENCES cve_database(id),
-        status VARCHAR(50) DEFAULT 'unpatched', -- unpatched, patched, mitigated
-        detected_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        patched_date TIMESTAMPTZ,
-        notes TEXT,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "asset_cves" table.');
-    await applyUpdatedAtTrigger(client, 'asset_cves');
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS asset_scans (
-        id SERIAL PRIMARY KEY,
-        asset_id INTEGER NOT NULL REFERENCES attack_surface_assets(id) ON DELETE CASCADE,
-        scan_type VARCHAR(50) NOT NULL, -- port_scan, ssl_check, vulnerability_scan, etc.
-        scan_status VARCHAR(50) DEFAULT 'pending', -- pending, running, completed, failed
-        scan_results JSONB DEFAULT '{}',
-        started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        completed_at TIMESTAMPTZ,
-        error_message TEXT,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Checked/created "asset_scans" table.');
-
-    // Add indexes for better performance
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_attack_surface_assets_person_id ON attack_surface_assets(person_id);
-      CREATE INDEX IF NOT EXISTS idx_attack_surface_assets_risk_score ON attack_surface_assets(risk_score);
-      CREATE INDEX IF NOT EXISTS idx_asset_cves_asset_id ON asset_cves(asset_id);
-      CREATE INDEX IF NOT EXISTS idx_asset_scans_asset_id ON asset_scans(asset_id);
-    `);
-
-    // Insert default asset types
-    const defaultAssetTypes = [
-      // Devices
-      { type_name: 'Laptop', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Laptop' },
-      { type_name: 'Desktop Computer', type_category: 'device', default_risk_weight: 0.8, scan_available: true, icon_name: 'Monitor' },
-      { type_name: 'Smartphone', type_category: 'device', default_risk_weight: 1.0, scan_available: false, icon_name: 'Smartphone' },
-      { type_name: 'Tablet', type_category: 'device', default_risk_weight: 0.7, scan_available: false, icon_name: 'Tablet' },
-      { type_name: 'Smart TV', type_category: 'device', default_risk_weight: 0.6, scan_available: true, icon_name: 'Tv' },
-      { type_name: 'Security Camera', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Camera' },
-      { type_name: 'Smart Speaker (Alexa/Google)', type_category: 'device', default_risk_weight: 0.8, scan_available: true, icon_name: 'Speaker' },
-      { type_name: 'Smart Home Hub', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'Home' },
-      { type_name: 'Router', type_category: 'device', default_risk_weight: 1.0, scan_available: true, icon_name: 'Router' },
-      { type_name: 'NAS Device', type_category: 'device', default_risk_weight: 0.9, scan_available: true, icon_name: 'HardDrive' },
-      
-      // Accounts
-      { type_name: 'Email Account', type_category: 'account', default_risk_weight: 1.0, scan_available: false, icon_name: 'Mail' },
-      { type_name: 'Social Media Account', type_category: 'account', default_risk_weight: 0.7, scan_available: false, icon_name: 'Users' },
-      { type_name: 'Cloud Storage Account', type_category: 'account', default_risk_weight: 0.9, scan_available: false, icon_name: 'Cloud' },
-      { type_name: 'Banking Account', type_category: 'account', default_risk_weight: 1.0, scan_available: false, icon_name: 'DollarSign' },
-      
-      // Network
-      { type_name: 'WiFi Network', type_category: 'network', default_risk_weight: 0.9, scan_available: true, icon_name: 'Wifi' },
-      { type_name: 'VPN Service', type_category: 'network', default_risk_weight: 0.5, scan_available: false, icon_name: 'Shield' },
-      
-      // Services
-      { type_name: 'Website', type_category: 'service', default_risk_weight: 0.8, scan_available: true, icon_name: 'Globe' },
-      { type_name: 'Web Application', type_category: 'service', default_risk_weight: 0.9, scan_available: true, icon_name: 'Code' },
-      { type_name: 'API Endpoint', type_category: 'service', default_risk_weight: 0.9, scan_available: true, icon_name: 'Terminal' }
-    ];
-
-    for (const assetType of defaultAssetTypes) {
-      await client.query(`
-        INSERT INTO asset_types (type_name, type_category, default_risk_weight, scan_available, icon_name)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (type_name) DO UPDATE
-        SET type_category = EXCLUDED.type_category,
-            default_risk_weight = EXCLUDED.default_risk_weight,
-            scan_available = EXCLUDED.scan_available,
-            icon_name = EXCLUDED.icon_name
-      `, [assetType.type_name, assetType.type_category, assetType.default_risk_weight, assetType.scan_available, assetType.icon_name]);
-    }
-    console.log('Ensured default asset types exist.');
 
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
@@ -547,7 +1014,7 @@ app.post('/api/upload/logo', logoUpload.single('appLogo'), (req, res) => {
 app.get('/api/search', async (req, res) => {
   const { q } = req.query;
   if (!q || q.length < 2) {
-    return res.json({ people: [], tools: [] });
+    return res.json({ people: [], tools: [], businesses: [] });
   }
 
   try {
@@ -573,14 +1040,26 @@ app.get('/api/search', async (req, res) => {
       LIMIT 10
     `;
     
-    const [peopleResult, toolsResult] = await Promise.all([
+    const businessesQuery = `
+      SELECT id, name, type, industry, city, country 
+      FROM businesses 
+      WHERE LOWER(name) LIKE $1 
+         OR LOWER(industry) LIKE $1
+         OR LOWER(city) LIKE $1
+         OR LOWER(registration_number) LIKE $1
+      LIMIT 10
+    `;
+    
+    const [peopleResult, toolsResult, businessesResult] = await Promise.all([
       pool.query(peopleQuery, [searchTerm]),
-      pool.query(toolsQuery, [searchTerm])
+      pool.query(toolsQuery, [searchTerm]),
+      pool.query(businessesQuery, [searchTerm])
     ]);
     
     res.json({
       people: peopleResult.rows,
-      tools: toolsResult.rows
+      tools: toolsResult.rows,
+      businesses: businessesResult.rows
     });
   } catch (err) {
     console.error('Error in universal search:', err);
@@ -939,1287 +1418,332 @@ app.delete('/api/people/:id', async (req, res) => {
   }
 });
 
-// Get all locations for map view
-app.get('/api/locations', async (req, res) => {
+// Business endpoints
+app.get('/api/businesses', async (req, res) => {
   try {
-    const query = `
-      SELECT 
-        p.id,
-        p.first_name,
-        p.last_name,
-        p.case_name,
-        p.category,
-        p.locations,
-        p.connections
-      FROM people p
-      WHERE p.locations IS NOT NULL AND p.locations != '[]'::jsonb
-    `;
-    
-    const result = await pool.query(query);
+    const result = await pool.query(`
+      SELECT b.*, 
+        p.first_name as owner_first_name, 
+        p.last_name as owner_last_name
+      FROM businesses b
+      LEFT JOIN people p ON b.owner_person_id = p.id
+      ORDER BY b.created_at DESC
+    `);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching locations:', err);
-    res.status(500).json({ error: 'Failed to fetch locations' });
+    console.error('Error fetching businesses:', err);
+    res.status(500).json({ error: 'Failed to fetch businesses' });
   }
 });
 
-// Travel History endpoints
-app.get('/api/people/:id/travel-history', async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
-  
-  try {
-    const result = await pool.query(
-      `SELECT * FROM travel_history 
-       WHERE person_id = $1 
-       ORDER BY arrival_date DESC`,
-      [personId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching travel history:', err);
-    res.status(500).json({ error: 'Failed to fetch travel history' });
-  }
-});
-
-app.post('/api/people/:id/travel-history', async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
-  
+app.post('/api/businesses', async (req, res) => {
   const {
-    location_type, location_name, address, city, state, country, postal_code,
-    latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes
+    name, type, industry, address, city, state, country, postal_code,
+    latitude, longitude, phone, email, website, owner_person_id,
+    registration_number, registration_date, status, employees, financial_info, notes
   } = req.body;
   
+  if (!name) return res.status(400).json({ error: 'Business name is required' });
+  
   try {
-    const result = await pool.query(
-      `INSERT INTO travel_history 
-       (person_id, location_type, location_name, address, city, state, country, postal_code,
-        latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-       RETURNING *`,
-      [personId, location_type, location_name, address, city, state, country, postal_code,
-       latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes]
-    );
-    
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error creating travel history:', err);
-    res.status(500).json({ error: 'Failed to create travel history' });
-  }
-});
-
-// Batch geocode all locations missing coordinates
-app.post('/api/geocode/batch', async (req, res) => {
-  try {
-    // Get all people with locations
-    const peopleResult = await pool.query(`
-      SELECT id, locations 
-      FROM people 
-      WHERE locations IS NOT NULL AND locations != '[]'::jsonb
-    `);
-    
-    let totalGeocoded = 0;
-    let totalFailed = 0;
-    
-    for (const person of peopleResult.rows) {
-      const locations = person.locations || [];
-      const needsGeocoding = locations.some(
-        loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
-      );
-      
-      if (needsGeocoding) {
-        console.log(`Geocoding locations for person ${person.id}`);
-        const geocodedLocations = await batchGeocode(locations);
-        
-        // Count successes
-        const geocodedCount = geocodedLocations.filter(
-          loc => loc.latitude && loc.longitude
-        ).length - locations.filter(
-          loc => loc.latitude && loc.longitude
-        ).length;
-        
-        totalGeocoded += geocodedCount;
-        
-        // Update the person's locations
-        await pool.query(
-          'UPDATE people SET locations = $1 WHERE id = $2',
-          [JSON.stringify(geocodedLocations), person.id]
-        );
+    // Geocode if coordinates not provided
+    let lat = latitude;
+    let lng = longitude;
+    if ((!lat || !lng) && (address || city || country)) {
+      const geocoded = await geocodeAddress({ address, city, state, country, postal_code });
+      if (geocoded) {
+        lat = geocoded.latitude;
+        lng = geocoded.longitude;
       }
     }
     
-    res.json({
-      message: 'Batch geocoding completed',
-      totalGeocoded,
-      totalFailed
+    const result = await pool.query(`
+      INSERT INTO businesses 
+      (name, type, industry, address, city, state, country, postal_code,
+       latitude, longitude, phone, email, website, owner_person_id,
+       registration_number, registration_date, status, employees, financial_info, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      RETURNING *
+    `, [name, type, industry, address, city, state, country, postal_code,
+        lat, lng, phone, email, website, owner_person_id,
+        registration_number, registration_date, status || 'active', 
+        JSON.stringify(employees || []), JSON.stringify(financial_info || {}), notes]);
+    
+    const newBusiness = result.rows[0];
+    
+    // Log audit
+    await logAudit('business', newBusiness.id, 'create', {
+      record: { oldValue: null, newValue: JSON.stringify(newBusiness) }
     });
+    
+    res.status(201).json(newBusiness);
   } catch (err) {
-    console.error('Error in batch geocoding:', err);
-    res.status(500).json({ error: 'Batch geocoding failed' });
+    console.error('Error creating business:', err);
+    res.status(500).json({ error: 'Failed to create business' });
   }
 });
 
-app.put('/api/travel-history/:id', async (req, res) => {
-  const travelId = parseInt(req.params.id, 10);
-  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+app.put('/api/businesses/:id', async (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  if (isNaN(businessId)) return res.status(400).json({ error: 'Invalid business ID' });
   
   const {
-    location_type, location_name, address, city, state, country, postal_code,
-    latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes
+    name, type, industry, address, city, state, country, postal_code,
+    latitude, longitude, phone, email, website, owner_person_id,
+    registration_number, registration_date, status, employees, financial_info, notes
   } = req.body;
   
+  if (!name) return res.status(400).json({ error: 'Business name is required' });
+  
   try {
-    const result = await pool.query(
-      `UPDATE travel_history 
-       SET location_type = $1, location_name = $2, address = $3, city = $4, state = $5,
-           country = $6, postal_code = $7, latitude = $8, longitude = $9,
-           arrival_date = $10, departure_date = $11, purpose = $12,
-           transportation_mode = $13, notes = $14
-       WHERE id = $15
-       RETURNING *`,
-      [location_type, location_name, address, city, state, country, postal_code,
-       latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes, travelId]
-    );
+    // Get old values for audit
+    const oldResult = await pool.query('SELECT * FROM businesses WHERE id = $1', [businessId]);
+    if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Business not found' });
+    const oldBusiness = oldResult.rows[0];
     
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
-    res.json(result.rows[0]);
+    // Geocode if coordinates not provided
+    let lat = latitude;
+    let lng = longitude;
+    if ((!lat || !lng) && (address || city || country)) {
+      const geocoded = await geocodeAddress({ address, city, state, country, postal_code });
+      if (geocoded) {
+        lat = geocoded.latitude;
+        lng = geocoded.longitude;
+      }
+    }
+    
+    const result = await pool.query(`
+      UPDATE businesses 
+      SET name = $1, type = $2, industry = $3, address = $4, city = $5, 
+          state = $6, country = $7, postal_code = $8, latitude = $9, longitude = $10,
+          phone = $11, email = $12, website = $13, owner_person_id = $14,
+          registration_number = $15, registration_date = $16, status = $17,
+          employees = $18, financial_info = $19, notes = $20
+      WHERE id = $21
+      RETURNING *
+    `, [name, type, industry, address, city, state, country, postal_code,
+        lat, lng, phone, email, website, owner_person_id,
+        registration_number, registration_date, status,
+        JSON.stringify(employees || []), JSON.stringify(financial_info || {}), notes, businessId]);
+    
+    const newBusiness = result.rows[0];
+    
+    // Log audit changes
+    const changes = {};
+    if (oldBusiness.name !== name) changes.name = { oldValue: oldBusiness.name, newValue: name };
+    if (oldBusiness.type !== type) changes.type = { oldValue: oldBusiness.type, newValue: type };
+    if (oldBusiness.status !== status) changes.status = { oldValue: oldBusiness.status, newValue: status };
+    if (oldBusiness.owner_person_id !== owner_person_id) changes.owner_person_id = { oldValue: oldBusiness.owner_person_id, newValue: owner_person_id };
+    
+    if (Object.keys(changes).length > 0) {
+      await logAudit('business', businessId, 'update', changes);
+    }
+    
+    res.json(newBusiness);
   } catch (err) {
-    console.error('Error updating travel history:', err);
-    res.status(500).json({ error: 'Failed to update travel history' });
+    console.error('Error updating business:', err);
+    res.status(500).json({ error: 'Failed to update business' });
   }
 });
 
-app.delete('/api/travel-history/:id', async (req, res) => {
-  const travelId = parseInt(req.params.id, 10);
-  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+app.delete('/api/businesses/:id', async (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  if (isNaN(businessId)) return res.status(400).json({ error: 'Invalid business ID' });
   
   try {
-    const result = await pool.query('DELETE FROM travel_history WHERE id = $1 RETURNING *', [travelId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
-    res.json({ message: 'Travel record deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting travel history:', err);
-    res.status(500).json({ error: 'Failed to delete travel history' });
-  }
-});
-
-// Travel pattern analysis endpoint
-app.get('/api/people/:id/travel-analysis', async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
-  
-  try {
-    // Get all travel history
-    const travelHistory = await pool.query(
-      `SELECT * FROM travel_history 
-       WHERE person_id = $1 
-       ORDER BY arrival_date ASC`,
-      [personId]
-    );
+    const result = await pool.query('DELETE FROM businesses WHERE id = $1 RETURNING *', [businessId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Business not found' });
     
-    // Calculate statistics
-    const stats = await pool.query(`
-      SELECT 
-        COUNT(DISTINCT country) as countries_visited,
-        COUNT(DISTINCT city) as cities_visited,
-        COUNT(*) as total_trips,
-        MIN(arrival_date) as first_trip,
-        MAX(departure_date) as last_trip,
-        AVG(EXTRACT(DAY FROM (departure_date - arrival_date))) as avg_trip_duration
-      FROM travel_history
-      WHERE person_id = $1 AND arrival_date IS NOT NULL
-    `, [personId]);
-    
-    // Most visited locations
-    const frequentLocations = await pool.query(`
-      SELECT country, city, COUNT(*) as visit_count
-      FROM travel_history
-      WHERE person_id = $1 AND country IS NOT NULL
-      GROUP BY country, city
-      ORDER BY visit_count DESC
-      LIMIT 10
-    `, [personId]);
-    
-    // Travel by purpose
-    const travelByPurpose = await pool.query(`
-      SELECT purpose, COUNT(*) as count
-      FROM travel_history
-      WHERE person_id = $1 AND purpose IS NOT NULL
-      GROUP BY purpose
-      ORDER BY count DESC
-    `, [personId]);
-    
-    // Monthly travel frequency
-    const monthlyFrequency = await pool.query(`
-      SELECT 
-        EXTRACT(YEAR FROM arrival_date) as year,
-        EXTRACT(MONTH FROM arrival_date) as month,
-        COUNT(*) as trips
-      FROM travel_history
-      WHERE person_id = $1 AND arrival_date IS NOT NULL
-      GROUP BY year, month
-      ORDER BY year DESC, month DESC
-      LIMIT 24
-    `, [personId]);
-    
-    res.json({
-      history: travelHistory.rows,
-      statistics: stats.rows[0],
-      frequentLocations: frequentLocations.rows,
-      travelByPurpose: travelByPurpose.rows,
-      monthlyFrequency: monthlyFrequency.rows
+    await logAudit('business', businessId, 'delete', {
+      record: { oldValue: JSON.stringify(result.rows[0]), newValue: null }
     });
-  } catch (err) {
-    console.error('Error analyzing travel patterns:', err);
-    res.status(500).json({ error: 'Failed to analyze travel patterns' });
-  }
-});
-
-// Tools endpoints
-app.get('/api/tools', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM tools ORDER BY name ASC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching tools:', err.message);
-    res.status(500).json({ error: 'Failed to fetch tools' });
-  }
-});
-
-app.post('/api/tools', async (req, res) => {
-  const { name, link, description, category, status, tags, notes } = req.body;
-  if (!name) return res.status(400).json({ error: 'Tool name is required' });
-  
-  const query = `INSERT INTO tools (name, link, description, category, status, tags, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
-  const values = [name, link || null, description || null, category || null, status || null, tags || [], notes || null];
-  
-  try {
-    const result = await pool.query(query, values);
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error creating tool:', err.message);
-    res.status(500).json({ error: 'Failed to create tool' });
-  }
-});
-
-app.put('/api/tools/:id', async (req, res) => {
-  const toolId = parseInt(req.params.id, 10);
-  const { name, link, description, category, status, tags, notes } = req.body;
-  
-  if (isNaN(toolId)) return res.status(400).json({ error: 'Invalid tool ID' });
-  if (!name) return res.status(400).json({ error: 'Tool name is required for update' });
-  
-  const query = `UPDATE tools SET name = $1, link = $2, description = $3, category = $4, status = $5, tags = $6, notes = $7 WHERE id = $8 RETURNING *;`;
-  const values = [name, link || null, description || null, category || null, status || null, tags || [], notes || null, toolId];
-  
-  try {
-    const result = await pool.query(query, values);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Tool not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating tool:', err.message);
-    res.status(500).json({ error: 'Failed to update tool' });
-  }
-});
-
-app.delete('/api/tools/:id', async (req, res) => {
-  const toolId = parseInt(req.params.id, 10);
-  if (isNaN(toolId)) return res.status(400).json({ error: 'Invalid tool ID' });
-  
-  try {
-    const result = await pool.query('DELETE FROM tools WHERE id = $1 RETURNING *;', [toolId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Tool not found' });
-    res.status(200).json({ message: 'Tool deleted successfully', deletedTool: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting tool:', err.message);
-    res.status(500).json({ error: 'Failed to delete tool' });
-  }
-});
-
-// Todos endpoints
-app.get('/api/todos', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM todos ORDER BY created_at DESC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching todos:', err.message);
-    res.status(500).json({ error: 'Failed to fetch todos' });
-  }
-});
-
-app.post('/api/todos', async (req, res) => {
-  const { text, status, last_update_comment } = req.body;
-  if (!text) return res.status(400).json({ error: 'Todo text is required' });
-  
-  const query = `INSERT INTO todos (text, status, last_update_comment) VALUES ($1, $2, $3) RETURNING *;`;
-  const values = [text, status || 'open', last_update_comment || null];
-  
-  try {
-    const result = await pool.query(query, values);
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error creating todo:', err.message);
-    res.status(500).json({ error: 'Failed to create todo' });
-  }
-});
-
-app.put('/api/todos/:id', async (req, res) => {
-  const todoId = parseInt(req.params.id, 10);
-  const { text, status, last_update_comment } = req.body;
-  
-  if (isNaN(todoId)) return res.status(400).json({ error: 'Invalid todo ID' });
-  if (!text && status === undefined) return res.status(400).json({ error: 'Text or status is required for update' });
-  
-  const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status), last_update_comment = $3 WHERE id = $4 RETURNING *;`;
-  const values = [text, status, last_update_comment, todoId];
-  
-  try {
-    const result = await pool.query(query, values);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating todo:', err.message);
-    res.status(500).json({ error: 'Failed to update todo' });
-  }
-});
-
-app.delete('/api/todos/:id', async (req, res) => {
-  const todoId = parseInt(req.params.id, 10);
-  if (isNaN(todoId)) return res.status(400).json({ error: 'Invalid todo ID' });
-  
-  try {
-    const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *;', [todoId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
-    res.status(200).json({ message: 'Todo deleted successfully', deletedTodo: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting todo:', err.message);
-    res.status(500).json({ error: 'Failed to delete todo' });
-  }
-});
-
-// Custom fields endpoints
-app.get('/api/settings/custom-fields', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM custom_person_fields ORDER BY field_label ASC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching custom fields definitions:', err.message, err.stack);
-    res.status(500).json({ error: 'Failed to fetch custom fields definitions' });
-  }
-});
-
-app.post('/api/settings/custom-fields', async (req, res) => {
-  const { field_name, field_label, field_type, options, is_active } = req.body;
-  if (!field_name || !field_label || !field_type) {
-    return res.status(400).json({ error: 'field_name, field_label, and field_type are required' });
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(field_name)) {
-    return res.status(400).json({ error: 'field_name can only contain alphanumeric characters and underscores.' });
-  }
-  
-  const query = `INSERT INTO custom_person_fields (field_name, field_label, field_type, options, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-  const values = [field_name, field_label, field_type, JSON.stringify(options || []), is_active !== undefined ? is_active : true];
-  
-  try {
-    const result = await pool.query(query, values);
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(409).json({ error: `Custom field with name "${field_name}" already exists.` });
-    }
-    console.error('Error creating custom field definition:', err.message, err.stack);
-    res.status(500).json({ error: 'Failed to create custom field definition' });
-  }
-});
-
-app.put('/api/settings/custom-fields/:id', async (req, res) => {
-  const fieldId = parseInt(req.params.id, 10);
-  const { field_label, field_type, options, is_active } = req.body;
-  
-  if (isNaN(fieldId)) return res.status(400).json({ error: 'Invalid field ID' });
-  if (!field_label || !field_type) {
-    return res.status(400).json({ error: 'field_label and field_type are required for update' });
-  }
-  
-  const query = `UPDATE custom_person_fields SET field_label = $1, field_type = $2, options = $3, is_active = $4 WHERE id = $5 RETURNING *;`;
-  const values = [field_label, field_type, JSON.stringify(options || []), is_active !== undefined ? is_active : true, fieldId];
-  
-  try {
-    const result = await pool.query(query, values);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Custom field definition not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating custom field definition:', err.message, err.stack);
-    res.status(500).json({ error: 'Failed to update custom field definition' });
-  }
-});
-
-app.delete('/api/settings/custom-fields/:id', async (req, res) => {
-  const fieldId = parseInt(req.params.id, 10);
-  if (isNaN(fieldId)) return res.status(400).json({ error: 'Invalid field ID' });
-  
-  try {
-    const result = await pool.query('DELETE FROM custom_person_fields WHERE id = $1 RETURNING *;', [fieldId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Custom field definition not found' });
-    res.status(200).json({ message: 'Custom field definition deleted successfully', deletedField: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting custom field definition:', err.message, err.stack);
-    res.status(500).json({ error: 'Failed to delete custom field definition' });
-  }
-});
-
-// Model options endpoints
-app.get('/api/settings/model-options', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM model_options ORDER BY model_type, display_order ASC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching model options:', err);
-    res.status(500).json({ error: 'Failed to fetch model options' });
-  }
-});
-
-app.post('/api/settings/model-options', async (req, res) => {
-  const { model_type, option_value, option_label, display_order } = req.body;
-  
-  if (!model_type || !option_value || !option_label) {
-    return res.status(400).json({ error: 'model_type, option_value, and option_label are required' });
-  }
-  
-  try {
-    const result = await pool.query(
-      `INSERT INTO model_options (model_type, option_value, option_label, display_order) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [model_type, option_value, option_label, display_order || 999]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(409).json({ error: 'Option already exists' });
-    }
-    console.error('Error creating model option:', err);
-    res.status(500).json({ error: 'Failed to create model option' });
-  }
-});
-
-app.put('/api/settings/model-options/:id', async (req, res) => {
-  const optionId = parseInt(req.params.id, 10);
-  const { option_label, is_active, display_order } = req.body;
-  
-  if (isNaN(optionId)) return res.status(400).json({ error: 'Invalid option ID' });
-  
-  try {
-    const result = await pool.query(
-      `UPDATE model_options 
-       SET option_label = COALESCE($1, option_label), 
-           is_active = COALESCE($2, is_active),
-           display_order = COALESCE($3, display_order)
-       WHERE id = $4 RETURNING *`,
-      [option_label, is_active, display_order, optionId]
-    );
     
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Option not found' });
-    res.json(result.rows[0]);
+    res.json({ message: 'Business deleted successfully', deletedBusiness: result.rows[0] });
   } catch (err) {
-    console.error('Error updating model option:', err);
-    res.status(500).json({ error: 'Failed to update model option' });
+    console.error('Error deleting business:', err);
+    res.status(500).json({ error: 'Failed to delete business' });
   }
 });
 
-app.delete('/api/settings/model-options/:id', async (req, res) => {
-  const optionId = parseInt(req.params.id, 10);
-  if (isNaN(optionId)) return res.status(400).json({ error: 'Invalid option ID' });
+// Entity Relationships endpoints
+app.get('/api/entity-relationships', async (req, res) => {
+  const { source_type, source_id, target_type, target_id } = req.query;
   
   try {
-    const result = await pool.query('DELETE FROM model_options WHERE id = $1 RETURNING *', [optionId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Option not found' });
-    res.json({ message: 'Option deleted successfully', deletedOption: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting model option:', err);
-    res.status(500).json({ error: 'Failed to delete model option' });
-  }
-});
-
-// Audit log endpoints
-app.get('/api/audit-logs', async (req, res) => {
-  const { entity_type, entity_id, limit = 100, offset = 0 } = req.query;
-  
-  try {
-    let query = 'SELECT * FROM audit_logs WHERE 1=1';
+    let query = 'SELECT * FROM entity_relationships WHERE 1=1';
     const params = [];
     let paramCount = 0;
     
-    if (entity_type) {
-      query += ` AND entity_type = $${++paramCount}`;
-      params.push(entity_type);
+    if (source_type) {
+      query += ` AND source_type = ${++paramCount}`;
+      params.push(source_type);
     }
     
-    if (entity_id) {
-      query += ` AND entity_id = $${++paramCount}`;
-      params.push(parseInt(entity_id));
+    if (source_id) {
+      query += ` AND source_id = ${++paramCount}`;
+      params.push(parseInt(source_id));
     }
     
-    query += ` ORDER BY created_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
-    params.push(parseInt(limit), parseInt(offset));
+    if (target_type) {
+      query += ` AND target_type = ${++paramCount}`;
+      params.push(target_type);
+    }
+    
+    if (target_id) {
+      query += ` AND target_id = ${++paramCount}`;
+      params.push(parseInt(target_id));
+    }
+    
+    query += ' ORDER BY created_at DESC';
     
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching audit logs:', err);
-    res.status(500).json({ error: 'Failed to fetch audit logs' });
+    console.error('Error fetching entity relationships:', err);
+    res.status(500).json({ error: 'Failed to fetch entity relationships' });
   }
 });
 
-// Export/Import endpoints
-app.get('/api/export', async (req, res) => {
+app.post('/api/entity-relationships', async (req, res) => {
+  const {
+    source_type, source_id, target_type, target_id, relationship_type,
+    relationship_subtype, confidence_score, start_date, end_date, attributes, notes
+  } = req.body;
+  
+  if (!source_type || !source_id || !target_type || !target_id || !relationship_type) {
+    return res.status(400).json({ 
+      error: 'source_type, source_id, target_type, target_id, and relationship_type are required' 
+    });
+  }
+  
   try {
-    const [people, tools, todos, customFields, modelOptions, cases, travelHistory] = await Promise.all([
-      pool.query('SELECT * FROM people'),
-      pool.query('SELECT * FROM tools'),
-      pool.query('SELECT * FROM todos'),
-      pool.query('SELECT * FROM custom_person_fields'),
-      pool.query('SELECT * FROM model_options'),
-      pool.query('SELECT * FROM cases'),
-      pool.query('SELECT * FROM travel_history')
-    ]);
+    const result = await pool.query(`
+      INSERT INTO entity_relationships 
+      (source_type, source_id, target_type, target_id, relationship_type,
+       relationship_subtype, confidence_score, start_date, end_date, attributes, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `, [source_type, source_id, target_type, target_id, relationship_type,
+        relationship_subtype, confidence_score || 50, start_date, end_date,
+        JSON.stringify(attributes || {}), notes]);
     
-    const exportData = {
-      version: '1.1',
-      exportDate: new Date().toISOString(),
-      data: {
-        people: people.rows,
-        tools: tools.rows,
-        todos: todos.rows,
-        customFields: customFields.rows,
-        modelOptions: modelOptions.rows,
-        cases: cases.rows,
-        travelHistory: travelHistory.rows
-      }
-    };
-    
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="osint-crm-export-${Date.now()}.json"`);
-    res.json(exportData);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error exporting data:', err);
-    res.status(500).json({ error: 'Failed to export data' });
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'This relationship already exists' });
+    }
+    console.error('Error creating entity relationship:', err);
+    res.status(500).json({ error: 'Failed to create entity relationship' });
   }
 });
 
-app.post('/api/import', async (req, res) => {
-  const importData = req.body;
+app.put('/api/entity-relationships/:id', async (req, res) => {
+  const relationshipId = parseInt(req.params.id, 10);
+  if (isNaN(relationshipId)) return res.status(400).json({ error: 'Invalid relationship ID' });
   
-  if (!importData || !importData.version || !importData.data) {
-    return res.status(400).json({ error: 'Invalid import data format' });
-  }
-  
-  const client = await pool.connect();
-  
-  // Helper function to ensure proper JSON formatting
-  const ensureJSON = (data) => {
-    if (data === null || data === undefined) return null;
-    if (typeof data === 'string') {
-      try {
-        return JSON.parse(data);
-      } catch (e) {
-        return data;
-      }
-    }
-    return data;
-  };
-  
-  // Helper function to ensure proper JSON string for JSONB fields
-  const toJSONString = (data) => {
-    if (data === null || data === undefined) return '[]';
-    if (typeof data === 'string') {
-      try {
-        JSON.parse(data);
-        return data;
-      } catch (e) {
-        return JSON.stringify(data);
-      }
-    }
-    return JSON.stringify(data);
-  };
+  const {
+    relationship_subtype, confidence_score, start_date, end_date, attributes, notes
+  } = req.body;
   
   try {
-    await client.query('BEGIN');
+    const result = await pool.query(`
+      UPDATE entity_relationships 
+      SET relationship_subtype = $1, confidence_score = $2, start_date = $3,
+          end_date = $4, attributes = $5, notes = $6
+      WHERE id = $7
+      RETURNING *
+    `, [relationship_subtype, confidence_score, start_date, end_date,
+        JSON.stringify(attributes || {}), notes, relationshipId]);
     
-    // Create a mapping for person IDs (old ID -> new ID)
-    const personIdMapping = {};
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating entity relationship:', err);
+    res.status(500).json({ error: 'Failed to update entity relationship' });
+  }
+});
+
+app.delete('/api/entity-relationships/:id', async (req, res) => {
+  const relationshipId = parseInt(req.params.id, 10);
+  if (isNaN(relationshipId)) return res.status(400).json({ error: 'Invalid relationship ID' });
+  
+  try {
+    const result = await pool.query('DELETE FROM entity_relationships WHERE id = $1 RETURNING *', [relationshipId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
+    res.json({ message: 'Relationship deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting entity relationship:', err);
+    res.status(500).json({ error: 'Failed to delete entity relationship' });
+  }
+});
+
+// Get relationship types
+app.get('/api/relationship-types', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM relationship_types WHERE is_active = true ORDER BY source_type, target_type, display_name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching relationship types:', err);
+    res.status(500).json({ error: 'Failed to fetch relationship types' });
+  }
+});
+
+// Get entities with their relationships (for visualization)
+app.get('/api/entities-graph', async (req, res) => {
+  const { entity_type, entity_id, depth = 1 } = req.query;
+  
+  try {
+    // This is a simplified version - you might want to implement recursive queries
+    // to fetch relationships up to a certain depth
+    let entities = { people: [], businesses: [], locations: [] };
+    let relationships = [];
     
-    // Import in order to respect foreign key constraints
-    if (importData.data.cases) {
-      for (const caseItem of importData.data.cases) {
-        await client.query(
-          `INSERT INTO cases (case_name, description, status) 
-           VALUES ($1, $2, $3) 
-           ON CONFLICT (case_name) DO UPDATE 
-           SET description = EXCLUDED.description, status = EXCLUDED.status`,
-          [caseItem.case_name, caseItem.description, caseItem.status]
-        );
+    if (entity_type && entity_id) {
+      // Get the primary entity
+      if (entity_type === 'person') {
+        const personResult = await pool.query('SELECT id, first_name, last_name, category FROM people WHERE id = $1', [entity_id]);
+        entities.people = personResult.rows;
+      } else if (entity_type === 'business') {
+        const businessResult = await pool.query('SELECT id, name, type, industry FROM businesses WHERE id = $1', [entity_id]);
+        entities.businesses = businessResult.rows;
       }
-    }
-    
-    if (importData.data.customFields) {
-      for (const field of importData.data.customFields) {
-        // Ensure options is properly formatted JSON
-        const optionsJSON = field.options ? toJSONString(field.options) : '[]';
-        
-        await client.query(
-          `INSERT INTO custom_person_fields (field_name, field_label, field_type, options, is_active)
-           VALUES ($1, $2, $3, $4::jsonb, $5)
-           ON CONFLICT (field_name) DO UPDATE
-           SET field_label = EXCLUDED.field_label, field_type = EXCLUDED.field_type, 
-               options = EXCLUDED.options, is_active = EXCLUDED.is_active`,
-          [field.field_name, field.field_label, field.field_type, optionsJSON, field.is_active]
-        );
-      }
-    }
-    
-    if (importData.data.modelOptions) {
-      for (const option of importData.data.modelOptions) {
-        await client.query(
-          `INSERT INTO model_options (model_type, option_value, option_label, is_active, display_order)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (model_type, option_value) DO UPDATE
-           SET option_label = EXCLUDED.option_label, is_active = EXCLUDED.is_active, 
-               display_order = EXCLUDED.display_order`,
-          [option.model_type, option.option_value, option.option_label, option.is_active, option.display_order]
-        );
-      }
-    }
-    
-    if (importData.data.people) {
-      for (const person of importData.data.people) {
-        // Ensure all JSON fields are properly formatted
-        const osintDataJSON = person.osint_data ? toJSONString(person.osint_data) : '[]';
-        const attachmentsJSON = person.attachments ? toJSONString(person.attachments) : '[]';
-        const connectionsJSON = person.connections ? toJSONString(person.connections) : '[]';
-        const locationsJSON = person.locations ? toJSONString(person.locations) : '[]';
-        const customFieldsJSON = person.custom_fields ? toJSONString(person.custom_fields) : '{}';
-        
-        const result = await client.query(
-          `INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status, 
-                               crm_status, case_name, profile_picture_url, notes, osint_data, 
-                               attachments, connections, locations, custom_fields)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb)
-           RETURNING id`,
-          [person.first_name, person.last_name, person.aliases, person.date_of_birth, 
-           person.category, person.status, person.crm_status, person.case_name, 
-           person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON, 
-           connectionsJSON, locationsJSON, customFieldsJSON]
-        );
-        
-        // Map old ID to new ID
-        if (person.id && result.rows[0]) {
-          personIdMapping[person.id] = result.rows[0].id;
-        }
-      }
-    }
-    
-    if (importData.data.tools) {
-      for (const tool of importData.data.tools) {
-        await client.query(
-          `INSERT INTO tools (name, link, description, category, status, tags, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [tool.name, tool.link, tool.description, tool.category, tool.status, tool.tags, tool.notes]
-        );
-      }
-    }
-    
-    if (importData.data.todos) {
-      for (const todo of importData.data.todos) {
-        await client.query(
-          `INSERT INTO todos (text, status, last_update_comment)
-           VALUES ($1, $2, $3)`,
-          [todo.text, todo.status, todo.last_update_comment]
-        );
-      }
-    }
-    
-    if (importData.data.travelHistory) {
-      for (const travel of importData.data.travelHistory) {
-        // Map the old person_id to the new one
-        const newPersonId = personIdMapping[travel.person_id];
-        
-        if (newPersonId) {
-          await client.query(
-            `INSERT INTO travel_history 
-             (person_id, location_type, location_name, address, city, state, country, postal_code,
-              latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-            [newPersonId, travel.location_type, travel.location_name, travel.address, 
-             travel.city, travel.state, travel.country, travel.postal_code,
-             travel.latitude, travel.longitude, travel.arrival_date, travel.departure_date, 
-             travel.purpose, travel.transportation_mode, travel.notes]
-          );
+      
+      // Get relationships
+      const relResult = await pool.query(`
+        SELECT * FROM entity_relationships 
+        WHERE (source_type = $1 AND source_id = $2) 
+           OR (target_type = $1 AND target_id = $2)
+      `, [entity_type, entity_id]);
+      
+      relationships = relResult.rows;
+      
+      // Get connected entities
+      for (const rel of relationships) {
+        if (rel.source_type === entity_type && rel.source_id == entity_id) {
+          // Fetch target entity
+          if (rel.target_type === 'person') {
+            const result = await pool.query('SELECT id, first_name, last_name, category FROM people WHERE id = $1', [rel.target_id]);
+            entities.people.push(...result.rows.filter(p => !entities.people.find(ep => ep.id === p.id)));
+          } else if (rel.target_type === 'business') {
+            const result = await pool.query('SELECT id, name, type, industry FROM businesses WHERE id = $1', [rel.target_id]);
+            entities.businesses.push(...result.rows.filter(b => !entities.businesses.find(eb => eb.id === b.id)));
+          }
         } else {
-          console.warn(`Skipping travel history record with person_id ${travel.person_id} - person not found`);
-        }
-      }
-    }
-    
-    // Now update the connections with the new person IDs
-    if (importData.data.people) {
-      for (const person of importData.data.people) {
-        if (person.connections && person.connections.length > 0) {
-          const newPersonId = personIdMapping[person.id];
-          if (newPersonId) {
-            // Update connections with new IDs
-            const updatedConnections = person.connections.map(conn => ({
-              ...conn,
-              person_id: personIdMapping[conn.person_id] || conn.person_id
-            }));
-            
-            await client.query(
-              `UPDATE people SET connections = $1::jsonb WHERE id = $2`,
-              [JSON.stringify(updatedConnections), newPersonId]
-            );
+          // Fetch source entity
+          if (rel.source_type === 'person') {
+            const result = await pool.query('SELECT id, first_name, last_name, category FROM people WHERE id = $1', [rel.source_id]);
+            entities.people.push(...result.rows.filter(p => !entities.people.find(ep => ep.id === p.id)));
+          } else if (rel.source_type === 'business') {
+            const result = await pool.query('SELECT id, name, type, industry FROM businesses WHERE id = $1', [rel.source_id]);
+            entities.businesses.push(...result.rows.filter(b => !entities.businesses.find(eb => eb.id === b.id)));
           }
         }
       }
     }
     
-    await client.query('COMMIT');
-    res.json({ message: 'Data imported successfully' });
+    res.json({ entities, relationships });
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Error importing data:', err);
-    res.status(500).json({ error: 'Failed to import data: ' + err.message });
-  } finally {
-    client.release();
+    console.error('Error fetching entities graph:', err);
+    res.status(500).json({ error: 'Failed to fetch entities graph' });
   }
-});
-
-// Docker control endpoints
-let dockerLogs = [];
-const MAX_LOG_ENTRIES = 1000;
-
-app.get('/api/docker/status', async (req, res) => {
-  try {
-    const { stdout } = await execPromise('docker-compose ps --format json');
-    const containers = stdout.split('\n').filter(line => line).map(line => JSON.parse(line));
-    res.json({ status: 'running', containers });
-  } catch (err) {
-    res.json({ status: 'error', error: err.message });
-  }
-});
-
-app.post('/api/docker/restart', async (req, res) => {
-  try {
-    await execPromise('docker-compose restart');
-    dockerLogs.push({
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: 'Docker containers restarted'
-    });
-    res.json({ message: 'Containers restarted successfully' });
-  } catch (err) {
-    console.error('Error restarting containers:', err);
-    res.status(500).json({ error: 'Failed to restart containers' });
-  }
-});
-
-app.post('/api/docker/stop', async (req, res) => {
-  try {
-    await execPromise('docker-compose stop');
-    dockerLogs.push({
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: 'Docker containers stopped'
-    });
-    res.json({ message: 'Containers stopped successfully' });
-  } catch (err) {
-    console.error('Error stopping containers:', err);
-    res.status(500).json({ error: 'Failed to stop containers' });
-  }
-});
-
-app.get('/api/docker/logs', async (req, res) => {
-  try {
-    const { stdout } = await execPromise('docker-compose logs --tail=100 --no-color');
-    const logs = stdout.split('\n').map(line => ({
-      timestamp: new Date().toISOString(),
-      message: line
-    }));
-    res.json(logs);
-  } catch (err) {
-    res.json([]);
-  }
-});
-
-// Attack Surface API Endpoints
-
-// Get all asset types
-app.get('/api/attack-surface/asset-types', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM asset_types ORDER BY type_category, type_name');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching asset types:', err);
-    res.status(500).json({ error: 'Failed to fetch asset types' });
-  }
-});
-
-// Get assets for a person or all assets
-app.get('/api/attack-surface/assets', async (req, res) => {
-  const { person_id, case_name, risk_level, asset_type } = req.query;
-  
-  try {
-    let query = `
-      SELECT 
-        asa.*,
-        at.type_name,
-        at.type_category,
-        at.icon_name,
-        at.scan_available,
-        p.first_name,
-        p.last_name,
-        p.case_name,
-        (SELECT COUNT(*) FROM asset_cves WHERE asset_id = asa.id AND status = 'unpatched') as unpatched_cves,
-        (SELECT MAX(assessment_date) FROM asset_risk_assessments WHERE asset_id = asa.id) as last_assessment
-      FROM attack_surface_assets asa
-      JOIN asset_types at ON asa.asset_type_id = at.id
-      JOIN people p ON asa.person_id = p.id
-      WHERE 1=1
-    `;
-    
-    const params = [];
-    let paramCount = 0;
-    
-    if (person_id) {
-      query += ` AND asa.person_id = $${++paramCount}`;
-      params.push(person_id);
-    }
-    
-    if (case_name) {
-      query += ` AND p.case_name = $${++paramCount}`;
-      params.push(case_name);
-    }
-    
-    if (risk_level) {
-      switch(risk_level) {
-        case 'high':
-          query += ` AND asa.risk_score >= 70`;
-          break;
-        case 'medium':
-          query += ` AND asa.risk_score >= 40 AND asa.risk_score < 70`;
-          break;
-        case 'low':
-          query += ` AND asa.risk_score < 40`;
-          break;
-      }
-    }
-    
-    if (asset_type) {
-      query += ` AND at.type_category = $${++paramCount}`;
-      params.push(asset_type);
-    }
-    
-    query += ' ORDER BY asa.risk_score DESC, asa.created_at DESC';
-    
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching assets:', err);
-    res.status(500).json({ error: 'Failed to fetch assets' });
-  }
-});
-
-// Create new asset
-app.post('/api/attack-surface/assets', async (req, res) => {
-  const {
-    person_id,
-    asset_type_id,
-    asset_name,
-    asset_identifier,
-    asset_details,
-    location,
-    status,
-    notes
-  } = req.body;
-  
-  if (!person_id || !asset_type_id || !asset_name) {
-    return res.status(400).json({ error: 'person_id, asset_type_id, and asset_name are required' });
-  }
-  
-  try {
-    // Get default risk weight for the asset type
-    const typeResult = await pool.query('SELECT default_risk_weight FROM asset_types WHERE id = $1', [asset_type_id]);
-    const defaultRiskWeight = typeResult.rows[0]?.default_risk_weight || 0.5;
-    const initialRiskScore = Math.round(defaultRiskWeight * 50); // Start at 50% of max risk
-    
-    const result = await pool.query(`
-      INSERT INTO attack_surface_assets 
-      (person_id, asset_type_id, asset_name, asset_identifier, asset_details, location, status, risk_score, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `, [person_id, asset_type_id, asset_name, asset_identifier, JSON.stringify(asset_details || {}), 
-        location, status || 'active', initialRiskScore, notes]);
-    
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error creating asset:', err);
-    res.status(500).json({ error: 'Failed to create asset' });
-  }
-});
-
-// Update asset
-app.put('/api/attack-surface/assets/:id', async (req, res) => {
-  const assetId = parseInt(req.params.id, 10);
-  const updates = req.body;
-  
-  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
-  
-  try {
-    const setClause = Object.keys(updates)
-      .map((key, index) => `${key} = $${index + 2}`)
-      .join(', ');
-    
-    const values = [assetId, ...Object.values(updates)];
-    
-    const result = await pool.query(
-      `UPDATE attack_surface_assets SET ${setClause} WHERE id = $1 RETURNING *`,
-      values
-    );
-    
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating asset:', err);
-    res.status(500).json({ error: 'Failed to update asset' });
-  }
-});
-
-// Delete asset
-app.delete('/api/attack-surface/assets/:id', async (req, res) => {
-  const assetId = parseInt(req.params.id, 10);
-  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
-  
-  try {
-    const result = await pool.query('DELETE FROM attack_surface_assets WHERE id = $1 RETURNING *', [assetId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
-    res.json({ message: 'Asset deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting asset:', err);
-    res.status(500).json({ error: 'Failed to delete asset' });
-  }
-});
-
-// Perform basic scan on asset (simplified example)
-app.post('/api/attack-surface/assets/:id/scan', async (req, res) => {
-  const assetId = parseInt(req.params.id, 10);
-  const { scan_type } = req.body;
-  
-  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
-  
-  try {
-    // Get asset details
-    const assetResult = await pool.query(`
-      SELECT asa.*, at.type_name, at.scan_available 
-      FROM attack_surface_assets asa
-      JOIN asset_types at ON asa.asset_type_id = at.id
-      WHERE asa.id = $1
-    `, [assetId]);
-    
-    if (assetResult.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
-    
-    const asset = assetResult.rows[0];
-    
-    if (!asset.scan_available) {
-      return res.status(400).json({ error: 'Scanning not available for this asset type' });
-    }
-    
-    // Create scan record
-    const scanResult = await pool.query(`
-      INSERT INTO asset_scans (asset_id, scan_type, scan_status)
-      VALUES ($1, $2, 'running')
-      RETURNING id
-    `, [assetId, scan_type || 'basic']);
-    
-    const scanId = scanResult.rows[0].id;
-    
-    // Simulate scan (in production, this would be actual scanning logic)
-    setTimeout(async () => {
-      try {
-        let scanResults = {};
-        let riskFactors = [];
-        let newRiskScore = asset.risk_score;
-        
-        // Simulate different scan types
-        switch (scan_type) {
-          case 'port_scan':
-            scanResults = {
-              open_ports: [22, 80, 443, 3389].filter(() => Math.random() > 0.5),
-              scan_time: new Date().toISOString()
-            };
-            if (scanResults.open_ports.includes(22)) {
-              riskFactors.push({ factor: 'SSH port open', severity: 'medium', score_impact: 10 });
-            }
-            if (scanResults.open_ports.includes(3389)) {
-              riskFactors.push({ factor: 'RDP port open', severity: 'high', score_impact: 20 });
-            }
-            break;
-            
-          case 'ssl_check':
-            scanResults = {
-              ssl_valid: Math.random() > 0.3,
-              expiry_date: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-              protocol_version: 'TLS 1.2',
-              vulnerabilities: Math.random() > 0.7 ? ['POODLE', 'Heartbleed'] : []
-            };
-            if (!scanResults.ssl_valid) {
-              riskFactors.push({ factor: 'Invalid SSL certificate', severity: 'high', score_impact: 25 });
-            }
-            if (scanResults.vulnerabilities.length > 0) {
-              riskFactors.push({ factor: 'SSL vulnerabilities detected', severity: 'critical', score_impact: 30 });
-            }
-            break;
-            
-          default:
-            scanResults = {
-              status: 'completed',
-              timestamp: new Date().toISOString()
-            };
-        }
-        
-        // Calculate new risk score
-        const totalImpact = riskFactors.reduce((sum, factor) => sum + factor.score_impact, 0);
-        newRiskScore = Math.min(100, asset.risk_score + totalImpact);
-        
-        // Update scan record
-        await pool.query(`
-          UPDATE asset_scans 
-          SET scan_status = 'completed', 
-              scan_results = $1, 
-              completed_at = CURRENT_TIMESTAMP
-          WHERE id = $2
-        `, [JSON.stringify(scanResults), scanId]);
-        
-        // Update asset with scan results and new risk score
-        await pool.query(`
-          UPDATE attack_surface_assets
-          SET last_scan_date = CURRENT_TIMESTAMP,
-              scan_results = $1,
-              risk_score = $2
-          WHERE id = $3
-        `, [JSON.stringify(scanResults), newRiskScore, assetId]);
-        
-        // Create risk assessment if risk factors found
-        if (riskFactors.length > 0) {
-          await pool.query(`
-            INSERT INTO asset_risk_assessments 
-            (asset_id, risk_score, risk_factors, assessed_by)
-            VALUES ($1, $2, $3, 'Automated Scan')
-          `, [assetId, newRiskScore, JSON.stringify(riskFactors)]);
-        }
-        
-      } catch (err) {
-        console.error('Error completing scan:', err);
-        await pool.query(`
-          UPDATE asset_scans 
-          SET scan_status = 'failed', 
-              error_message = $1,
-              completed_at = CURRENT_TIMESTAMP
-          WHERE id = $2
-        `, [err.message, scanId]);
-      }
-    }, 5000); // Simulate 5 second scan
-    
-    res.json({ 
-      message: 'Scan started', 
-      scan_id: scanId,
-      estimated_time: '5 seconds'
-    });
-  } catch (err) {
-    console.error('Error starting scan:', err);
-    res.status(500).json({ error: 'Failed to start scan' });
-  }
-});
-
-// Get risk assessment history for an asset
-app.get('/api/attack-surface/assets/:id/risk-assessments', async (req, res) => {
-  const assetId = parseInt(req.params.id, 10);
-  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
-  
-  try {
-    const result = await pool.query(`
-      SELECT * FROM asset_risk_assessments 
-      WHERE asset_id = $1 
-      ORDER BY assessment_date DESC
-    `, [assetId]);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching risk assessments:', err);
-    res.status(500).json({ error: 'Failed to fetch risk assessments' });
-  }
-});
-
-// CVE Management
-app.get('/api/attack-surface/cves', async (req, res) => {
-  const { severity, search } = req.query;
-  
-  try {
-    let query = 'SELECT * FROM cve_database WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
-    
-    if (severity) {
-      query += ` AND severity = $${++paramCount}`;
-      params.push(severity);
-    }
-    
-    if (search) {
-      query += ` AND (cve_id ILIKE $${++paramCount} OR description ILIKE $${paramCount})`;
-      params.push(`%${search}%`);
-    }
-    
-    query += ' ORDER BY published_date DESC LIMIT 100';
-    
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching CVEs:', err);
-    res.status(500).json({ error: 'Failed to fetch CVEs' });
-  }
-});
-
-// Add CVE to database
-app.post('/api/attack-surface/cves', async (req, res) => {
-  const { cve_id, description, severity, cvss_score, affected_products, published_date, reference_links } = req.body; // Changed 'references' to 'reference_links'
-  
-  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
-  
-  try {
-    const result = await pool.query(`
-      INSERT INTO cve_database 
-      (cve_id, description, severity, cvss_score, affected_products, published_date, reference_links)  -- Changed column name
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (cve_id) DO UPDATE
-      SET description = EXCLUDED.description,
-          severity = EXCLUDED.severity,
-          cvss_score = EXCLUDED.cvss_score,
-          affected_products = EXCLUDED.affected_products,
-          published_date = EXCLUDED.published_date,
-          reference_links = EXCLUDED.reference_links,  -- Changed column name
-          last_modified = CURRENT_DATE
-      RETURNING *
-    `, [cve_id, description, severity, cvss_score, JSON.stringify(affected_products || []), 
-        published_date, JSON.stringify(reference_links || [])]);  // Changed parameter name
-    
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error adding CVE:', err);
-    res.status(500).json({ error: 'Failed to add CVE' });
-  }
-});
-
-// Link CVE to asset
-app.post('/api/attack-surface/assets/:id/cves', async (req, res) => {
-  const assetId = parseInt(req.params.id, 10);
-  const { cve_id, status, notes } = req.body;
-  
-  if (isNaN(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
-  if (!cve_id) return res.status(400).json({ error: 'CVE ID is required' });
-  
-  try {
-    // First check if CVE exists in database
-    const cveResult = await pool.query('SELECT id FROM cve_database WHERE cve_id = $1', [cve_id]);
-    if (cveResult.rows.length === 0) {
-      return res.status(404).json({ error: 'CVE not found in database' });
-    }
-    
-    const cveDbId = cveResult.rows[0].id;
-    
-    const result = await pool.query(`
-      INSERT INTO asset_cves (asset_id, cve_id, status, notes)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `, [assetId, cveDbId, status || 'unpatched', notes]);
-    
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error linking CVE to asset:', err);
-    res.status(500).json({ error: 'Failed to link CVE to asset' });
-  }
-});
-
-// Get overall attack surface risk for a person
-app.get('/api/attack-surface/people/:id/risk-summary', async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
-  
-  try {
-    // Get all assets for the person
-    const assetsResult = await pool.query(`
-      SELECT 
-        asa.risk_score,
-        at.default_risk_weight,
-        at.type_category
-      FROM attack_surface_assets asa
-      JOIN asset_types at ON asa.asset_type_id = at.id
-      WHERE asa.person_id = $1 AND asa.status = 'active'
-    `, [personId]);
-    
-    if (assetsResult.rows.length === 0) {
-      return res.json({
-        overall_risk_score: 0,
-        asset_count: 0,
-        high_risk_assets: 0,
-        critical_vulnerabilities: 0,
-        risk_level: 'low'
-      });
-    }
-    
-    // Calculate weighted risk score
-    let totalWeightedScore = 0;
-    let totalWeight = 0;
-    let highRiskCount = 0;
-    
-    assetsResult.rows.forEach(asset => {
-      totalWeightedScore += asset.risk_score * asset.default_risk_weight;
-      totalWeight += asset.default_risk_weight;
-      if (asset.risk_score >= 70) highRiskCount++;
-    });
-    
-    const overallRiskScore = Math.round(totalWeightedScore / totalWeight);
-    
-    // Get critical vulnerabilities count
-    const vulnResult = await pool.query(`
-      SELECT COUNT(*) as critical_count
-      FROM asset_cves ac
-      JOIN cve_database cd ON ac.cve_id = cd.id
-      JOIN attack_surface_assets asa ON ac.asset_id = asa.id
-      WHERE asa.person_id = $1 
-      AND ac.status = 'unpatched'
-      AND cd.severity = 'CRITICAL'
-    `, [personId]);
-    
-    const criticalVulns = parseInt(vulnResult.rows[0].critical_count);
-    
-    // Determine risk level
-    let riskLevel = 'low';
-    if (overallRiskScore >= 70 || criticalVulns > 0) {
-      riskLevel = 'high';
-    } else if (overallRiskScore >= 40) {
-      riskLevel = 'medium';
-    }
-    
-    res.json({
-      overall_risk_score: overallRiskScore,
-      asset_count: assetsResult.rows.length,
-      high_risk_assets: highRiskCount,
-      critical_vulnerabilities: criticalVulns,
-      risk_level: riskLevel
-    });
-  } catch (err) {
-    console.error('Error calculating risk summary:', err);
-    res.status(500).json({ error: 'Failed to calculate risk summary' });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
 });

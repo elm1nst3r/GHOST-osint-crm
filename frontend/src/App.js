@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2 } from 'lucide-react';
 
 // Import API utilities
-import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI } from './utils/api';
+import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI, businessAPI } from './utils/api';
 import { DEFAULT_APP_SETTINGS } from './utils/constants';
 import TravelPatternAnalysis from './components/TravelPatternAnalysis';
 
@@ -23,7 +23,9 @@ import RelationshipManager from './components/visualization/RelationshipManager'
 import RelationshipDiagram from './components/RelationshipDiagram';
 import GlobalMap from './components/GlobalMap';
 import AdvancedSearch from './components/AdvancedSearch';
-// Removed: import AttackSurface from './components/AttackSurface';
+import BusinessList from './components/BusinessList';
+import AddEditBusinessForm from './components/AddEditBusinessForm';
+import EnhancedRelationshipManager from './components/visualization/EnhancedRelationshipManager';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -40,6 +42,9 @@ const App = () => {
   const [todos, setTodos] = useState([]);
   const [customFields, setCustomFields] = useState([]);
   const [appSettings, setAppSettings] = useState(DEFAULT_APP_SETTINGS);
+  const [businesses, setBusinesses] = useState([]);
+  const [showAddBusinessForm, setShowAddBusinessForm] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState(null);
   
   // UI state
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -87,12 +92,22 @@ const App = () => {
     }
   };
 
+  const fetchBusinesses = async () => {
+    try {
+      const data = await businessAPI.getAll();
+      setBusinesses(data);
+    } catch (error) {
+      console.error('Error fetching businesses:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     fetchPeople();
     fetchTools();
     fetchTodos();
     fetchCustomFields();
+    fetchBusinesses(); 
     
     // Load app settings from localStorage
     const savedSettings = localStorage.getItem('appSettings');
@@ -113,10 +128,10 @@ const App = () => {
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'cases', label: 'Cases', icon: Folder },
     { id: 'people', label: 'People', icon: Users },
+    { id: 'businesses', label: 'Businesses', icon: Building2 }, 
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
-    { id: 'relationships', label: 'Relationships', icon: Network },
+    { id: 'relationships', label: 'Entity Network', icon: Network }, 
     { id: 'map', label: 'Locations', icon: Map },
-    // Removed: { id: 'attack-surface', label: 'Attack Surface', icon: Shield },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -207,17 +222,24 @@ const App = () => {
           />
         )}
 
-        {/* Removed: attack-surface section */}
-        
+        {activeSection === 'businesses' && (
+          <BusinessList 
+            businesses={businesses}
+            fetchBusinesses={fetchBusinesses}
+            setShowAddBusinessForm={setShowAddBusinessForm}
+            setEditingBusiness={setEditingBusiness}
+          />
+        )}        
+
         {activeSection === 'relationships' && (
           <div className="h-full flex flex-col overflow-hidden">
             <div className="bg-white shadow-sm border-b px-6 py-4 flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">Relationship Network</h1>
-              <p className="text-gray-600 mt-1">Visualize and manage connections between people</p>
+              <h1 className="text-2xl font-bold text-gray-900">Entity Relationship Network</h1>
+              <p className="text-gray-600 mt-1">Visualize connections between people, businesses, locations, and more</p>
             </div>
             <div className="flex-1 min-h-0 p-6">
               <div className="bg-white rounded-lg shadow-sm border h-full overflow-hidden">
-                <RelationshipManager />
+                <EnhancedRelationshipManager />
               </div>
             </div>
           </div>
@@ -308,6 +330,29 @@ const App = () => {
             setShowAdvancedSearch(false);
           }}
           onClose={() => setShowAdvancedSearch(false)}
+        />
+      )}
+
+      {/* Business Modals */}
+      {showAddBusinessForm && (
+        <AddEditBusinessForm
+          business={null}
+          onSave={() => {
+            setShowAddBusinessForm(false);
+            fetchBusinesses();
+          }}
+          onCancel={() => setShowAddBusinessForm(false)}
+        />
+      )}
+
+      {editingBusiness && (
+        <AddEditBusinessForm
+          business={editingBusiness}
+          onSave={() => {
+            setEditingBusiness(null);
+            fetchBusinesses();
+          }}
+          onCancel={() => setEditingBusiness(null)}
         />
       )}
     </div>

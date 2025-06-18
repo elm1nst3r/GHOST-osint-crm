@@ -265,6 +265,55 @@ export const travelHistoryAPI = {
   analyze: (personId) => fetchAPI(`/people/${personId}/travel-analysis`),
 };
 
-// Removed: Attack Surface API
+// Business API
+export const businessAPI = {
+  getAll: () => fetchAPI('/businesses'),
+  
+  getById: (id) => fetchAPI(`/businesses/${id}`),
+  
+  create: (businessData) => fetchAPI('/businesses', {
+    method: 'POST',
+    body: JSON.stringify(businessData),
+  }),
+  
+  update: (id, businessData) => fetchAPI(`/businesses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(businessData),
+  }),
+  
+  delete: (id) => fetchAPI(`/businesses/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Entity Relationship API
+export const entityRelationshipAPI = {
+  getAll: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return fetchAPI(`/entity-relationships${queryParams ? '?' + queryParams : ''}`);
+  },
+  
+  create: (relationshipData) => fetchAPI('/entity-relationships', {
+    method: 'POST',
+    body: JSON.stringify(relationshipData),
+  }),
+  
+  delete: (id) => fetchAPI(`/entity-relationships/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Relationship Types API
+export const relationshipTypesAPI = {
+  getAll: () => fetchAPI('/relationship-types'),
+};
+
+// Entity Network API
+export const entityNetworkAPI = {
+  get: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return fetchAPI(`/entity-network${queryParams ? '?' + queryParams : ''}`);
+  },
+};
 
 export { API_BASE_URL };
