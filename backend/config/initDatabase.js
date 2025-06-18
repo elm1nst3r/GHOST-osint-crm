@@ -182,7 +182,19 @@ const initializeDatabase = async () => {
       { model_type: 'location_type', option_value: 'work', option_label: 'Work', display_order: 3 },
       { model_type: 'location_type', option_value: 'favorite_hotel', option_label: 'Favorite Hotel', display_order: 4 },
       { model_type: 'location_type', option_value: 'yacht_location', option_label: 'Yacht Location', display_order: 5 },
-      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 }
+      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 },
+      
+      // OSINT Data Types
+      { model_type: 'osint_data_type', option_value: 'Email', option_label: 'Email', display_order: 1 },
+      { model_type: 'osint_data_type', option_value: 'Phone', option_label: 'Phone', display_order: 2 },
+      { model_type: 'osint_data_type', option_value: 'Social Media', option_label: 'Social Media', display_order: 3 },
+      { model_type: 'osint_data_type', option_value: 'Website', option_label: 'Website', display_order: 4 },
+      { model_type: 'osint_data_type', option_value: 'Username', option_label: 'Username', display_order: 5 },
+      { model_type: 'osint_data_type', option_value: 'IP Address', option_label: 'IP Address', display_order: 6 },
+      { model_type: 'osint_data_type', option_value: 'Vehicle', option_label: 'Vehicle', display_order: 7 },
+      { model_type: 'osint_data_type', option_value: 'Financial', option_label: 'Financial', display_order: 8 },
+      { model_type: 'osint_data_type', option_value: 'Document ID', option_label: 'Document ID', display_order: 9 },
+      { model_type: 'osint_data_type', option_value: 'Other', option_label: 'Other', display_order: 10 }
     ];
 
     for (const option of defaultOptions) {

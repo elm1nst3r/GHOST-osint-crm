@@ -30,13 +30,17 @@ export const PERSON_CATEGORIES = [
     { value: 'awaiting_response', label: 'Awaiting Response' },
   ];
   
-  // OSINT data types
-  export const OSINT_DATA_TYPES = [
+  // OSINT data types - DYNAMIC (will be loaded from database)
+  export let OSINT_DATA_TYPES = [
     { value: 'Email', label: 'Email' },
     { value: 'Phone', label: 'Phone' },
     { value: 'Social Media', label: 'Social Media' },
     { value: 'Website', label: 'Website' },
     { value: 'Username', label: 'Username' },
+    { value: 'IP Address', label: 'IP Address' },
+    { value: 'Vehicle', label: 'Vehicle' },
+    { value: 'Financial', label: 'Financial' },
+    { value: 'Document ID', label: 'Document ID' },
     { value: 'Other', label: 'Other' },
   ];
   
@@ -142,5 +146,14 @@ export const TRANSPORTATION_MODES = [
     
     if (crmStatuses.length > 0) {
       CRM_STATUSES = crmStatuses;
+    }
+
+    const osintDataTypes = modelOptions
+      .filter(opt => opt.model_type === 'osint_data_type' && opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+    
+    if (osintDataTypes.length > 0) {
+      OSINT_DATA_TYPES = osintDataTypes;
     }
   };

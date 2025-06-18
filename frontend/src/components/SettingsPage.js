@@ -1,6 +1,6 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle, FileText, Database, Settings, Users, Building2, MapPin, Eye, Folder } from 'lucide-react';
 import CustomFieldManager from './CustomFieldManager';
 import { uploadLogo, modelOptionsAPI, auditAPI, exportAPI, importAPI } from '../utils/api';
 
@@ -18,6 +18,10 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
   const [isImporting, setIsImporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [exportFormat, setExportFormat] = useState('complete');
+  const [exportProgress, setExportProgress] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [showImportPreview, setShowImportPreview] = useState(false);
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
 
@@ -78,44 +82,90 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
     try {
       setIsExporting(true);
       setExportSuccess(false);
+      setExportProgress('Preparing export...');
+      
+      // Simulate progress for better UX
+      setTimeout(() => setExportProgress('Gathering data...'), 500);
+      setTimeout(() => setExportProgress('Generating file...'), 1000);
+      
       await exportAPI.export();
+      
+      setExportProgress('Download started!');
       setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
+      setTimeout(() => {
+        setExportSuccess(false);
+        setExportProgress(null);
+      }, 3000);
     } catch (error) {
       console.error('Error exporting data:', error);
       alert('Failed to export data: ' + error.message);
+      setExportProgress(null);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleImport = async (event) => {
+  const handleImportPreview = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
-      setIsImporting(true);
-      setImportSuccess(false);
       const text = await file.text();
       const data = JSON.parse(text);
       
       if (!data.version || !data.data) {
-        throw new Error('Invalid import file format');
+        throw new Error('Invalid import file format - missing version or data fields');
       }
 
-      if (window.confirm('This will import all data from the file. Existing data with the same IDs will be updated. Continue?')) {
-        await importAPI.import(data);
-        setImportSuccess(true);
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      }
+      // Generate preview statistics
+      const preview = {
+        version: data.version,
+        exportDate: data.exportDate,
+        fileName: file.name,
+        fileSize: (file.size / 1024).toFixed(1) + ' KB',
+        counts: {
+          people: data.data.people?.length || 0,
+          businesses: data.data.businesses?.length || 0,
+          tools: data.data.tools?.length || 0,
+          todos: data.data.todos?.length || 0,
+          cases: data.data.cases?.length || 0,
+          customFields: data.data.customFields?.length || 0,
+          modelOptions: data.data.modelOptions?.length || 0,
+          travelHistory: data.data.travelHistory?.length || 0,
+        },
+        rawData: data
+      };
+      
+      setImportPreview(preview);
+      setShowImportPreview(true);
+    } catch (error) {
+      console.error('Error reading import file:', error);
+      alert('Failed to read import file: ' + error.message);
+    } finally {
+      event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+
+    try {
+      setIsImporting(true);
+      setImportSuccess(false);
+      setShowImportPreview(false);
+      
+      await importAPI.import(importPreview.rawData);
+      setImportSuccess(true);
+      setImportPreview(null);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error('Error importing data:', error);
       alert('Failed to import data: ' + error.message);
     } finally {
       setIsImporting(false);
-      event.target.value = ''; // Reset file input
     }
   };
 
@@ -182,7 +232,8 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
     crm_status: 'CRM Statuses',
     task_status: 'Task Statuses',
     connection_type: 'Connection Types',
-    location_type: 'Location Types'
+    location_type: 'Location Types',
+    osint_data_type: 'OSINT Data Types'
   };
 
   const formatAuditValue = (value) => {
@@ -517,7 +568,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                   ref={importInputRef}
                   type="file"
                   accept="application/json"
-                  onChange={handleImport}
+                  onChange={handleImportPreview}
                   className="hidden"
                 />
                 <button

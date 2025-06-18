@@ -23,7 +23,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
     custom_fields: {}
   });
   const [newAlias, setNewAlias] = useState('');
-  const [newOsintData, setNewOsintData] = useState({ type: 'Email', value: '', notes: '' });
+  const [newOsintData, setNewOsintData] = useState({ type: OSINT_DATA_TYPES[0]?.value || 'Email', value: '', notes: '' });
   const [newLocation, setNewLocation] = useState({ 
     type: 'primary_residence', 
     address: '', 
@@ -36,6 +36,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
   const [connectionTypes, setConnectionTypes] = useState(CONNECTION_TYPES);
   const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
   const [crmStatuses, setCrmStatuses] = useState(CRM_STATUSES);
+  const [osintDataTypes, setOsintDataTypes] = useState(OSINT_DATA_TYPES);
   const [existingCases, setExistingCases] = useState([]);
   const [caseExists, setCaseExists] = useState(false);
 
@@ -66,6 +67,13 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
           .sort((a, b) => a.display_order - b.display_order)
           .map(opt => ({ value: opt.option_value, label: opt.option_label }));
         if (crmStats.length > 0) setCrmStatuses(crmStats);
+        
+        // Update OSINT data types
+        const osintTypes = options
+          .filter(opt => opt.model_type === 'osint_data_type' && opt.is_active)
+          .sort((a, b) => a.display_order - b.display_order)
+          .map(opt => ({ value: opt.option_value, label: opt.option_label }));
+        if (osintTypes.length > 0) setOsintDataTypes(osintTypes);
       } catch (error) {
         console.error('Error loading model options:', error);
       }
@@ -533,7 +541,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   onChange={(e) => setNewOsintData({ ...newOsintData, type: e.target.value })}
                   className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {OSINT_DATA_TYPES.map(type => (
+                  {osintDataTypes.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
