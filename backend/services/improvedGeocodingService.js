@@ -242,8 +242,26 @@ class ImprovedGeocodingService {
         
         if (addressParts.length === 0) return location;
         
+        // Try full address first
         const fullAddress = addressParts.join(', ');
-        const coords = await this.geocodeAddress(fullAddress, options);
+        let coords = await this.geocodeAddress(fullAddress, options);
+        
+        // If full address fails and we have city+country, try that as fallback
+        if (!coords && location.city && location.country) {
+          const cityCountry = [location.city, location.country].join(', ');
+          coords = await this.geocodeAddress(cityCountry, { ...options, minConfidence: 25 });
+          if (coords) {
+            coords.confidence = Math.max(25, coords.confidence - 15); // Lower confidence for city-level
+          }
+        }
+        
+        // If still no results and we have just country, try country-level
+        if (!coords && location.country && !location.city) {
+          coords = await this.geocodeAddress(location.country, { ...options, minConfidence: 20 });
+          if (coords) {
+            coords.confidence = Math.max(20, coords.confidence - 25); // Even lower confidence for country-level
+          }
+        }
         
         return {
           ...location,

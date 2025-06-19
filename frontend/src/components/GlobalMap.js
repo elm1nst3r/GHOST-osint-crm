@@ -296,23 +296,55 @@ Confidence: ${result.result.confidence}%`);
     filteredPeople.forEach(person => {
       if (person.locations && person.locations.length > 0) {
         person.locations.forEach(location => {
-          // Only show locations with coordinates and matching type
-          if (location.latitude && location.longitude && selectedLocationTypes.includes(location.type)) {
+          // Show locations with coordinates and matching type, or those with at least city+country
+          const hasCoordinates = location.latitude && location.longitude;
+          const hasMinimumData = location.city && location.country;
+          const isSelectedType = selectedLocationTypes.includes(location.type);
+          
+          if ((hasCoordinates || hasMinimumData) && isSelectedType) {
             const color = locationColors[location.type] || locationColors.other;
+            
+            // Determine marker appearance based on data completeness
+            const confidence = location.geocode_confidence || 0;
+            const isPartialData = !hasCoordinates || confidence < 50;
+            
+            // Create marker with different styles for different accuracy levels
+            const markerSize = isPartialData ? 20 : 24;
+            const opacity = isPartialData ? 0.7 : 1;
+            const borderStyle = isPartialData ? 'dashed' : 'solid';
             
             const icon = L.divIcon({
               className: 'custom-div-icon',
-              html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+              html: `<div style="
+                background-color: ${color}; 
+                width: ${markerSize}px; 
+                height: ${markerSize}px; 
+                border-radius: 50%; 
+                border: 2px ${borderStyle} white; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                opacity: ${opacity};
+              "></div>`,
+              iconSize: [markerSize, markerSize],
+              iconAnchor: [markerSize/2, markerSize/2]
             });
             
+            // Use coordinates if available, otherwise we need geocoding
+            let lat = location.latitude;
+            let lng = location.longitude;
+            
+            // Skip locations without coordinates for now
+            // These should be handled by the enhanced geocoding system
+            if (!hasCoordinates) {
+              return;
+            }
+            
             markerList.push({
-              lat: location.latitude,
-              lng: location.longitude,
+              lat: parseFloat(lat),
+              lng: parseFloat(lng),
               person,
               location,
-              icon
+              icon,
+              isPartialData
             });
           }
         });
@@ -462,10 +494,26 @@ Confidence: ${result.result.confidence}%`);
                       <p className="text-sm text-gray-600">{marker.person.category}</p>
                     )}
                     <div className="mt-2">
-                      <p className="text-xs font-medium text-gray-700">
-                        {marker.location.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </p>
-                      <p className="text-sm">{marker.location.address}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-700">
+                          {marker.location.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </p>
+                        {/* Location accuracy indicator */}
+                        {marker.location.geocode_confidence && (
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            marker.location.geocode_confidence >= 70 ? 'bg-green-100 text-green-800' :
+                            marker.location.geocode_confidence >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-orange-100 text-orange-800'
+                          }`}>
+                            {marker.location.geocode_confidence >= 70 ? 'High accuracy' :
+                             marker.location.geocode_confidence >= 50 ? 'Medium accuracy' :
+                             'Approximate location'}
+                          </span>
+                        )}
+                      </div>
+                      {marker.location.address && (
+                        <p className="text-sm">{marker.location.address}</p>
+                      )}
                       <p className="text-sm text-gray-600">
                         {[marker.location.city, marker.location.state, marker.location.country]
                           .filter(Boolean)
@@ -473,6 +521,14 @@ Confidence: ${result.result.confidence}%`);
                       </p>
                       {marker.location.notes && (
                         <p className="text-xs text-gray-500 mt-1">{marker.location.notes}</p>
+                      )}
+                      {/* Show confidence score for partial data */}
+                      {marker.isPartialData && (
+                        <p className="text-xs text-orange-600 mt-1 italic">
+                          ⚠ {marker.location.geocode_confidence ? 
+                            `${marker.location.geocode_confidence}% confidence` : 
+                            'Location needs geocoding'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -485,9 +541,9 @@ Confidence: ${result.result.confidence}%`);
           </MapContainer>
           
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-4 z-10">
+          <div className="absolute bottom-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-4 z-10 max-w-xs">
             <h4 className="text-sm font-semibold mb-2 text-gray-900">Location Types</h4>
-            <div className="space-y-1">
+            <div className="space-y-1 mb-3">
               {Object.entries(locationColors).map(([type, color]) => (
                 <div key={type} className="flex items-center space-x-2">
                   <div
@@ -499,6 +555,18 @@ Confidence: ${result.result.confidence}%`);
                   </span>
                 </div>
               ))}
+            </div>
+            
+            <h4 className="text-sm font-semibold mb-2 text-gray-900 border-t pt-2">Accuracy</h4>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded-full border-2 border-white shadow-sm bg-blue-500" />
+                <span className="text-xs text-gray-700">High accuracy (solid)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm bg-blue-500 opacity-70" style={{ borderStyle: 'dashed' }} />
+                <span className="text-xs text-gray-700">Approximate (dashed)</span>
+              </div>
             </div>
           </div>
           
