@@ -244,5 +244,42 @@ yarn-debug.log*
 !/log/.keep
 !/tmp/.keep
 
-# Keep application docs - these are helpful
-# CLAUDE.md is intentionally tracked
+# LLM and AI Assistant Files
+CLAUDE.md
+*.md.backup
+*_BACKUP.md
+DARK_MODE_FIX.md
+GRAPH_QUICK_START.md
+GRAPH_VISUALIZATION.md
+IMPROVEMENTS.md
+MIGRATION_GUIDE.md
+PERFORMANCE_IMPROVEMENTS.md
+REVIEW_SUMMARY.md
+TABLE_VIEW_GUIDE.md
+WIGLE_FEATURE.md
+FEATURE_VERIFICATION.md
+DESIGN_SYSTEM.md
+cursor/
+.cursor/
+.aider*
+.anthropic/
+
+# User Data and Uploads (IMPORTANT: Never commit sensitive data)
+backend/public/uploads/**/*
+!backend/public/uploads/.gitkeep
+Wigle\ Sample\ Files/
+*.kml
+*.csv
+*.json.backup
+*-export-*.json
+
+# Package Lock Files (optional - uncomment to ignore)
+package-lock.json
+frontend/package-lock.json
+backend/package-lock.json
+
+# Keep essential documentation
+!README.md
+!LICENSE
+!.env.example
+!backend/.env.example

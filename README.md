@@ -3,138 +3,223 @@
 
 > *"Because Excel sheets are for accountants, not investigators"*
 
-Welcome to the most unnecessarily over-engineered investigation management system you never knew you needed. Built by a Cyber enthusiast that discovered vibe coding. 
+A full-stack OSINT investigation management system built for serious intelligence gathering with a modern, professional interface.
 
-## 🎯 What This Is Supposed To Do
-
-This isn't your grandmother's contact manager. This is a full-stack investigation powerhouse that would make the FBI jealous (if they weren't already watching your GitHub commits).
+## 🎯 Core Features
 
 ### 🧑‍💼 People Management
-- **Categorize humans like Pokémon cards**: Suspects, Witnesses, Persons of Interest, Associates, and Victims
-- **Track their every move**: Addresses, phone numbers, emails, social media handles
-- **Travel history**: Because where someone went last Tuesday matters
+- **Role-based categorization**: Suspects, Witnesses, Persons of Interest, Associates, Victims
+- **Comprehensive tracking**: Addresses, phone numbers, emails, social media handles
+- **Travel history**: Timeline and analysis of person movements
 - **Case associations**: Link people to specific investigations
 - **Status tracking**: Active, Inactive, Under Investigation, Cleared
+- **Custom fields**: Extend person profiles with custom data fields
+- **Advanced search**: Multi-parameter search with filters
 
-### 🔗 Relationship Mapping
-- **Visual conspiracy boards**: Interactive node diagrams
-- **Connection types**: Family, Business, Criminal, Social, Unknown (for when things get spicy)
-- **Drag-and-drop interface**: Because clicking is for peasants
-- **Real-time updates**: Watch your investigation web grow like a beautiful, terrifying spider
+### 🔗 Entity Network Visualization
+- **Interactive relationship diagrams**: Visual network mapping with ReactFlow
+- **Multi-entity support**: People, businesses, locations, phones, emails
+- **Connection types**: Family, Business, Criminal, Social, Known Associates
+- **Drag-and-drop interface**: Intuitive node manipulation
+- **Real-time updates**: Live relationship mapping
+- **Network filtering**: Focus on specific entity types and relationships
 
 ### 🗺️ Global Intelligence Map
-- **Geocoded locations**: Pin every address like you're planning world domination
-- **Clustered markers**: Because nobody wants 1,000 pins exploding their browser
-- **Person-location correlation**: See where your persons of interest have been lurking
-- **Interactive popups**: Click for instant intel
+- **Geocoded locations**: Automatically geocode addresses with database caching
+- **Clustered markers**: Performance-optimized clustering for large datasets
+- **Person-location correlation**: Visual tracking of person movements
+- **Interactive popups**: Detailed location information on click
+- **Map filters**: Filter by person, date range, or location type
+
+### 📡 Wireless Network Intelligence (WiGLE Integration)
+- **KML import**: Import WiGLE wardriving data
+- **Network tracking**: SSID, BSSID, encryption, signal strength
+- **Person association**: Link wireless networks to investigations
+- **Map visualization**: Geographic network mapping with labels
+- **Advanced filtering**: Filter by signal strength, encryption, KML file source
+- **Location preview**: Interactive map in detail view
 
 ### 🛠️ Tools & Resources Arsenal
-- **OSINT tool inventory**: Track your favorite stalking—I mean, investigation tools
-- **Categories**: Social Media, Background Check, Data Mining, Surveillance (the legal kind)
-- **URL management**: One-click access to your digital weapons
-- **Usage notes**: Because you'll forget how that weird Russian site works
+- **OSINT tool inventory**: Catalog of investigation tools
+- **Categories**: Social Media, Background Check, Data Mining, Surveillance
+- **URL management**: One-click access to tools
+- **Usage notes**: Documentation and tips
+- **Search and filtering**: Quick tool discovery
 
 ### ✅ Task Management
-- **Investigation todos**: Because even hackers need to-do lists
-- **Priority levels**: Low, Medium, High, "THE BUILDING IS ON FIRE"
-- **Status tracking**: Pending, In Progress, Completed, Abandoned (we don't judge)
-- **Case assignment**: Link tasks to specific investigations
+- **Investigation todos**: Linked to cases and people
+- **Priority levels**: Low, Medium, High, Urgent
+- **Status tracking**: Pending, In Progress, Completed
+- **Case assignment**: Organize tasks by investigation
 
 ### 📊 Case Management
-- **Multi-case support**: Handle multiple investigations without losing your sanity
-- **Cross-referencing**: See how cases interconnect (plot twist: they always do)
-- **Timeline tracking**: When did what happen and who was where
+- **Multi-case support**: Manage multiple investigations
+- **Status tracking**: Custom case statuses and data types
+- **Case-person linking**: Associate people with cases
+- **Timeline tracking**: Investigation chronology
+- **Cross-referencing**: See case interconnections
 
-## 🚀 Getting This Monster Running
+### 🏢 Business Intelligence
+- **Business tracking**: Companies and organizations
+- **Employee mapping**: Track personnel
+- **Business relationships**: Link to people and other businesses
+- **Address and contact management**: Full business profiles
 
-### Docker
-Everything has been dockerized. Just download and run.
-- **Clone the repo**
+### 🌓 Modern UI/UX
+- **Glass morphism design**: Professional, translucent interface
+- **Dark mode**: Full dark mode support
+- **Responsive layout**: Works on desktop and tablet
+- **Professional colorway**: Business-appropriate aesthetics
+- **Smooth animations**: Apple-inspired interactions
+
+## 🚀 Quick Start (Docker)
+
+The easiest way to run GHOST is with Docker:
+
+```bash
+# Clone the repository
 git clone <repo-url>
-cd osint-crm
+cd GHOST-osint-crm
 
-# Just run Docker - it handles everything!
+# Copy environment file
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start all services
 docker-compose up --build
+```
 
-### Prerequisites
-- **Node.js** (16+ or newer, because we're not animals)
-- **PostgreSQL** (13+ recommended, because we need a real database)
-- **A healthy sense of paranoia**
-- **Coffee** (not technically required but highly recommended)
+**Access the application:**
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:3001
+- Database: PostgreSQL on port 5432
 
-### Frontend Setup
+## 📋 Prerequisites
+
+- **Docker & Docker Compose** (recommended)
+- **OR Manual Setup:**
+  - Node.js 18+
+  - PostgreSQL 15+
+  - npm or yarn
+
+## 🔧 Manual Setup
+
+### Frontend
 ```bash
 cd frontend
 npm install
 npm start
 ```
+Frontend runs on `http://localhost:3000`
 
-*The frontend will spawn at `http://localhost:3000` like a digital phoenix*
-
-### Backend Setup
+### Backend
 ```bash
 cd backend
 npm install
 
-# Set up your environment variables (secrets go in .env, not GitHub!)
+# Configure environment
 cp .env.example .env
-# Edit .env with your database credentials and JWT secrets
+# Edit .env with your database credentials
 
-# Initialize the database (this creates tables, not evidence)
-npm run db:init
-
-# Start the backend server
+# Start server
 npm start
 ```
+Backend runs on `http://localhost:3001`
 
-*Backend runs on `http://localhost:3001` - the port of champions*
+### Database
+```bash
+# Create database
+createdb osint_crm_db
 
-### Database Setup
-1. **Create a PostgreSQL database** (name it something innocent)
-2. **Update your `.env` file** with connection details
-3. **Run the initialization script** to create all the tables
-4. **Pray to the database gods** that everything works
+# Run migrations (from backend directory)
+psql -U postgres -d osint_crm_db < migrations/create_wireless_networks.sql
+```
 
-## 🎮 Usage
+## 📁 Project Structure
 
-1. **Start a new case** or continue investigating that weird neighbor
-2. **Add people** with all their juicy details
-3. **Map their connections** and watch the web of intrigue unfold
-4. **Pin locations** on the global map
-5. **Track your tools** and todos
-6. **Profit** (or at least solve the case)
+```
+GHOST-osint-crm/
+├── frontend/              # React frontend
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── utils/         # API utilities
+│   │   └── index.css      # Tailwind styles
+│   ├── public/            # Static assets
+│   └── nginx.conf         # Nginx configuration
+├── backend/               # Node.js/Express API
+│   ├── server.js          # Main server file
+│   ├── migrations/        # Database migrations
+│   └── public/uploads/    # File uploads
+├── docker-compose.yml     # Docker configuration
+└── .env.example           # Environment template
+```
 
-## ⚠️ Performance Notes
+## 🎮 Usage Guide
 
-### Current Limitations
-- **Map loading**: Takes forever with 200+ locations (working on it)
-- **Relationship diagrams**: Start choking around 80+ nodes
-- **Data loading**: Everything loads at once like it's 2010
+### Starting a New Investigation
+1. **Create a case** in the Cases section
+2. **Add people** with all relevant details
+3. **Map connections** in Entity Network view
+4. **Track locations** on the Global Map
+5. **Import wireless networks** (if using WiGLE data)
+6. **Assign tasks** to track investigation progress
 
-### Recommended Limits
-- **People**: Keep it under 2,000 for optimal performance
-- **Locations**: 500+ locations will make the map sad
-- **Connections**: 10,000+ relationships = browser death
+### Wireless Network Intelligence
+1. Export KML from WiGLE app/website
+2. Go to Wireless Networks section
+3. Click "Import KML"
+4. Upload your KML file
+5. Networks appear on map and table
+6. Associate networks with people under investigation
 
-*Future updates will include pagination, lazy loading, and other fancy optimizations*
+### Entity Network Mapping
+1. Navigate to "Entity Network" section
+2. View interactive relationship diagram
+3. Filter by entity types and relationships
+4. Click nodes for details
+5. Add connections between entities
+
+## ⚡ Performance Notes
+
+**Optimized for:**
+- Up to 5,000 people records
+- Up to 10,000 wireless networks
+- Up to 1,000 locations on map
+- Up to 500 relationship nodes
+
+**Features:**
+- Database-level geocoding cache
+- Map marker clustering
+- Pagination ready (future enhancement)
+- Lazy loading support
+
+## 🔐 Security Considerations
+
+**Important:**
+- Never commit `.env` files
+- Keep `backend/public/uploads/` out of version control
+- Secure your PostgreSQL database
+- Use strong JWT secrets
+- Review uploaded files for security
+- Follow local laws for data collection
 
 ## 🤝 Contributing
 
-Found a bug? Want to add a feature? Think our code is terrible? 
+Contributions welcome! Please:
 
-1. **Fork the repo** (it's like stealing, but legal)
-2. **Create a branch** (`git checkout -b feature/mind-reading-ai`)
-3. **Make your changes** (try not to break everything)
-4. **Test thoroughly** (seriously, you will be judged)
-5. **Submit a PR** with a description that doesn't suck
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📜 License
 
-This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License**.
 
 **You are free to:**
 - ✅ Use for personal investigations
-- ✅ Use for educational purposes  
+- ✅ Use for educational purposes
 - ✅ Use for research
 - ✅ Modify and improve
 - ✅ Share with others
@@ -146,31 +231,53 @@ This project is licensed under the Creative Commons Attribution-NonCommercial-Sh
 
 **Commercial use requires explicit permission from the author.**
 
-For commercial licensing, contact hurdles.remand_9g [at] icloud.com
+For commercial licensing, contact: hurdles.remand_9g [at] icloud.com
 
-## 🙈 Disclaimer
+## 🙈 Legal Disclaimer
 
-This tool is intended for **legitimate investigation purposes only**. We are not responsible for:
-- Stalking charges
-- International incidents
-- Accidentally uncovering government conspiracies
-- Your significant other finding out you're tracking their ex
-- The inevitable robot uprising
+This tool is intended for **legitimate OSINT investigation purposes only**. Users are responsible for:
+- Complying with all applicable laws and regulations
+- Respecting privacy rights and data protection laws
+- Using the tool ethically and responsibly
+- Obtaining proper authorization for investigations
 
-Use responsibly, stay legal, and remember: just because you *can* investigate someone doesn't mean you *should*.
+The authors are not responsible for misuse of this software.
 
 ## 🆘 Support
 
-Having issues? Ask your friendly neighbourhood LLM - I would do the same
+**Having issues?**
 
-1. **Check the logs** (they usually tell you what went wrong)
-2. **LLM the error** (Claude, Gemini, etc)
-3. **Create an issue** on GitHub
-4. **Sacrifice a rubber duck** to the coding gods
+1. Check Docker logs: `docker-compose logs`
+2. Review backend logs for API errors
+3. Check browser console for frontend errors
+4. Verify database connection
+5. Open an issue on GitHub with details
 
-## Feedback and Inputs
-Please do drop a line and let me know how you like it. Any feedback, Inputs and rants are highly welcome.
+## 💬 Feedback
+
+Feedback, inputs, and suggestions are highly welcome! Please open an issue or reach out directly.
+
+## 🛠️ Tech Stack
+
+**Frontend:**
+- React 18
+- Tailwind CSS
+- Leaflet (maps)
+- ReactFlow (diagrams)
+- Lucide Icons
+
+**Backend:**
+- Node.js / Express
+- PostgreSQL 15
+- xml2js (KML parsing)
+
+**Infrastructure:**
+- Docker & Docker Compose
+- Nginx (reverse proxy)
 
 ---
 
-Built with ❤️ and an unhealthy amount of paranoia.
+Built with ❤️ for the OSINT community.
+
+**Version:** 2.0
+**Last Updated:** October 2025
