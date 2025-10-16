@@ -146,14 +146,14 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b dark:border-gray-600">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
               <Building2 className="w-6 h-6 mr-2" />
               {business ? 'Edit Business' : 'Add New Business'}
             </h2>
-            <button onClick={onCancel} className="text-gray-600 hover:text-gray-700">
+            <button onClick={onCancel} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -308,7 +308,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 text-gray-400" />
+                <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="tel"
                   value={formData.phone}
@@ -319,7 +319,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-gray-400" />
+                <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="email"
                   value={formData.email}
@@ -330,7 +330,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div className="flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-gray-400" />
+                <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="url"
                   value={formData.website}
@@ -446,18 +446,18 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               {formData.employees.map((employee) => (
                 <div key={employee.id} className="flex items-center justify-between p-3 glass rounded-glass border border-white/30">
                   <div className="flex items-center space-x-3">
-                    <User className="w-4 h-4 text-gray-400" />
+                    <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="font-medium">{employee.name}</span>
-                        {employee.role && <span className="text-sm text-gray-600">- {employee.role}</span>}
-                        {employee.department && <span className="text-sm text-gray-500">({employee.department})</span>}
+                        {employee.role && <span className="text-sm text-gray-600 dark:text-gray-400">- {employee.role}</span>}
+                        {employee.department && <span className="text-sm text-gray-500 dark:text-gray-500">({employee.department})</span>}
                       </div>
                       <div className="flex items-center space-x-4 mt-1">
                         {employee.email && (
                           <div className="flex items-center space-x-1">
-                            <Mail className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-600">{employee.email}</span>
+                            <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{employee.email}</span>
                           </div>
                         )}
                         {employee.notes && (

@@ -2,9 +2,9 @@
 
 [![NPM Version][npm-version-image]][npm-url]
 [![NPM Downloads][npm-downloads-image]][npm-url]
-[![Node.js Version][node-version-image]][node-version-url]
-[![Build Status][travis-image]][travis-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
+[![Node.js Version][node-image]][node-url]
+[![Build Status][ci-image]][ci-url]
+[![Coverage Status][coveralls-image]][coveralls-url]
 
 Execute a listener when a response is about to write headers.
 
@@ -70,12 +70,12 @@ $ npm test
 
 [MIT](LICENSE)
 
+[ci-image]: https://badgen.net/github/checks/jshttp/on-headers/master?label=ci
+[ci-url]: https://github.com/jshttp/on-headers/actions/workflows/ci.yml
 [coveralls-image]: https://badgen.net/coveralls/c/github/jshttp/on-headers/master
 [coveralls-url]: https://coveralls.io/r/jshttp/on-headers?branch=master
-[node-version-image]: https://badgen.net/npm/node/on-headers
-[node-version-url]: https://nodejs.org/en/download
+[node-image]: https://badgen.net/npm/node/on-headers
+[node-url]: https://nodejs.org/en/download
 [npm-downloads-image]: https://badgen.net/npm/dm/on-headers
 [npm-url]: https://npmjs.org/package/on-headers
 [npm-version-image]: https://badgen.net/npm/v/on-headers
-[travis-image]: https://badgen.net/travis/jshttp/on-headers/master
-[travis-url]: https://travis-ci.org/jshttp/on-headers

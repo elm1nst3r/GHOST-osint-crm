@@ -408,7 +408,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                 <Search className="w-5 h-5 mr-2" />
                 Advanced Search
               </h2>
-              <button onClick={onClose} className="text-gray-600 hover:text-gray-700">
+              <button onClick={onClose} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -931,7 +931,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Search Results</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {totalResults > 0 ? `Found ${totalResults} results` : 'No search performed yet'}
                 </p>
               </div>
@@ -939,7 +939,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               <div className="flex items-center space-x-2">
                 {/* Sorting */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Sort by:</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</label>
                   <select
                     value={searchParams.sortBy}
                     onChange={(e) => setSearchParams({ ...searchParams, sortBy: e.target.value })}
@@ -994,7 +994,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
           <div className="flex-1 overflow-y-auto p-6">
             {results.length > 0 ? (
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                   <input
                     type="checkbox"
                     checked={selectedResultIds.length === results.length}
@@ -1028,7 +1028,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                         />
                         
                         <div>
-                          <h4 className="font-semibold text-gray-900">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                             {getFullName(person)}
                             {person.date_of_birth && (
                               <span className="text-gray-500 font-normal text-sm ml-2">
@@ -1038,12 +1038,12 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                           </h4>
                           
                           {person.aliases && person.aliases.length > 0 && (
-                            <p className="text-sm text-gray-600">AKA: {person.aliases.join(', ')}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">AKA: {person.aliases.join(', ')}</p>
                           )}
                           
                           <div className="mt-2 flex flex-wrap gap-2">
                             {person.category && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                                 <Tag className="w-3 h-3 mr-1" />
                                 {person.category}
                               </span>
@@ -1053,7 +1053,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
                                 person.status === 'Open' ? 'bg-green-100 text-green-800' :
                                 person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
+                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                               }`}>
                                 {person.status}
                               </span>
@@ -1066,20 +1066,20 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                               </span>
                             )}
                             
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                               <Network className="w-3 h-3 mr-1" />
                               {person.connections?.length || 0} connections
                             </span>
                             
                             {person.locations && person.locations.length > 0 && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 {person.locations.length} locations
                               </span>
                             )}
                             
                             {person.osint_data && person.osint_data.length > 0 && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                                 <Database className="w-3 h-3 mr-1" />
                                 {person.osint_data.length} OSINT
                               </span>
@@ -1105,7 +1105,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             ) : (
               <div className="text-center py-12">
                 <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">
+                <p className="text-gray-500 dark:text-gray-500">
                   {totalResults === 0 && searchParams.searchText ? 
                     'No results found. Try adjusting your search criteria.' : 
                     'Use the filters on the left to search for people.'}

@@ -3,33 +3,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Your other global styles can go here */
+/* Professional global styles with enhanced legibility */
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', 'Roboto',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6; /* Tailwind's gray-100 */
-  color: #1f2937; /* Tailwind's gray-800 */
+  background-color: #f8fafc; /* Slate-50 - softer than pure gray */
+  color: #0f172a; /* Slate-900 - deeper contrast */
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.011em;
 }
 
-/* Example: Custom scrollbar styling (optional) */
+/* Dark mode body with better contrast */
+.dark body {
+  background-color: #0f172a; /* Slate-900 - richer than pure black */
+  color: #f1f5f9; /* Slate-100 - excellent contrast */
+}
+
+/* Professional scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
+  background: #f1f5f9; /* Slate-100 */
+  border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* Tailwind's slate-300 */
-  border-radius: 10px;
+  background: #94a3b8; /* Slate-400 */
+  border-radius: 6px;
+  border: 2px solid #f1f5f9;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* Tailwind's slate-500 */
+  background: #64748b; /* Slate-500 */
+}
+
+/* Dark mode scrollbar with better visibility */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b; /* Slate-800 */
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569; /* Slate-600 */
+  border-color: #1e293b;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b; /* Slate-500 */
 }
 
 /* Ensure ReactFlow takes full height */
@@ -44,4 +65,92 @@ body {
 /* Fix for flex containers */
 .min-h-0 {
   min-height: 0;
+}
+
+/* Professional text rendering improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.3;
+}
+
+/* Enhanced button and interactive element focus states */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0066CC;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.dark button:focus-visible,
+.dark a:focus-visible,
+.dark input:focus-visible,
+.dark select:focus-visible,
+.dark textarea:focus-visible {
+  outline-color: #0891B2;
+}
+
+/* Improved form element styling */
+input, select, textarea {
+  transition: all 0.2s ease;
+}
+
+/* Better placeholder contrast */
+::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.dark ::placeholder {
+  color: #64748b;
+}
+
+/* Wireless Network Map - SSID Labels */
+.wireless-marker-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wireless-network-label {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.wireless-network-label .label-text {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+  color: #1e293b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.01em;
+}
+
+.dark .wireless-network-label .label-text {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Prevent label overlap with marker */
+.custom-marker-icon {
+  z-index: 500 !important;
+}
+
+/* Ensure labels are above markers when clustered */
+.leaflet-marker-icon.custom-marker-icon {
+  z-index: 600 !important;
 }

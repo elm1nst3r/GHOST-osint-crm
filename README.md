@@ -87,7 +87,7 @@ npm run db:init
 npm start
 ```
 
-*Backend runs on `http://localhost:5000` - the port of champions*
+*Backend runs on `http://localhost:3001` - the port of champions*
 
 ### Database Setup
 1. **Create a PostgreSQL database** (name it something innocent)

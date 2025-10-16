@@ -7,20 +7,23 @@ import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, Users, Filter, RefreshCw, Plus, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { peopleAPI } from '../utils/api';
 
-// Custom hook to handle map bounds with better performance
+// Custom hook to handle map bounds with better performance (only run once on mount)
 const MapBounds = ({ markers }) => {
   const map = useMap();
-  
+  const [hasInitialized, setHasInitialized] = useState(false);
+
   useEffect(() => {
-    if (markers.length > 0) {
+    // Only fit bounds on initial load, not on every marker change
+    if (markers.length > 0 && !hasInitialized) {
       const validMarkers = markers.filter(m => m.lat && m.lng && !isNaN(m.lat) && !isNaN(m.lng));
       if (validMarkers.length > 0) {
         const bounds = L.latLngBounds(validMarkers.map(m => [m.lat, m.lng]));
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        setHasInitialized(true);
       }
     }
-  }, [markers, map]);
-  
+  }, [markers.length, map, hasInitialized]); // Only depend on length, not entire markers array
+
   return null;
 };
 
@@ -289,60 +292,78 @@ Confidence: ${result.result.confidence}%`);
     }
   }, [searchTerm, people, includeRelated]);
 
-  // Create markers from filtered people - much simpler now!
+  // Optimized marker icons cache to prevent recreation
+  const iconCache = useMemo(() => {
+    const cache = {};
+    Object.entries(locationColors).forEach(([type, color]) => {
+      // Full confidence icon
+      cache[`${type}-full`] = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="
+          background-color: ${color};
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      // Partial confidence icon
+      cache[`${type}-partial`] = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="
+          background-color: ${color};
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px dashed white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          opacity: 0.7;
+        "></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+    });
+    return cache;
+  }, []); // Only create once
+
+  // Create markers from filtered people - with performance optimizations
   const markers = useMemo(() => {
     const markerList = [];
-    
-    filteredPeople.forEach(person => {
+
+    filteredPeople.forEach((person, personIndex) => {
       if (person.locations && person.locations.length > 0) {
-        person.locations.forEach(location => {
-          // Show locations with coordinates and matching type, or those with at least city+country
+        person.locations.forEach((location, locIndex) => {
+          // Show locations with coordinates and matching type
           const hasCoordinates = location.latitude && location.longitude;
-          const hasMinimumData = location.city && location.country;
           const isSelectedType = selectedLocationTypes.includes(location.type);
-          
-          if ((hasCoordinates || hasMinimumData) && isSelectedType) {
-            const color = locationColors[location.type] || locationColors.other;
-            
-            // Determine marker appearance based on data completeness
+
+          if (hasCoordinates && isSelectedType) {
+            const locationType = location.type || 'other';
             const confidence = location.geocode_confidence || 0;
-            const isPartialData = !hasCoordinates || confidence < 50;
-            
-            // Create marker with different styles for different accuracy levels
-            const markerSize = isPartialData ? 20 : 24;
-            const opacity = isPartialData ? 0.7 : 1;
-            const borderStyle = isPartialData ? 'dashed' : 'solid';
-            
-            const icon = L.divIcon({
-              className: 'custom-div-icon',
-              html: `<div style="
-                background-color: ${color}; 
-                width: ${markerSize}px; 
-                height: ${markerSize}px; 
-                border-radius: 50%; 
-                border: 2px ${borderStyle} white; 
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                opacity: ${opacity};
-              "></div>`,
-              iconSize: [markerSize, markerSize],
-              iconAnchor: [markerSize/2, markerSize/2]
-            });
-            
-            // Use coordinates if available, otherwise we need geocoding
-            let lat = location.latitude;
-            let lng = location.longitude;
-            
-            // Skip locations without coordinates for now
-            // These should be handled by the enhanced geocoding system
-            if (!hasCoordinates) {
-              return;
-            }
-            
+            const isPartialData = confidence < 50;
+
+            // Use cached icon instead of creating new one
+            const iconKey = `${locationType}-${isPartialData ? 'partial' : 'full'}`;
+            const icon = iconCache[iconKey] || iconCache['other-full'];
+
             markerList.push({
-              lat: parseFloat(lat),
-              lng: parseFloat(lng),
-              person,
-              location,
+              // Use unique stable key combining person ID and location index
+              id: `${person.id}-${locIndex}`,
+              lat: parseFloat(location.latitude),
+              lng: parseFloat(location.longitude),
+              personId: person.id,
+              personName: `${person.first_name || ''} ${person.last_name || ''}`.trim(),
+              personCategory: person.category,
+              personCaseName: person.case_name,
+              locationType: locationType,
+              locationAddress: location.address,
+              locationCity: location.city,
+              locationCountry: location.country,
+              locationConfidence: confidence,
               icon,
               isPartialData
             });
@@ -350,9 +371,9 @@ Confidence: ${result.result.confidence}%`);
         });
       }
     });
-    
+
     return markerList;
-  }, [filteredPeople, selectedLocationTypes]);
+  }, [filteredPeople, selectedLocationTypes, iconCache]);
 
   const toggleLocationType = (type) => {
     setSelectedLocationTypes(prev => {
@@ -364,9 +385,7 @@ Confidence: ${result.result.confidence}%`);
     });
   };
 
-  const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
-  };
+  // Removed getFullName - now using pre-computed personName in markers
 
   // Count locations missing coordinates
   const missingCoordinates = useMemo(() => {
@@ -389,7 +408,7 @@ Confidence: ${result.result.confidence}%`);
       <div className="h-full flex items-center justify-center bg-white border border-gray-200 shadow-lg rounded-lg m-4">
         <div className="text-center p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-700 font-medium">Loading map data...</p>
+          <p className="mt-4 text-gray-700 dark:text-gray-300 font-medium">Loading map data...</p>
         </div>
       </div>
     );
@@ -417,13 +436,13 @@ Confidence: ${result.result.confidence}%`);
             
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search people..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-500 transition-all duration-300 w-64"
+                className="pl-10 pr-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-600 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 transition-all duration-300 w-64"
               />
             </div>
             
@@ -435,14 +454,14 @@ Confidence: ${result.result.confidence}%`);
                 onChange={(e) => setIncludeRelated(e.target.checked)}
                 className="h-4 w-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-700">Include related people</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Include related people</span>
             </label>
           </div>
         </div>
         
         {/* Location Type Filters */}
         <div className="mt-4 flex items-center space-x-4">
-          <span className="text-sm font-medium text-gray-700">Filter by type:</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by type:</span>
           <div className="flex flex-wrap gap-2">
             {Object.entries(locationColors).map(([type, color]) => (
               <button
@@ -480,54 +499,63 @@ Confidence: ${result.result.confidence}%`);
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           
-          <MarkerClusterGroup>
-            {markers.map((marker, index) => (
+          <MarkerClusterGroup
+            chunkedLoading={true}
+            maxClusterRadius={60}
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={false}
+            zoomToBoundsOnClick={true}
+          >
+            {markers.map((marker) => (
               <Marker
-                key={index}
+                key={marker.id}
                 position={[marker.lat, marker.lng]}
                 icon={marker.icon}
               >
                 <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold">{getFullName(marker.person)}</h3>
-                    {marker.person.category && (
-                      <p className="text-sm text-gray-600">{marker.person.category}</p>
+                  <div className="p-2 min-w-[200px]">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{marker.personName}</h3>
+                    {marker.personCategory && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{marker.personCategory}</p>
                     )}
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-medium text-gray-700">
-                          {marker.location.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {marker.personCaseName && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Case: {marker.personCaseName}</p>
+                    )}
+
+                    <div className="mt-2 border-t dark:border-gray-600 pt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {marker.locationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </p>
                         {/* Location accuracy indicator */}
-                        {marker.location.geocode_confidence && (
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            marker.location.geocode_confidence >= 70 ? 'bg-green-100 text-green-800' :
-                            marker.location.geocode_confidence >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-orange-100 text-orange-800'
+                        {marker.locationConfidence > 0 && (
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            marker.locationConfidence >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                            marker.locationConfidence >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                            'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
                           }`}>
-                            {marker.location.geocode_confidence >= 70 ? 'High accuracy' :
-                             marker.location.geocode_confidence >= 50 ? 'Medium accuracy' :
-                             'Approximate location'}
+                            {marker.locationConfidence >= 70 ? 'High' :
+                             marker.locationConfidence >= 50 ? 'Medium' :
+                             'Low'} {marker.locationConfidence}%
                           </span>
                         )}
                       </div>
-                      {marker.location.address && (
-                        <p className="text-sm">{marker.location.address}</p>
+
+                      {marker.locationAddress && (
+                        <p className="text-sm text-gray-800 dark:text-gray-200">{marker.locationAddress}</p>
                       )}
-                      <p className="text-sm text-gray-600">
-                        {[marker.location.city, marker.location.state, marker.location.country]
+
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {[marker.locationCity, marker.locationCountry]
                           .filter(Boolean)
                           .join(', ')}
                       </p>
-                      {marker.location.notes && (
-                        <p className="text-xs text-gray-500 mt-1">{marker.location.notes}</p>
-                      )}
-                      {/* Show confidence score for partial data */}
+
+                      {/* Show confidence warning for partial data */}
                       {marker.isPartialData && (
-                        <p className="text-xs text-orange-600 mt-1 italic">
-                          ⚠ {marker.location.geocode_confidence ? 
-                            `${marker.location.geocode_confidence}% confidence` : 
-                            'Location needs geocoding'}
+                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Approximate location
                         </p>
                       )}
                     </div>
@@ -541,8 +569,8 @@ Confidence: ${result.result.confidence}%`);
           </MapContainer>
           
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-4 z-10 max-w-xs">
-            <h4 className="text-sm font-semibold mb-2 text-gray-900">Location Types</h4>
+          <div className="absolute bottom-4 right-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded p-4 z-10 max-w-xs">
+            <h4 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">Location Types</h4>
             <div className="space-y-1 mb-3">
               {Object.entries(locationColors).map(([type, color]) => (
                 <div key={type} className="flex items-center space-x-2">
@@ -550,47 +578,47 @@ Confidence: ${result.result.confidence}%`);
                     className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
                     style={{ backgroundColor: color }}
                   />
-                  <span className="text-xs text-gray-700 font-medium">
+                  <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">
                     {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 </div>
               ))}
             </div>
-            
-            <h4 className="text-sm font-semibold mb-2 text-gray-900 border-t pt-2">Accuracy</h4>
+
+            <h4 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100 border-t dark:border-gray-600 pt-2">Accuracy</h4>
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white shadow-sm bg-blue-500" />
-                <span className="text-xs text-gray-700">High accuracy (solid)</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">High accuracy (solid)</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm bg-blue-500 opacity-70" style={{ borderStyle: 'dashed' }} />
-                <span className="text-xs text-gray-700">Approximate (dashed)</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">Approximate (dashed)</span>
               </div>
             </div>
           </div>
           
           {/* Enhanced Stats */}
-          <div className="absolute top-4 left-4 bg-white border border-gray-300 shadow-lg rounded px-4 py-3 z-10">
+          <div className="absolute top-4 left-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded px-4 py-3 z-10">
             <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-gray-700">
+              <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                 <Users className="w-4 h-4 text-blue-600" />
                 <span className="font-medium">{filteredPeople.length} people</span>
-                <span className="text-gray-400">|</span>
+                <span className="text-gray-400 dark:text-gray-500">|</span>
                 <MapPin className="w-4 h-4 text-blue-600" />
                 <span className="font-medium">{markers.length} locations</span>
               </div>
               
               {geocodingStats && (
-                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
                   <CheckCircle className="w-3 h-3 text-green-500" />
                   <span>{geocodingStats.total_cached} cached</span>
-                  <span className="text-gray-400">|</span>
+                  <span className="text-gray-400 dark:text-gray-500">|</span>
                   <Clock className="w-3 h-3 text-blue-500" />
                   <span>{geocodingStats.cached_today} today</span>
                   {geocodingStats.avg_confidence && (
                     <>
-                      <span className="text-gray-400">|</span>
+                      <span className="text-gray-400 dark:text-gray-500">|</span>
                       <span>Avg: {Math.round(geocodingStats.avg_confidence)}%</span>
                     </>
                   )}
@@ -632,14 +660,14 @@ Confidence: ${result.result.confidence}%`);
       {/* Add Location Modal */}
       {showAddLocation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-300 shadow-lg rounded-lg p-6 w-96 max-w-90vw">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">
+          <div className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded-lg p-6 w-96 max-w-90vw">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
               Add New Location
             </h3>
             
             <div className="space-y-4">
               <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Address
                 </label>
                 <input
@@ -650,12 +678,12 @@ Confidence: ${result.result.confidence}%`);
                     getAddressSuggestions(e.target.value);
                   }}
                   placeholder="Enter address to geocode..."
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-500 transition-all duration-300"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-600 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 transition-all duration-300"
                 />
                 
                 {/* Address Suggestions */}
                 {addressSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 shadow-lg rounded overflow-hidden">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded overflow-hidden">
                     {addressSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
@@ -663,10 +691,10 @@ Confidence: ${result.result.confidence}%`);
                           setNewLocationData(prev => ({ ...prev, address: suggestion.display_name }));
                           setAddressSuggestions([]);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors border-b border-gray-200 dark:border-gray-600 last:border-b-0"
                       >
-                        <div className="text-sm font-medium text-gray-900">{suggestion.display_name}</div>
-                        <div className="text-xs text-gray-600 flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{suggestion.display_name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center justify-between">
                           <span>Confidence: {suggestion.confidence}%</span>
                           <span>{suggestion.lat.toFixed(4)}, {suggestion.lng.toFixed(4)}</span>
                         </div>
@@ -683,7 +711,7 @@ Confidence: ${result.result.confidence}%`);
                     setNewLocationData({ address: '', personId: null });
                     setAddressSuggestions([]);
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
                 >
                   Cancel
                 </button>

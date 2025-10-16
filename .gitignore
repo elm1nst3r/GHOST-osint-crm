@@ -244,5 +244,5 @@ yarn-debug.log*
 !/log/.keep
 !/tmp/.keep
 
-# Claude Code documentation (contains implementation details)
-CLAUDE.md
+# Keep application docs - these are helpful
+# CLAUDE.md is intentionally tracked

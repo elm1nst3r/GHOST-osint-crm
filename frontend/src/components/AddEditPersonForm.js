@@ -249,9 +249,9 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b dark:border-gray-600">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {person ? 'Edit Person' : 'Add New Person'}
           </h2>
         </div>
@@ -260,44 +260,44 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name *</label>
               <input
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
               <input
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
               <input
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               >
                 <option value="">Select Category</option>
                 {PERSON_CATEGORIES.map(cat => (
@@ -309,11 +309,11 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               >
                 <option value="">Select Status</option>
                 {PERSON_STATUSES.map(status => (
@@ -323,11 +323,11 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">CRM Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CRM Status</label>
               <select
                 value={formData.crmStatus}
                 onChange={(e) => setFormData({ ...formData, crmStatus: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               >
                 <option value="">Select CRM Status</option>
                 {crmStatuses.map(status => (
@@ -339,13 +339,13 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Case Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Case Name</label>
               <div className="relative">
                 <input
                   type="text"
                   value={formData.caseName}
                   onChange={(e) => setFormData({ ...formData, caseName: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                   placeholder="Enter or select case name"
                 />
                 {formData.caseName && !caseExists && (
@@ -377,29 +377,29 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture URL</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Picture URL</label>
               <input
                 type="url"
                 value={formData.profilePictureUrl}
                 onChange={(e) => setFormData({ ...formData, profilePictureUrl: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               rows="3"
             />
           </div>
 
           {/* Aliases */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Aliases</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aliases</label>
             <div className="flex space-x-2 mb-2">
               <input
                 type="text"
@@ -431,7 +431,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
           {/* Locations */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Locations
             </label>
@@ -441,7 +441,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   <select
                     value={newLocation.type}
                     onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                   >
                     {locationTypes.map(type => (
                       <option key={type.value} value={type.value}>{type.label}</option>
@@ -454,7 +454,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                     value={newLocation.address}
                     onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })}
                     placeholder="Street Address"
-                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -464,21 +464,21 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   value={newLocation.city}
                   onChange={(e) => setNewLocation({ ...newLocation, city: e.target.value })}
                   placeholder="City"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   value={newLocation.state}
                   onChange={(e) => setNewLocation({ ...newLocation, state: e.target.value })}
                   placeholder="State/Province"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   value={newLocation.country}
                   onChange={(e) => setNewLocation({ ...newLocation, country: e.target.value })}
                   placeholder="Country"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -487,14 +487,14 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                   value={newLocation.postal_code}
                   onChange={(e) => setNewLocation({ ...newLocation, postal_code: e.target.value })}
                   placeholder="Postal Code"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   value={newLocation.notes}
                   onChange={(e) => setNewLocation({ ...newLocation, notes: e.target.value })}
                   placeholder="Notes (optional)"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                 />
               </div>
               <button type="button" onClick={addLocation} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
@@ -512,12 +512,12 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                       </span>
                       <span className="font-medium">{location.address}</span>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {[location.city, location.state, location.country, location.postal_code]
                         .filter(Boolean)
                         .join(', ')}
                     </div>
-                    {location.notes && <p className="text-sm text-gray-500 mt-1">{location.notes}</p>}
+                    {location.notes && <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{location.notes}</p>}
                   </div>
                   <button
                     type="button"
@@ -533,7 +533,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
           {/* OSINT Data */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">OSINT Data</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">OSINT Data</label>
             <div className="space-y-2 mb-2">
               <div className="flex space-x-2">
                 <select
@@ -585,7 +585,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
 
           {/* Connections */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Connections</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Connections</label>
             <div className="space-y-2 mb-2">
               <div className="flex space-x-2">
                 <select
@@ -613,7 +613,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                 type="text"
                 id="connectionNote"
                 placeholder="Connection notes (optional)"
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
               />
               <button type="button" onClick={addConnection} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                 Add Connection
@@ -628,10 +628,10 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                       <span className="font-medium">
                         {connectedPerson ? `${connectedPerson.first_name} ${connectedPerson.last_name || ''}` : 'Unknown'}
                       </span>
-                      <span className="text-sm text-gray-600 ml-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
                         ({connectionTypes.find(t => t.value === conn.type)?.label || conn.type})
                       </span>
-                      {conn.note && <p className="text-sm text-gray-600">{conn.note}</p>}
+                      {conn.note && <p className="text-sm text-gray-600 dark:text-gray-400">{conn.note}</p>}
                     </div>
                     <button
                       type="button"
@@ -653,7 +653,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
               <div className="space-y-4">
                 {customFields.filter(f => f.is_active).map(field => (
                   <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {field.field_label}
                     </label>
                     {field.field_type === 'text' && (
@@ -667,7 +667,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                             [field.field_name]: e.target.value
                           }
                         })}
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                       />
                     )}
                     {field.field_type === 'select' && (
@@ -680,7 +680,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                             [field.field_name]: e.target.value
                           }
                         })}
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                       >
                         <option value="">Select {field.field_label}</option>
                         {field.options && field.options.map(option => (
@@ -698,7 +698,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                             [field.field_name]: e.target.value
                           }
                         })}
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                         rows="3"
                       />
                     )}
@@ -713,7 +713,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
                             [field.field_name]: e.target.value
                           }
                         })}
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
                       />
                     )}
                   </div>

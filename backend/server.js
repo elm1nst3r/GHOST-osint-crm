@@ -5,6 +5,7 @@ const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const xml2js = require('xml2js');
 const { exec } = require('child_process');
 const util = require('util');
 
@@ -1564,21 +1565,23 @@ app.get('/api/audit-logs', async (req, res) => {
 // Export/Import endpoints
 app.get('/api/export', async (req, res) => {
   try {
-    const [people, tools, todos, customFields, modelOptions, cases, travelHistory] = await Promise.all([
+    const [people, tools, todos, customFields, modelOptions, cases, travelHistory, businesses] = await Promise.all([
       pool.query('SELECT * FROM people'),
       pool.query('SELECT * FROM tools'),
       pool.query('SELECT * FROM todos'),
       pool.query('SELECT * FROM custom_person_fields'),
       pool.query('SELECT * FROM model_options'),
       pool.query('SELECT * FROM cases'),
-      pool.query('SELECT * FROM travel_history')
+      pool.query('SELECT * FROM travel_history'),
+      pool.query('SELECT * FROM businesses')
     ]);
-    
+
     const exportData = {
-      version: '1.1',
+      version: '1.2',
       exportDate: new Date().toISOString(),
       data: {
         people: people.rows,
+        businesses: businesses.rows,
         tools: tools.rows,
         todos: todos.rows,
         customFields: customFields.rows,
@@ -1681,6 +1684,32 @@ app.post('/api/import', async (req, res) => {
       }
     }
     
+    // Create a mapping for business IDs (old ID -> new ID)
+    const businessIdMapping = {};
+
+    if (importData.data.businesses) {
+      for (const business of importData.data.businesses) {
+        const employeesJSON = business.employees ? toJSONString(business.employees) : '[]';
+
+        const result = await client.query(
+          `INSERT INTO businesses (name, type, industry, address, city, state, country, postal_code,
+                                   latitude, longitude, phone, email, website, owner_person_id,
+                                   registration_number, registration_date, status, employees, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19)
+           RETURNING id`,
+          [business.name, business.type, business.industry, business.address, business.city,
+           business.state, business.country, business.postal_code, business.latitude, business.longitude,
+           business.phone, business.email, business.website, business.owner_person_id,
+           business.registration_number, business.registration_date, business.status,
+           employeesJSON, business.notes]
+        );
+
+        if (business.id && result.rows[0]) {
+          businessIdMapping[business.id] = result.rows[0].id;
+        }
+      }
+    }
+
     if (importData.data.people) {
       for (const person of importData.data.people) {
         // Ensure all JSON fields are properly formatted
@@ -1689,19 +1718,19 @@ app.post('/api/import', async (req, res) => {
         const connectionsJSON = person.connections ? toJSONString(person.connections) : '[]';
         const locationsJSON = person.locations ? toJSONString(person.locations) : '[]';
         const customFieldsJSON = person.custom_fields ? toJSONString(person.custom_fields) : '{}';
-        
+
         const result = await client.query(
-          `INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status, 
-                               crm_status, case_name, profile_picture_url, notes, osint_data, 
+          `INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status,
+                               crm_status, case_name, profile_picture_url, notes, osint_data,
                                attachments, connections, locations, custom_fields)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb)
            RETURNING id`,
-          [person.first_name, person.last_name, person.aliases, person.date_of_birth, 
-           person.category, person.status, person.crm_status, person.case_name, 
-           person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON, 
+          [person.first_name, person.last_name, person.aliases, person.date_of_birth,
+           person.category, person.status, person.crm_status, person.case_name,
+           person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON,
            connectionsJSON, locationsJSON, customFieldsJSON]
         );
-        
+
         // Map old ID to new ID
         if (person.id && result.rows[0]) {
           personIdMapping[person.id] = result.rows[0].id;
@@ -2113,6 +2142,390 @@ app.get('/api/system/health', async (req, res) => {
     });
   }
 });
+
+// ===== WIRELESS NETWORKS API (WiGLE Integration) =====
+
+// Get all wireless networks
+app.get('/api/wireless-networks', async (req, res) => {
+  try {
+    const { person_id, ssid, bssid, network_type, encryption, import_source, signal_min, signal_max } = req.query;
+
+    let query = 'SELECT * FROM wireless_networks WHERE 1=1';
+    const params = [];
+    let paramCount = 0;
+
+    if (person_id) {
+      query += ` AND person_id = $${++paramCount}`;
+      params.push(person_id);
+    }
+
+    if (ssid) {
+      query += ` AND LOWER(ssid) LIKE $${++paramCount}`;
+      params.push(`%${ssid.toLowerCase()}%`);
+    }
+
+    if (bssid) {
+      query += ` AND bssid = $${++paramCount}`;
+      params.push(bssid);
+    }
+
+    if (network_type) {
+      query += ` AND network_type = $${++paramCount}`;
+      params.push(network_type);
+    }
+
+    if (encryption) {
+      query += ` AND encryption = $${++paramCount}`;
+      params.push(encryption);
+    }
+
+    if (import_source) {
+      query += ` AND import_source = $${++paramCount}`;
+      params.push(import_source);
+    }
+
+    if (signal_min) {
+      query += ` AND signal_strength >= $${++paramCount}`;
+      params.push(parseInt(signal_min));
+    }
+
+    if (signal_max) {
+      query += ` AND signal_strength <= $${++paramCount}`;
+      params.push(parseInt(signal_max));
+    }
+
+    query += ' ORDER BY scan_date DESC, signal_strength DESC';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching wireless networks:', err);
+    res.status(500).json({ error: 'Failed to fetch wireless networks' });
+  }
+});
+
+// Get single wireless network
+app.get('/api/wireless-networks/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM wireless_networks WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wireless network not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching wireless network:', err);
+    res.status(500).json({ error: 'Failed to fetch wireless network' });
+  }
+});
+
+// Create wireless network (manual entry)
+app.post('/api/wireless-networks', async (req, res) => {
+  try {
+    const {
+      ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+      frequency, channel, network_type, confidence_level, first_seen, last_seen,
+      scan_date, person_id, association_note, association_confidence,
+      import_source, notes, tags, area_name
+    } = req.body;
+
+    if (!ssid || !bssid || !latitude || !longitude) {
+      return res.status(400).json({ error: 'SSID, BSSID, latitude, and longitude are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO wireless_networks (
+        ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+        frequency, channel, network_type, confidence_level, first_seen, last_seen,
+        scan_date, person_id, association_note, association_confidence,
+        import_source, notes, tags, area_name
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      RETURNING *`,
+      [ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+       frequency, channel, network_type || 'WIFI', confidence_level, first_seen, last_seen,
+       scan_date, person_id, association_note, association_confidence,
+       import_source, notes, tags, area_name]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating wireless network:', err);
+    res.status(500).json({ error: 'Failed to create wireless network' });
+  }
+});
+
+// Update wireless network
+app.put('/api/wireless-networks/:id', async (req, res) => {
+  try {
+    const {
+      ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+      frequency, channel, network_type, confidence_level, first_seen, last_seen,
+      scan_date, person_id, association_note, association_confidence,
+      notes, tags, area_name
+    } = req.body;
+
+    const result = await pool.query(
+      `UPDATE wireless_networks SET
+        ssid = $1, bssid = $2, latitude = $3, longitude = $4, accuracy = $5,
+        encryption = $6, signal_strength = $7, frequency = $8, channel = $9,
+        network_type = $10, confidence_level = $11, first_seen = $12, last_seen = $13,
+        scan_date = $14, person_id = $15, association_note = $16,
+        association_confidence = $17, notes = $18, tags = $19, area_name = $20
+      WHERE id = $21 RETURNING *`,
+      [ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+       frequency, channel, network_type, confidence_level, first_seen, last_seen,
+       scan_date, person_id, association_note, association_confidence,
+       notes, tags, area_name, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wireless network not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating wireless network:', err);
+    res.status(500).json({ error: 'Failed to update wireless network' });
+  }
+});
+
+// Delete wireless network
+app.delete('/api/wireless-networks/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM wireless_networks WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wireless network not found' });
+    }
+    res.json({ message: 'Wireless network deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting wireless network:', err);
+    res.status(500).json({ error: 'Failed to delete wireless network' });
+  }
+});
+
+// Bulk delete wireless networks
+app.post('/api/wireless-networks/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'IDs array is required' });
+    }
+
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    const result = await pool.query(
+      `DELETE FROM wireless_networks WHERE id IN (${placeholders}) RETURNING id`,
+      ids
+    );
+
+    res.json({ message: `Deleted ${result.rowCount} wireless networks`, deletedIds: result.rows.map(r => r.id) });
+  } catch (err) {
+    console.error('Error bulk deleting wireless networks:', err);
+    res.status(500).json({ error: 'Failed to bulk delete wireless networks' });
+  }
+});
+
+// Import WiGLE KML file
+app.post('/api/wireless-networks/import-kml', multer({ storage: multer.memoryStorage() }).single('kmlFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'KML file is required' });
+    }
+
+    const kmlContent = req.file.buffer.toString('utf-8');
+    const parser = new xml2js.Parser();
+    const parsed = await parser.parseStringPromise(kmlContent);
+
+    const placemarks = parsed.kml?.Document?.[0]?.Folder?.[0]?.Placemark || [];
+    const importSource = req.file.originalname;
+    const importedNetworks = [];
+    const errors = [];
+
+    for (const placemark of placemarks) {
+      try {
+        const name = placemark.name?.[0]?.trim() || 'Unknown';
+        const description = placemark.description?.[0] || '';
+        const coordinates = placemark.Point?.[0]?.coordinates?.[0];
+        const styleUrl = placemark.styleUrl?.[0]?.replace('#', '') || 'zeroConfidence';
+
+        if (!coordinates) {
+          errors.push({ ssid: name, error: 'No coordinates found' });
+          continue;
+        }
+
+        // Parse coordinates (longitude, latitude format in KML)
+        const [longitude, latitude] = coordinates.split(',').map(parseFloat);
+
+        // Parse description for details
+        const descLines = description.split('\n');
+        let bssid = '', encryption = 'Unknown', signal = null, accuracy = null, timestamp = null, networkType = 'WIFI';
+
+        descLines.forEach(line => {
+          if (line.includes('Network ID:')) bssid = line.split(':')[1].trim();
+          if (line.includes('Encryption:')) encryption = line.split(':')[1].trim();
+          if (line.includes('Signal:')) signal = parseFloat(line.split(':')[1].trim());
+          if (line.includes('Accuracy:')) accuracy = parseFloat(line.split(':')[1].trim());
+          if (line.includes('Time:')) timestamp = line.split('Time:')[1].trim();
+          if (line.includes('Type:')) networkType = line.split(':')[1].trim();
+        });
+
+        // Map confidence from style
+        const confidenceMap = {
+          'highConfidence': 'high',
+          'mediumConfidence': 'medium',
+          'lowConfidence': 'low',
+          'zeroConfidence': 'zero',
+          'bluetoothClassic': 'high',
+          'bluetoothLe': 'high',
+          'cell': 'high'
+        };
+        const confidence = confidenceMap[styleUrl] || 'low';
+
+        // Insert into database (using ON CONFLICT to handle duplicates)
+        const result = await pool.query(
+          `INSERT INTO wireless_networks (
+            ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
+            network_type, confidence_level, scan_date, import_source
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (bssid, latitude, longitude, scan_date)
+          DO UPDATE SET
+            signal_strength = GREATEST(wireless_networks.signal_strength, EXCLUDED.signal_strength),
+            last_seen = CURRENT_TIMESTAMP
+          RETURNING *`,
+          [name, bssid, latitude, longitude, accuracy, encryption, signal,
+           networkType, confidence, timestamp, importSource]
+        );
+
+        importedNetworks.push(result.rows[0]);
+      } catch (itemError) {
+        errors.push({ ssid: placemark.name?.[0], error: itemError.message });
+      }
+    }
+
+    res.json({
+      message: `Imported ${importedNetworks.length} wireless networks`,
+      imported: importedNetworks.length,
+      errors: errors.length,
+      errorDetails: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    console.error('Error importing KML:', err);
+    res.status(500).json({ error: 'Failed to import KML file: ' + err.message });
+  }
+});
+
+// Get wireless network statistics
+app.get('/api/wireless-networks/stats', async (req, res) => {
+  try {
+    const stats = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(DISTINCT ssid) as unique_ssids,
+        COUNT(DISTINCT bssid) as unique_bssids,
+        COUNT(CASE WHEN person_id IS NOT NULL THEN 1 END) as associated_count,
+        COUNT(CASE WHEN encryption IN ('WPA2', 'WPA3') THEN 1 END) as encrypted_count,
+        COUNT(CASE WHEN encryption IN ('Open', 'Unknown') THEN 1 END) as open_count,
+        AVG(signal_strength) as avg_signal
+      FROM wireless_networks
+    `);
+
+    const byType = await pool.query(`
+      SELECT network_type, COUNT(*) as count
+      FROM wireless_networks
+      GROUP BY network_type
+      ORDER BY count DESC
+    `);
+
+    const byEncryption = await pool.query(`
+      SELECT encryption, COUNT(*) as count
+      FROM wireless_networks
+      GROUP BY encryption
+      ORDER BY count DESC
+    `);
+
+    res.json({
+      ...stats.rows[0],
+      byType: byType.rows,
+      byEncryption: byEncryption.rows
+    });
+  } catch (err) {
+    console.error('Error getting wireless network stats:', err);
+    res.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
+
+// Search for networks near a location
+app.get('/api/wireless-networks/nearby', async (req, res) => {
+  try {
+    const { latitude, longitude, radius = 0.5 } = req.query; // radius in km
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'Latitude and longitude are required' });
+    }
+
+    // Simple bounding box search (for accurate distance, use PostGIS)
+    const latDelta = parseFloat(radius) / 111.0; // 1 degree lat ≈ 111km
+    const lonDelta = parseFloat(radius) / (111.0 * Math.cos(parseFloat(latitude) * Math.PI / 180));
+
+    const result = await pool.query(
+      `SELECT * FROM wireless_networks
+       WHERE latitude BETWEEN $1 AND $2
+       AND longitude BETWEEN $3 AND $4
+       ORDER BY scan_date DESC`,
+      [parseFloat(latitude) - latDelta, parseFloat(latitude) + latDelta,
+       parseFloat(longitude) - lonDelta, parseFloat(longitude) + lonDelta]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error searching nearby networks:', err);
+    res.status(500).json({ error: 'Failed to search nearby networks' });
+  }
+});
+
+// Associate wireless network with person
+app.post('/api/wireless-networks/:id/associate', async (req, res) => {
+  try {
+    const { person_id, association_note, association_confidence } = req.body;
+
+    const result = await pool.query(
+      `UPDATE wireless_networks
+       SET person_id = $1, association_note = $2, association_confidence = $3
+       WHERE id = $4 RETURNING *`,
+      [person_id, association_note, association_confidence || 'investigating', req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wireless network not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error associating wireless network:', err);
+    res.status(500).json({ error: 'Failed to associate wireless network' });
+  }
+});
+
+// Remove association from wireless network
+app.delete('/api/wireless-networks/:id/associate', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE wireless_networks
+       SET person_id = NULL, association_note = NULL, association_confidence = NULL
+       WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wireless network not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error removing association:', err);
+    res.status(500).json({ error: 'Failed to remove association' });
+  }
+});
+
+// ===== END WIRELESS NETWORKS API =====
 
 app.listen(PORT, () => {
   console.log(`Backend server is running on http://localhost:${PORT}`);

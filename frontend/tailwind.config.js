@@ -12,44 +12,52 @@ module.exports = {
           sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'sans-serif'],
         },
         colors: {
-          // Liquid glass color palette
+          // Professional glass color palette with enhanced contrast
           glass: {
-            50: 'rgba(255, 255, 255, 0.95)',
-            100: 'rgba(255, 255, 255, 0.9)',
-            200: 'rgba(255, 255, 255, 0.8)',
-            300: 'rgba(255, 255, 255, 0.7)',
-            400: 'rgba(255, 255, 255, 0.6)',
-            500: 'rgba(255, 255, 255, 0.5)',
-            600: 'rgba(255, 255, 255, 0.4)',
-            700: 'rgba(255, 255, 255, 0.3)',
-            800: 'rgba(255, 255, 255, 0.2)',
-            900: 'rgba(255, 255, 255, 0.1)',
+            50: 'rgba(255, 255, 255, 0.98)',
+            100: 'rgba(255, 255, 255, 0.95)',
+            200: 'rgba(255, 255, 255, 0.85)',
+            300: 'rgba(255, 255, 255, 0.75)',
+            400: 'rgba(255, 255, 255, 0.65)',
+            500: 'rgba(255, 255, 255, 0.55)',
+            600: 'rgba(255, 255, 255, 0.45)',
+            700: 'rgba(255, 255, 255, 0.35)',
+            800: 'rgba(255, 255, 255, 0.25)',
+            900: 'rgba(255, 255, 255, 0.15)',
           },
           dark: {
-            glass: 'rgba(0, 0, 0, 0.1)',
-            'glass-heavy': 'rgba(0, 0, 0, 0.2)',
+            glass: 'rgba(15, 23, 42, 0.65)',
+            'glass-heavy': 'rgba(15, 23, 42, 0.85)',
           },
+          // Professional accent colors with better contrast
           accent: {
-            primary: '#007AFF',
-            secondary: '#5AC8FA', 
-            tertiary: '#AF52DE',
-            success: '#34C759',
-            warning: '#FF9500',
-            danger: '#FF3B30',
+            primary: '#0066CC',      // Deeper blue for better contrast
+            secondary: '#0891B2',    // Cyan-600 for professional look
+            tertiary: '#7C3AED',     // Violet-600
+            success: '#059669',      // Emerald-600
+            warning: '#D97706',      // Amber-600
+            danger: '#DC2626',       // Red-600
+          },
+          // Business colorway additions
+          business: {
+            navy: '#1e3a8a',         // Navy blue
+            slate: '#475569',        // Professional slate
+            steel: '#64748b',        // Steel gray
+            charcoal: '#334155',     // Charcoal
           }
         },
         backgroundImage: {
-          // Liquid glass gradients
-          'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-          'gradient-glass-dark': 'linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 100%)',
-          'gradient-primary': 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)',
-          'gradient-secondary': 'linear-gradient(135deg, #5AC8FA 0%, #AF52DE 100%)',
-          'gradient-success': 'linear-gradient(135deg, #34C759 0%, #30D158 100%)',
-          'gradient-warning': 'linear-gradient(135deg, #FF9500 0%, #FFCC02 100%)',
-          'gradient-danger': 'linear-gradient(135deg, #FF3B30 0%, #FF6961 100%)',
-          'gradient-cosmic': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          'gradient-ocean': 'linear-gradient(135deg, #2196F3 0%, #21CBF3 100%)',
-          'gradient-sunset': 'linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%)',
+          // Professional glass gradients with better contrast
+          'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%)',
+          'gradient-glass-dark': 'linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.2) 100%)',
+          'gradient-primary': 'linear-gradient(135deg, #0066CC 0%, #0891B2 100%)',
+          'gradient-secondary': 'linear-gradient(135deg, #0891B2 0%, #7C3AED 100%)',
+          'gradient-success': 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+          'gradient-warning': 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
+          'gradient-danger': 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
+          'gradient-business': 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+          'gradient-ocean': 'linear-gradient(135deg, #0c4a6e 0%, #0891B2 100%)',
+          'gradient-professional': 'linear-gradient(135deg, #334155 0%, #64748b 100%)',
         },
         backdropBlur: {
           xs: '2px',
@@ -89,9 +97,10 @@ module.exports = {
           'glow-lg': '0 0 30px rgba(0, 122, 255, 0.5)',
         },
         borderRadius: {
-          'glass': '16px',
-          'glass-lg': '24px',
-          'glass-xl': '32px',
+          'glass': '8px',        // Reduced from 16px - more professional
+          'glass-sm': '6px',     // Small elements
+          'glass-lg': '12px',    // Reduced from 24px - cards
+          'glass-xl': '16px',    // Reduced from 32px - modals
         }
       },
     },
@@ -99,69 +108,68 @@ module.exports = {
       // Custom plugin for glass morphism utilities
       function({ addUtilities }) {
         const newUtilities = {
+          // Light mode glass effects
           '.glass': {
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-          },
-          '.glass-dark': {
-            background: 'rgba(0, 0, 0, 0.1)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(12px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 4px 16px 0 rgba(31, 38, 135, 0.2)',
           },
           '.glass-heavy': {
-            background: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(24px)',
+            background: 'rgba(255, 255, 255, 0.25)',
+            backdropFilter: 'blur(16px) saturate(180%)',
             border: '1px solid rgba(255, 255, 255, 0.3)',
-            boxShadow: '0 15px 35px 0 rgba(31, 38, 135, 0.2)',
+            boxShadow: '0 8px 24px 0 rgba(31, 38, 135, 0.15)',
           },
           '.glass-card': {
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '16px',
-            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-          },
-          '.dark .glass-card': {
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 100%)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '16px',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%)',
+            backdropFilter: 'blur(14px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px 0 rgba(31, 38, 135, 0.18)',
           },
           '.glass-button': {
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            transition: 'all 0.3s ease',
+            background: 'rgba(255, 255, 255, 0.18)',
+            backdropFilter: 'blur(10px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            transition: 'all 0.2s ease',
           },
           '.glass-button:hover': {
-            background: 'rgba(255, 255, 255, 0.25)',
-            boxShadow: '0 0 20px rgba(0, 122, 255, 0.3)',
+            background: 'rgba(255, 255, 255, 0.28)',
+            borderColor: 'rgba(255, 255, 255, 0.35)',
+            boxShadow: '0 2px 12px rgba(0, 102, 204, 0.25)',
           },
+
+          // Dark mode glass effects - more opaque for better contrast
           '.dark .glass': {
-            background: 'rgba(0, 0, 0, 0.2)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(12px) saturate(180%)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
+            boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.5)',
           },
           '.dark .glass-heavy': {
-            background: 'rgba(0, 0, 0, 0.3)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 15px 35px 0 rgba(0, 0, 0, 0.6)',
+            background: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            border: '1px solid rgba(148, 163, 184, 0.3)',
+            boxShadow: '0 8px 24px 0 rgba(0, 0, 0, 0.6)',
+          },
+          '.dark .glass-card': {
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.5) 100%)',
+            backdropFilter: 'blur(14px) saturate(180%)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.6)',
           },
           '.dark .glass-button': {
-            background: 'rgba(0, 0, 0, 0.25)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            transition: 'all 0.3s ease',
+            background: 'rgba(30, 41, 59, 0.6)',
+            backdropFilter: 'blur(10px) saturate(180%)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
+            transition: 'all 0.2s ease',
           },
           '.dark .glass-button:hover': {
-            background: 'rgba(0, 0, 0, 0.35)',
-            boxShadow: '0 0 20px rgba(0, 122, 255, 0.3)',
+            background: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'rgba(148, 163, 184, 0.35)',
+            boxShadow: '0 2px 12px rgba(8, 145, 178, 0.3)',
           },
         }
         addUtilities(newUtilities)

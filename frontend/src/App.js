@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2 } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi } from 'lucide-react';
 
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI, businessAPI } from './utils/api';
@@ -24,6 +24,7 @@ import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
 import SystemHealth from './components/SystemHealth';
+import WirelessNetworks from './components/WirelessNetworks';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -144,21 +145,22 @@ const App = () => {
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'cases', label: 'Cases', icon: Folder },
     { id: 'people', label: 'People', icon: Users },
-    { id: 'businesses', label: 'Businesses', icon: Building2 }, 
+    { id: 'businesses', label: 'Businesses', icon: Building2 },
     { id: 'tools', label: 'OSINT Tools', icon: Wrench },
-    { id: 'relationships', label: 'Entity Network', icon: Network }, 
+    { id: 'relationships', label: 'Entity Network', icon: Network },
     { id: 'map', label: 'Locations', icon: Map },
+    { id: 'wireless', label: 'Wireless Networks', icon: Wifi },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden transition-colors duration-500">
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden transition-colors duration-500">
       {/* Mobile overlay for small screens */}
       <div className="lg:hidden fixed inset-0 bg-black/50 z-40" style={{ display: 'none' }} id="mobile-overlay"></div>
       {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-cosmic opacity-20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-ocean opacity-15 rounded-full blur-3xl"></div>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-cosmic opacity-20 dark:opacity-10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-ocean opacity-15 dark:opacity-8 rounded-full blur-3xl"></div>
       </div>
       
       {/* Sidebar */}
@@ -307,9 +309,15 @@ const App = () => {
             <GlobalMap />
           </div>
         )}
-        
+
+        {activeSection === 'wireless' && (
+          <div className="h-full">
+            <WirelessNetworks />
+          </div>
+        )}
+
         {activeSection === 'settings' && (
-          <SettingsPage 
+          <SettingsPage
             appSettings={appSettings}
             customFields={customFields}
             fetchCustomFields={fetchCustomFields}

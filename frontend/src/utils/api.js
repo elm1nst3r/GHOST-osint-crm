@@ -310,4 +310,75 @@ export const systemAPI = {
   getHealth: () => fetchAPI('/system/health'),
 };
 
+// Wireless Networks API (WiGLE Integration)
+export const wirelessNetworksAPI = {
+  getAll: (params) => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+    }
+    return fetchAPI(`/wireless-networks?${queryParams.toString()}`);
+  },
+
+  getById: (id) => fetchAPI(`/wireless-networks/${id}`),
+
+  create: (data) => fetchAPI('/wireless-networks', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  update: (id, data) => fetchAPI(`/wireless-networks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  delete: (id) => fetchAPI(`/wireless-networks/${id}`, {
+    method: 'DELETE',
+  }),
+
+  bulkDelete: (ids) => fetchAPI('/wireless-networks/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  }),
+
+  importKML: async (file) => {
+    const formData = new FormData();
+    formData.append('kmlFile', file);
+
+    const response = await fetch(`${API_BASE_URL}/wireless-networks/import-kml`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Import failed');
+    }
+
+    return response.json();
+  },
+
+  getStats: () => fetchAPI('/wireless-networks/stats'),
+
+  getNearby: (latitude, longitude, radius = 0.5) =>
+    fetchAPI(`/wireless-networks/nearby?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
+
+  associate: (id, personId, note, confidence) => fetchAPI(`/wireless-networks/${id}/associate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      person_id: personId,
+      association_note: note,
+      association_confidence: confidence,
+    }),
+  }),
+
+  removeAssociation: (id) => fetchAPI(`/wireless-networks/${id}/associate`, {
+    method: 'DELETE',
+  }),
+};
+
 export { API_BASE_URL };

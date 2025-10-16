@@ -1,10 +1,11 @@
 // File: frontend/src/components/visualization/RelationshipManager.js
 import React, { useState, useEffect, useCallback } from 'react';
 import RelationshipDiagram from '../RelationshipDiagram';
-import { 
-  AlertCircle, Loader2, Network, Users, Eye, EyeOff, 
+import ObsidianGraph from './ObsidianGraph';
+import {
+  AlertCircle, Loader2, Network, Users, Eye, EyeOff,
   Maximize2, RefreshCw, Bug, Filter, X, Search,
-  Briefcase, Tag, CheckCircle
+  Briefcase, Tag, CheckCircle, GitBranch, Sparkles
 } from 'lucide-react';
 import { peopleAPI, casesAPI, businessesAPI } from '../../utils/api';
 
@@ -25,6 +26,7 @@ const RelationshipManager = ({
   const [fullScreen, setFullScreen] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('obsidian'); // 'reactflow' or 'obsidian'
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -438,7 +440,7 @@ const RelationshipManager = ({
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600">Loading relationships...</span>
+        <span className="ml-2 text-gray-600 dark:text-gray-400">Loading relationships...</span>
       </div>
     );
   }
@@ -477,12 +479,36 @@ const RelationshipManager = ({
           <h3 className="text-lg font-semibold">
             {personId ? 'Person Relationships' : 'Global Relationship Network'}
           </h3>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-500">
             ({filteredPeople.length} entities: {filteredPeople.filter(e => !e.type || e.type !== 'business').length} people, {filteredPeople.filter(e => e.type === 'business').length} businesses)
           </span>
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-1 bg-gray-100 rounded-md p-1">
+            <button
+              onClick={() => setViewMode('obsidian')}
+              className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
+                viewMode === 'obsidian' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="Obsidian View (Force-Directed)"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span className="hidden md:inline">Obsidian</span>
+            </button>
+            <button
+              onClick={() => setViewMode('reactflow')}
+              className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
+                viewMode === 'reactflow' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="Classic View (ReactFlow)"
+            >
+              <GitBranch className="w-3 h-3" />
+              <span className="hidden md:inline">Classic</span>
+            </button>
+          </div>
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 ${
@@ -518,15 +544,17 @@ const RelationshipManager = ({
             <RefreshCw className="w-4 h-4" />
           </button>
           
-          <select
-            value={layoutType}
-            onChange={(e) => setLayoutType(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md"
-          >
-            <option value="hierarchical">Hierarchical</option>
-            <option value="circular">Circular</option>
-            <option value="grid">Grid</option>
-          </select>
+          {viewMode === 'reactflow' && (
+            <select
+              value={layoutType}
+              onChange={(e) => setLayoutType(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md"
+            >
+              <option value="hierarchical">Hierarchical</option>
+              <option value="circular">Circular</option>
+              <option value="grid">Grid</option>
+            </select>
+          )}
           
           {!showInModal && (
             <button
@@ -691,7 +719,7 @@ const RelationshipManager = ({
                   onChange={(e) => setFilters({ ...filters, showIsolated: e.target.checked })}
                   className="h-3 w-3 text-blue-600 rounded"
                 />
-                <span className="text-xs text-gray-700">Show Isolated</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">Show Isolated</span>
               </label>
               
               <button
@@ -789,14 +817,27 @@ const RelationshipManager = ({
       
       {/* Diagram Container */}
       <div className="flex-1 overflow-hidden">
-        <RelationshipDiagram
-          people={filteredPeople}
-          selectedPersonId={personId}
-          onUpdateConnection={updateConnection}
-          onDeleteConnection={deleteConnection}
-          showOsintData={showOsintData}
-          layoutType={layoutType}
-        />
+        {viewMode === 'obsidian' ? (
+          <ObsidianGraph
+            people={filteredPeople}
+            selectedPersonId={personId}
+            onUpdateConnection={updateConnection}
+            onDeleteConnection={deleteConnection}
+            onNodeClick={(person) => {
+              // You can handle node click to show person details
+              console.log('Node clicked:', person);
+            }}
+          />
+        ) : (
+          <RelationshipDiagram
+            people={filteredPeople}
+            selectedPersonId={personId}
+            onUpdateConnection={updateConnection}
+            onDeleteConnection={deleteConnection}
+            showOsintData={showOsintData}
+            layoutType={layoutType}
+          />
+        )}
       </div>
     </div>
   );
