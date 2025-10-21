@@ -206,6 +206,37 @@ const initializeDatabase = async () => {
     }
     console.log('Ensured default model options exist.');
 
+    // Create users table for authentication
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) NOT NULL UNIQUE,
+        email VARCHAR(255),
+        password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+        is_active BOOLEAN DEFAULT TRUE,
+        last_login TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "users" table.');
+    await applyUpdatedAtTrigger(client, 'users');
+
+    // Create indexes on users table
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+    `);
+
+    // Create partial unique index for email (only enforce uniqueness on non-null emails)
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_key ON users(email) WHERE email IS NOT NULL;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id SERIAL PRIMARY KEY,
@@ -215,11 +246,18 @@ const initializeDatabase = async () => {
         old_value TEXT,
         new_value TEXT,
         action VARCHAR(50) NOT NULL,
-        user_id INTEGER,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
     console.log('Checked/created "audit_logs" table.');
+
+    // Create indexes on audit_logs
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);
+    `);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS cases (

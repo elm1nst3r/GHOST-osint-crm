@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, FileText, LogOut } from 'lucide-react';
 
 // Import API utilities
 import { peopleAPI, toolsAPI, todosAPI, customFieldsAPI, businessAPI } from './utils/api';
+import { authAPI } from './utils/authAPI';
 import { DEFAULT_APP_SETTINGS } from './utils/constants';
 // Import components
 import Dashboard from './components/Dashboard';
@@ -25,6 +26,9 @@ import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
 import SystemHealth from './components/SystemHealth';
 import WirelessNetworks from './components/WirelessNetworks';
+import Login from './components/Login';
+import UserManagement from './components/UserManagement';
+import AuditLogs from './components/AuditLogs';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,6 +39,11 @@ L.Icon.Default.mergeOptions({
 });
 
 const App = () => {
+  // Authentication state
+  const [authenticated, setAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   // State management
   const [people, setPeople] = useState([]);
   const [tools, setTools] = useState([]);
@@ -44,7 +53,7 @@ const App = () => {
   const [businesses, setBusinesses] = useState([]);
   const [showAddBusinessForm, setShowAddBusinessForm] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(null);
-  
+
   // UI state
   const [activeSection, setActiveSection] = useState('dashboard');
   const [showAddPersonForm, setShowAddPersonForm] = useState(false);
@@ -105,20 +114,64 @@ const App = () => {
     }
   };
 
-  // Load data on component mount
-  useEffect(() => {
-    fetchPeople();
-    fetchTools();
-    fetchTodos();
-    fetchCustomFields();
-    fetchBusinesses(); 
-    
-    // Load app settings from localStorage
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      setAppSettings(JSON.parse(savedSettings));
+  // Authentication functions
+  const checkAuth = async () => {
+    try {
+      const session = await authAPI.getSession();
+      if (session.authenticated) {
+        setAuthenticated(true);
+        setCurrentUser(session.user);
+      } else {
+        setAuthenticated(false);
+        setCurrentUser(null);
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      setAuthenticated(false);
+      setCurrentUser(null);
+    } finally {
+      setAuthLoading(false);
     }
+  };
+
+  const handleLogin = async (username, password) => {
+    const result = await authAPI.login(username, password);
+    setAuthenticated(true);
+    setCurrentUser(result.user);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      setAuthenticated(false);
+      setCurrentUser(null);
+      setActiveSection('dashboard');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  // Check authentication on mount
+  useEffect(() => {
+    checkAuth();
   }, []);
+
+  // Load data when authenticated
+  useEffect(() => {
+    if (authenticated) {
+      fetchPeople();
+      fetchTools();
+      fetchTodos();
+      fetchCustomFields();
+      fetchBusinesses();
+
+      // Load app settings from localStorage
+      const savedSettings = localStorage.getItem('appSettings');
+      if (savedSettings) {
+        setAppSettings(JSON.parse(savedSettings));
+      }
+    }
+  }, [authenticated]);
 
   // Handle dark mode changes
   useEffect(() => {
@@ -152,6 +205,28 @@ const App = () => {
     { id: 'wireless', label: 'Wireless Networks', icon: Wifi },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  // Admin-only navigation items
+  const adminNavigationItems = currentUser?.role === 'admin' ? [
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'audit-logs', label: 'Audit Logs', icon: FileText },
+  ] : [];
+
+  const allNavigationItems = [...navigationItems, ...adminNavigationItems];
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!authenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden transition-colors duration-500">
@@ -188,7 +263,7 @@ const App = () => {
         
         {/* Navigation */}
         <nav className="p-4 space-y-2">
-          {navigationItems.map((item, index) => {
+          {allNavigationItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             return (
@@ -196,8 +271,8 @@ const App = () => {
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
                 className={`w-full text-left p-4 rounded-glass transition-all duration-300 flex items-center space-x-3 group relative overflow-hidden ${
-                  isActive 
-                    ? 'bg-gradient-primary text-white shadow-glow-md' 
+                  isActive
+                    ? 'bg-gradient-primary text-white shadow-glow-md'
                     : 'glass-button text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
@@ -213,6 +288,16 @@ const App = () => {
               </button>
             );
           })}
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="w-full text-left p-4 rounded-glass transition-all duration-300 flex items-center space-x-3 group relative overflow-hidden glass-button text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 mt-4 border-t border-white/20 pt-4"
+          >
+            <LogOut className="w-5 h-5 transition-all duration-300" />
+            <span className="font-medium relative z-10">Logout</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{currentUser?.username}</span>
+          </button>
         </nav>
         
         {/* Advanced Search Button */}
@@ -226,10 +311,6 @@ const App = () => {
           </button>
         </div>
         
-        {/* Sidebar footer */}
-        <div className="absolute bottom-4 left-4 right-4">
-          <SystemHealth />
-        </div>
       </div>
       
       {/* Main Content */}
@@ -324,6 +405,14 @@ const App = () => {
             handleAppNameChange={handleAppNameChange}
             setAppSettings={setAppSettings}
           />
+        )}
+
+        {activeSection === 'users' && currentUser?.role === 'admin' && (
+          <UserManagement />
+        )}
+
+        {activeSection === 'audit-logs' && currentUser?.role === 'admin' && (
+          <AuditLogs />
         )}
             </div>
           </div>
@@ -425,6 +514,9 @@ const App = () => {
           onCancel={() => setEditingBusiness(null)}
         />
       )}
+
+      {/* System Health Status - Fixed Bottom Right */}
+      <SystemHealth />
     </div>
   );
 };

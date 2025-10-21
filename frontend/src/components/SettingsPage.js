@@ -1,8 +1,9 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle, FileText, Database, Settings, Users, Building2, MapPin, Eye, Folder } from 'lucide-react';
+import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle, FileText, Database, Settings, Users, Building2, MapPin, Eye, Folder, Lock } from 'lucide-react';
 import CustomFieldManager from './CustomFieldManager';
 import { uploadLogo, modelOptionsAPI, auditAPI, exportAPI, importAPI } from '../utils/api';
+import { authAPI } from '../utils/authAPI';
 
 const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppNameChange, setAppSettings }) => {
   const [activeTab, setActiveTab] = useState('general');
@@ -25,13 +26,105 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
 
+  // Profile state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [profileForm, setProfileForm] = useState({
+    username: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
   useEffect(() => {
     if (activeTab === 'data-model') {
       fetchModelOptions();
     } else if (activeTab === 'audit') {
       fetchAuditLogs();
+    } else if (activeTab === 'profile') {
+      fetchCurrentUser();
     }
   }, [activeTab]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const user = await authAPI.getCurrentUser();
+      setCurrentUser(user);
+      setProfileForm({
+        username: user.username || '',
+        email: user.email || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    setProfileError('');
+    setProfileSuccess(false);
+
+    // Validate password change
+    if (profileForm.new_password) {
+      if (!profileForm.current_password) {
+        setProfileError('Current password is required to set a new password');
+        return;
+      }
+      if (profileForm.new_password !== profileForm.confirm_password) {
+        setProfileError('New passwords do not match');
+        return;
+      }
+      if (profileForm.new_password.length < 6) {
+        setProfileError('New password must be at least 6 characters');
+        return;
+      }
+    }
+
+    try {
+      setProfileSaving(true);
+
+      const updateData = {
+        email: profileForm.email,
+        first_name: profileForm.first_name,
+        last_name: profileForm.last_name
+      };
+
+      if (profileForm.new_password) {
+        updateData.current_password = profileForm.current_password;
+        updateData.new_password = profileForm.new_password;
+      }
+
+      await authAPI.updateProfile(updateData);
+
+      setProfileSuccess(true);
+      // Clear password fields
+      setProfileForm({
+        ...profileForm,
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+
+      // Refresh user data
+      await fetchCurrentUser();
+
+      setTimeout(() => setProfileSuccess(false), 3000);
+    } catch (error) {
+      setProfileError(error.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const fetchModelOptions = async () => {
     try {
@@ -251,6 +344,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
 
   const tabs = [
     { id: 'general', label: 'General' },
+    { id: 'profile', label: 'My Profile' },
     { id: 'data-model', label: 'Data Model' },
     { id: 'import-export', label: 'Import/Export' },
     { id: 'audit', label: 'Audit Log' },
@@ -613,13 +707,156 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
             </div>
           )}
           
+          {activeTab === 'profile' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">My Profile</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Update your personal information and change your password.
+              </p>
+
+              <form onSubmit={handleProfileSave} className="space-y-6 max-w-2xl">
+                {/* Account Information */}
+                <div className="border-b pb-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Account Information</h4>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={profileForm.username}
+                          disabled
+                          className="w-full px-3 py-2 border rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                        />
+                        <Lock className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={profileForm.email}
+                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <input
+                          type="text"
+                          value={profileForm.first_name}
+                          onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <input
+                          type="text"
+                          value={profileForm.last_name}
+                          onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Change Password */}
+                <div className="border-b pb-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Change Password</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Leave password fields empty if you don't want to change your password.
+                  </p>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                      <input
+                        type="password"
+                        value={profileForm.current_password}
+                        onChange={(e) => setProfileForm({ ...profileForm, current_password: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter current password"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <input
+                        type="password"
+                        value={profileForm.new_password}
+                        onChange={(e) => setProfileForm({ ...profileForm, new_password: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter new password (min. 6 characters)"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={profileForm.confirm_password}
+                        onChange={(e) => setProfileForm({ ...profileForm, confirm_password: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error/Success Messages */}
+                {profileError && (
+                  <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+                    <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    {profileError}
+                  </div>
+                )}
+
+                {profileSuccess && (
+                  <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    Profile updated successfully!
+                  </div>
+                )}
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={profileSaving}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {profileSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {activeTab === 'audit' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Audit Log</h3>
               <p className="text-sm text-gray-600 mb-4">
                 View a log of all changes made to the system.
               </p>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -667,7 +904,7 @@ const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppN
                     ))}
                   </tbody>
                 </table>
-                
+
                 {auditLogs.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     No audit logs found.

@@ -10,8 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "multer": "^1.4.5-lts.2",
     "node-fetch": "^2.6.7",
     "pg": "^8.16.0",

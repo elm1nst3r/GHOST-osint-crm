@@ -8,6 +8,8 @@ const multer = require('multer');
 const xml2js = require('xml2js');
 const { exec } = require('child_process');
 const util = require('util');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 
 // Add this with the other requires at the top
 let geocodingService;
@@ -394,31 +396,62 @@ initializeDatabase().then(() => {
   console.log('Improved geocoding service initialized');
 });
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// Audit logging middleware
+// Session configuration
+app.use(session({
+  store: new pgSession({
+    pool: pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+  }
+}));
+
+// Import audit logging middleware
+const { auditMiddleware } = require('./middleware/auditLog');
+app.use(auditMiddleware);
+
+// Audit logging function (keeping for backwards compatibility)
 const logAudit = async (entityType, entityId, action, changes = {}) => {
   try {
     const client = await pool.connect();
-    
+
     for (const [fieldName, { oldValue, newValue }] of Object.entries(changes)) {
       await client.query(`
         INSERT INTO audit_logs (entity_type, entity_id, field_name, old_value, new_value, action)
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [entityType, entityId, fieldName, oldValue?.toString() || null, newValue?.toString() || null, action]);
     }
-    
+
     client.release();
   } catch (err) {
     console.error('Error logging audit:', err);
   }
 };
 
-// Import and mount entity network routes
+// Import and mount routes
+const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
+const auditLogsRoutes = require('./routes/auditLogs');
 const entityNetworkRoutes = require('./routes/entityNetwork');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api', entityNetworkRoutes);
 
 app.get('/api', (req, res) => {

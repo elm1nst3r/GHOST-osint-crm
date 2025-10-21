@@ -25,7 +25,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
       DB_HOST: db
       DB_USER: ${DB_USER:-postgres}
