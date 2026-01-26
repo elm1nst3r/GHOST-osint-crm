@@ -26,6 +26,7 @@ const ObsidianGraph = ({
   const [connectionMode, setConnectionMode] = useState(false);
   const [sourceNode, setSourceNode] = useState(null);
   const [stats, setStats] = useState({ nodes: 0, edges: 0, clusters: 0 });
+  const [nodeDistanceMultiplier, setNodeDistanceMultiplier] = useState(1); // Multiplier for node distance
 
   // Theme colors (Obsidian-inspired dark theme)
   const theme = {
@@ -193,7 +194,7 @@ const ObsidianGraph = ({
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links)
         .id(d => d.id)
-        .distance(d => 100 / d.strength)
+        .distance(d => (100 / d.strength) * nodeDistanceMultiplier) // Apply multiplier here
         .strength(d => d.strength * 0.3)
       )
       .force('charge', d3.forceManyBody()
@@ -630,6 +631,31 @@ const ObsidianGraph = ({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Node Distance Control */}
+      <div className="absolute bottom-20 right-4 bg-gray-800 bg-opacity-90 text-white rounded-lg shadow-lg p-3 z-10">
+        <label htmlFor="distance-slider" className="block text-sm font-medium mb-2">Node Distance Multiplier</label>
+        <input
+          id="distance-slider"
+          type="range"
+          min="1"
+          max="3"
+          step="0.1"
+          value={nodeDistanceMultiplier}
+          onChange={(e) => {
+            const newMultiplier = parseFloat(e.target.value);
+            setNodeDistanceMultiplier(newMultiplier);
+
+            // Restart simulation with updated multiplier
+            if (simulationRef.current) {
+              simulationRef.current.force('link').distance(d => (100 / d.strength) * newMultiplier);
+              simulationRef.current.alpha(1).restart();
+            }
+          }}
+          className="w-full"
+        />
+        <div className="text-xs mt-1">Multiplier: {nodeDistanceMultiplier.toFixed(1)}</div>
       </div>
     </div>
   );
