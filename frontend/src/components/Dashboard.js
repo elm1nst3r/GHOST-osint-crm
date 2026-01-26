@@ -1,5 +1,6 @@
 // File: frontend/src/components/Dashboard.js
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { Network, Trash2, Check, ChevronDown, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
@@ -17,6 +18,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
 
   const [newTodo, setNewTodo] = useState('');
   const [editingTodoId, setEditingTodoId] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -24,6 +26,7 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setEditingTodoId(null);
+        setDropdownPosition(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -199,9 +202,22 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                   </span>
 
                   {/* Status Dropdown */}
-                  <div className="relative flex-shrink-0" ref={editingTodoId === todo.id ? dropdownRef : null}>
+                  <div className="relative flex-shrink-0">
                     <button
-                      onClick={() => setEditingTodoId(editingTodoId === todo.id ? null : todo.id)}
+                      onClick={(e) => {
+                        const newId = editingTodoId === todo.id ? null : todo.id;
+                        if (newId) {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setDropdownPosition({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.right + window.scrollX - 192,
+                            width: 192
+                          });
+                        } else {
+                          setDropdownPosition(null);
+                        }
+                        setEditingTodoId(newId);
+                      }}
                       className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center space-x-1 transition-all duration-200 ${getStatusStyle(todo.status)} hover:opacity-80`}
                       title="Change status"
                     >
@@ -210,14 +226,19 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                       <ChevronDown className="w-3 h-3" />
                     </button>
 
-                    {editingTodoId === todo.id && (
-                      <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl z-[60] border border-gray-200 dark:border-gray-600 overflow-hidden">
+                    {editingTodoId === todo.id && dropdownPosition && ReactDOM.createPortal(
+                      <div
+                        ref={dropdownRef}
+                        style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width }}
+                        className="mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl z-50 border border-gray-200 dark:border-gray-600 overflow-hidden"
+                      >
                         {statusOptions.map(option => (
                           <button
                             key={option.value}
                             onClick={() => {
                               handleUpdateTodo(todo.id, { status: option.value });
                               setEditingTodoId(null);
+                              setDropdownPosition(null);
                             }}
                             className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center dark:text-gray-200 transition-colors ${
                               todo.status === option.value ? 'font-medium bg-gray-50 dark:bg-slate-700' : ''
@@ -227,7 +248,8 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
                             {option.label}
                           </button>
                         ))}
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
 
