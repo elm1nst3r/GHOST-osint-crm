@@ -109,6 +109,9 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
+// Expose pool on app.locals so middleware can access it without circular requires
+app.locals.pool = pool;
+
 const createUpdatedAtTriggerFunction = `
   CREATE OR REPLACE FUNCTION trigger_set_timestamp()
   RETURNS TRIGGER AS $$
@@ -527,6 +530,17 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_wireless_person ON wireless_networks(person_id);
     `);
 
+    // Backfill associated_person_ids array from singular person_id (issue #41 migration).
+    // Idempotent: only copies when the array is empty/null.
+    // Note: wireless_networks has no singular business_id column, so no business backfill needed.
+    await client.query(`
+      UPDATE wireless_networks
+      SET associated_person_ids = ARRAY[person_id]
+      WHERE person_id IS NOT NULL
+        AND (associated_person_ids IS NULL OR cardinality(associated_person_ids) = 0);
+    `);
+    console.log('Backfilled wireless_networks.associated_person_ids from person_id.');
+
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
     process.exit(1);
@@ -542,6 +556,9 @@ initializeDatabase().then(() => {
   improvedGeocodingService = new ImprovedGeocodingService(pool);
   console.log('Improved geocoding service initialized');
 });
+
+// Trust first proxy (nginx, docker network) so express-rate-limit reads real client IP
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -572,6 +589,7 @@ app.use(session({
 // Import audit logging middleware
 const { auditMiddleware } = require('./middleware/auditLog');
 const { requireAuth, requireAdmin } = require('./middleware/auth');
+const { geocodingLimiter } = require('./middleware/rateLimiters');
 app.use(auditMiddleware);
 
 // Audit logging function (keeping for backwards compatibility)
@@ -836,13 +854,24 @@ app.delete('/api/cases/:id', requireAuth, async (req, res) => {
 // People endpoints with audit logging
 app.get('/api/people', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT *,
-        CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name
-      FROM people 
-      ORDER BY created_at DESC
-    `);
-    res.json(result.rows);
+    // Honour ?limit and ?offset; cap at 1000. Response stays an array for backwards
+    // compatibility — pagination metadata exposed via response headers (issue #40).
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    const [dataResult, countResult] = await Promise.all([
+      pool.query(
+        `SELECT *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name
+         FROM people ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ),
+      pool.query('SELECT COUNT(*)::int AS count FROM people'),
+    ]);
+
+    const total = countResult.rows[0].count;
+    res.set('X-Total-Count', String(total));
+    res.set('X-Has-More', String(offset + dataResult.rows.length < total));
+    res.json(dataResult.rows);
   } catch (err) {
     console.error('Error fetching people:', err.message);
     res.status(500).json({ error: 'Failed to fetch people' });
@@ -853,42 +882,48 @@ app.post('/api/people', requireAuth, async (req, res) => {
   const { firstName, lastName, aliases, dateOfBirth, category, status, crmStatus, caseName, profilePictureUrl, notes, osintData, attachments, connections, locations, custom_fields } = req.body;
   if (!firstName) return res.status(400).json({ error: 'First name is required' });
   
-  // Geocode locations before saving using improved service if available
-  let geocodedLocations = locations || [];
+  // Geocode locations before saving using improved service if available.
+  // Always merge results back into the original array so already-geocoded entries
+  // are not lost (issue #34).
+  const geocodedLocations = Array.isArray(locations) ? [...locations] : [];
   if (geocodedLocations.length > 0) {
     const locationsToGeocode = geocodedLocations.filter(
-      loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
+      loc => loc && (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
     );
-    
+
     if (locationsToGeocode.length > 0) {
       console.log(`Geocoding ${locationsToGeocode.length} locations for new person`);
-      
-      // Use improved geocoding service if available, fallback to original
+
       if (improvedGeocodingService) {
         const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
           minConfidence: 30,
           maxConcurrent: 3
         });
-        geocodedLocations = geocoded;
+        // Merge geocoded results back by reference into the original array
+        for (let i = 0; i < geocoded.length; i++) {
+          const idx = geocodedLocations.indexOf(locationsToGeocode[i]);
+          if (idx >= 0 && geocoded[i] && !geocoded[i].failure) {
+            geocodedLocations[idx] = { ...locationsToGeocode[i], ...geocoded[i] };
+          }
+        }
       } else {
         const geocoded = await batchGeocode(locationsToGeocode);
-        geocodedLocations = geocodedLocations.map(loc => {
-          if (!loc.latitude || !loc.longitude) {
-            const geocodedLoc = geocoded.find(g => 
-              g.address === loc.address && 
-              g.city === loc.city && 
-              g.country === loc.country
+        for (let i = 0; i < geocodedLocations.length; i++) {
+          if (!geocodedLocations[i].latitude || !geocodedLocations[i].longitude) {
+            const geocodedLoc = geocoded.find(g =>
+              g.address === geocodedLocations[i].address &&
+              g.city === geocodedLocations[i].city &&
+              g.country === geocodedLocations[i].country
             );
             if (geocodedLoc) {
-              return {
-                ...loc,
+              geocodedLocations[i] = {
+                ...geocodedLocations[i],
                 latitude: geocodedLoc.latitude,
                 longitude: geocodedLoc.longitude
               };
             }
           }
-          return loc;
-        });
+        }
       }
     }
   }
@@ -946,43 +981,48 @@ app.put('/api/people/:id', requireAuth, async (req, res) => {
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
     const oldPerson = oldResult.rows[0];
     
-    // Geocode any locations that don't have coordinates using improved service if available
-    let geocodedLocations = locations || [];
+    // Geocode any locations that don't have coordinates using improved service if available.
+    // Always merge results back into the original array so already-geocoded entries
+    // are not lost (issue #34).
+    const geocodedLocations = Array.isArray(locations) ? [...locations] : [];
     if (geocodedLocations.length > 0) {
       const locationsToGeocode = geocodedLocations.filter(
-        loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
+        loc => loc && (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country)
       );
-      
+
       if (locationsToGeocode.length > 0) {
         console.log(`Geocoding ${locationsToGeocode.length} locations for person ${personId}`);
-        
-        // Use improved geocoding service if available, fallback to original
+
         if (improvedGeocodingService) {
           const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
             minConfidence: 30,
             maxConcurrent: 3
           });
-          geocodedLocations = geocoded;
+          // Merge geocoded results back by reference into the original array
+          for (let i = 0; i < geocoded.length; i++) {
+            const idx = geocodedLocations.indexOf(locationsToGeocode[i]);
+            if (idx >= 0 && geocoded[i] && !geocoded[i].failure) {
+              geocodedLocations[idx] = { ...locationsToGeocode[i], ...geocoded[i] };
+            }
+          }
         } else {
           const geocoded = await batchGeocode(locationsToGeocode);
-          // Merge geocoded results back
-          geocodedLocations = geocodedLocations.map(loc => {
-            if (!loc.latitude || !loc.longitude) {
-              const geocodedLoc = geocoded.find(g => 
-                g.address === loc.address && 
-                g.city === loc.city && 
-                g.country === loc.country
+          for (let i = 0; i < geocodedLocations.length; i++) {
+            if (!geocodedLocations[i].latitude || !geocodedLocations[i].longitude) {
+              const geocodedLoc = geocoded.find(g =>
+                g.address === geocodedLocations[i].address &&
+                g.city === geocodedLocations[i].city &&
+                g.country === geocodedLocations[i].country
               );
               if (geocodedLoc) {
-                return {
-                  ...loc,
+                geocodedLocations[i] = {
+                  ...geocodedLocations[i],
                   latitude: geocodedLoc.latitude,
                   longitude: geocodedLoc.longitude
                 };
               }
             }
-            return loc;
-          });
+          }
         }
       }
     }
@@ -1026,14 +1066,17 @@ app.put('/api/people/:id', requireAuth, async (req, res) => {
     if (oldPerson.status !== status) changes.status = { oldValue: oldPerson.status, newValue: status };
     if (oldPerson.case_name !== caseName) changes.case_name = { oldValue: oldPerson.case_name, newValue: caseName };
     if (oldPerson.notes !== (notes || null)) changes.notes = { oldValue: oldPerson.notes, newValue: notes || null };
-    const jsonFields = [
+    // Store actual before/after JSON for tracked fields (issue #39)
+    const jsonFieldMap = [
       ['locations', geocodedLocations],
       ['connections', connections],
       ['osint_data', osintData],
     ];
-    for (const [field, newVal] of jsonFields) {
-      if (JSON.stringify(oldPerson[field]) !== JSON.stringify(newVal)) {
-        changes[field] = { changed: true };
+    for (const [field, newVal] of jsonFieldMap) {
+      const oldSerialized = JSON.stringify(oldPerson[field] ?? null);
+      const newSerialized = JSON.stringify(newVal ?? null);
+      if (oldSerialized !== newSerialized) {
+        changes[field] = { oldValue: oldSerialized, newValue: newSerialized };
       }
     }
 
@@ -1367,7 +1410,7 @@ app.get('/api/geocode', requireAuth, async (req, res) => {
 });
 
 // Get address suggestions for autocomplete
-app.get('/api/geocode/suggestions', async (req, res) => {
+app.get('/api/geocode/suggestions', requireAuth, geocodingLimiter, async (req, res) => {
   const { q, limit = 5 } = req.query;
   
   if (!q || q.length < 3) {
@@ -1388,7 +1431,7 @@ app.get('/api/geocode/suggestions', async (req, res) => {
 });
 
 // Enhanced single address geocoding
-app.post('/api/geocode/address', async (req, res) => {
+app.post('/api/geocode/address', requireAuth, geocodingLimiter, async (req, res) => {
   const { address, minConfidence = 30 } = req.body;
   
   if (!address) {
@@ -1491,7 +1534,7 @@ app.post('/api/geocode/batch-enhanced', requireAuth, requireAdmin, async (req, r
 });
 
 // Get geocoding cache statistics
-app.get('/api/geocode/stats', async (req, res) => {
+app.get('/api/geocode/stats', requireAuth, async (req, res) => {
   try {
     if (!improvedGeocodingService) {
       return res.status(503).json({ error: 'Geocoding service not initialized' });
@@ -1961,11 +2004,14 @@ app.get('/api/export', requireAdmin, async (req, res) => {
 
 app.post('/api/import', requireAdmin, async (req, res) => {
   const importData = req.body;
-  
+
   if (!importData || !importData.version || !importData.data) {
     return res.status(400).json({ error: 'Invalid import data format' });
   }
-  
+
+  // ?strict=1 — roll back on any record failure instead of best-effort partial import
+  const strictMode = req.query.strict === '1';
+
   const client = await pool.connect();
   
   // Helper function to ensure proper JSON formatting
@@ -2003,6 +2049,8 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     } catch (err) {
       console.warn(`Import warning [${label}]:`, err.message);
       importErrors.push({ record: label, error: err.message });
+      // In strict mode, re-throw so the transaction rolls back
+      if (strictMode) throw err;
     }
   };
 
@@ -2172,13 +2220,21 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     }
     
     await client.query('COMMIT');
-    res.json({
-      message: importErrors.length === 0 ? 'Data imported successfully' : 'Data imported with some errors',
-      errors: importErrors.length > 0 ? importErrors : undefined
-    });
+    if (importErrors.length > 0) {
+      // 207 Multi-Status: transaction committed but some records were skipped (issue #37)
+      return res.status(207).json({
+        partial: true,
+        message: 'Data imported with some errors',
+        errors: importErrors
+      });
+    }
+    res.json({ partial: false, message: 'Data imported successfully' });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error importing data:', err);
+    if (strictMode) {
+      return res.status(400).json({ error: 'Import rolled back due to record failure', details: err.message });
+    }
     res.status(500).json({ error: 'Failed to import data: ' + err.message });
   } finally {
     client.release();
@@ -2472,7 +2528,8 @@ app.get('/api/wireless-networks', requireAuth, async (req, res) => {
     let paramCount = 0;
 
     if (person_id) {
-      query += ` AND person_id = $${++paramCount}`;
+      // Match against the authoritative arrays; OR singular for backwards compatibility (issue #41)
+      query += ` AND ($${++paramCount}::int = ANY(COALESCE(associated_person_ids, ARRAY[]::int[])) OR person_id = $${paramCount}::int)`;
       params.push(person_id);
     }
 
@@ -2654,8 +2711,27 @@ app.post('/api/wireless-networks/bulk-delete', requireAdmin, async (req, res) =>
   }
 });
 
+// KML upload multer instance — bounded by KML_MAX_BYTES env var (default 5 MB).
+// For very large WiGLE exports consider switching to disk storage + streaming XML parsing.
+const kmlUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: parseInt(process.env.KML_MAX_BYTES || String(5 * 1024 * 1024), 10),
+    files: 1,
+  },
+});
+
 // Import WiGLE KML file
-app.post('/api/wireless-networks/import-kml', requireAuth, multer({ storage: multer.memoryStorage() }).single('kmlFile'), async (req, res) => {
+app.post('/api/wireless-networks/import-kml', requireAuth, (req, res, next) => {
+  kmlUpload.single('kmlFile')(req, res, (err) => {
+    if (err && err.code === 'LIMIT_FILE_SIZE') {
+      const limitBytes = parseInt(process.env.KML_MAX_BYTES || String(5 * 1024 * 1024), 10);
+      return res.status(413).json({ error: 'KML file exceeds size limit', limit_bytes: limitBytes });
+    }
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'KML file is required' });
@@ -2751,7 +2827,11 @@ app.get('/api/wireless-networks/stats', requireAuth, async (req, res) => {
         COUNT(*) as total,
         COUNT(DISTINCT ssid) as unique_ssids,
         COUNT(DISTINCT bssid) as unique_bssids,
-        COUNT(CASE WHEN person_id IS NOT NULL THEN 1 END) as associated_count,
+        COUNT(CASE WHEN
+          cardinality(COALESCE(associated_person_ids, ARRAY[]::int[])) > 0
+          OR cardinality(COALESCE(associated_business_ids, ARRAY[]::int[])) > 0
+          OR person_id IS NOT NULL
+        THEN 1 END) as associated_count,
         COUNT(CASE WHEN encryption IN ('WPA2', 'WPA3') THEN 1 END) as encrypted_count,
         COUNT(CASE WHEN encryption IN ('Open', 'Unknown') THEN 1 END) as open_count,
         AVG(signal_strength) as avg_signal
@@ -2815,19 +2895,47 @@ app.get('/api/wireless-networks/nearby', requireAuth, async (req, res) => {
   }
 });
 
-// Associate wireless network with person
+// Associate wireless network with person or business.
+// Arrays are authoritative (issue #41); singular person_id kept in sync as deprecated mirror.
 app.post('/api/wireless-networks/:id/associate', requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
   try {
-    const { person_id, association_note, association_confidence } = req.body;
+    const { person_id, business_id, association_note, association_confidence } = req.body;
 
-    const result = await pool.query(
-      `UPDATE wireless_networks
-       SET person_id = $1, association_note = $2, association_confidence = $3
-       WHERE id = $4 RETURNING *`,
-      [person_id, association_note, association_confidence || 'investigating', id]
-    );
+    if (!person_id && !business_id) {
+      return res.status(400).json({ error: 'person_id or business_id is required' });
+    }
+
+    let query;
+    let params;
+
+    if (person_id) {
+      const pid = parseInt(person_id, 10);
+      if (isNaN(pid)) return res.status(400).json({ error: 'Invalid person_id' });
+      query = `UPDATE wireless_networks
+               SET associated_person_ids = (
+                     SELECT ARRAY(SELECT DISTINCT unnest(COALESCE(associated_person_ids, ARRAY[]::int[]) || ARRAY[$1::int]))
+                   ),
+                   person_id = COALESCE(person_id, $1),
+                   association_note = $2,
+                   association_confidence = $3
+               WHERE id = $4 RETURNING *`;
+      params = [pid, association_note, association_confidence || 'investigating', id];
+    } else {
+      const bid = parseInt(business_id, 10);
+      if (isNaN(bid)) return res.status(400).json({ error: 'Invalid business_id' });
+      query = `UPDATE wireless_networks
+               SET associated_business_ids = (
+                     SELECT ARRAY(SELECT DISTINCT unnest(COALESCE(associated_business_ids, ARRAY[]::int[]) || ARRAY[$1::int]))
+                   ),
+                   association_note = $2,
+                   association_confidence = $3
+               WHERE id = $4 RETURNING *`;
+      params = [bid, association_note, association_confidence || 'investigating', id];
+    }
+
+    const result = await pool.query(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Wireless network not found' });
@@ -2840,17 +2948,49 @@ app.post('/api/wireless-networks/:id/associate', requireAuth, async (req, res) =
   }
 });
 
-// Remove association from wireless network
+// Remove a specific person or business association from a wireless network (issue #41).
+// Removes from the authoritative array and clears the deprecated singular column if it matches.
 app.delete('/api/wireless-networks/:id/associate', requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
   try {
-    const result = await pool.query(
-      `UPDATE wireless_networks
-       SET person_id = NULL, association_note = NULL, association_confidence = NULL
-       WHERE id = $1 RETURNING *`,
-      [id]
-    );
+    const { person_id, business_id } = req.body;
+
+    if (!person_id && !business_id) {
+      // Legacy behaviour: clear all associations
+      const result = await pool.query(
+        `UPDATE wireless_networks
+         SET person_id = NULL, associated_person_ids = ARRAY[]::int[],
+             associated_business_ids = ARRAY[]::int[],
+             association_note = NULL, association_confidence = NULL
+         WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+      return res.json(result.rows[0]);
+    }
+
+    let query;
+    let params;
+
+    if (person_id) {
+      const pid = parseInt(person_id, 10);
+      if (isNaN(pid)) return res.status(400).json({ error: 'Invalid person_id' });
+      query = `UPDATE wireless_networks
+               SET associated_person_ids = array_remove(COALESCE(associated_person_ids, ARRAY[]::int[]), $1::int),
+                   person_id = CASE WHEN person_id = $1 THEN NULL ELSE person_id END
+               WHERE id = $2 RETURNING *`;
+      params = [pid, id];
+    } else {
+      const bid = parseInt(business_id, 10);
+      if (isNaN(bid)) return res.status(400).json({ error: 'Invalid business_id' });
+      query = `UPDATE wireless_networks
+               SET associated_business_ids = array_remove(COALESCE(associated_business_ids, ARRAY[]::int[]), $1::int)
+               WHERE id = $2 RETURNING *`;
+      params = [bid, id];
+    }
+
+    const result = await pool.query(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Wireless network not found' });

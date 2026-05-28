@@ -3,10 +3,13 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
+const { loginLimiter } = require('../middleware/rateLimiters');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
+const { revokeSessionsForUser } = require('../utils/sessions');
 
-// Login
-router.post('/login', async (req, res) => {
+// Login — regenerate session ID on successful auth to prevent session fixation
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -39,10 +42,19 @@ router.post('/login', async (req, res) => {
       [user.id]
     );
 
-    // Set session
+    // Regenerate session ID before setting any authenticated fields
+    // — prevents session fixation (issue #29)
+    await new Promise((resolve, reject) => {
+      req.session.regenerate(err => err ? reject(err) : resolve());
+    });
+
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.userRole = user.role;
+
+    await new Promise((resolve, reject) => {
+      req.session.save(err => err ? reject(err) : resolve());
+    });
 
     res.json({
       success: true,
@@ -114,17 +126,27 @@ router.put('/me', requireAuth, async (req, res) => {
     const { email, first_name, last_name, current_password, new_password } = req.body;
     const userId = req.session.userId;
 
-    // If changing password, verify current password
+    // If changing password, validate and enforce policy
     if (new_password) {
       if (!current_password) {
         return res.status(400).json({ error: 'Current password is required to set a new password' });
       }
 
-      const userResult = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
-      const isValidPassword = await bcrypt.compare(current_password, userResult.rows[0].password_hash);
+      const userResult = await pool.query(
+        'SELECT username, password_hash FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = userResult.rows[0];
+      const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
 
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Enforce password strength policy (issue #33)
+      const { valid, errors } = validatePasswordStrength(new_password, { username: user.username });
+      if (!valid) {
+        return res.status(400).json({ error: 'Password does not meet policy', details: errors });
       }
 
       const password_hash = await bcrypt.hash(new_password, 10);
@@ -132,6 +154,9 @@ router.put('/me', requireAuth, async (req, res) => {
         'UPDATE users SET password_hash = $1 WHERE id = $2',
         [password_hash, userId]
       );
+
+      // Revoke all other sessions after a self-service password change (issue #32)
+      await revokeSessionsForUser(pool, userId, { keepSessionId: req.sessionID });
     }
 
     // Update other profile fields

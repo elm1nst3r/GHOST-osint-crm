@@ -4,6 +4,8 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
 const { requireAdmin, requireAuth } = require('../middleware/auth');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
+const { revokeSessionsForUser } = require('../utils/sessions');
 
 // Get all users (admin only)
 router.get('/', requireAdmin, async (req, res) => {
@@ -61,6 +63,12 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid role. Must be "admin" or "user"' });
     }
 
+    // Enforce password strength policy (issue #33)
+    const { valid, errors } = validatePasswordStrength(password, { username });
+    if (!valid) {
+      return res.status(400).json({ error: 'Password does not meet policy', details: errors });
+    }
+
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
@@ -115,6 +123,15 @@ router.put('/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid role. Must be "admin" or "user"' });
     }
 
+    // Enforce password strength policy on admin password reset (issue #33)
+    if (password) {
+      const targetUsername = username || oldData.username;
+      const { valid, errors } = validatePasswordStrength(password, { username: targetUsername });
+      if (!valid) {
+        return res.status(400).json({ error: 'Password does not meet policy', details: errors });
+      }
+    }
+
     let query = `UPDATE users SET `;
     const values = [];
     let valueIndex = 1;
@@ -160,6 +177,15 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
     const result = await pool.query(query, values);
 
+    // Revoke active sessions when role changes, account deactivated, or password reset (issue #32)
+    const roleChanged = role !== undefined && role !== oldData.role;
+    const deactivated = is_active === false && oldData.is_active !== false;
+    const passwordReset = !!password;
+
+    if (roleChanged || deactivated || passwordReset) {
+      await revokeSessionsForUser(pool, parseInt(id));
+    }
+
     // Log changes
     await req.audit.logChanges('user', parseInt(id), oldData, result.rows[0]);
 
@@ -185,6 +211,9 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     if (parseInt(id) === req.session.userId) {
       return res.status(400).json({ error: 'Cannot delete your own account' });
     }
+
+    // Revoke all active sessions before deleting (issue #32)
+    await revokeSessionsForUser(pool, parseInt(id));
 
     const result = await pool.query(
       'DELETE FROM users WHERE id = $1 RETURNING id, username',

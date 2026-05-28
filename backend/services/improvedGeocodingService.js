@@ -116,13 +116,9 @@ class ImprovedGeocodingService {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5&addressdetails=1`;
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(url, {
-        signal: controller.signal,
+      const response = await this.fetchWithTimeout(url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
-      clearTimeout(timeout);
 
       if (!response.ok) {
         return { failure: 'service_error', message: `Geocoding service returned ${response.status}` };
@@ -255,22 +251,28 @@ class ImprovedGeocodingService {
         // Try full address first
         const fullAddress = addressParts.join(', ');
         let coords = await this.geocodeAddress(fullAddress, options);
-        
-        // If full address fails and we have city+country, try that as fallback
-        if (!coords && location.city && location.country) {
+        const primaryFailed = !coords || coords.failure;
+
+        // Fallback to city+country if full address failed (issue #35: check coords.failure, not just !coords)
+        if (primaryFailed && location.city && location.country) {
           const cityCountry = [location.city, location.country].join(', ');
-          coords = await this.geocodeAddress(cityCountry, { ...options, minConfidence: 25 });
-          if (coords) {
-            coords.confidence = Math.max(25, coords.confidence - 15); // Lower confidence for city-level
+          const fallback = await this.geocodeAddress(cityCountry, { ...options, minConfidence: 25 });
+          if (fallback && !fallback.failure) {
+            coords = { ...fallback, confidence: Math.max(25, fallback.confidence - 15) };
           }
         }
-        
-        // If still no results and we have just country, try country-level
-        if (!coords && location.country && !location.city) {
-          coords = await this.geocodeAddress(location.country, { ...options, minConfidence: 20 });
-          if (coords) {
-            coords.confidence = Math.max(20, coords.confidence - 25); // Even lower confidence for country-level
+
+        // Fallback to country-level if city also missing
+        if ((!coords || coords.failure) && location.country && !location.city) {
+          const fallback = await this.geocodeAddress(location.country, { ...options, minConfidence: 20 });
+          if (fallback && !fallback.failure) {
+            coords = { ...fallback, confidence: Math.max(20, fallback.confidence - 25) };
           }
+        }
+
+        // If all fallbacks failed, keep the most informative failure object for callers
+        if (!coords || coords.failure) {
+          coords = primaryFailed && coords ? coords : { failure: 'not_found', message: 'No results for any fallback level' };
         }
         
         return {
@@ -304,13 +306,24 @@ class ImprovedGeocodingService {
     return chunks;
   }
 
+  // Shared helper — fetch with an AbortController timeout (default 8 s)
+  async fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // Address suggestions for autocomplete
   async getSuggestions(query, limit = 5) {
     if (!query || query.length < 3) return [];
 
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=1`;
-      const response = await fetch(url, {
+      const response = await this.fetchWithTimeout(url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
       if (!response.ok) return [];
