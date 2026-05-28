@@ -165,9 +165,13 @@ GHOST-osint-crm/
 │   └── nginx.conf         # Nginx configuration
 ├── backend/               # Node.js/Express API
 │   ├── server.js          # Main server file
+│   ├── routes/            # Auth, users, audit log routes
+│   ├── middleware/        # Auth, audit, rate limiters
+│   ├── services/          # Geocoding services
+│   ├── utils/             # Password policy, session revocation helpers
 │   ├── migrations/        # Database migrations
 │   └── public/uploads/    # File uploads
-├── docker compose.yml     # Docker configuration
+├── docker-compose.yml     # Docker configuration
 └── .env.example           # Environment template
 ```
 
@@ -193,7 +197,7 @@ GHOST-osint-crm/
 1. Export KML from WiGLE app/website
 2. Go to Wireless Networks section
 3. Click "Import KML"
-4. Upload your KML file
+4. Upload your KML file (max 5 MB by default; override with `KML_MAX_BYTES` env var)
 5. Networks appear on map and table
 6. Associate networks with people under investigation
 
@@ -220,7 +224,7 @@ GHOST-osint-crm/
 **Features:**
 - Database-level geocoding cache
 - Map marker clustering
-- Pagination ready (future enhancement)
+- Paginated people endpoint (`?limit` / `?offset`, `X-Total-Count` header)
 - Lazy loading support
 
 ## 🔐 Security Considerations
@@ -237,6 +241,12 @@ GHOST-osint-crm/
 
 **Production hardening:**
 - ⚠️ **Use strong DB_PASSWORD** — weak passwords (`changeme`, `password`, etc.) are rejected at startup
+- 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
+- 🔒 **Session fixation protection** — session ID is regenerated on every successful login
+- 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
+- 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username; geocoding endpoints limited to 60 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
+- 🔒 **Geocoding endpoints require authentication** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` reject unauthenticated requests
+- 🔒 **KML upload size-limited** — defaults to 5 MB; override with `KML_MAX_BYTES` env var (in bytes)
 - 🔒 **PostgreSQL is not exposed to the host network** by default — only available within the Docker network
 - 🔒 **Session cookies use `SameSite=Strict` and `HttpOnly`** — enable `secure: true` by setting `NODE_ENV=production`
 - 🔒 **Never commit `.env` files** — contains sensitive credentials
@@ -368,6 +378,7 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 - PostgreSQL 15
 - xml2js (KML parsing)
 - papaparse (CSV parsing)
+- express-rate-limit (login & geocoding throttling)
 
 **Infrastructure:**
 - Docker & Docker Compose
@@ -376,6 +387,22 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.5.0 (May 2026)
+- 🔒 **Session fixation fixed** — session ID is now regenerated on every successful login (OWASP A07)
+- 🔒 **Password policy enforced end-to-end** — min 12 chars, mixed case, digit, common-password blocklist applied at login/change, admin create, and admin reset
+- 🔒 **Session revocation** — role changes, deactivations, deletions, and password resets immediately invalidate the target user's active sessions
+- 🔒 **Live admin re-validation** — `requireAdmin` middleware re-checks user existence and role in the database on every admin request; stale or revoked sessions are rejected in real time
+- 🔒 **Rate limiting** — `POST /api/auth/login` limited to 10 attempts/15 min per IP+username; geocoding endpoints limited to 60 req/min per IP via `express-rate-limit`
+- 🔒 **Geocoding endpoints locked down** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` now require authentication
+- 🔒 **KML upload size limit** — uploads capped at 5 MB by default; configurable with `KML_MAX_BYTES` environment variable; oversized uploads return 413
+- 🐛 **Location data loss fixed** — creating or updating a person with mixed geocoded/ungeocoded locations no longer discards already-geocoded entries
+- 🐛 **Batch geocode fallback fixed** — city/country fallback in batch geocoding now correctly triggers when the full-address lookup returns a failure object
+- 🐛 **Autocomplete timeout added** — address suggestion requests now have the same 8s abort timeout as single-address geocoding
+- 🐛 **Audit log JSON fields fixed** — changes to `locations`, `connections`, and `osint_data` now store the actual before/after JSON values instead of a useless `{changed: true}` marker
+- 🐛 **Import partial-success signal** — imports that skip records due to errors now return `207 Multi-Status` with `partial: true`; add `?strict=1` for full rollback on any failure
+- ✨ **People endpoint paginated** — `GET /api/people` honours `?limit` (default 100, max 1000) and `?offset`; `X-Total-Count` and `X-Has-More` response headers added
+- ✨ **Wireless association model canonical** — `associated_person_ids` / `associated_business_ids` arrays are now the authoritative association store; filters, stats, and `/associate` helpers all use them consistently
 
 ### Version 2.4.0 (May 2026)
 - 🔒 **Security hardening** — 15 vulnerabilities addressed: unauthenticated routes locked down, SQL injection in sort parameter fixed, Docker control endpoints removed, session cookie hardened with `SameSite=Strict`
@@ -420,5 +447,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.4.0
-**Last Updated:** May 15, 2026
+**Version:** 2.5.0
+**Last Updated:** May 28, 2026
