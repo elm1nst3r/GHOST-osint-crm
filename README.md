@@ -1,6 +1,13 @@
 # 👻 GHOST - Global Human Operations & Surveillance Tracking
 ## OSINT Investigation CRM
 
+![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
+![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
+![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.5.0-informational?style=flat-square)
+![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
+![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
+
 > *"Because Excel sheets are for accountants, not investigators"*
 
 A full-stack OSINT investigation management system built for serious intelligence gathering with a modern, professional interface.
