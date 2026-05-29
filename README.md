@@ -163,23 +163,30 @@ psql -U postgres -d osint_crm_db < migrations/create_wireless_networks.sql
 
 ```
 GHOST-osint-crm/
-├── frontend/              # React frontend
+├── frontend/                    # React frontend
 │   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── utils/         # API utilities
-│   │   └── index.css      # Tailwind styles
-│   ├── public/            # Static assets
-│   └── nginx.conf         # Nginx configuration
-├── backend/               # Node.js/Express API
-│   ├── server.js          # Main server file
-│   ├── routes/            # Auth, users, audit log routes
-│   ├── middleware/        # Auth, audit, rate limiters
-│   ├── services/          # Geocoding services
-│   ├── utils/             # Password policy, session revocation helpers
-│   ├── migrations/        # Database migrations
-│   └── public/uploads/    # File uploads
-├── docker-compose.yml     # Docker configuration
-└── .env.example           # Environment template
+│   │   ├── components/          # React components
+│   │   │   ├── map/             # GlobalMap sub-components
+│   │   │   ├── person-form/     # AddEditPersonForm sub-components
+│   │   │   ├── reports/         # ReportGenerator panels
+│   │   │   ├── search/          # AdvancedSearch panels
+│   │   │   ├── settings/        # SettingsPage tabs
+│   │   │   ├── visualization/   # Graphs and diagrams
+│   │   │   └── wireless/        # WirelessNetworkDetail panels
+│   │   ├── contexts/            # AuthContext, DataContext, UIContext
+│   │   └── utils/               # API layer, report generators, constants
+│   ├── public/                  # Static assets
+│   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
+├── backend/                     # Node.js/Express API
+│   ├── server.js                # App entry point (~1,000 lines)
+│   ├── routes/                  # 11 route modules (people, cases, locations…)
+│   ├── middleware/              # Auth, audit, rate limiters, validation
+│   ├── services/                # Geocoding services
+│   ├── utils/                   # Password policy, session revocation
+│   ├── migrations/              # Database migrations
+│   └── public/uploads/          # File uploads
+├── docker-compose.yml           # Docker configuration
+└── .env.example                 # Environment template
 ```
 
 ## 🎮 Usage Guide
@@ -230,9 +237,11 @@ GHOST-osint-crm/
 
 **Features:**
 - Database-level geocoding cache
-- Map marker clustering
-- Paginated people endpoint (`?limit` / `?offset`, `X-Total-Count` header)
-- Lazy loading support
+- Map marker clustering with `react-leaflet-cluster`
+- Paginated people endpoint (`?limit` / `?offset`, `X-Total-Count` / `X-Has-More` headers)
+- Virtualised lists via `react-window` — lists of 150+ items render only visible rows
+- 30-second fetch timeout on all API calls with `AbortController`
+- Leaflet marker icons cached once per map mount
 
 ## 🔐 Security Considerations
 
@@ -374,42 +383,42 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- React 18
-- Tailwind CSS
-- Leaflet (maps)
+- React 18 with Context API
+- Tailwind CSS (dark mode)
+- Leaflet + react-leaflet-cluster (maps)
 - ReactFlow (diagrams)
+- react-window (virtualised lists)
+- docx + file-saver (report export)
 - Lucide Icons
 
 **Backend:**
-- Node.js / Express
+- Node.js / Express 5
 - PostgreSQL 15
 - xml2js (KML parsing)
 - papaparse (CSV parsing)
 - express-rate-limit (login & geocoding throttling)
+- Jest (tests)
 
 **Infrastructure:**
 - Docker & Docker Compose
-- Nginx (reverse proxy)
+- Nginx (reverse proxy, immutable asset caching)
 
 ---
 
 ## 📋 Recent Changes
 
 ### Version 2.5.0 (May 2026)
-- 🔒 **Session fixation fixed** — session ID is now regenerated on every successful login (OWASP A07)
-- 🔒 **Password policy enforced end-to-end** — min 12 chars, mixed case, digit, common-password blocklist applied at login/change, admin create, and admin reset
-- 🔒 **Session revocation** — role changes, deactivations, deletions, and password resets immediately invalidate the target user's active sessions
-- 🔒 **Live admin re-validation** — `requireAdmin` middleware re-checks user existence and role in the database on every admin request; stale or revoked sessions are rejected in real time
-- 🔒 **Rate limiting** — `POST /api/auth/login` limited to 10 attempts/15 min per IP+username; geocoding endpoints limited to 60 req/min per IP via `express-rate-limit`
-- 🔒 **Geocoding endpoints locked down** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` now require authentication
-- 🔒 **KML upload size limit** — uploads capped at 5 MB by default; configurable with `KML_MAX_BYTES` environment variable; oversized uploads return 413
-- 🐛 **Location data loss fixed** — creating or updating a person with mixed geocoded/ungeocoded locations no longer discards already-geocoded entries
-- 🐛 **Batch geocode fallback fixed** — city/country fallback in batch geocoding now correctly triggers when the full-address lookup returns a failure object
-- 🐛 **Autocomplete timeout added** — address suggestion requests now have the same 8s abort timeout as single-address geocoding
-- 🐛 **Audit log JSON fields fixed** — changes to `locations`, `connections`, and `osint_data` now store the actual before/after JSON values instead of a useless `{changed: true}` marker
-- 🐛 **Import partial-success signal** — imports that skip records due to errors now return `207 Multi-Status` with `partial: true`; add `?strict=1` for full rollback on any failure
-- ✨ **People endpoint paginated** — `GET /api/people` honours `?limit` (default 100, max 1000) and `?offset`; `X-Total-Count` and `X-Has-More` response headers added
-- ✨ **Wireless association model canonical** — `associated_person_ids` / `associated_business_ids` arrays are now the authoritative association store; filters, stats, and `/associate` helpers all use them consistently
+- ♻️ **Backend refactored** — `server.js` reduced from 3,052 → ~1,000 lines; all route handlers extracted into 11 dedicated modules under `backend/routes/`
+- ♻️ **Frontend architecture** — React Context (`AuthContext`, `DataContext`, `UIContext`) eliminates prop drilling; `App.js` reduced from 511 → 220 lines
+- ♻️ **Large components split** — `SettingsPage`, `AdvancedSearch`, `ReportGenerator`, `GlobalMap`, `AddEditPersonForm`, `WirelessNetworkDetail` all broken into focused sub-components; nothing over 425 lines
+- ⚡ **Pagination & virtualisation** — people list paginates in 100-record pages; lists of 150+ items use `react-window` for DOM efficiency
+- 🌙 **Dark mode completed** — comprehensive audit of 22 components; all bg/text/border/badge states consistent
+- 📊 **Report Generator reworked** — generation logic extracted to pure functions (`utils/reportGenerators.js`); report type (Comprehensive / Executive Summary / Person Profile) now actually changes what sections appear; two distinct download buttons replace the `window.confirm()` picker
+- 🧪 **Initial test suite** — 62 tests added: password policy, input validation helpers, report generation logic
+- 🐛 **Todo checkbox** — click was a no-op; fixed
+- 🐛 **D3 graph edges** — disappeared on re-render due to missing `useMemo`; fixed
+- 🐛 **Report Generator crash** — white screen caused by `peopleAPI.getAll()` returning `{data, meta}` instead of a plain array; fixed
+- 🐛 **nginx stale bundle** — `index.html` now served with `no-store` so browsers always pick up new JS after a redeploy
 
 ### Version 2.4.0 (May 2026)
 - 🔒 **Security hardening** — 15 vulnerabilities addressed: unauthenticated routes locked down, SQL injection in sort parameter fixed, Docker control endpoints removed, session cookie hardened with `SameSite=Strict`
@@ -455,4 +464,4 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 Built with ❤️ for the OSINT community.
 
 **Version:** 2.5.0
-**Last Updated:** May 28, 2026
+**Last Updated:** May 29, 2026
