@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { getFullName } from '../../utils/reportGenerators';
+import { getFullName, resolveOptions } from '../../utils/reportGenerators';
 
 const StatRow = ({ label, value }) => (
   <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-slate-700 last:border-0">
@@ -17,6 +17,7 @@ const SectionEntry = ({ label }) => (
 );
 
 const ReportPreview = ({ data, reportOptions }) => {
+  const opts = resolveOptions(reportOptions);
   const { people, selectedCase, selectedPerson } = data;
   const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
 
@@ -43,14 +44,14 @@ const ReportPreview = ({ data, reportOptions }) => {
         <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Report Structure:</p>
         <div className="space-y-1.5">
           <SectionEntry label="Cover Page" />
-          {reportOptions.includeSummary    && <SectionEntry label="Executive Summary" />}
-          {reportOptions.includePeople     && <SectionEntry label={`People Profiles (${people.length} profiles)`} />}
-          {reportOptions.includeConnections && <SectionEntry label="Connections Analysis" />}
-          {reportOptions.includeLocations  && <SectionEntry label="Location Data" />}
-          {reportOptions.includeOsintData  && <SectionEntry label="OSINT Intelligence" />}
-          {reportOptions.includeTodos      && <SectionEntry label="Investigation Tasks" />}
-          {reportOptions.includeAuditLog   && <SectionEntry label="Activity Timeline" />}
-          {reportOptions.includeCharts     && <SectionEntry label="Statistical Analysis" />}
+          {opts.includeSummary    && <SectionEntry label="Executive Summary" />}
+          {opts.includePeople     && <SectionEntry label={`People Profiles (${people.length} profiles)`} />}
+          {opts.includeConnections && <SectionEntry label="Connections Analysis" />}
+          {opts.includeLocations  && <SectionEntry label="Location Data" />}
+          {opts.includeOsintData  && <SectionEntry label="OSINT Intelligence" />}
+          {opts.includeTodos      && <SectionEntry label="Investigation Tasks" />}
+          {opts.includeAuditLog   && <SectionEntry label="Activity Timeline" />}
+          {opts.includeCharts     && <SectionEntry label="Statistical Analysis" />}
           <SectionEntry label="Report Information" />
         </div>
       </div>

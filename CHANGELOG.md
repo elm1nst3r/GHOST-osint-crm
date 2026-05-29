@@ -5,6 +5,74 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-05-29
+
+### ♻️ Refactoring & Architecture
+
+#### Backend — Route Extraction
+- **server.js split**: Reduced from 3,052 → 1,053 lines by extracting 11 inline route handlers into dedicated modules under `backend/routes/`
+- **Error handler wired**: `backend/middleware/errorHandler.js` now registered globally — previously defined but never mounted
+- **Input validation**: `validateIdParam` middleware applied to all `/:id` routes across 8 route files
+
+#### Frontend — Component Architecture
+- **React Context introduced**: `AuthContext`, `DataContext`, `UIContext` eliminate prop drilling; `App.js` reduced from 511 → 220 lines; 8 components de-propped
+- **Large components split** — all files now under 425 lines:
+  - `SettingsPage` 1,078 → 65L + 4 tab components (`settings/GeneralTab`, `DataModelTab`, `ImportExportTab`, `ProfileTab`)
+  - `AdvancedSearch` 1,129 → ~200L + 2 panel components (`search/SearchFilters`, `SearchResults`)
+  - `ReportGenerator` 1,253 → 165L + generation logic in `utils/reportGenerators.js` + 2 UI panels (`reports/ReportOptions`, `ReportPreview`)
+  - `GlobalMap` 957 → 421L + `map/AddLocationModal`, `MapLegend`, `MapStats`, `mapUtils`
+  - `AddEditPersonForm` 766 → 298L + `person-form/LocationsSection`, `OsintSection`, `ConnectionsSection`, `CustomFieldsSection`
+  - `WirelessNetworkDetail` 713 → 159L + `wireless/NetworkInfoSection`, `NetworkAssociation`
+
+### ⚡ Performance
+
+- **Pagination**: People list fetches 100 at a time via `X-Total-Count` / `X-Has-More` headers; Load More button in `PeopleList`
+- **Virtualisation**: Lists with ≥150 items rendered with `react-window` `FixedSizeList` to eliminate DOM bloat
+- **fetchAPI timeout**: All API calls now abort after 30 seconds via `AbortController`
+- **Map icon cache**: Leaflet marker icons built once via `useMemo` / `buildIconCache()` instead of per-render
+
+### 🌙 UI Improvements
+
+- **Dark mode audit**: 22 components updated with missing `dark:` variants — consistent bg, text, border, and badge theming across the whole app
+- **Map constants**: Leaflet tile URL and attribution extracted to `utils/mapConstants.js`
+
+### 🧪 Testing
+
+- **Initial test suite added** (62 tests, all passing):
+  - `backend/utils/passwordPolicy.test.js` — 16 tests: length, character classes, common passwords, username inclusion
+  - `backend/middleware/validation.test.js` — 23 tests: sanitizeString, isValidEmail, isValidUrl, isValidId
+  - `frontend/src/utils/reportGenerators.test.js` — 23 tests: getFullName, formatDate/DateTime, generateMarkdown section logic
+- Backend test runner: Jest (`npm test` in `backend/`)
+- Frontend test runner: `react-scripts test` (CRA built-in)
+
+### 🐛 Bug Fixes
+
+- **Todo checkbox no-op**: Click handler was a no-op due to event propagation — fixed
+- **D3 graph invisible edges**: `filteredPeople` passed to Dashboard graph not memoised — edges disappeared on re-render; fixed with `useMemo`
+- **ReportGenerator white screen**: `peopleAPI.getAll()` returns `{ data, meta }` (returnMeta hardcoded); ReportGenerator was treating it as a plain array, crashing during React render — fixed with `peopleRaw?.data ?? peopleRaw ?? []`
+- **Report type dropdown no effect**: `reportType` option was stored but never read by generators — implemented `resolveOptions()` applying section overrides per type
+- **Report businesses section always included**: Business profiles block was not gated by any option — now respects `includeBusinesses` derived from report type
+- **nginx stale bundle**: `index.html` had no cache headers, causing browsers to serve old JS after redeploy — fixed with `no-store` on `index.html`, `immutable` on hashed assets
+
+### 🔒 Security (from community audit — Issues #29–#41)
+
+- Session regeneration on login to prevent session fixation
+- Password strength policy (12+ chars, mixed case, digits, blocklist of common passwords)
+- `requireAdmin` now performs live DB lookup instead of trusting session data
+- Rate limiting on auth endpoints (10 req/15min login, 5 req/hour password change)
+- Session revocation on password change
+- `validateIdParam` on all route parameters
+- Input sanitisation (XSS pattern stripping) on all string fields
+
+### 📊 Statistics
+
+- **Backend lines**: server.js 3,052 → 1,053 (+ 11 route modules)
+- **Frontend components**: 0 files over 425 lines (was 6 over 700L)
+- **Tests added**: 62
+- **New sub-component directories**: `settings/`, `search/`, `reports/`, `map/`, `person-form/`, `wireless/`
+
+---
+
 ## [2.1.0] - 2026-01-26
 
 ### 🔒 Security Improvements

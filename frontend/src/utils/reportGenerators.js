@@ -18,9 +18,46 @@ export const formatDateTime = (date) => {
   });
 };
 
+// ── Report type → effective options ───────────────────────────────────────
+
+const REPORT_TYPE_OVERRIDES = {
+  // Executive Summary: high-level only — no detailed profiles or connections
+  summary: {
+    includeSummary: true,
+    includePeople: false,
+    includeConnections: false,
+    includeLocations: false,
+    includeOsintData: false,
+    includeBusinesses: false,
+    includeTodos: true,
+    includeAuditLog: false,
+    includeCharts: true,
+  },
+  // Person Profile: deep dive on one person — skip broad overviews and tasks
+  'person-profile': {
+    includeSummary: false,
+    includePeople: true,
+    includeConnections: true,
+    includeLocations: true,
+    includeOsintData: true,
+    includeBusinesses: true,
+    includeTodos: false,
+    includeAuditLog: false,
+    includeCharts: false,
+  },
+  // Comprehensive: respect user-selected checkboxes as-is
+  comprehensive: null,
+};
+
+export const resolveOptions = (options) => {
+  const overrides = REPORT_TYPE_OVERRIDES[options.reportType];
+  return overrides ? { ...options, ...overrides } : options;
+};
+
 // ── Markdown generator ──────────────────────────────────────────────────────
 
 export const generateMarkdown = (data, options) => {
+  options = resolveOptions(options);
   const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
   const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
@@ -91,7 +128,7 @@ export const generateMarkdown = (data, options) => {
   }
 
   // Business profiles
-  if (businesses.length > 0) {
+  if (options.includeBusinesses !== false && businesses.length > 0) {
     md += `## BUSINESS PROFILES\n\n`;
     md += `| Name | Industry | Address | Website |\n|------|----------|---------|----------|\n`;
     businesses.forEach(b => {
@@ -229,6 +266,7 @@ const p = (text, heading, alignment) => new Paragraph({
 const blank = () => p('');
 
 export const downloadWord = async (data, options) => {
+  options = resolveOptions(options);
   const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
   const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
@@ -274,7 +312,7 @@ export const downloadWord = async (data, options) => {
     });
   }
 
-  if (businesses.length > 0) {
+  if (options.includeBusinesses !== false && businesses.length > 0) {
     children.push(p('Business Profiles', HeadingLevel.HEADING_1));
     businesses.forEach((b, i) => {
       children.push(p(`${i + 1}. ${b.name || 'Unknown Business'}`, HeadingLevel.HEADING_2));

@@ -36,13 +36,16 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [casesData, peopleData, businessesData, locationsData, todosData] = await Promise.all([
+      const [casesData, peopleRaw, businessesData, locationsData, todosData] = await Promise.all([
         casesAPI.getAll(),
-        peopleAPI.getAll(),
+        peopleAPI.getAll({ limit: 10000 }),
         businessesAPI.getAll(),
         locationsAPI.getAll(),
         todosAPI.getAll(),
       ]);
+
+      // peopleAPI.getAll returns { data, meta } due to returnMeta: true
+      const peopleData = peopleRaw?.data ?? peopleRaw ?? [];
 
       let filteredPeople = peopleData;
       let selectedCase = null;

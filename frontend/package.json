@@ -1,6 +1,6 @@
 {
   "name": "osint-crm",
-  "version": "0.1.0",
+  "version": "2.5.0",
   "private": true,
   "proxy": "http://localhost:3001",
   "dependencies": {
