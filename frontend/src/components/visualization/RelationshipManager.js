@@ -1,5 +1,5 @@
 // File: frontend/src/components/visualization/RelationshipManager.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import RelationshipDiagram from '../RelationshipDiagram';
 import ObsidianGraph from './ObsidianGraph';
 import {
@@ -390,33 +390,36 @@ const RelationshipManager = ({
     return filtered;
   }, [people, businesses, filters]);
 
-  // Get filtered people
-  const filteredPeople = personId ? (() => {
-    const mainPerson = people.find(p => p.id === personId);
-    if (!mainPerson) return [];
+  // Get filtered people — memoised so ObsidianGraph only redraws when data/filters
+  // actually change, not on every parent re-render (which would reset the D3
+  // simulation before any ticks, making edges invisible).
+  const filteredPeople = useMemo(() => {
+    if (personId) {
+      const mainPerson = people.find(p => p.id === personId);
+      if (!mainPerson) return [];
 
-    const connectedIds = new Set([personId]);
-    
-    // Add directly connected people
-    if (mainPerson.connections) {
-      mainPerson.connections.forEach(conn => {
-        connectedIds.add(conn.person_id);
-      });
-    }
+      const connectedIds = new Set([personId]);
 
-    // Find people connected to the main person
-    people.forEach(person => {
-      if (person.connections) {
-        person.connections.forEach(conn => {
-          if (conn.person_id === personId) {
-            connectedIds.add(person.id);
-          }
+      if (mainPerson.connections) {
+        mainPerson.connections.forEach(conn => {
+          connectedIds.add(conn.person_id);
         });
       }
-    });
 
-    return people.filter(p => connectedIds.has(p.id));
-  })() : applyFilters();
+      people.forEach(person => {
+        if (person.connections) {
+          person.connections.forEach(conn => {
+            if (conn.person_id === personId) {
+              connectedIds.add(person.id);
+            }
+          });
+        }
+      });
+
+      return people.filter(p => connectedIds.has(p.id));
+    }
+    return applyFilters();
+  }, [personId, people, applyFilters]);
 
   // Get unique values for filters
   const allEntities = [...people, ...businesses];

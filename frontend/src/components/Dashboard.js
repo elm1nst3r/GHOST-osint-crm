@@ -188,9 +188,12 @@ const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail,
             ) : (
               todos.map(todo => (
                 <div key={todo.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group">
-                  <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                    todo.status === 'done' || todo.status === 'cancelled' ? getStatusStyle(todo.status) : 'border-2 border-slate-300 dark:border-slate-600'
-                  }`}>
+                  <div
+                    onClick={() => handleUpdateTodo(todo.id, { status: todo.status === 'done' ? 'open' : 'done' })}
+                    className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${
+                      todo.status === 'done' || todo.status === 'cancelled' ? getStatusStyle(todo.status) : 'border-2 border-slate-300 dark:border-slate-600'
+                    }`}
+                  >
                     {(todo.status === 'done' || todo.status === 'cancelled') && (
                       <Check className="w-3 h-3" />
                     )}
