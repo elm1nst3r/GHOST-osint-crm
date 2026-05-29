@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validation');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -32,11 +33,10 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, async (req, res) => {
-  const caseId = parseInt(req.params.id, 10);
+router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const caseId = req.params.id;
   const { case_name, description, status } = req.body;
 
-  if (isNaN(caseId)) return res.status(400).json({ error: 'Invalid case ID' });
   if (!case_name) return res.status(400).json({ error: 'Case name is required for update' });
 
   try {
@@ -52,9 +52,8 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
-  const caseId = parseInt(req.params.id, 10);
-  if (isNaN(caseId)) return res.status(400).json({ error: 'Invalid case ID' });
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const caseId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM cases WHERE id = $1 RETURNING *', [caseId]);

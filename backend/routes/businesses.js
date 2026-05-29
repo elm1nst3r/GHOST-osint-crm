@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validateBusinessData } = require('../middleware/validation');
+const { validateBusinessData, validateIdParam } = require('../middleware/validation');
 const logAudit = require('../utils/logAudit');
 
 // GET / — list all businesses
@@ -103,12 +103,9 @@ router.post('/', requireAuth, validateBusinessData, async (req, res) => {
 });
 
 // PUT /:id — update business
-router.put('/:id', requireAuth, validateBusinessData, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validateBusinessData, async (req, res) => {
   try {
-    const businessId = parseInt(req.params.id, 10);
-    if (isNaN(businessId)) {
-      return res.status(400).json({ error: 'Invalid business ID' });
-    }
+    const businessId = req.params.id;
 
     const {
       name, type, industry, address, city, state, country, postal_code,
@@ -189,12 +186,9 @@ router.put('/:id', requireAuth, validateBusinessData, async (req, res) => {
 });
 
 // DELETE /:id — delete business
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
-    const businessId = parseInt(req.params.id, 10);
-    if (isNaN(businessId)) {
-      return res.status(400).json({ error: 'Invalid business ID' });
-    }
+    const businessId = req.params.id;
 
     // Get business for audit
     const businessResult = await pool.query('SELECT * FROM businesses WHERE id = $1', [businessId]);

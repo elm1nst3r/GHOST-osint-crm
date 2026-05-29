@@ -1,30 +1,44 @@
 // File: frontend/src/utils/api.js
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
-// Generic fetch wrapper with error handling
+const DEFAULT_TIMEOUT_MS = 30000;
+
+// Generic fetch wrapper with error handling and timeout
 const fetchAPI = async (endpoint, options = {}) => {
+  const { timeout = DEFAULT_TIMEOUT_MS, responseType, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       credentials: 'include',
+      ...fetchOptions,
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
-    // For blob responses (like exports), return the response itself
-    if (options.responseType === 'blob') {
+    if (responseType === 'blob') {
       return response;
     }
 
     return await response.json();
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      const msg = `Request timed out (${endpoint})`;
+      console.error(msg);
+      throw new Error(msg);
+    }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
   }
@@ -175,8 +189,10 @@ export const auditAPI = {
 export const exportAPI = {
   export: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/export`);
-      
+      const response = await fetch(`${API_BASE_URL}/export`, {
+        credentials: 'include',
+      });
+
       if (!response.ok) {
         throw new Error('Export failed');
       }
@@ -222,6 +238,7 @@ export const uploadLogo = async (file) => {
   try {
     const response = await fetch(`${API_BASE_URL}/upload/logo`, {
       method: 'POST',
+      credentials: 'include',
       body: formData,
     });
 
@@ -352,6 +369,7 @@ export const wirelessNetworksAPI = {
 
     const response = await fetch(`${API_BASE_URL}/wireless-networks/import-kml`, {
       method: 'POST',
+      credentials: 'include',
       body: formData,
     });
 

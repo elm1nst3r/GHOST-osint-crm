@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validation');
 
 // Custom fields
 router.get('/custom-fields', requireAdmin, async (req, res) => {
@@ -38,11 +39,9 @@ router.post('/custom-fields', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/custom-fields/:id', requireAdmin, async (req, res) => {
-  const fieldId = parseInt(req.params.id, 10);
+router.put('/custom-fields/:id', requireAdmin, validateIdParam, async (req, res) => {
+  const fieldId = req.params.id;
   const { field_label, field_type, options, is_active } = req.body;
-
-  if (isNaN(fieldId)) return res.status(400).json({ error: 'Invalid field ID' });
   if (!field_label || !field_type) {
     return res.status(400).json({ error: 'field_label and field_type are required for update' });
   }
@@ -60,9 +59,8 @@ router.put('/custom-fields/:id', requireAdmin, async (req, res) => {
   }
 });
 
-router.delete('/custom-fields/:id', requireAdmin, async (req, res) => {
-  const fieldId = parseInt(req.params.id, 10);
-  if (isNaN(fieldId)) return res.status(400).json({ error: 'Invalid field ID' });
+router.delete('/custom-fields/:id', requireAdmin, validateIdParam, async (req, res) => {
+  const fieldId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM custom_person_fields WHERE id = $1 RETURNING *;', [fieldId]);
@@ -108,11 +106,9 @@ router.post('/model-options', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/model-options/:id', requireAdmin, async (req, res) => {
-  const optionId = parseInt(req.params.id, 10);
+router.put('/model-options/:id', requireAdmin, validateIdParam, async (req, res) => {
+  const optionId = req.params.id;
   const { option_label, is_active, display_order } = req.body;
-
-  if (isNaN(optionId)) return res.status(400).json({ error: 'Invalid option ID' });
 
   try {
     const result = await pool.query(
@@ -132,9 +128,8 @@ router.put('/model-options/:id', requireAdmin, async (req, res) => {
   }
 });
 
-router.delete('/model-options/:id', requireAdmin, async (req, res) => {
-  const optionId = parseInt(req.params.id, 10);
-  if (isNaN(optionId)) return res.status(400).json({ error: 'Invalid option ID' });
+router.delete('/model-options/:id', requireAdmin, validateIdParam, async (req, res) => {
+  const optionId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM model_options WHERE id = $1 RETURNING *', [optionId]);

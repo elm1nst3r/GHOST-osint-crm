@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, Users, Filter, RefreshCw, Plus, AlertCircle, CheckCircle, Clock, Wifi } from 'lucide-react';
 import { peopleAPI, wirelessNetworksAPI } from '../utils/api';
+import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 
 // Custom hook to handle map bounds with better performance (only run once on mount)
 const MapBounds = ({ markers }) => {
@@ -664,8 +665,8 @@ Used cache: ${result.summary.cached}`);
             worldCopyJump={true}
           >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={OSM_TILE_URL}
+            attribution={OSM_ATTRIBUTION}
           />
           
           <MarkerClusterGroup

@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { wirelessNetworksAPI } from '../utils/api';
+import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -529,8 +530,8 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
                 scrollWheelZoom={false}
               >
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution={OSM_ATTRIBUTION}
+                  url={OSM_TILE_URL}
                 />
                 <Marker position={[network.latitude, network.longitude]}>
                   <Popup>

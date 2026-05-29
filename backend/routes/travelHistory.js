@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validation');
 
 // Get travel history for a person
-router.get('/people/:id/travel-history', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+router.get('/people/:id/travel-history', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
 
   try {
     const result = await pool.query(
@@ -23,9 +23,8 @@ router.get('/people/:id/travel-history', requireAuth, async (req, res) => {
 });
 
 // Create travel history entry
-router.post('/people/:id/travel-history', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+router.post('/people/:id/travel-history', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
 
   const {
     location_type, location_name, address, city, state, country, postal_code,
@@ -56,9 +55,8 @@ router.post('/people/:id/travel-history', requireAuth, async (req, res) => {
 });
 
 // Update travel history entry
-router.put('/travel-history/:id', requireAuth, async (req, res) => {
-  const travelId = parseInt(req.params.id, 10);
-  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+router.put('/travel-history/:id', requireAuth, validateIdParam, async (req, res) => {
+  const travelId = req.params.id;
 
   const {
     location_type, location_name, address, city, state, country, postal_code,
@@ -92,9 +90,8 @@ router.put('/travel-history/:id', requireAuth, async (req, res) => {
 });
 
 // Delete travel history entry
-router.delete('/travel-history/:id', requireAuth, async (req, res) => {
-  const travelId = parseInt(req.params.id, 10);
-  if (isNaN(travelId)) return res.status(400).json({ error: 'Invalid travel ID' });
+router.delete('/travel-history/:id', requireAuth, validateIdParam, async (req, res) => {
+  const travelId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM travel_history WHERE id = $1 RETURNING *', [travelId]);
@@ -107,9 +104,8 @@ router.delete('/travel-history/:id', requireAuth, async (req, res) => {
 });
 
 // Travel pattern analysis
-router.get('/people/:id/travel-analysis', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+router.get('/people/:id/travel-analysis', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
 
   try {
     const travelHistory = await pool.query(

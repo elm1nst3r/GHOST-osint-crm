@@ -5,6 +5,7 @@ const multer = require('multer');
 const xml2js = require('xml2js');
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validation');
 
 // -------------------------------------------------------------------------
 // IMPORTANT: /stats, /nearby, and /bulk-delete MUST be defined BEFORE /:id
@@ -276,11 +277,8 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // GET /:id — get single wireless network by ID
-router.get('/:id', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid wireless network ID' });
-  }
+router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const id = req.params.id;
   try {
     const result = await pool.query('SELECT id, ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength, frequency, channel, network_type, confidence_level, first_seen, last_seen, scan_date, person_id, association_note, association_confidence, import_source, notes, tags, area_name, associated_person_ids, associated_business_ids, created_at, updated_at FROM wireless_networks WHERE id = $1', [id]);
     if (result.rows.length === 0) {
@@ -334,9 +332,8 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // PUT /:id — update wireless network
-router.put('/:id', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
+router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const id = req.params.id;
   try {
     const {
       ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
@@ -372,9 +369,8 @@ router.put('/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE /:id — delete single wireless network
-router.delete('/:id', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const id = req.params.id;
   try {
     const result = await pool.query('DELETE FROM wireless_networks WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
@@ -389,9 +385,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 // POST /:id/associate — associate wireless network with person or business
 // Arrays are authoritative (issue #41); singular person_id kept in sync as deprecated mirror.
-router.post('/:id/associate', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
+router.post('/:id/associate', requireAuth, validateIdParam, async (req, res) => {
+  const id = req.params.id;
   try {
     const { person_id, business_id, association_note, association_confidence } = req.body;
 
@@ -442,9 +437,8 @@ router.post('/:id/associate', requireAuth, async (req, res) => {
 
 // DELETE /:id/associate — remove a specific person or business association (issue #41)
 // Removes from the authoritative array and clears the deprecated singular column if it matches.
-router.delete('/:id/associate', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid wireless network ID' });
+router.delete('/:id/associate', requireAuth, validateIdParam, async (req, res) => {
+  const id = req.params.id;
   try {
     const { person_id, business_id } = req.body;
 

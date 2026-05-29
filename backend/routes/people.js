@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validatePersonData } = require('../middleware/validation');
+const { validatePersonData, validateIdParam } = require('../middleware/validation');
 const logAudit = require('../utils/logAudit');
 
 // GET / — paginated people list
@@ -132,15 +132,14 @@ router.post('/', requireAuth, validatePersonData, async (req, res) => {
 });
 
 // PUT /:id — update person
-router.put('/:id', requireAuth, validatePersonData, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
+router.put('/:id', requireAuth, validateIdParam, validatePersonData, async (req, res) => {
+  const personId = req.params.id;
   const {
     firstName, lastName, aliases, dateOfBirth, category, status, crmStatus,
     caseName, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
 
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
   if (!firstName) return res.status(400).json({ error: 'First name is required for update' });
 
   try {
@@ -262,9 +261,8 @@ router.put('/:id', requireAuth, validatePersonData, async (req, res) => {
 });
 
 // POST /:id/locations — append a single location to person's locations JSONB array
-router.post('/:id/locations', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+router.post('/:id/locations', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
 
   const location = req.body;
   if (!location || typeof location !== 'object') {
@@ -288,11 +286,11 @@ router.post('/:id/locations', requireAuth, async (req, res) => {
 });
 
 // PUT /:id/locations/:index — update a single location by array index
-router.put('/:id/locations/:index', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
+router.put('/:id/locations/:index', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
   const idx = parseInt(req.params.index, 10);
-  if (isNaN(personId) || isNaN(idx) || idx < 0) {
-    return res.status(400).json({ error: 'Invalid person ID or location index' });
+  if (isNaN(idx) || idx < 0) {
+    return res.status(400).json({ error: 'Invalid location index' });
   }
   const location = req.body;
   if (!location || typeof location !== 'object') {
@@ -315,11 +313,11 @@ router.put('/:id/locations/:index', requireAuth, async (req, res) => {
 });
 
 // DELETE /:id/locations/:index — remove location by array index
-router.delete('/:id/locations/:index', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
+router.delete('/:id/locations/:index', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
   const idx = parseInt(req.params.index, 10);
-  if (isNaN(personId) || isNaN(idx) || idx < 0) {
-    return res.status(400).json({ error: 'Invalid person ID or location index' });
+  if (isNaN(idx) || idx < 0) {
+    return res.status(400).json({ error: 'Invalid location index' });
   }
   try {
     const result = await pool.query(
@@ -338,9 +336,8 @@ router.delete('/:id/locations/:index', requireAuth, async (req, res) => {
 });
 
 // DELETE /:id — delete person
-router.delete('/:id', requireAuth, async (req, res) => {
-  const personId = parseInt(req.params.id, 10);
-  if (isNaN(personId)) return res.status(400).json({ error: 'Invalid person ID' });
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const personId = req.params.id;
 
   try {
     // Get person first for audit

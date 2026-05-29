@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { travelHistoryAPI } from '../utils/api';
 import { TRAVEL_PURPOSES, TRANSPORTATION_MODES } from '../utils/constants';
+import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 import L from 'leaflet';
 
 const TravelPatternAnalysis = ({ personId, personName }) => {
@@ -488,8 +489,8 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url={OSM_TILE_URL}
+                attribution={OSM_ATTRIBUTION}
               />
               
               {/* Travel locations */}

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validateToolData } = require('../middleware/validation');
+const { validateToolData, validateIdParam } = require('../middleware/validation');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -29,11 +29,9 @@ router.post('/', requireAuth, validateToolData, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, validateToolData, async (req, res) => {
-  const toolId = parseInt(req.params.id, 10);
+router.put('/:id', requireAuth, validateIdParam, validateToolData, async (req, res) => {
+  const toolId = req.params.id;
   const { name, link, description, category, status, tags, notes } = req.body;
-
-  if (isNaN(toolId)) return res.status(400).json({ error: 'Invalid tool ID' });
 
   const query = `UPDATE tools SET name = $1, link = $2, description = $3, category = $4, status = $5, tags = $6, notes = $7 WHERE id = $8 RETURNING *;`;
   const values = [name, link || null, description || null, category || null, status || null, tags || [], notes || null, toolId];
@@ -48,9 +46,8 @@ router.put('/:id', requireAuth, validateToolData, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
-  const toolId = parseInt(req.params.id, 10);
-  if (isNaN(toolId)) return res.status(400).json({ error: 'Invalid tool ID' });
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const toolId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM tools WHERE id = $1 RETURNING *;', [toolId]);

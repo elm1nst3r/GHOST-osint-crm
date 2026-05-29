@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validation');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -29,11 +30,9 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, async (req, res) => {
-  const todoId = parseInt(req.params.id, 10);
+router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const todoId = req.params.id;
   const { text, status, last_update_comment } = req.body;
-
-  if (isNaN(todoId)) return res.status(400).json({ error: 'Invalid todo ID' });
   if (!text && status === undefined) return res.status(400).json({ error: 'Text or status is required for update' });
 
   const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status), last_update_comment = $3 WHERE id = $4 RETURNING *;`;
@@ -49,9 +48,8 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
-  const todoId = parseInt(req.params.id, 10);
-  if (isNaN(todoId)) return res.status(400).json({ error: 'Invalid todo ID' });
+router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
+  const todoId = req.params.id;
 
   try {
     const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *;', [todoId]);
