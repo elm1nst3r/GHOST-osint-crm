@@ -1,260 +1,154 @@
-# Security Guidelines and Best Practices
+# Security Policy
 
-## Overview
+## Reporting a Vulnerability
 
-This document outlines security considerations, best practices, and recommendations for the GHOST OSINT CRM application.
+If you discover a security vulnerability, please **do not open a public GitHub issue**.
 
-## Recent Security Improvements (2025)
+Contact the maintainer directly or use GitHub's private vulnerability reporting:  
+**GitHub:** [Security Advisories](../../security/advisories/new)  
+**Email:** hurdles.remand_9g [at] icloud.com
 
-### 1. Environment Variable Protection
-- ✅ Added `.env.example` files for both root and backend
-- ✅ Created comprehensive `.gitignore` to prevent committing sensitive files
-- ✅ Added environment variable validation on startup
-- ⚠️ **Action Required**: Copy `.env.example` to `.env` and update with your credentials
+Please include:
+- A description of the vulnerability and its potential impact
+- Steps to reproduce
+- Any proof-of-concept code (if applicable)
 
-### 2. Input Validation & Sanitization
-- ✅ Created validation middleware for all user inputs
-- ✅ SQL injection detection and prevention
-- ✅ XSS protection through input sanitization
-- ✅ URL, email, and data format validation
-- ✅ Rate limiting to prevent abuse
+We aim to respond within 48 hours and will keep you informed of progress toward a fix.
 
-### 3. Improved Error Handling
-- ✅ Centralized logging system with different log levels
-- ✅ Request/response logging middleware
-- ✅ Proper error handling that doesn't expose internal details in production
-- ✅ Database query timing and performance logging
+---
 
-### 4. Database Security
-- ✅ Optimized connection pooling with proper limits
-- ✅ Automatic client cleanup and connection management
-- ✅ Transaction support for atomic operations
-- ✅ Database health monitoring
+## Supported Versions
 
-## Known Vulnerabilities
+| Version | Supported |
+|---------|-----------|
+| 2.5.x   | ✅ Active |
+| 2.4.x   | ✅ Security patches only |
+| < 2.4   | ❌ No longer supported |
 
-### Frontend Dependencies (npm audit)
-The frontend has **15 vulnerabilities** (2 low, 4 moderate, 8 high, 1 critical):
-- Most are in dev dependencies (webpack-dev-server, postcss)
-- These affect the development server, NOT the production build
-- Running `npm audit fix --force` may break the build
-- **Recommendation**: Monitor for updates to react-scripts that resolve these issues
+---
 
-### Assessment
-- ⚠️ Development-only vulnerabilities (not exposed in production)
-- ✅ Production build is served by Nginx and does not include dev dependencies
-- 📌 Consider upgrading to newer React/CRA version in future
+## Security Architecture (v2.5.0)
 
-## Security Checklist for Production Deployment
+### Authentication & Sessions
+- ✅ Session-based authentication via `express-session` with `connect-pg-simple` (sessions stored in PostgreSQL)
+- ✅ Session ID regenerated on every successful login — prevents session fixation (OWASP A07)
+- ✅ Session revoked immediately on password change, role change, deactivation, or account deletion
+- ✅ `requireAdmin` middleware performs a live database lookup on every admin request — stale sessions rejected in real time
+- ✅ Session cookies: `HttpOnly`, `SameSite=Strict`; `secure: true` enabled automatically when `NODE_ENV=production`
 
-### Before Going Live:
+### Password Policy
+- ✅ Minimum 12 characters
+- ✅ Must contain at least one uppercase letter, one lowercase letter, and one digit
+- ✅ Common/weak passwords rejected via a blocklist (100+ entries)
+- ✅ Password must not contain the user's username
+- ✅ Maximum 128 characters (bcrypt pre-hash protection)
+- ✅ Policy enforced at every password-setting point: login, change, admin create, admin reset
 
-#### 1. Environment Variables
-- [ ] Change default database password from 'changeme'
-- [ ] Set strong, unique DB_PASSWORD (16+ characters, mixed case, numbers, symbols)
-- [ ] Set NODE_ENV=production
-- [ ] Never commit `.env` files to version control
-- [ ] Use secrets management (AWS Secrets Manager, Vault, etc.) in cloud deployments
+### Rate Limiting
+- ✅ Login: 10 attempts per 15 minutes per IP + username combination
+- ✅ Password change: 5 attempts per hour
+- ✅ Geocoding endpoints: 60 requests per minute per IP
+- ⚠️ **Multi-instance note**: limiters use in-process memory. For multi-replica deployments configure a shared store (Redis or PostgreSQL) in `backend/middleware/rateLimiters.js`
 
-#### 2. Database Security
-- [ ] Enable SSL/TLS for database connections
-- [ ] Use a dedicated database user with limited privileges
-- [ ] Implement regular database backups
-- [ ] Enable PostgreSQL audit logging
-- [ ] Restrict database access to application servers only
+### Input Validation & Sanitisation
+- ✅ All `/:id` route parameters validated as positive integers via `validateIdParam` middleware
+- ✅ String inputs stripped of `<script>`, `<iframe>`, and inline event handlers before storage
+- ✅ SQL injection prevented — all queries use parameterised statements (no string concatenation)
+- ✅ Email, URL, and date formats validated at API boundaries
+- ✅ Person, tool, and business data validated via dedicated middleware before DB writes
 
-#### 3. Network Security
-- [ ] Enable HTTPS/TLS for all connections
-- [ ] Configure Nginx with SSL certificates
-- [ ] Set up proper CORS policies (restrict origins in production)
-- [ ] Use a reverse proxy (Nginx) for additional security layer
-- [ ] Implement firewall rules to restrict access
+### Geocoding Endpoints
+- ✅ `/api/geocode/suggestions`, `/api/geocode/address`, `/api/geocode/stats` require authentication
+- ✅ Nominatim requests rate-limited and cached in the database to minimise external calls
+- ✅ 8-second timeout on all outbound geocoding requests
 
-#### 4. Application Security
-- [ ] Review and update all default credentials
-- [ ] Implement authentication (currently not present!)
-- [ ] Add authorization/access control
-- [ ] Enable CSRF protection
-- [ ] Implement session management
-- [ ] Set security headers (Helmet.js)
+### File Uploads
+- ✅ Logo uploads restricted to `image/jpeg`, `image/png`, `image/gif` — SVG rejected
+- ✅ Upload size capped at 5 MB by default; override with `KML_MAX_BYTES` environment variable
+- ✅ KML imports: oversized uploads return `413 Payload Too Large`
+- ⚠️ No virus/malware scanning — consider adding ClamAV for high-security deployments
+- ⚠️ Uploaded files are stored on the local filesystem — use object storage (S3/GCS) for production scale
 
-#### 5. Docker Security
-- [ ] Don't run containers as root
-- [ ] Scan images for vulnerabilities
-- [ ] Use specific image versions (not 'latest')
-- [ ] Limit container resources
-- [ ] Use Docker secrets for sensitive data
+### Docker & Infrastructure
+- ✅ Backend container runs as non-root user (`nodejs:1001`)
+- ✅ PostgreSQL not exposed to host network by default in `docker-compose.yml`
+- ✅ `docker-compose.override.yml` exposes port 5432 for local development only
+- ✅ Multi-stage frontend build — dev dependencies not present in the nginx image
+- ✅ `nginx.conf`: `index.html` served with `no-store` / `no-cache`; hashed JS/CSS served as `immutable`
+- ⚠️ Consider using Docker secrets or a secrets manager (Vault, AWS SSM) for `DB_PASSWORD` and `SESSION_SECRET` in production
 
-#### 6. Monitoring & Logging
-- [ ] Set up centralized logging (ELK, Splunk, CloudWatch)
-- [ ] Implement intrusion detection
-- [ ] Monitor for unusual access patterns
-- [ ] Set up alerts for errors and security events
-- [ ] Regular security audits
+---
 
-## Authentication & Authorization
+## Production Deployment Checklist
 
-### ⚠️ CRITICAL: No Authentication Currently Implemented!
+### Environment
+- [ ] `NODE_ENV=production` set
+- [ ] `SESSION_SECRET` — minimum 32 characters, generated with `openssl rand -base64 32`
+- [ ] `DB_PASSWORD` — strong, unique password — never use a default
+- [ ] `.env` file **not** committed to version control
+- [ ] `FRONTEND_URL` set to your actual domain (used for CORS)
 
-This application currently has **NO authentication or authorization**. This means:
-- Anyone with network access can view/modify ALL data
-- Suitable for local/trusted networks only
-- **DO NOT expose to public internet without authentication**
+### Network
+- [ ] HTTPS/TLS configured on your reverse proxy
+- [ ] PostgreSQL not reachable from the public internet
+- [ ] Firewall rules restrict inbound traffic to ports 80/443 only
 
-### Recommended Implementation:
-1. **Add JWT-based authentication**
-   - User login/registration system
-   - Password hashing with bcrypt
-   - JWT tokens for session management
+### Database
+- [ ] Dedicated PostgreSQL user with minimum required privileges
+- [ ] Regular automated backups with tested restore procedure
+- [ ] SSL/TLS enabled for database connections
 
-2. **Implement role-based access control (RBAC)**
-   - Admin, investigator, and viewer roles
-   - Per-resource permissions
-   - Audit trail for all actions
+### Monitoring
+- [ ] Centralised log aggregation (e.g. ELK, CloudWatch, Loki)
+- [ ] Alerts on repeated login failures and 5xx error spikes
+- [ ] Regular review of audit log (`/api/audit`)
 
-3. **Add security middleware**
-   ```javascript
-   // Example middleware to add
-   - helmet (security headers)
-   - express-rate-limit (already partially implemented)
-   - express-session (session management)
-   - passport.js (authentication strategies)
-   ```
+---
 
-## Data Protection
+## Known npm Audit Findings
 
-### Sensitive Data Handling
-1. **Personal Information**: People records contain PII (names, addresses, etc.)
-2. **Investigation Data**: Case information may be sensitive
-3. **OSINT Sources**: Tool URLs and access methods
+The frontend uses `react-scripts` (Create React App), which carries several audit findings in its bundled webpack toolchain. **These affect the development server only** — they are not present in the production nginx build.
 
-### Recommendations:
-- Encrypt data at rest (database-level encryption)
-- Encrypt data in transit (HTTPS/TLS)
-- Implement data retention policies
-- Add data export/deletion capabilities for GDPR compliance
-- Consider field-level encryption for highly sensitive data
+Running `npm audit fix --force` will likely break the CRA build. The recommendation is to monitor for a CRA upgrade or migration to Vite/Next.js if this becomes a concern.
 
-## API Security
+---
 
-### Current Implementation:
-- ✅ Input validation on all endpoints
-- ✅ Basic rate limiting (100 requests/minute per IP)
-- ✅ SQL injection prevention
-- ✅ XSS protection
-- ❌ No authentication required
-- ❌ No API key system
+## Data Protection Notes
 
-### Recommendations:
-1. Add API authentication (Bearer tokens)
-2. Implement request signing
-3. Add API versioning
-4. Set up API gateway for production
-5. Implement stricter rate limiting per user/API key
+GHOST stores personally identifiable information (PII). Operators are responsible for:
 
-## File Upload Security
+- Complying with applicable data protection law (GDPR, CCPA, etc.)
+- Establishing and enforcing data retention policies
+- Restricting access to authorised personnel only
+- Encrypting the database volume at rest (filesystem or cloud-volume encryption)
+- Using HTTPS in transit at all times
 
-### Current State:
-- Logo uploads limited to 5MB
-- File type validation (images only)
-- Files stored in `/backend/public/uploads/logos/`
-
-### Concerns:
-- No virus scanning
-- No content validation beyond file extension
-- Files publicly accessible
-
-### Recommendations:
-1. Implement virus/malware scanning (ClamAV)
-2. Validate file contents, not just extension
-3. Use object storage (S3) instead of local filesystem
-4. Generate random filenames to prevent directory traversal
-5. Set proper file permissions
-6. Implement file size quotas per user
-
-## Docker Security Best Practices
-
-### Current docker-compose.yml Issues:
-```yaml
-# ⚠️ Exposes PostgreSQL to host
-ports:
-  - "5432:5432"  # Should be internal only unless needed for dev
-
-# ⚠️ Default passwords in environment
-DB_PASSWORD: ${DB_PASSWORD:-changeme}  # Weak default
-```
-
-### Recommendations:
-1. Use Docker secrets for passwords
-2. Don't expose unnecessary ports to host
-3. Run containers as non-root users
-4. Use multi-stage builds to minimize image size
-5. Scan images with Trivy or Snyk
-
-## Geocoding Service Security
-
-The application uses OpenStreetMap Nominatim for geocoding:
-- Includes proper User-Agent header
-- Implements rate limiting (1 second between requests)
-- Caches results in database to minimize external calls
-- **Note**: Consider self-hosting Nominatim or using commercial service for production
+---
 
 ## Regular Maintenance
 
-### Weekly:
-- Review audit logs for suspicious activity
-- Check system health metrics
-- Verify backup completion
+| Cadence | Task |
+|---------|------|
+| Weekly | Review audit logs; verify backups |
+| Monthly | `npm audit` review; rotate credentials if needed |
+| Quarterly | Full dependency update pass; review user accounts and permissions |
 
-### Monthly:
-- Update dependencies (`npm audit` and `npm update`)
-- Review user access and permissions (once implemented)
-- Security patch review
+---
 
-### Quarterly:
-- Full security audit
-- Penetration testing
-- Review and update security policies
+## Incident Response
 
-## Incident Response Plan
+1. **Contain** — isolate affected containers; rotate `SESSION_SECRET` and `DB_PASSWORD` immediately
+2. **Preserve** — copy logs before recycling containers
+3. **Assess** — determine what data was accessible and for how long
+4. **Remediate** — patch, redeploy, restore from clean backup if necessary
+5. **Communicate** — notify affected users; document and publish a post-mortem
 
-### If Security Breach Detected:
-1. **Immediate Actions**:
-   - Isolate affected systems
-   - Preserve logs and evidence
-   - Change all credentials
-
-2. **Assessment**:
-   - Determine scope of breach
-   - Identify compromised data
-   - Document timeline
-
-3. **Remediation**:
-   - Patch vulnerabilities
-   - Restore from clean backups if necessary
-   - Implement additional monitoring
-
-4. **Communication**:
-   - Notify affected parties
-   - Document lessons learned
-   - Update security measures
+---
 
 ## Resources
 
-### Tools:
-- **OWASP ZAP**: Web application security scanner
-- **npm audit**: Dependency vulnerability checker
-- **Snyk**: Continuous security monitoring
-- **SonarQube**: Code quality and security analysis
-
-### References:
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)
 - [Docker Security](https://docs.docker.com/engine/security/)
 - [PostgreSQL Security](https://www.postgresql.org/docs/current/security.html)
-
-## Contact
-
-For security issues or concerns, create a GitHub issue or contact the maintainer directly.
-
-**Remember**: Security is an ongoing process, not a one-time task!
+- [express-session security](https://github.com/expressjs/session#readme)
