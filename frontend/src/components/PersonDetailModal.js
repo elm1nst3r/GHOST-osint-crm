@@ -5,9 +5,15 @@ import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Calen
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
-// Removed: import { attackSurfaceAPI } from '../utils/api';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const PersonDetailModal = ({ person, people, customFields, onClose, onEdit }) => {
+const PersonDetailModal = () => {
+  const { people, customFields } = useData();
+  const { selectedPersonForDetail: person, setSelectedPersonForDetail, setEditingPerson } = useUI();
+
+  const onClose = () => setSelectedPersonForDetail(null);
+  const onEdit = (p) => { setSelectedPersonForDetail(null); setEditingPerson(p); };
   const [activeTab, setActiveTab] = useState('details');
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [locations, setLocations] = useState(person.locations || []);

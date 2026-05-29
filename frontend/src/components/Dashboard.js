@@ -5,8 +5,12 @@ import { Network, Trash2, Check, ChevronDown, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const Dashboard = ({ people, tools, todos, setTodos, setSelectedPersonForDetail, setActiveSection }) => {
+const Dashboard = () => {
+  const { people, tools, todos, setTodos } = useData();
+  const { setSelectedPersonForDetail, setActiveSection } = useUI();
   // Show most recently updated people (up to 5)
   const activePeople = [...people]
     .sort((a, b) => {

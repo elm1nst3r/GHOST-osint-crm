@@ -1,5 +1,7 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState, useRef, useEffect } from 'react';
+import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Save, Upload, Download, Shield, Plus, Edit2, Trash2, X, Clock, User, ChevronDown, ChevronRight, CheckCircle, AlertTriangle, FileText, Database, Settings, Users, Building2, MapPin, Eye, Folder, Lock } from 'lucide-react';
 import CustomFieldManager from './CustomFieldManager';
 import UserManagement from './UserManagement';
@@ -7,7 +9,9 @@ import AuditLogs from './AuditLogs';
 import { uploadLogo, modelOptionsAPI, auditAPI, exportAPI, importAPI } from '../utils/api';
 import { authAPI } from '../utils/authAPI';
 
-const SettingsPage = ({ appSettings, customFields, fetchCustomFields, handleAppNameChange, setAppSettings, currentUser }) => {
+const SettingsPage = () => {
+  const { appSettings, customFields, fetchCustomFields, handleAppNameChange, setAppSettings } = useData();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('general');
   const [tempAppName, setTempAppName] = useState(appSettings.appName);
   const [modelOptions, setModelOptions] = useState([]);

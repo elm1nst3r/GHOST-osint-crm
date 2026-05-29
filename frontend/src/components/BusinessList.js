@@ -2,8 +2,12 @@
 import React, { useState } from 'react';
 import { Building2, Search, Plus, Edit2, Trash2, Users, MapPin, Phone, Mail, Globe, User } from 'lucide-react';
 import { businessAPI } from '../utils/api';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const BusinessList = ({ businesses, fetchBusinesses, setShowAddBusinessForm, setEditingBusiness }) => {
+const BusinessList = () => {
+  const { businesses, fetchBusinesses } = useData();
+  const { setShowAddBusinessForm, setEditingBusiness } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [filterStatus, setFilterStatus] = useState('');

@@ -4,14 +4,12 @@ import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock,
 import { peopleAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
 import PeopleTableView from './PeopleTableView';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const PeopleList = ({ 
-  people, 
-  fetchPeople, 
-  setShowAddPersonForm, 
-  setEditingPerson, 
-  setSelectedPersonForDetail 
-}) => {
+const PeopleList = () => {
+  const { people, fetchPeople } = useData();
+  const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');

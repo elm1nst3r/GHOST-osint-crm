@@ -3,8 +3,12 @@ import React, { useState, useMemo } from 'react';
 import { Globe, Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_STATUSES, TOOL_CATEGORIES } from '../utils/constants';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const ToolsList = ({ tools, fetchTools, setShowAddToolForm, setEditingTool }) => {
+const ToolsList = () => {
+  const { tools, fetchTools } = useData();
+  const { setShowAddToolForm, setEditingTool } = useUI();
   const [toolSearchTerm, setToolSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');

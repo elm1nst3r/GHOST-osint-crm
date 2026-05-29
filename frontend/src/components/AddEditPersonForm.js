@@ -3,8 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, MapPin, AlertCircle } from 'lucide-react';
 import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, CRM_STATUSES, updateDynamicConstants } from '../utils/constants';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) => {
+const AddEditPersonForm = () => {
+  const { people, customFields, fetchPeople } = useData();
+  const { editingPerson, setEditingPerson, setShowAddPersonForm } = useUI();
+  const person = editingPerson;
+
+  const handleClose = () => {
+    setEditingPerson(null);
+    setShowAddPersonForm(false);
+  };
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -157,7 +167,8 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
       } else {
         savedPerson = await peopleAPI.create(dataToSend);
       }
-      onSave(savedPerson);
+      handleClose();
+      fetchPeople();
     } catch (error) {
       console.error('Error saving person:', error);
       alert('Failed to save person: ' + error.message);
@@ -735,7 +746,7 @@ const AddEditPersonForm = ({ person, people, customFields, onSave, onCancel }) =
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={handleClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
             >
               Cancel

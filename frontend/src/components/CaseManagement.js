@@ -7,14 +7,12 @@ import {
 } from 'lucide-react';
 import { casesAPI, peopleAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
+import { useData } from '../contexts/DataContext';
+import { useUI } from '../contexts/UIContext';
 
-const CaseManagement = ({ 
-  people, 
-  fetchPeople, 
-  setEditingPerson,
-  setShowAddPersonForm,
-  setSelectedPersonForDetail 
-}) => {
+const CaseManagement = () => {
+  const { people, fetchPeople } = useData();
+  const { setEditingPerson, setShowAddPersonForm, setSelectedPersonForDetail } = useUI();
   const [cases, setCases] = useState([]);
   const [expandedCases, setExpandedCases] = useState({});
   const [editingCase, setEditingCase] = useState(null);
