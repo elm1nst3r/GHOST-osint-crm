@@ -1,5 +1,6 @@
 // File: frontend/src/components/PeopleList.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
+import { FixedSizeList } from 'react-window';
 import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Calendar, Users, Grid3x3, Table } from 'lucide-react';
 import { peopleAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
@@ -7,9 +8,14 @@ import PeopleTableView from './PeopleTableView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
+// Threshold above which the card list switches to react-window virtualization
+const VIRTUAL_THRESHOLD = 150;
+const CARD_ITEM_HEIGHT = 230; // px — card height + gap
+
 const PeopleList = () => {
-  const { people, fetchPeople } = useData();
+  const { people, fetchPeople, peopleMeta, loadMorePeople } = useData();
   const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -130,6 +136,49 @@ const PeopleList = () => {
     return colorMap[statusConfig?.color] || 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-300';
   };
 
+  // react-window row renderer — used when filteredPeople exceeds VIRTUAL_THRESHOLD
+  const renderVirtualCard = useCallback(({ index, style }) => {
+    const person = filteredPeople[index];
+    const connectionCount = getRelationshipCount(person.id);
+    return (
+      <div style={{ ...style, paddingBottom: '16px' }}>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150 group h-full">
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center space-x-3">
+              {person.profile_picture_url ? (
+                <img src={person.profile_picture_url} alt={getFullName(person)} className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {getFullName(person)}
+                  {person.date_of_birth && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({getAge(person.date_of_birth)})</span>}
+                </h3>
+                {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">AKA: {person.aliases.join(', ')}</p>}
+              </div>
+            </div>
+            <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <button onClick={() => setSelectedPersonForDetail(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150" title="View Details"><Eye className="w-4 h-4" /></button>
+              <button onClick={() => setEditingPerson(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-600 hover:text-white transition-colors duration-150" title="Edit"><Edit2 className="w-4 h-4" /></button>
+              <button onClick={() => handleDelete(person.id)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors duration-150" title="Delete"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+          <div className="space-y-2 mt-3">
+            {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 mr-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.category}</span></div>}
+            {person.case_name && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-2 text-accent-tertiary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span></div>}
+            <div className="flex items-center text-sm"><Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{connectionCount} connections</span></div>
+            <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">Modified {getTimeAgo(new Date(person.updated_at || person.created_at))}</span></div>
+          </div>
+          {person.status && <div className="mt-3"><span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>{person.status}</span></div>}
+        </div>
+      </div>
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredPeople, people]);
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -138,9 +187,11 @@ const PeopleList = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
             <Users className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
             {filteredPeople.length === people.length ? (
-              <span className="font-medium">{people.length} people</span>
+              <span className="font-medium">
+                {people.length}{peopleMeta.total > people.length ? ` of ${peopleMeta.total}` : ''} people
+              </span>
             ) : (
-              <span className="font-medium">{filteredPeople.length} of {people.length} people</span>
+              <span className="font-medium">{filteredPeople.length} of {people.length} loaded</span>
             )}
           </p>
         </div>
@@ -250,8 +301,23 @@ const PeopleList = () => {
           setEditingPerson={setEditingPerson}
           setSelectedPersonForDetail={setSelectedPersonForDetail}
         />
+      ) : filteredPeople.length >= VIRTUAL_THRESHOLD ? (
+        /* Virtualized list — used when large number of people */
+        <div>
+          {filteredPeople.length === 0 ? null : (
+            <FixedSizeList
+              height={Math.min(filteredPeople.length * CARD_ITEM_HEIGHT, 700)}
+              itemCount={filteredPeople.length}
+              itemSize={CARD_ITEM_HEIGHT}
+              width="100%"
+              overscanCount={3}
+            >
+              {renderVirtualCard}
+            </FixedSizeList>
+          )}
+        </div>
       ) : (
-        /* People Cards Grid */
+        /* CSS grid — used for smaller datasets */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPeople.map(person => (
           <div key={person.id} className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150 group">
@@ -344,11 +410,31 @@ const PeopleList = () => {
 
           {filteredPeople.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-8 max-w-md mx-auto">
-                <Users className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 font-medium">No people found matching your search criteria.</p>
-                <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Try adjusting your filters or search terms.</p>
+              <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-gray-300 dark:border-slate-700 shadow-glass-lg rounded-lg p-8 max-w-md mx-auto">
+                <Users className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-slate-400 font-medium">No people found matching your search criteria.</p>
+                <p className="text-gray-500 dark:text-slate-500 text-sm mt-2">Try adjusting your filters or search terms.</p>
               </div>
+            </div>
+          )}
+
+          {/* Load More — only shown when no active filter (so count matches server total) */}
+          {peopleMeta.hasMore && filteredPeople.length === people.length && (
+            <div className="col-span-full flex flex-col items-center py-6 space-y-2">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Showing {people.length} of {peopleMeta.total} people
+              </p>
+              <button
+                onClick={async () => {
+                  setLoadingMore(true);
+                  await loadMorePeople();
+                  setLoadingMore(false);
+                }}
+                disabled={loadingMore}
+                className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:shadow-glow-sm transition-[box-shadow] duration-150 text-sm font-medium disabled:opacity-60 active:scale-[0.97]"
+              >
+                {loadingMore ? 'Loading…' : `Load more (${peopleMeta.total - people.length} remaining)`}
+              </button>
             </div>
           )}
         </div>

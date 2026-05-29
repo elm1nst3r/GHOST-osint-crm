@@ -1,11 +1,16 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI } from '../utils/api';
 import { DEFAULT_APP_SETTINGS } from '../utils/constants';
 
 const DataContext = createContext(null);
 
+const PAGE_SIZE = 100;
+
 export const DataProvider = ({ children }) => {
   const [people, setPeople] = useState([]);
+  const [peopleMeta, setPeopleMeta] = useState({ total: 0, hasMore: false });
+  const peopleLoadedRef = useRef(0); // tracks how many people are currently in state
+
   const [businesses, setBusinesses] = useState([]);
   const [tools, setTools] = useState([]);
   const [todos, setTodos] = useState([]);
@@ -19,14 +24,26 @@ export const DataProvider = ({ children }) => {
     }
   });
 
-  const fetchPeople = useCallback(async () => {
+  // Fetch people from a given offset. offset=0 replaces the list; offset>0 appends.
+  const fetchPeople = useCallback(async (offset = 0) => {
     try {
-      const data = await peopleAPI.getAll();
-      setPeople(data);
+      const { data, meta } = await peopleAPI.getAll({ limit: PAGE_SIZE, offset });
+      if (offset === 0) {
+        setPeople(data);
+        peopleLoadedRef.current = data.length;
+      } else {
+        setPeople(prev => [...prev, ...data]);
+        peopleLoadedRef.current += data.length;
+      }
+      setPeopleMeta({ total: meta.total, hasMore: meta.hasMore });
     } catch (err) {
       console.error('Error fetching people:', err);
     }
   }, []);
+
+  const loadMorePeople = useCallback(async () => {
+    await fetchPeople(peopleLoadedRef.current);
+  }, [fetchPeople]);
 
   const fetchBusinesses = useCallback(async () => {
     try {
@@ -66,7 +83,7 @@ export const DataProvider = ({ children }) => {
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
-      fetchPeople(),
+      fetchPeople(0),
       fetchBusinesses(),
       fetchTools(),
       fetchTodos(),
@@ -89,7 +106,7 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      people, setPeople, fetchPeople,
+      people, setPeople, fetchPeople, peopleMeta, loadMorePeople,
       businesses, setBusinesses, fetchBusinesses,
       tools, setTools, fetchTools,
       todos, setTodos, fetchTodos,

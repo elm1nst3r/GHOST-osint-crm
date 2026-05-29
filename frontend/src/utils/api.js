@@ -31,7 +31,20 @@ const fetchAPI = async (endpoint, options = {}) => {
       return response;
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // When caller requests pagination metadata, return it alongside the data
+    if (options.returnMeta) {
+      return {
+        data,
+        meta: {
+          total: parseInt(response.headers.get('X-Total-Count') || '0', 10),
+          hasMore: response.headers.get('X-Has-More') === 'true',
+        },
+      };
+    }
+
+    return data;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
@@ -46,7 +59,8 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 // People API
 export const peopleAPI = {
-  getAll: () => fetchAPI('/people'),
+  getAll: ({ limit = 100, offset = 0 } = {}) =>
+    fetchAPI(`/people?limit=${limit}&offset=${offset}`, { returnMeta: true }),
   
   create: (personData) => fetchAPI('/people', {
     method: 'POST',
