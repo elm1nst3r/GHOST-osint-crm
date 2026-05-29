@@ -164,7 +164,7 @@ const WirelessNetworks = () => {
   };
 
   const getSignalColor = (signal) => {
-    if (!signal) return 'text-gray-500';
+    if (!signal) return 'text-gray-500 dark:text-slate-400';
     if (signal >= -50) return 'text-green-600 dark:text-green-400';
     if (signal >= -60) return 'text-blue-600 dark:text-blue-400';
     if (signal >= -70) return 'text-yellow-600 dark:text-yellow-400';
@@ -258,7 +258,7 @@ const WirelessNetworks = () => {
           {/* Row 1: Search and Type/Encryption */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by SSID or BSSID..."

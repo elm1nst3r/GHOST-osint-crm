@@ -98,12 +98,12 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
       </div>
 
       {showAddForm && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-900 rounded-lg">
           <h4 className="font-medium mb-3">{editingField ? 'Edit' : 'Add'} Custom Field</h4>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Field Name (Internal)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Name (Internal)</label>
                 <input
                   type="text"
                   value={formData.field_name}
@@ -113,10 +113,10 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                   required
                   disabled={editingField}
                 />
-                <p className="text-xs text-gray-500 mt-1">Letters, numbers, underscores only</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Letters, numbers, underscores only</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Field Label (Display)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Label (Display)</label>
                 <input
                   type="text"
                   value={formData.field_label}
@@ -129,7 +129,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Type</label>
               <select
                 value={formData.field_type}
                 onChange={(e) => setFormData({ ...formData, field_type: e.target.value })}
@@ -143,7 +143,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
             
             {formData.field_type === 'select' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Options</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Options</label>
                 <div className="flex space-x-2 mb-2">
                   <input
                     type="text"
@@ -163,12 +163,12 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.options.map((option, index) => (
-                    <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100">
+                    <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 dark:bg-slate-700">
                       {option}
                       <button
                         type="button"
                         onClick={() => removeOption(option)}
-                        className="ml-1 text-gray-500 hover:text-red-500"
+                        className="ml-1 text-gray-500 dark:text-slate-400 hover:text-red-500"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -195,7 +195,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-3 py-1 text-gray-700 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
+                className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300"
               >
                 Cancel
               </button>
@@ -212,7 +212,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
 
       <div className="space-y-2">
         {customFields.map(field => (
-          <div key={field.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div key={field.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
             <div>
               <div className="font-medium">{field.field_label}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -224,13 +224,13 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
             </div>
             <div className="flex items-center space-x-2">
               <span className={`px-2 py-1 text-xs rounded ${
-                field.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                field.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400'
               }`}>
                 {field.is_active ? 'Active' : 'Inactive'}
               </span>
               <button
                 onClick={() => handleEdit(field)}
-                className="text-gray-600 hover:text-gray-700"
+                className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                 title="Edit"
               >
                 <Edit2 className="w-4 h-4" />

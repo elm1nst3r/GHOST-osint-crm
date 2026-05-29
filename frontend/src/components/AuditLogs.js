@@ -260,7 +260,7 @@ const AuditLogs = () => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
+                        <User className="h-4 w-4 text-gray-400 dark:text-slate-500" />
                         <span className="text-gray-900 dark:text-white">
                           {log.username || 'System'}
                         </span>

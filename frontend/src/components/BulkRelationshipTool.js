@@ -259,13 +259,13 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
               <LinkIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Bulk Create Relationships</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Bulk Create Relationships</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">Add multiple connections between people at once</p>
             </div>
           </div>
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 rounded-lg transition-all"
             title="Help"
           >
             <HelpCircle className="w-5 h-5" />
@@ -315,7 +315,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         {/* Interactive Mode */}
         {mode === 'interactive' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-700 mb-2 px-2">
+            <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2 px-2">
               <div className="col-span-4">From Person</div>
               <div className="col-span-4">To Person</div>
               <div className="col-span-2">Type</div>
@@ -328,7 +328,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                   <select
                     value={rel.from}
                     onChange={(e) => updateRelationship(index, 'from', e.target.value)}
-                    className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">Select person...</option>
                     {people.map(person => (
@@ -341,7 +341,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                   <select
                     value={rel.to}
                     onChange={(e) => updateRelationship(index, 'to', e.target.value)}
-                    className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">Select person...</option>
                     {people.map(person => (
@@ -354,7 +354,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                   <select
                     value={rel.type}
                     onChange={(e) => updateRelationship(index, 'type', e.target.value)}
-                    className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm capitalize"
+                    className="col-span-2 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm capitalize"
                   >
                     {RELATIONSHIP_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -366,7 +366,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                     value={rel.note}
                     onChange={(e) => updateRelationship(index, 'note', e.target.value)}
                     placeholder="Optional note"
-                    className="col-span-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="col-span-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   />
 
                   <button
@@ -382,7 +382,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
 
             <button
               onClick={addRelationship}
-              className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-all"
+              className="w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg text-gray-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 transition-all"
             >
               + Add Relationship
             </button>
@@ -392,17 +392,17 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         {/* CSV Mode */}
         {mode === 'csv' && (
           <div className="space-y-4">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-mono text-gray-700 dark:text-gray-300">
+            <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3 text-sm font-mono text-gray-700 dark:text-gray-300">
               <div className="font-semibold mb-1">Format:</div>
               <div>From, To, Type, Note</div>
-              <div className="text-xs text-gray-500 mt-2">Example:</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">Example:</div>
               <div className="text-xs">John Doe, Jane Smith, family, Siblings</div>
             </div>
 
             <textarea
               value={csvData}
               onChange={(e) => setCsvData(e.target.value)}
-              className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Paste CSV data here...&#10;From, To, Type, Note&#10;John Doe, Jane Smith, family, Siblings&#10;Alice Johnson, Bob Williams, associate, Business partners"
             />
 
@@ -414,10 +414,10 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+        <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
+            className="px-6 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
           >
             Cancel
           </button>

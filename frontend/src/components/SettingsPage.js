@@ -363,9 +363,9 @@ const SettingsPage = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-6">Settings</h1>
       
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
         {/* Tabs */}
         <div className="border-b">
           <nav className="flex space-x-8 px-6" aria-label="Tabs">
@@ -394,7 +394,7 @@ const SettingsPage = () => {
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Application Name</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Application Name</label>
                     <div className="flex space-x-2">
                       <input
                         type="text"
@@ -412,13 +412,13 @@ const SettingsPage = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Application Logo</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Application Logo</label>
                     <div className="flex items-center space-x-4">
                       {appSettings.appLogo ? (
                         <img src={appSettings.appLogo} alt="App Logo" className="h-16 w-16 object-contain rounded" />
                       ) : (
-                        <div className="h-16 w-16 bg-gray-200 rounded flex items-center justify-center">
-                          <Shield className="w-8 h-8 text-gray-400" />
+                        <div className="h-16 w-16 bg-gray-200 dark:bg-slate-600 rounded flex items-center justify-center">
+                          <Shield className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                         </div>
                       )}
                       <div>
@@ -431,12 +431,12 @@ const SettingsPage = () => {
                         />
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
+                          className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center"
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           Upload Logo
                         </button>
-                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, or SVG. Max 5MB.</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">PNG, JPG, GIF, or SVG. Max 5MB.</p>
                       </div>
                     </div>
                   </div>
@@ -474,11 +474,11 @@ const SettingsPage = () => {
                 </div>
 
                 {showAddOptionForm && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-900 rounded-lg">
                     <h4 className="font-medium mb-3">Add New Option</h4>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Category</label>
                         <select
                           value={selectedModelType}
                           onChange={(e) => setSelectedModelType(e.target.value)}
@@ -490,7 +490,7 @@ const SettingsPage = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Display Order</label>
                         <input
                           type="number"
                           value={optionForm.display_order}
@@ -501,7 +501,7 @@ const SettingsPage = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Internal Value *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Internal Value *</label>
                         <input
                           type="text"
                           value={optionForm.option_value}
@@ -512,7 +512,7 @@ const SettingsPage = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Display Label *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Display Label *</label>
                         <input
                           type="text"
                           value={optionForm.option_label}
@@ -541,7 +541,7 @@ const SettingsPage = () => {
                           setShowAddOptionForm(false);
                           setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
                         }}
-                        className="px-3 py-1 text-gray-700 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
+                        className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300"
                       >
                         Cancel
                       </button>
@@ -562,13 +562,13 @@ const SettingsPage = () => {
                     <div key={modelType} className="mb-4 border rounded-lg">
                       <button
                         onClick={() => toggleGroup(modelType)}
-                        className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-t-lg flex items-center justify-between transition-colors"
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 rounded-t-lg flex items-center justify-between transition-colors"
                       >
                         <div className="flex items-center space-x-2">
                           {expandedGroups[modelType] ? (
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                            <ChevronRight className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                           )}
                           <h4 className="font-medium text-gray-700 dark:text-gray-300">{label}</h4>
                           <span className="text-sm text-gray-500 dark:text-gray-400">({typeOptions.length} options)</span>
@@ -576,14 +576,14 @@ const SettingsPage = () => {
                       </button>
                       
                       {expandedGroups[modelType] && (
-                        <div className="p-4 space-y-2 bg-white rounded-b-lg">
+                        <div className="p-4 space-y-2 bg-white dark:bg-slate-800 rounded-b-lg">
                           {typeOptions.length === 0 ? (
-                            <p className="text-sm text-gray-500 text-center py-4">No options defined yet</p>
+                            <p className="text-sm text-gray-500 dark:text-slate-400 text-center py-4">No options defined yet</p>
                           ) : (
                             typeOptions
                               .sort((a, b) => a.display_order - b.display_order)
                               .map(option => (
-                                <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div key={option.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                                   <div className="flex items-center space-x-3">
                                     <span className="text-sm text-gray-500 dark:text-gray-400">#{option.display_order}</span>
                                     <div>
@@ -593,7 +593,7 @@ const SettingsPage = () => {
                                   </div>
                                   <div className="flex items-center space-x-2">
                                     <span className={`px-2 py-1 text-xs rounded ${
-                                      option.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                      option.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400'
                                     }`}>
                                       {option.is_active ? 'Active' : 'Inactive'}
                                     </span>
@@ -607,7 +607,7 @@ const SettingsPage = () => {
                                           is_active: option.is_active
                                         });
                                       }}
-                                      className="text-gray-600 hover:text-gray-700"
+                                      className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                                       title="Edit"
                                     >
                                       <Edit2 className="w-4 h-4" />
@@ -636,7 +636,7 @@ const SettingsPage = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Data Export</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                   Export all your data (people, tools, todos, custom fields, and settings) to a JSON file for backup or migration.
                 </p>
                 <button 
@@ -666,7 +666,7 @@ const SettingsPage = () => {
               
               <div className="pt-6 border-t">
                 <h3 className="text-lg font-semibold mb-4">Data Import</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                   Import data from a previously exported JSON file. This will merge the data with existing records.
                 </p>
                 <input
@@ -721,32 +721,32 @@ const SettingsPage = () => {
           {activeTab === 'profile' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">My Profile</h3>
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">
                 Update your personal information and change your password.
               </p>
 
               <form onSubmit={handleProfileSave} className="space-y-6 max-w-2xl">
                 {/* Account Information */}
                 <div className="border-b pb-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">Account Information</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-slate-100 mb-4">Account Information</h4>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Username</label>
                       <div className="relative">
                         <input
                           type="text"
                           value={profileForm.username}
                           disabled
-                          className="w-full px-3 py-2 border rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                          className="w-full px-3 py-2 border rounded-md bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400 cursor-not-allowed"
                         />
-                        <Lock className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+                        <Lock className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 dark:text-slate-500" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Username cannot be changed</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
                       <input
                         type="email"
                         value={profileForm.email}
@@ -757,7 +757,7 @@ const SettingsPage = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">First Name</label>
                         <input
                           type="text"
                           value={profileForm.first_name}
@@ -767,7 +767,7 @@ const SettingsPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Last Name</label>
                         <input
                           type="text"
                           value={profileForm.last_name}
@@ -781,14 +781,14 @@ const SettingsPage = () => {
 
                 {/* Change Password */}
                 <div className="border-b pb-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">Change Password</h4>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-slate-100 mb-4">Change Password</h4>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                     Leave password fields empty if you don't want to change your password.
                   </p>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Current Password</label>
                       <input
                         type="password"
                         value={profileForm.current_password}
@@ -799,7 +799,7 @@ const SettingsPage = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">New Password</label>
                       <input
                         type="password"
                         value={profileForm.new_password}
@@ -810,7 +810,7 @@ const SettingsPage = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Confirm New Password</label>
                       <input
                         type="password"
                         value={profileForm.confirm_password}
@@ -864,51 +864,51 @@ const SettingsPage = () => {
           {activeTab === 'audit' && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Audit Log</h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                 View a log of all changes made to the system.
               </p>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                  <thead className="bg-gray-50 dark:bg-slate-900">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entity</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Old Value</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">New Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Timestamp</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Entity</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Field</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Old Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">New Value</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {auditLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                           <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                            <Clock className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                             {new Date(log.created_at).toLocaleString()}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                           {log.entity_type} #{log.entity_id}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`inline-block px-2 py-1 text-xs rounded ${
-                            log.action === 'create' ? 'bg-green-100 text-green-800' :
-                            log.action === 'update' ? 'bg-blue-100 text-blue-800' :
-                            log.action === 'delete' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+                            log.action === 'create' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+                            log.action === 'update' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' :
+                            log.action === 'delete' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' :
+                            'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200'
                           }`}>
                             {log.action}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                           {log.field_name || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                           {formatAuditValue(log.old_value)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                           {formatAuditValue(log.new_value)}
                         </td>
                       </tr>
@@ -938,21 +938,21 @@ const SettingsPage = () => {
       {/* Edit Option Modal */}
       {editingOption && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">Edit Option</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Value</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Internal Value</label>
                 <input
                   type="text"
                   value={optionForm.option_value}
                   disabled
-                  className="w-full px-3 py-2 border rounded-md text-sm bg-gray-100"
+                  className="w-full px-3 py-2 border rounded-md text-sm bg-gray-100 dark:bg-slate-700"
                 />
-                <p className="text-xs text-gray-500 mt-1">Internal value cannot be changed</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Internal value cannot be changed</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Label</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Display Label</label>
                 <input
                   type="text"
                   value={optionForm.option_label}
@@ -961,7 +961,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Display Order</label>
                 <input
                   type="number"
                   value={optionForm.display_order}
@@ -988,7 +988,7 @@ const SettingsPage = () => {
                   setEditingOption(null);
                   setOptionForm({ option_value: '', option_label: '', display_order: 999, is_active: true });
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>
@@ -1006,38 +1006,38 @@ const SettingsPage = () => {
       {/* Import Preview Modal */}
       {showImportPreview && importPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl">
             <h3 className="text-lg font-semibold mb-4">Import Preview</h3>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">File Name</label>
-                  <p className="text-sm text-gray-900">{importPreview.fileName}</p>
+                  <p className="text-sm text-gray-900 dark:text-slate-100">{importPreview.fileName}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">File Size</label>
-                  <p className="text-sm text-gray-900">{importPreview.fileSize}</p>
+                  <p className="text-sm text-gray-900 dark:text-slate-100">{importPreview.fileSize}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Version</label>
-                  <p className="text-sm text-gray-900">{importPreview.version}</p>
+                  <p className="text-sm text-gray-900 dark:text-slate-100">{importPreview.version}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Export Date</label>
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-slate-100">
                     {importPreview.exportDate ? new Date(importPreview.exportDate).toLocaleString() : 'N/A'}
                   </p>
                 </div>
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Records to Import</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Records to Import</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(importPreview.counts).map(([key, count]) => (
-                    <div key={key} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                      <span className="text-sm font-medium text-gray-900">{count}</span>
+                    <div key={key} className="flex justify-between items-center bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded">
+                      <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{count}</span>
                     </div>
                   ))}
                 </div>
@@ -1062,7 +1062,7 @@ const SettingsPage = () => {
                   setShowImportPreview(false);
                   setImportPreview(null);
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>

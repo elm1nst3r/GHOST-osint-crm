@@ -203,7 +203,7 @@ const CaseManagement = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Case Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Case Management</h1>
         <button
           onClick={() => setShowNewCaseForm(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
@@ -216,7 +216,7 @@ const CaseManagement = () => {
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
           <input
             type="text"
             placeholder="Search cases..."
@@ -229,11 +229,11 @@ const CaseManagement = () => {
 
       {/* New Case Form */}
       {showNewCaseForm && (
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold mb-4">Create New Case</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Case Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Case Name</label>
               <input
                 type="text"
                 value={newCaseData.case_name}
@@ -243,7 +243,7 @@ const CaseManagement = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
               <textarea
                 value={newCaseData.description}
                 onChange={(e) => setNewCaseData({ ...newCaseData, description: e.target.value })}
@@ -258,7 +258,7 @@ const CaseManagement = () => {
                   setShowNewCaseForm(false);
                   setNewCaseData({ case_name: '', description: '', status: 'active' });
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>
@@ -276,14 +276,14 @@ const CaseManagement = () => {
       {/* Cases List */}
       <div className="space-y-4">
         {filteredCases.map(caseItem => (
-          <div key={caseItem.id} className="bg-white rounded-lg shadow-sm border">
+          <div key={caseItem.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
             {/* Case Header */}
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => toggleCase(caseItem.id)}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 dark:text-slate-400 hover:text-gray-700"
                   >
                     {expandedCases[caseItem.id] ? (
                       <ChevronDown className="w-5 h-5" />
@@ -294,9 +294,9 @@ const CaseManagement = () => {
                   <Folder className="w-5 h-5 text-blue-600" />
                   <h3 className="text-lg font-semibold">{caseItem.case_name}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    caseItem.status === 'active' ? 'bg-green-100 text-green-800' :
-                    caseItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                    'bg-yellow-100 text-yellow-800'
+                    caseItem.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+                    caseItem.status === 'closed' ? 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200' :
+                    'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
                   }`}>
                     {caseItem.status}
                   </span>
@@ -345,11 +345,11 @@ const CaseManagement = () => {
             {expandedCases[caseItem.id] && (
               <div className="border-t">
                 {/* Case Settings */}
-                <div className="p-4 bg-gray-50">
+                <div className="p-4 bg-gray-50 dark:bg-slate-900">
                   {editingCase === caseItem.id ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Case Name</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Case Name</label>
                         <input
                           type="text"
                           value={caseItem.case_name}
@@ -363,7 +363,7 @@ const CaseManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
                         <textarea
                           value={caseItem.description || ''}
                           onChange={(e) => {
@@ -377,7 +377,7 @@ const CaseManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
                         <select
                           value={caseItem.status}
                           onChange={(e) => {
@@ -396,7 +396,7 @@ const CaseManagement = () => {
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => setEditingCase(null)}
-                          className="px-3 py-1 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                          className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300"
                         >
                           Cancel
                         </button>
@@ -416,14 +416,14 @@ const CaseManagement = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{caseItem.description || 'No description'}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                           Created: {new Date(caseItem.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex space-x-2">
                         <button
                           onClick={() => setEditingCase(caseItem.id)}
-                          className="text-gray-600 hover:text-gray-700"
+                          className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -445,7 +445,7 @@ const CaseManagement = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setShowAddPeopleModal(caseItem.case_name)}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center text-sm"
+                        className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
                       >
                         <UserPlus className="w-4 h-4 mr-1" />
                         Add Existing
@@ -462,7 +462,7 @@ const CaseManagement = () => {
 
                   {/* Quick Add Form */}
                   {showQuickAdd === caseItem.case_name && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                       <div className="flex space-x-2">
                         <input
                           type="text"
@@ -489,7 +489,7 @@ const CaseManagement = () => {
                             setShowQuickAdd(null);
                             setQuickAddPerson({ firstName: '', lastName: '' });
                           }}
-                          className="px-3 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 text-sm"
+                          className="px-3 py-2 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300 text-sm"
                         >
                           Cancel
                         </button>
@@ -500,14 +500,14 @@ const CaseManagement = () => {
                   {/* People List */}
                   <div className="space-y-2">
                     {caseItem.people.map(person => (
-                      <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                      <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg hover:bg-gray-100">
                         <div className="flex items-center space-x-3">
-                          <User className="w-4 h-4 text-gray-400" />
+                          <User className="w-4 h-4 text-gray-400 dark:text-slate-500" />
                           <div>
                             <p className="font-medium">
                               {getFullName(person)}
                               {person.date_of_birth && (
-                                <span className="text-gray-500 ml-2">
+                                <span className="text-gray-500 dark:text-slate-400 ml-2">
                                   ({getAge(person.date_of_birth)})
                                 </span>
                               )}
@@ -529,7 +529,7 @@ const CaseManagement = () => {
                           </button>
                           <button
                             onClick={() => setEditingPerson(person)}
-                            className="text-gray-600 hover:text-gray-700"
+                            className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -547,12 +547,12 @@ const CaseManagement = () => {
       {/* Add People Modal */}
       {showAddPeopleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">Add People to {showAddPeopleModal}</h3>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">Select people to add to this case:</p>
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">Select people to add to this case:</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {availablePeople.map(person => (
                   <label key={person.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
@@ -581,7 +581,7 @@ const CaseManagement = () => {
                     setShowAddPeopleModal(null);
                     setSelectedPeopleToAdd([]);
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
                 >
                   Cancel
                 </button>

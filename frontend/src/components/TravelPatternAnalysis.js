@@ -191,7 +191,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
   return (
     <div className="space-y-6">
       {/* Header with Navigation */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Travel Pattern Analysis</h3>
           <button
@@ -242,14 +242,14 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
 
       {/* Add/Edit Form */}
       {(showAddForm || editingTravel) && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
           <h4 className="text-lg font-semibold mb-4">
             {editingTravel ? 'Edit Travel Record' : 'Add Travel Record'}
           </h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Location Name</label>
                 <input
                   type="text"
                   value={formData.location_name}
@@ -260,7 +260,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Purpose</label>
                 <select
                   value={formData.purpose}
                   onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
@@ -278,7 +278,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">City *</label>
                 <input
                   type="text"
                   value={formData.city}
@@ -289,7 +289,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">State/Province</label>
                 <input
                   type="text"
                   value={formData.state}
@@ -299,7 +299,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Country *</label>
                 <input
                   type="text"
                   value={formData.country}
@@ -311,7 +311,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Street Address</label>
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -329,7 +329,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 </button>
               </div>
               {formData.latitude && formData.longitude && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                   Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                 </p>
               )}
@@ -337,7 +337,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Date *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Arrival Date *</label>
                 <input
                   type="datetime-local"
                   value={formData.arrival_date}
@@ -348,7 +348,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Departure Date</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Departure Date</label>
                 <input
                   type="datetime-local"
                   value={formData.departure_date}
@@ -359,7 +359,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Transportation Mode</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Transportation Mode</label>
               <select
                 value={formData.transportation_mode}
                 onChange={(e) => setFormData({ ...formData, transportation_mode: e.target.value })}
@@ -375,7 +375,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -388,7 +388,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>
@@ -405,7 +405,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
 
       {/* Content based on active view */}
       {activeView === 'timeline' && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
           <h4 className="text-lg font-semibold mb-4">Travel Timeline</h4>
           {travelData?.history?.length > 0 ? (
             <div className="space-y-4">
@@ -427,7 +427,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                       {travel.location_name && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">{travel.location_name}</p>
                       )}
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-slate-400 mt-1">
                         <span className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
                           {formatDate(travel.arrival_date)} - {formatDate(travel.departure_date)}
@@ -437,13 +437,13 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                           {getDuration(travel.arrival_date, travel.departure_date)}
                         </span>
                         {travel.purpose && (
-                          <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                          <span className="px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs">
                             {TRAVEL_PURPOSES.find(p => p.value === travel.purpose)?.label || travel.purpose}
                           </span>
                         )}
                       </div>
                       {travel.notes && (
-                        <p className="text-sm text-gray-600 mt-2">{travel.notes}</p>
+                        <p className="text-sm text-gray-600 dark:text-slate-400 mt-2">{travel.notes}</p>
                       )}
                     </div>
                     <div className="flex space-x-1">
@@ -458,7 +458,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                               new Date(travel.departure_date).toISOString().slice(0, 16) : ''
                           });
                         }}
-                        className="text-gray-600 hover:text-gray-700"
+                        className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -474,13 +474,13 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No travel history recorded yet.</p>
+            <p className="text-gray-500 dark:text-slate-400 text-center py-8">No travel history recorded yet.</p>
           )}
         </div>
       )}
 
       {activeView === 'map' && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
           <h4 className="text-lg font-semibold mb-4">Travel Map</h4>
           <div className="h-96 rounded-lg overflow-hidden">
             <MapContainer
@@ -508,7 +508,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                     <div className="p-2">
                       <h5 className="font-semibold">{travel.city}, {travel.country}</h5>
                       {travel.location_name && <p className="text-sm">{travel.location_name}</p>}
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-600 dark:text-slate-400 mt-1">
                         {formatDate(travel.arrival_date)} - {formatDate(travel.departure_date)}
                       </p>
                       {travel.purpose && (
@@ -553,7 +553,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
         <div className="space-y-6">
           {/* Summary Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Countries Visited</p>
@@ -565,7 +565,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Cities Visited</p>
@@ -577,7 +577,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Trips</p>
@@ -589,7 +589,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Avg Trip Duration</p>
@@ -603,12 +603,12 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
           </div>
 
           {/* Most Visited Locations */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h4 className="text-lg font-semibold mb-4">Most Visited Locations</h4>
             {travelData.frequentLocations?.length > 0 ? (
               <div className="space-y-2">
                 {travelData.frequentLocations.map((location, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-semibold text-blue-600">
                         {index + 1}
@@ -624,12 +624,12 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No location data available</p>
+              <p className="text-gray-500 dark:text-slate-400 text-center py-4">No location data available</p>
             )}
           </div>
 
           {/* Travel by Purpose */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h4 className="text-lg font-semibold mb-4">Travel by Purpose</h4>
             {travelData.travelByPurpose?.length > 0 ? (
               <div className="space-y-2">
@@ -643,7 +643,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                         <span className="font-medium">{purposeLabel}</span>
                         <span className="text-gray-600 dark:text-gray-400">{purpose.count} trips ({percentage}%)</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
                           style={{ width: `${percentage}%` }}
@@ -654,12 +654,12 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 })}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No purpose data available</p>
+              <p className="text-gray-500 dark:text-slate-400 text-center py-4">No purpose data available</p>
             )}
           </div>
 
           {/* Travel Patterns */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h4 className="text-lg font-semibold mb-4">Travel Patterns & Insights</h4>
             <div className="space-y-3">
               {travelData.statistics?.first_trip && (

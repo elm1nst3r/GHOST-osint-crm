@@ -39,10 +39,10 @@ const BusinessList = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'dissolved': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
+      case 'inactive': return 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200';
+      case 'dissolved': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400';
+      default: return 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200';
     }
   };
 
@@ -52,8 +52,8 @@ const BusinessList = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Management</h1>
-          <p className="text-sm text-gray-600 mt-1 flex items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Business Management</h1>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mt-1 flex items-center">
             <Building2 className="w-4 h-4 mr-1" />
             {filteredBusinesses.length === businesses.length ? (
               <span>{businesses.length} businesses</span>
@@ -76,7 +76,7 @@ const BusinessList = () => {
         <div className="flex space-x-4">
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by name, owner, or city..."
@@ -112,14 +112,14 @@ const BusinessList = () => {
       {/* Business Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredBusinesses.map(business => (
-          <div key={business.id} className="bg-white rounded-lg shadow-sm p-6 border hover:shadow-md transition-shadow">
+          <div key={business.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{business.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{business.name}</h3>
                   {business.type && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">{business.type}</p>
                   )}
@@ -128,7 +128,7 @@ const BusinessList = () => {
               <div className="flex space-x-1">
                 <button
                   onClick={() => setEditingBusiness(business)}
-                  className="text-gray-600 hover:text-gray-700"
+                  className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
                   title="Edit"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -146,14 +146,14 @@ const BusinessList = () => {
             <div className="space-y-2">
               {business.industry && (
                 <div className="flex items-center text-sm">
-                  <Building2 className="w-4 h-4 mr-2 text-gray-400" />
+                  <Building2 className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">{business.industry}</span>
                 </div>
               )}
               
               {(business.owner_first_name || business.owner_last_name) && (
                 <div className="flex items-center text-sm">
-                  <User className="w-4 h-4 mr-2 text-gray-400" />
+                  <User className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
                     Owner: {business.owner_first_name} {business.owner_last_name}
                   </span>
@@ -162,7 +162,7 @@ const BusinessList = () => {
               
               {business.city && (
                 <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                  <MapPin className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
                     {[business.city, business.state, business.country]
                       .filter(Boolean)
@@ -173,7 +173,7 @@ const BusinessList = () => {
               
               {business.employee_count > 0 && (
                 <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 mr-2 text-gray-400" />
+                  <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">{business.employee_count} employees</span>
                 </div>
               )}

@@ -18,7 +18,7 @@ const DebugPanel = ({ people, nodes, edges, show }) => {
   if (!show) return null;
   
   return (
-    <div className="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-lg p-4 max-w-md max-h-96 overflow-auto">
+    <div className="absolute bottom-4 left-4 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-md max-h-96 overflow-auto">
       <h3 className="font-bold mb-2">Debug Information</h3>
       <div className="space-y-2 text-xs">
         <div>
@@ -32,7 +32,7 @@ const DebugPanel = ({ people, nodes, edges, show }) => {
         </div>
         <details>
           <summary className="cursor-pointer font-medium">People with Connections</summary>
-          <pre className="mt-2 bg-gray-100 p-2 rounded overflow-auto">
+          <pre className="mt-2 bg-gray-100 dark:bg-slate-700 p-2 rounded overflow-auto">
             {JSON.stringify(
               people.filter(p => p.connections && p.connections.length > 0).map(p => ({
                 id: p.id,
@@ -46,7 +46,7 @@ const DebugPanel = ({ people, nodes, edges, show }) => {
         </details>
         <details>
           <summary className="cursor-pointer font-medium">All Edges</summary>
-          <pre className="mt-2 bg-gray-100 p-2 rounded overflow-auto">
+          <pre className="mt-2 bg-gray-100 dark:bg-slate-700 p-2 rounded overflow-auto">
             {JSON.stringify(edges.map(e => ({
               id: e.id,
               source: e.source,
@@ -67,7 +67,7 @@ const PersonNode = ({ data, selected }) => {
   return (
     <>
       <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
-      <div className={`px-4 py-3 shadow-lg rounded-lg border-2 ${selected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'} bg-white cursor-pointer min-w-[200px]`}>
+      <div className={`px-4 py-3 shadow-lg rounded-lg border-2 ${selected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-slate-800 cursor-pointer min-w-[200px]`}>
         <div className="flex items-center space-x-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ${
             data.category === 'Person of Interest' ? 'bg-red-500' : 
@@ -84,17 +84,17 @@ const PersonNode = ({ data, selected }) => {
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-medium text-gray-900 truncate">{data.label}</div>
+            <div className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">{data.label}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">{data.category || 'Unknown'}</div>
             {data.caseName && <div className="text-xs text-blue-600 truncate">{data.caseName}</div>}
           </div>
         </div>
         {data.status && (
           <div className={`mt-2 text-xs px-2 py-1 rounded-full inline-block ${
-            data.status === 'Open' ? 'bg-green-100 text-green-800' :
-            data.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' :
-            data.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
-            'bg-blue-100 text-blue-800'
+            data.status === 'Open' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+            data.status === 'Being Investigated' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' :
+            data.status === 'Closed' ? 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200' :
+            'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
           }`}>
             {data.status}
           </div>
@@ -467,7 +467,7 @@ const RelationshipDiagram = ({
   return (
     <div className="h-full w-full relative" style={{ minHeight: '400px' }}>
       {/* Toolbar */}
-      <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-3 space-y-2">
+      <div className="absolute top-4 left-4 z-10 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3 space-y-2">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowDebug(!showDebug)}
@@ -521,21 +521,21 @@ const RelationshipDiagram = ({
             const layoutedNodes = applyLayout(nodes, edges, newLayout);
             setNodes(layoutedNodes);
           }}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md"
         >
           <option value="hierarchical">Hierarchical Layout</option>
           <option value="circular">Circular Layout</option>
           <option value="grid">Grid Layout</option>
         </select>
         
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-gray-500 dark:text-slate-400 space-y-1">
           <div>Nodes: {nodes.length}</div>
           <div>Connections: {edges.length}</div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-3">
+      <div className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3">
         <h4 className="text-sm font-semibold mb-2">Connection Types</h4>
         <div className="space-y-1">
           {Object.entries(edgeStyles).map(([type, style]) => (
@@ -580,7 +580,7 @@ const RelationshipDiagram = ({
           animated: false
         }}
         connectionMode="loose"
-        className="bg-gray-50"
+        className="bg-gray-50 dark:bg-slate-900"
         minZoom={0.1}
         maxZoom={2}
       >
@@ -604,23 +604,23 @@ const RelationshipDiagram = ({
       {/* Connection Modal */}
       {connectionModal && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">Create Connection</h3>
             
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
                 Connecting: <span className="font-medium">{connectionModal.sourceName}</span> → <span className="font-medium">{connectionModal.targetName}</span>
               </p>
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Relationship Type
               </label>
               <select
                 value={connectionType}
                 onChange={(e) => setConnectionType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md"
               >
                 {Object.entries(edgeStyles).map(([type, style]) => (
                   <option key={type} value={type}>{style.label}</option>
@@ -629,13 +629,13 @@ const RelationshipDiagram = ({
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                 Notes (optional)
               </label>
               <textarea
                 value={connectionNote}
                 onChange={(e) => setConnectionNote(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md"
                 rows="3"
                 placeholder="Add any relevant notes about this relationship..."
               />
@@ -648,7 +648,7 @@ const RelationshipDiagram = ({
                   setConnectionType('associate');
                   setConnectionNote('');
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>

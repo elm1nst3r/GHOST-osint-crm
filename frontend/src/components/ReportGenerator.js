@@ -1021,12 +1021,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <FileText className="w-6 h-6 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Generate Investigation Report</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Generate Investigation Report</h2>
           </div>
           <button onClick={onClose} className="text-gray-600 hover:text-gray-700 dark:text-gray-300">
             <X className="w-5 h-5" />
@@ -1051,7 +1051,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                 
                 {/* Report Type */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Report Type</label>
                   <select
                     value={reportOptions.reportType}
                     onChange={(e) => setReportOptions({ ...reportOptions, reportType: e.target.value })}
@@ -1065,7 +1065,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                 
                 {/* Date Range */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Date Range</label>
                   <select
                     value={reportOptions.dateRange}
                     onChange={(e) => setReportOptions({ ...reportOptions, dateRange: e.target.value })}
@@ -1080,7 +1080,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                 
                 {/* Include Options */}
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Include in Report:</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Include in Report:</label>
                   
                   {[
                     { key: 'includeSummary', label: 'Executive Summary', icon: FileText },
@@ -1100,7 +1100,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                         onChange={(e) => setReportOptions({ ...reportOptions, [key]: e.target.checked })}
                         className="h-4 w-4 text-blue-600 rounded"
                       />
-                      <Icon className="w-4 h-4 text-gray-400" />
+                      <Icon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
                       <span className="text-sm">{label}</span>
                     </label>
                   ))}
@@ -1111,7 +1111,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
               <div>
                 <h3 className="text-lg font-semibold mb-4">Report Preview</h3>
                 
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Report Scope:</span>
                     <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1144,59 +1144,59 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
                   <h4 className="font-medium mb-3">Report Structure:</h4>
                   <div className="space-y-2">
                     <div className="flex items-center text-sm">
-                      <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                      <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                       Cover Page
                     </div>
                     {reportOptions.includeSummary && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Executive Summary
                       </div>
                     )}
                     {reportOptions.includePeople && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         People Profiles ({data.people.length} profiles)
                       </div>
                     )}
                     {reportOptions.includeConnections && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Connections Analysis
                       </div>
                     )}
                     {reportOptions.includeLocations && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Location Data
                       </div>
                     )}
                     {reportOptions.includeOsintData && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         OSINT Intelligence
                       </div>
                     )}
                     {reportOptions.includeTodos && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Investigation Tasks
                       </div>
                     )}
                     {reportOptions.includeAuditLog && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Activity Timeline
                       </div>
                     )}
                     {reportOptions.includeCharts && (
                       <div className="flex items-center text-sm">
-                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                         Statistical Analysis
                       </div>
                     )}
                     <div className="flex items-center text-sm">
-                      <ChevronRight className="w-4 h-4 mr-1 text-gray-400" />
+                      <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500" />
                       Report Information
                     </div>
                   </div>
@@ -1217,7 +1217,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         <div className="p-6 border-t flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
           >
             Cancel
           </button>

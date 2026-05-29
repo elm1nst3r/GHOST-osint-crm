@@ -399,12 +399,12 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex">
         {/* Left Panel - Search Filters */}
-        <div className="w-96 border-r bg-gray-50 overflow-y-auto">
-          <div className="p-6 border-b bg-white">
+        <div className="w-96 border-r bg-gray-50 dark:bg-slate-900 overflow-y-auto">
+          <div className="p-6 border-b bg-white dark:bg-slate-800">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center">
                 <Search className="w-5 h-5 mr-2" />
                 Advanced Search
               </h2>
@@ -416,7 +416,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
           
           <div className="p-6 space-y-4">
             {/* Basic Search */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('basic')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -439,7 +439,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   />
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Search in:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Search in:</label>
                     <div className="space-y-2">
                       {[
                         { value: 'name', label: 'Names' },
@@ -476,7 +476,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             </div>
             
             {/* Categories & Status */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('categories')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -491,7 +491,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               {expandedSections.categories && (
                 <div className="px-4 pb-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Categories:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Categories:</label>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {PERSON_CATEGORIES.map(cat => (
                         <label key={cat.value} className="flex items-center space-x-2">
@@ -520,7 +520,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Status:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Status:</label>
                     <div className="space-y-1">
                       {PERSON_STATUSES.map(status => (
                         <label key={status.value} className="flex items-center space-x-2">
@@ -549,7 +549,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">CRM Status:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">CRM Status:</label>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {getCrmStatuses().map(status => (
                         <label key={status.id} className="flex items-center space-x-2">
@@ -578,7 +578,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Cases:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Cases:</label>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {cases.map(caseItem => (
                         <label key={caseItem.id} className="flex items-center space-x-2">
@@ -610,7 +610,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             </div>
             
             {/* Date Filters */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('dates')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -625,7 +625,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               {expandedSections.dates && (
                 <div className="px-4 pb-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Filter by:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Filter by:</label>
                     <select
                       value={searchParams.dateFilter}
                       onChange={(e) => setSearchParams({ ...searchParams, dateFilter: e.target.value })}
@@ -640,7 +640,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   {searchParams.dateFilter !== 'all' && (
                     <>
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">From:</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">From:</label>
                         <input
                           type="date"
                           value={searchParams.dateFrom}
@@ -650,7 +650,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                       </div>
                       
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">To:</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">To:</label>
                         <input
                           type="date"
                           value={searchParams.dateTo}
@@ -665,7 +665,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             </div>
             
             {/* Location Filters */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('locations')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -680,7 +680,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               {expandedSections.locations && (
                 <div className="px-4 pb-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Location contains:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Location contains:</label>
                     <input
                       type="text"
                       placeholder="City, state, address..."
@@ -691,7 +691,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Location Type:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Location Type:</label>
                     <select
                       value={searchParams.locationType}
                       onChange={(e) => setSearchParams({ ...searchParams, locationType: e.target.value })}
@@ -710,7 +710,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             </div>
             
             {/* Connection Filters */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('connections')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -725,7 +725,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               {expandedSections.connections && (
                 <div className="px-4 pb-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Connected to:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Connected to:</label>
                     <input
                       type="text"
                       placeholder="Person name..."
@@ -736,7 +736,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Connection Type:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Connection Type:</label>
                     <select
                       value={searchParams.connectionType}
                       onChange={(e) => setSearchParams({ ...searchParams, connectionType: e.target.value })}
@@ -753,7 +753,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Min connections:</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Min connections:</label>
                       <input
                         type="number"
                         value={searchParams.minConnections}
@@ -764,7 +764,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Max connections:</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Max connections:</label>
                       <input
                         type="number"
                         value={searchParams.maxConnections}
@@ -779,7 +779,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             </div>
             
             {/* OSINT Filters */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
               <button
                 onClick={() => toggleSection('osint')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -794,7 +794,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               {expandedSections.osint && (
                 <div className="px-4 pb-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">OSINT Types:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">OSINT Types:</label>
                     <div className="space-y-1">
                       {OSINT_DATA_TYPES.map(type => (
                         <label key={type.value} className="flex items-center space-x-2">
@@ -823,7 +823,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">OSINT Value contains:</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">OSINT Value contains:</label>
                     <input
                       type="text"
                       placeholder="Email, phone, username..."
@@ -838,7 +838,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             
             {/* Custom Fields */}
             {customFields.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
                 <button
                   onClick={() => toggleSection('custom')}
                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
@@ -854,7 +854,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   <div className="px-4 pb-4 space-y-3">
                     {customFields.map(field => (
                       <div key={field.id}>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">
                           {field.field_label}:
                         </label>
                         {field.field_type === 'select' ? (
@@ -917,7 +917,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               
               <button
                 onClick={resetFilters}
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200"
               >
                 Reset Filters
               </button>
@@ -927,7 +927,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
         
         {/* Right Panel - Results */}
         <div className="flex-1 flex flex-col">
-          <div className="p-6 border-b bg-white">
+          <div className="p-6 border-b bg-white dark:bg-slate-800">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Search Results</h3>
@@ -970,7 +970,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                   <>
                     <button
                       onClick={exportResults}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center text-sm"
+                      className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
                     >
                       <Download className="w-4 h-4 mr-1" />
                       Export CSV
@@ -1011,7 +1011,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                 </div>
                 
                 {results.map(person => (
-                  <div key={person.id} className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow">
+                  <div key={person.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3">
                         <input
@@ -1031,7 +1031,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                           <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                             {getFullName(person)}
                             {person.date_of_birth && (
-                              <span className="text-gray-500 font-normal text-sm ml-2">
+                              <span className="text-gray-500 dark:text-slate-400 font-normal text-sm ml-2">
                                 ({new Date().getFullYear() - new Date(person.date_of_birth).getFullYear()} years old)
                               </span>
                             )}
@@ -1086,7 +1086,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
                             )}
                           </div>
                           
-                          <p className="text-xs text-gray-500 mt-2">
+                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">
                             Updated {new Date(person.updated_at || person.created_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -1104,7 +1104,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <Search className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-500 dark:text-gray-400">
                   {totalResults === 0 && searchParams.searchText ? 
                     'No results found. Try adjusting your search criteria.' : 

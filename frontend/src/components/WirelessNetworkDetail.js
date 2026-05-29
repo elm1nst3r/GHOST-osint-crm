@@ -51,7 +51,7 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
 
   // Get signal color
   const getSignalColor = (signal) => {
-    if (!signal) return 'text-gray-500';
+    if (!signal) return 'text-gray-500 dark:text-slate-400';
     if (signal >= -50) return 'text-green-600 dark:text-green-400';
     if (signal >= -60) return 'text-green-600 dark:text-green-400';
     if (signal >= -70) return 'text-yellow-600 dark:text-yellow-400';
@@ -538,7 +538,7 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
                     <div className="p-2">
                       <p className="font-semibold text-sm">{network.ssid}</p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">{network.bssid}</p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                         {network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}
                       </p>
                     </div>

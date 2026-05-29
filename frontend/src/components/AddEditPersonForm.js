@@ -378,8 +378,8 @@ const AddEditPersonForm = () => {
                 )}
               </div>
               {getSimilarCases().length > 0 && (
-                <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                  <p className="text-xs text-gray-600 mb-1">Similar cases:</p>
+                <div className="mt-1 p-2 bg-gray-50 dark:bg-slate-900 rounded-md">
+                  <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Similar cases:</p>
                   <div className="space-y-1">
                     {getSimilarCases().map(c => (
                       <button
@@ -435,12 +435,12 @@ const AddEditPersonForm = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.aliases.map((alias, index) => (
-                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100">
+                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-slate-700">
                   {alias}
                   <button
                     type="button"
                     onClick={() => removeAlias(index)}
-                    className="ml-2 text-gray-500 hover:text-red-500"
+                    className="ml-2 text-gray-500 dark:text-slate-400 hover:text-red-500"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -455,7 +455,7 @@ const AddEditPersonForm = () => {
               <MapPin className="w-4 h-4 inline mr-1" />
               Locations
             </label>
-            <div className="space-y-3 mb-3 bg-gray-50 p-4 rounded-lg">
+            <div className="space-y-3 mb-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-lg">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <select
@@ -524,7 +524,7 @@ const AddEditPersonForm = () => {
             </div>
             <div className="space-y-2">
               {formData.locations.map((location, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border rounded-lg">
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">
@@ -586,10 +586,10 @@ const AddEditPersonForm = () => {
             </div>
             <div className="space-y-2">
               {formData.osintData.map((osint, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                   <div>
                     <span className="font-medium">{osint.type}:</span> {osint.value}
-                    {osint.notes && <span className="text-sm text-gray-600 ml-2">({osint.notes})</span>}
+                    {osint.notes && <span className="text-sm text-gray-600 dark:text-slate-400 ml-2">({osint.notes})</span>}
                   </div>
                   <button
                     type="button"
@@ -643,7 +643,7 @@ const AddEditPersonForm = () => {
               {formData.connections.map((conn, index) => {
                 const connectedPerson = people.find(p => p.id === conn.person_id);
                 return (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                     <div>
                       <span className="font-medium">
                         {connectedPerson ? `${connectedPerson.first_name} ${connectedPerson.last_name || ''}` : 'Unknown'}
@@ -747,7 +747,7 @@ const AddEditPersonForm = () => {
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
             >
               Cancel
             </button>

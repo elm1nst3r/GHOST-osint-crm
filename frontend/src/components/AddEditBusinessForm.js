@@ -168,7 +168,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Business Name *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -179,7 +179,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -193,7 +193,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Industry</label>
                 <select
                   value={formData.industry}
                   onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
@@ -207,7 +207,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Owner</label>
                 <select
                   value={formData.owner_person_id || ''}
                   onChange={(e) => setFormData({ ...formData, owner_person_id: e.target.value ? parseInt(e.target.value) : null })}
@@ -223,7 +223,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -245,7 +245,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
                 <div className="flex space-x-2">
                   <input
                     type="text"
@@ -264,7 +264,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                   </button>
                 </div>
                 {formData.latitude && formData.longitude && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                     Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                   </p>
                 )}
@@ -430,7 +430,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                       setShowEmployeeForm(false);
                       setNewEmployee({ name: '', role: '', department: '', email: '', notes: '' });
                     }}
-                    className="px-3 py-1 text-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-200 text-sm transition-all"
+                    className="px-3 py-1 text-gray-700 dark:text-slate-300 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-200 text-sm transition-all"
                   >
                     Cancel
                   </button>
@@ -464,7 +464,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                           </div>
                         )}
                         {employee.notes && (
-                          <span className="text-xs text-gray-500 italic">{employee.notes}</span>
+                          <span className="text-xs text-gray-500 dark:text-slate-400 italic">{employee.notes}</span>
                         )}
                       </div>
                     </div>
@@ -483,7 +483,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -497,7 +497,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
             >
               Cancel
             </button>

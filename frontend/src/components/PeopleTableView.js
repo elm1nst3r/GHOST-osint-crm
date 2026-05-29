@@ -272,23 +272,23 @@ const PeopleTableView = ({
   const getStatusColor = (status) => {
     const statusConfig = PERSON_STATUSES.find(s => s.value === status);
     const colorMap = {
-      green: 'bg-green-100 text-green-800',
-      yellow: 'bg-yellow-100 text-yellow-800',
-      gray: 'bg-gray-100 text-gray-800',
-      blue: 'bg-blue-100 text-blue-800'
+      green: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+      yellow: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
+      gray: 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200',
+      blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
     };
-    return colorMap[statusConfig?.color] || 'bg-gray-100 text-gray-800';
+    return colorMap[statusConfig?.color] || 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200';
   };
 
   const getCategoryColor = (category) => {
     const colors = {
-      'Person of Interest': 'bg-red-100 text-red-800',
-      'Client': 'bg-green-100 text-green-800',
-      'Witness': 'bg-yellow-100 text-yellow-800',
-      'Victim': 'bg-purple-100 text-purple-800',
-      'Suspect': 'bg-orange-100 text-orange-800'
+      'Person of Interest': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400',
+      'Client': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+      'Witness': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
+      'Victim': 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400',
+      'Suspect': 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400'
     };
-    return colors[category] || 'bg-blue-100 text-blue-800';
+    return colors[category] || 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
   };
 
   return (
@@ -314,7 +314,7 @@ const PeopleTableView = ({
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
+              className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-slate-300 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
@@ -322,7 +322,7 @@ const PeopleTableView = ({
 
             <button
               onClick={handleExportCSV}
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
+              className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-slate-300 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
               <span>Export CSV</span>
@@ -363,19 +363,19 @@ const PeopleTableView = ({
               placeholder="First Name *"
               value={quickAddData.firstName}
               onChange={(e) => setQuickAddData({ ...quickAddData, firstName: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <input
               type="text"
               placeholder="Last Name"
               value={quickAddData.lastName}
               onChange={(e) => setQuickAddData({ ...quickAddData, lastName: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <select
               value={quickAddData.category}
               onChange={(e) => setQuickAddData({ ...quickAddData, category: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {PERSON_CATEGORIES.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -384,7 +384,7 @@ const PeopleTableView = ({
             <select
               value={quickAddData.status}
               onChange={(e) => setQuickAddData({ ...quickAddData, status: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {PERSON_STATUSES.map(stat => (
                 <option key={stat.value} value={stat.value}>{stat.label}</option>
@@ -395,7 +395,7 @@ const PeopleTableView = ({
               placeholder="Case Name"
               value={quickAddData.caseName}
               onChange={(e) => setQuickAddData({ ...quickAddData, caseName: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
               onClick={handleQuickAdd}
@@ -406,7 +406,7 @@ const PeopleTableView = ({
             </button>
             <button
               onClick={() => setShowQuickAdd(false)}
-              className="p-2 text-gray-600 hover:text-gray-800 transition-all"
+              className="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -419,10 +419,10 @@ const PeopleTableView = ({
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Bulk Import Preview</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Bulk Import Preview</h3>
               <button
                 onClick={() => setBulkImportMode(false)}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 dark:text-slate-400 hover:text-gray-800"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -442,14 +442,14 @@ const PeopleTableView = ({
             <textarea
               value={bulkData}
               onChange={(e) => setBulkData(e.target.value)}
-              className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Paste CSV data here..."
             />
 
             <div className="flex items-center justify-end space-x-3 mt-4">
               <button
                 onClick={() => setBulkImportMode(false)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
               >
                 Cancel
               </button>
@@ -469,38 +469,38 @@ const PeopleTableView = ({
       <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 dark:border-slate-700">
               <tr>
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === people.length && people.length > 0}
                     onChange={selectAll}
-                    className="rounded border-gray-300"
+                    className="rounded border-gray-300 dark:border-slate-600"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Case</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Connections</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Case</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Connections</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
               {people.map((person, index) => (
                 <tr
                   key={person.id}
                   className={`hover:bg-blue-50/30 transition-colors ${
                     selectedRows.has(person.id) ? 'bg-blue-50/50' : ''
-                  } ${index % 2 === 0 ? 'bg-white/50' : 'bg-gray-50/30'}`}
+                  } ${index % 2 === 0 ? 'bg-white/50 dark:bg-slate-800/50' : 'bg-gray-50/30 dark:bg-slate-900/30'}`}
                 >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(person.id)}
                       onChange={() => toggleRowSelection(person.id)}
-                      className="rounded border-gray-300"
+                      className="rounded border-gray-300 dark:border-slate-600"
                     />
                   </td>
 
@@ -512,19 +512,19 @@ const PeopleTableView = ({
                           type="text"
                           value={editData.firstName}
                           onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded w-24 text-sm"
+                          className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-24 text-sm"
                           placeholder="First"
                         />
                         <input
                           type="text"
                           value={editData.lastName}
                           onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded w-24 text-sm"
+                          className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-24 text-sm"
                           placeholder="Last"
                         />
                       </div>
                     ) : (
-                      <div className="font-medium text-gray-900">{getFullName(person)}</div>
+                      <div className="font-medium text-gray-900 dark:text-slate-100">{getFullName(person)}</div>
                     )}
                   </td>
 
@@ -534,7 +534,7 @@ const PeopleTableView = ({
                       <select
                         value={editData.category}
                         onChange={(e) => setEditData({ ...editData, category: e.target.value })}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                        className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-sm"
                       >
                         {PERSON_CATEGORIES.map(cat => (
                           <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -553,7 +553,7 @@ const PeopleTableView = ({
                       <select
                         value={editData.status}
                         onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                        className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-sm"
                       >
                         {PERSON_STATUSES.map(stat => (
                           <option key={stat.value} value={stat.value}>{stat.label}</option>
@@ -573,7 +573,7 @@ const PeopleTableView = ({
                         type="text"
                         value={editData.caseName}
                         onChange={(e) => setEditData({ ...editData, caseName: e.target.value })}
-                        className="px-2 py-1 border border-gray-300 rounded w-full text-sm"
+                        className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-full text-sm"
                         placeholder="Case name"
                       />
                     ) : (
@@ -584,8 +584,8 @@ const PeopleTableView = ({
                   {/* Connections */}
                   <td className="px-4 py-3">
                     <div className="flex items-center space-x-1">
-                      <LinkIcon className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-900 font-medium">
+                      <LinkIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                      <span className="text-sm text-gray-900 dark:text-slate-100 font-medium">
                         {getRelationshipCount(person.id)}
                       </span>
                     </div>
@@ -605,7 +605,7 @@ const PeopleTableView = ({
                           </button>
                           <button
                             onClick={handleCancel}
-                            className="p-1.5 text-gray-600 hover:bg-gray-50 rounded transition-all"
+                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded transition-all"
                             title="Cancel"
                           >
                             <X className="w-4 h-4" />
@@ -622,7 +622,7 @@ const PeopleTableView = ({
                           </button>
                           <button
                             onClick={() => handleEdit(person)}
-                            className="p-1.5 text-gray-600 hover:bg-gray-50 rounded transition-all"
+                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded transition-all"
                             title="Quick Edit"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -652,7 +652,7 @@ const PeopleTableView = ({
 
           {people.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <UserPlus className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <UserPlus className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-slate-500" />
               <p>No people added yet. Click "Quick Add" to get started!</p>
             </div>
           )}

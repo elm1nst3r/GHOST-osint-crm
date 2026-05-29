@@ -461,8 +461,8 @@ const RelationshipManager = ({
     );
   }
 
-  const containerClass = fullScreen 
-  ? "fixed inset-0 z-50 bg-white flex flex-col" 
+  const containerClass = fullScreen
+  ? "fixed inset-0 z-50 bg-white dark:bg-slate-900 flex flex-col"
   : showInModal 
     ? "h-full w-full flex flex-col" 
     : "h-full flex flex-col"; // Changed from h-[600px] to h-full
@@ -480,24 +480,24 @@ const RelationshipManager = ({
   return (
     <div className={containerClass}>
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <div className="bg-white dark:bg-slate-800 border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-3">
           <Network className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
             {personId ? 'Person Relationships' : 'Global Relationship Network'}
           </h3>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-slate-400">
             ({filteredPeople.length} entities: {filteredPeople.filter(e => !e.type || e.type !== 'business').length} people, {filteredPeople.filter(e => e.type === 'business').length} businesses)
           </span>
         </div>
         
         <div className="flex items-center space-x-2">
           {/* View Mode Toggle */}
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-md p-1">
+          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-700 rounded-md p-1">
             <button
               onClick={() => setViewMode('obsidian')}
               className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
-                viewMode === 'obsidian' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-700 hover:text-gray-900'
+                viewMode === 'obsidian' ? 'bg-white dark:bg-slate-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'
               }`}
               title="Obsidian View (Force-Directed)"
             >
@@ -507,7 +507,7 @@ const RelationshipManager = ({
             <button
               onClick={() => setViewMode('reactflow')}
               className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
-                viewMode === 'reactflow' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-700 hover:text-gray-900'
+                viewMode === 'reactflow' ? 'bg-white dark:bg-slate-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'
               }`}
               title="Classic View (ReactFlow)"
             >
@@ -526,7 +526,7 @@ const RelationshipManager = ({
             <Filter className="w-4 h-4" />
             <span className="hidden sm:inline">Filters</span>
             {activeFilterCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-white text-blue-600 rounded-full text-xs font-medium">
+              <span className="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-blue-600 rounded-full text-xs font-medium">
                 {activeFilterCount}
               </span>
             )}
@@ -545,7 +545,7 @@ const RelationshipManager = ({
 
           <button
             onClick={fetchPeople}
-            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700"
+            className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
             title="Refresh Data"
           >
             <RefreshCw className="w-4 h-4" />
@@ -555,7 +555,7 @@ const RelationshipManager = ({
             <select
               value={layoutType}
               onChange={(e) => setLayoutType(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-300"
             >
               <option value="hierarchical">Hierarchical</option>
               <option value="circular">Circular</option>
@@ -566,7 +566,7 @@ const RelationshipManager = ({
           {!showInModal && (
             <button
               onClick={() => setFullScreen(!fullScreen)}
-              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
               title={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}
             >
               <Maximize2 className="w-4 h-4" />
@@ -579,7 +579,7 @@ const RelationshipManager = ({
                 setFullScreen(false);
                 if (showInModal || fullScreen) onClose();
               }}
-              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
             >
               Close
             </button>
@@ -589,13 +589,13 @@ const RelationshipManager = ({
       
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-gray-50 border-b px-4 py-3 flex-shrink-0 max-h-[40%] overflow-y-auto">
+        <div className="bg-gray-50 dark:bg-slate-900 border-b px-4 py-3 flex-shrink-0 max-h-[40%] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {/* Search */}
             <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Search</label>
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-3 h-3" />
                 <input
                   type="text"
                   value={filters.searchTerm}
@@ -608,7 +608,7 @@ const RelationshipManager = ({
             
             {/* Cases */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Cases</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cases</label>
               <select
                 multiple
                 value={filters.selectedCases}
@@ -629,7 +629,7 @@ const RelationshipManager = ({
             
             {/* Categories */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Categories</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Categories</label>
               <select
                 multiple
                 value={filters.selectedCategories}
@@ -650,7 +650,7 @@ const RelationshipManager = ({
             
             {/* Statuses */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
               <select
                 multiple
                 value={filters.selectedStatuses}
@@ -671,7 +671,7 @@ const RelationshipManager = ({
             
             {/* Connection Types */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Connection Types</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Connection Types</label>
               <select
                 multiple
                 value={filters.connectionTypes}
@@ -692,7 +692,7 @@ const RelationshipManager = ({
             
             {/* Min Connections */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Min Connections</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Min Connections</label>
               <input
                 type="number"
                 value={filters.minConnections}
@@ -704,7 +704,7 @@ const RelationshipManager = ({
             
             {/* Date Range */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Updated</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Updated</label>
               <select
                 value={filters.dateRange}
                 onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}

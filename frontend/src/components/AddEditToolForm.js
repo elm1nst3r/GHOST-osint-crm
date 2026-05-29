@@ -110,13 +110,13 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {tool ? 'Edit Tool' : 'Add New Tool'}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
               {tool ? 'Update tool information and settings' : 'Add a new OSINT tool to your directory'}
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 hover:bg-red-600 dark:bg-red-500 hover:text-white transition-all duration-300"
+            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-slate-400 hover:bg-red-600 dark:bg-red-500 hover:text-white transition-all duration-300"
           >
             <X className="w-5 h-5" />
           </button>
@@ -125,7 +125,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tool Name *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tool Name *</label>
               <input
                 type="text"
                 value={formData.name}
@@ -137,9 +137,9 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
               Link
-              <span className="text-xs text-gray-500 ml-2">(Auto-adds https:// if needed)</span>
+              <span className="text-xs text-gray-500 dark:text-slate-400 ml-2">(Auto-adds https:// if needed)</span>
             </label>
             <div className="relative">
               <input
@@ -177,7 +177,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
               <div className="mt-3 p-3 glass rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center">
                   <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
-                  <span className="text-gray-600 font-medium">Preview: </span>
+                  <span className="text-gray-600 dark:text-slate-400 font-medium">Preview: </span>
                   <span className={`ml-1 font-mono text-sm ${isValidUrl ? 'text-green-600' : 'text-red-600'}`}>
                     {urlPreview}
                   </span>
@@ -187,7 +187,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -199,7 +199,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -213,7 +213,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -228,7 +228,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tags</label>
             <div className="flex space-x-2 mb-3">
               <input
                 type="text"
@@ -263,7 +263,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -277,7 +277,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 hover:bg-gradient-secondary hover:text-white transition-all duration-300 font-medium"
+              className="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-slate-300 hover:bg-gradient-secondary hover:text-white transition-all duration-300 font-medium"
             >
               Cancel
             </button>

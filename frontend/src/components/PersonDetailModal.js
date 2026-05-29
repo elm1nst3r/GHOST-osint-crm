@@ -127,7 +127,7 @@ const PersonDetailModal = () => {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {getFullName(person)}
                   {person.date_of_birth && (
-                    <span className="text-gray-500 font-normal text-lg ml-2">
+                    <span className="text-gray-500 dark:text-slate-400 font-normal text-lg ml-2">
                       ({getAge(person.date_of_birth)} years old)
                     </span>
                   )}
@@ -153,7 +153,7 @@ const PersonDetailModal = () => {
               </button>
               <button 
                 onClick={onClose} 
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 hover:bg-red-600 dark:bg-red-500 hover:text-white transition-all duration-300"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-slate-400 hover:bg-red-600 dark:bg-red-500 hover:text-white transition-all duration-300"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -193,7 +193,7 @@ const PersonDetailModal = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <User className="w-5 h-5 mr-2 text-gray-400" />
+                        <User className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
                         Basic Information
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
@@ -216,7 +216,7 @@ const PersonDetailModal = () => {
 
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <Tag className="w-5 h-5 mr-2 text-gray-400" />
+                        <Tag className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
                         Classification
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
@@ -231,7 +231,7 @@ const PersonDetailModal = () => {
                           <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
                             person.status === 'Open' ? 'bg-green-600 dark:bg-green-500 text-white' :
                             person.status === 'Being Investigated' ? 'bg-gradient-warning text-white' :
-                            person.status === 'Closed' ? 'glass text-gray-800' :
+                            person.status === 'Closed' ? 'glass text-gray-800 dark:text-slate-200' :
                             'bg-blue-600 text-white dark:bg-blue-500'
                           }`}>
                             {person.status || 'N/A'}
@@ -252,7 +252,7 @@ const PersonDetailModal = () => {
                     {person.case_name && (
                       <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                          <Briefcase className="w-5 h-5 mr-2 text-gray-400" />
+                          <Briefcase className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
                           Case Information
                         </h3>
                         <div className="glass rounded-lg-lg p-4">
@@ -266,7 +266,7 @@ const PersonDetailModal = () => {
 
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <Network className="w-5 h-5 mr-2 text-gray-400" />
+                        <Network className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
                         Connection Summary
                       </h3>
                       <div className="glass rounded-lg-lg p-4">
@@ -358,7 +358,7 @@ const PersonDetailModal = () => {
                           <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center space-x-2 mb-2">
-                                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" />
                                 <span className="font-medium text-sm px-3 py-1 bg-blue-600 text-white dark:bg-blue-500 rounded-lg">
                                   {(location.type || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                 </span>
@@ -373,7 +373,7 @@ const PersonDetailModal = () => {
                             </div>
                             <button
                               onClick={() => handleDeleteLocation(index)}
-                              className="ml-3 p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150 flex-shrink-0"
+                              className="ml-3 p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150 flex-shrink-0"
                               title="Remove location"
                             >
                               <Trash2 className="w-4 h-4" />

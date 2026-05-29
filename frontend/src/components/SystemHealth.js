@@ -62,7 +62,7 @@ const SystemHealth = () => {
       case 'unhealthy':
         return 'text-red-500';
       default:
-        return 'text-gray-500';
+        return 'text-gray-500 dark:text-slate-400';
     }
   };
 
@@ -75,7 +75,7 @@ const SystemHealth = () => {
       case 'unhealthy':
         return <WifiOff className="w-3 h-3 text-red-500" />;
       default:
-        return <Activity className="w-3 h-3 text-gray-500" />;
+        return <Activity className="w-3 h-3 text-gray-500 dark:text-slate-400" />;
     }
   };
 

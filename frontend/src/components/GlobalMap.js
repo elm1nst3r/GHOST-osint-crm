@@ -657,7 +657,7 @@ Used cache: ${result.summary.cached}`);
       
       {/* Map */}
       <div className="flex-1 relative">
-        <div className="bg-white border border-gray-200 shadow-lg rounded-lg h-full overflow-hidden" style={{ isolation: 'isolate' }}>
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-lg rounded-lg h-full overflow-hidden" style={{ isolation: 'isolate' }}>
           <MapContainer
             center={[20, 0]}
             zoom={2}
@@ -851,7 +851,7 @@ Used cache: ${result.summary.cached}`);
           </div>
           
           {/* Add Location Button */}
-          <div className="absolute top-4 right-4 bg-white border border-gray-300 shadow-lg rounded p-2 z-10">
+          <div className="absolute top-4 right-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 shadow-lg rounded p-2 z-10">
             <button
               onClick={() => setShowAddLocation(!showAddLocation)}
               className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-300 flex items-center"

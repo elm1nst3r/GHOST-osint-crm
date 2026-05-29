@@ -115,7 +115,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           {/* Network Identification */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <Wifi className="w-5 h-5 mr-2 text-gray-400" />
+              <Wifi className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
               Network Identification
             </h3>
 
@@ -153,7 +153,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           {/* Location */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-gray-400" />
+              <MapPin className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
               Location
             </h3>
 
@@ -207,7 +207,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           {/* Security */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <Lock className="w-5 h-5 mr-2 text-gray-400" />
+              <Lock className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
               Security
             </h3>
 
@@ -334,7 +334,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           {/* Associations */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <Plus className="w-5 h-5 mr-2 text-gray-400" />
+              <Plus className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
               Associations
             </h3>
 
