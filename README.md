@@ -10,7 +10,19 @@
 
 > *"Because Excel sheets are for accountants, not investigators"*
 
-A full-stack OSINT investigation management system built for serious intelligence gathering with a modern, professional interface.
+A full-stack, self-hosted OSINT investigation management system with a modern interface — built for individual investigators, researchers, and hobbyists who want structured case management without spreadsheets. See [Project Status](#-project-status) below for maintenance posture and intended use.
+
+## 📌 Project Status
+
+**Actively maintained, single-maintainer, self-hosted hobby/research project.** Not a commercial product.
+
+- **Maintenance:** Actively maintained by one author. Security reports and bug reports are triaged on a best-effort basis — typically within days, not hours. There is no SLA, no on-call rotation, and no paid support tier.
+- **Intended audience:** Individual investigators, researchers, students, and hobbyists self-hosting on infrastructure they control. The "investigation CRM" framing describes the *feature set*, not a claim of enterprise-grade operational guarantees.
+- **Production deployments:** Possible, but you are the operator. You are responsible for HTTPS termination, backups, network isolation, OS patching, threat modelling for your data, and meeting any regulatory obligations that apply to the data you store. See [SECURITY.md](SECURITY.md) for the current hardening posture and known limitations.
+- **Not suitable for:** Multi-tenant SaaS, regulated environments without your own additional controls (HIPAA, GDPR-regulated PII at scale, law-enforcement evidentiary chains), or any deployment where loss of availability or data integrity has third-party consequences without your own redundancy and review.
+- **Reporting issues:** Open a GitHub issue. For security-sensitive reports, follow the disclosure process in [SECURITY.md](SECURITY.md).
+
+If this project is ever shelved, this section will be updated and the repository will be archived.
 
 ## 🎯 Core Features
 
