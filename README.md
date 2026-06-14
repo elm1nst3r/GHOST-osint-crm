@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.5.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.6.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -166,10 +166,12 @@ Backend runs on `http://localhost:3001`
 ```bash
 # Create database
 createdb osint_crm_db
-
-# Run migrations (from backend directory)
-psql -U postgres -d osint_crm_db < migrations/create_wireless_networks.sql
 ```
+
+Schema is created automatically by the backend on first startup
+(`initializeDatabase()` in `backend/server.js`) — no manual migrations to run.
+Make sure the DB role configured in `.env` owns the database (or the
+`public` schema), otherwise table creation will fail with a permissions error.
 
 ## 📁 Project Structure
 
@@ -195,7 +197,6 @@ GHOST-osint-crm/
 │   ├── middleware/              # Auth, audit, rate limiters, validation
 │   ├── services/                # Geocoding services
 │   ├── utils/                   # Password policy, session revocation
-│   ├── migrations/              # Database migrations
 │   └── public/uploads/          # File uploads
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
@@ -419,6 +420,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.6.0 (June 2026)
+- 🧹 **Removed dead `backend/migrations/` directory** — schema is created on startup by `initializeDatabase()` in `server.js`; the standalone SQL files were redundant and could leave `wireless_networks` owned by `postgres` on bare-metal installs (issue #11)
+- 📖 **README updated** — bare-metal install no longer instructs running `psql ... < migrations/...sql`
+
 ### Version 2.5.0 (May 2026)
 - ♻️ **Backend refactored** — `server.js` reduced from 3,052 → ~1,000 lines; all route handlers extracted into 11 dedicated modules under `backend/routes/`
 - ♻️ **Frontend architecture** — React Context (`AuthContext`, `DataContext`, `UIContext`) eliminates prop drilling; `App.js` reduced from 511 → 220 lines
@@ -475,5 +480,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.5.0
-**Last Updated:** May 29, 2026
+**Version:** 2.6.0
+**Last Updated:** June 14, 2026

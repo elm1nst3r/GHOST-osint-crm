@@ -5,6 +5,14 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-06-14
+
+### 🧹 Cleanup
+
+- **Removed `backend/migrations/` directory**: The three SQL files (`001_create_users_table.sql`, `create_wireless_networks.sql`, `add_network_password_and_associations.sql`) were dead code — `initializeDatabase()` in `backend/server.js` already creates all tables, columns, indexes, and the `fk_audit_logs_user` FK on startup via `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`.
+- **Why this matters**: On bare-metal installs, users were running the wireless SQL file manually as the `postgres` superuser, which left `wireless_networks` owned by `postgres` instead of the app role and caused `permission denied for table wireless_networks` after a `pg_upgrade` (issue #11). With the migration files gone, there is one source of truth for the schema and no footgun.
+- **README**: Updated bare-metal install steps — no manual `psql` migration step required.
+
 ## [2.5.0] - 2026-05-29
 
 ### ♻️ Refactoring & Architecture
