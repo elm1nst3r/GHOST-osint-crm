@@ -277,9 +277,9 @@ GHOST-osint-crm/
 - 🔒 **Geocoding endpoints require authentication** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` reject unauthenticated requests
 - 🔒 **KML upload size-limited** — defaults to 5 MB; override with `KML_MAX_BYTES` env var (in bytes)
 - 🔒 **PostgreSQL is not exposed to the host network** by default — only available within the Docker network
-- 🔒 **Session cookies use `SameSite=Strict` and `HttpOnly`** — enable `secure: true` by setting `NODE_ENV=production`
+- 🔒 **Session cookies use `SameSite=Strict` and `HttpOnly`** — and become `Secure` automatically when `NODE_ENV=production`
+- ⚠️ **HTTPS is required in production** — because the session cookie is `Secure` when `NODE_ENV=production`, it is **only sent over HTTPS**. If you run production mode over plain HTTP, the browser silently drops the cookie: login returns `200` but no session is established and every protected route reports "Authentication required". Terminate TLS at a reverse proxy / load balancer in front of the container (Caddy, Traefik, nginx-proxy, or a cloud LB). For an HTTP-only internal/test box, run with `NODE_ENV` set to something other than `production` so the cookie is not marked `Secure`.
 - 🔒 **Never commit `.env` files** — contains sensitive credentials
-- 🔒 **Use HTTPS in production** — configure a reverse proxy with SSL/TLS
 - 🔒 **Keep `backend/public/uploads/` out of version control** — user-generated content
 - 🔒 **Follow local laws for data collection** — comply with privacy regulations
 
@@ -343,6 +343,15 @@ DB_PASSWORD=<strong-password-not-changeme>
 SESSION_SECRET=<32+-character-secret>
 FRONTEND_URL=http://localhost:8080
 ```
+
+### Issue: Login succeeds but I stay logged out (no session cookie)
+Symptom: `POST /api/auth/login` returns `200` with user data, but the browser stores no cookie, `/api/auth/session` returns `{ "authenticated": false }`, and all protected routes return "Authentication required".
+
+Cause: when `NODE_ENV=production` the session cookie is marked `Secure`, so it is **only sent over HTTPS**. Running production mode over plain HTTP makes the browser silently discard the cookie — the server never even emits `Set-Cookie`.
+
+Fix:
+- **Production:** serve the app over HTTPS (terminate TLS at a reverse proxy / load balancer in front of the container). No code change required.
+- **Local / internal HTTP-only testing:** run with `NODE_ENV` set to something other than `production` (e.g. the bundled dev compose override) so the cookie is not marked `Secure`.
 
 ### Issue: Permission denied errors in Docker
 The backend now runs as non-root user (nodejs:1001). Ensure upload directories have correct permissions:
