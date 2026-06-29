@@ -131,6 +131,27 @@ router.post('/', requireAuth, validatePersonData, async (req, res) => {
   }
 });
 
+// GET /:id — get single person by ID
+router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
+  try {
+    const personId = req.params.id;
+    const result = await pool.query(
+      `SELECT *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name
+       FROM people WHERE id = $1`,
+      [personId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching person:', err.message);
+    res.status(500).json({ error: 'Failed to fetch person' });
+  }
+});
+
 // PUT /:id — update person
 router.put('/:id', requireAuth, validateIdParam, validatePersonData, async (req, res) => {
   const personId = req.params.id;
