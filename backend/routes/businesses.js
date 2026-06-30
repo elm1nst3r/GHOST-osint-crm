@@ -19,7 +19,28 @@ router.get('/', requireAuth, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching businesses:', err);
-    res.status(500).json({ error: 'Failed to fetch businesses' });
+    res.status(500).json({ error: 'Failed to fetch businesses', detail: err.message });
+  }
+});
+
+// GET /:id — get single business
+router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        b.*,
+        CONCAT(p.first_name, ' ', COALESCE(p.last_name, '')) as owner_name
+      FROM businesses b
+      LEFT JOIN people p ON b.owner_person_id = p.id
+      WHERE b.id = $1
+    `, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching business:', err);
+    res.status(500).json({ error: 'Failed to fetch business', detail: err.message });
   }
 });
 
@@ -98,7 +119,7 @@ router.post('/', requireAuth, validateBusinessData, async (req, res) => {
     res.status(201).json(newBusiness);
   } catch (err) {
     console.error('Error creating business:', err);
-    res.status(500).json({ error: 'Failed to create business' });
+    res.status(500).json({ error: 'Failed to create business', detail: err.message });
   }
 });
 
@@ -181,7 +202,7 @@ router.put('/:id', requireAuth, validateIdParam, validateBusinessData, async (re
     res.json(updatedBusiness);
   } catch (err) {
     console.error('Error updating business:', err);
-    res.status(500).json({ error: 'Failed to update business' });
+    res.status(500).json({ error: 'Failed to update business', detail: err.message });
   }
 });
 
@@ -208,7 +229,7 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     res.json({ message: 'Business deleted successfully' });
   } catch (err) {
     console.error('Error deleting business:', err);
-    res.status(500).json({ error: 'Failed to delete business' });
+    res.status(500).json({ error: 'Failed to delete business', detail: err.message });
   }
 });
 
