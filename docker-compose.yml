@@ -32,7 +32,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
       DB_HOST: db
       DB_USER: ${DB_USER:-postgres}
@@ -40,6 +40,7 @@ services:
       DB_NAME: ${DB_NAME:-osint_crm_db}
       DB_PORT: 5432
       SESSION_SECRET: ${SESSION_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
 
     volumes:
       - ./backend/public:/usr/src/app/public

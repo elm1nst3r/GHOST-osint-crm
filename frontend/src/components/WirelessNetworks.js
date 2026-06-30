@@ -66,8 +66,8 @@ const WirelessNetworks = () => {
 
   const fetchPeople = async () => {
     try {
-      const data = await peopleAPI.getAll();
-      setPeople(data);
+      const { data: peopleList } = await peopleAPI.getAll();
+      setPeople(peopleList);
     } catch (error) {
       console.error('Error fetching people:', error);
     }
