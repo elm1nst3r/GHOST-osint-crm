@@ -5,18 +5,31 @@ import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Calen
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
+import TransactionTable from './TransactionTable';
+import EntityLedger from './EntityLedger';
+import { transactionsAPI, assetsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const PersonDetailModal = () => {
   const { people, customFields } = useData();
-  const { selectedPersonForDetail: person, setSelectedPersonForDetail, setEditingPerson } = useUI();
+  const { selectedPersonForDetail, setSelectedPersonForDetail, setEditingPerson } = useUI();
+  // Resolve full record (callers may pass a partial { id }).
+  const person = (selectedPersonForDetail && people.find(p => p.id === selectedPersonForDetail.id)) || selectedPersonForDetail;
 
   const onClose = () => setSelectedPersonForDetail(null);
   const onEdit = (p) => { setSelectedPersonForDetail(null); setEditingPerson(p); };
   const [activeTab, setActiveTab] = useState('details');
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [locations, setLocations] = useState(person.locations || []);
+  const [personTransactions, setPersonTransactions] = useState([]);
+  const [personAssets, setPersonAssets] = useState([]);
+
+  useEffect(() => {
+    if (!person?.id) return;
+    transactionsAPI.getByPerson(person.id).then(r => setPersonTransactions(r.data || [])).catch(err => console.error('Error loading person transactions:', err));
+    assetsAPI.getByPerson(person.id).then(r => setPersonAssets(r.data || [])).catch(err => console.error('Error loading person assets:', err));
+  }, [person?.id]);
 
   const handleDeleteLocation = async (index) => {
     if (!window.confirm('Remove this location?')) return;
@@ -163,7 +176,7 @@ const PersonDetailModal = () => {
           {/* Tabs */}
           <div className="border-b border-gray-200 dark:border-gray-700">
             <div className="flex">
-            {['details', 'relationships', 'locations', 'travel'].map((tab) => (
+            {['details', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger'].map((tab) => (
                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -393,10 +406,47 @@ const PersonDetailModal = () => {
             
             {activeTab === 'travel' && (
               <div className="p-6">
-                <TravelPatternAnalysis 
-                  personId={person.id} 
+                <TravelPatternAnalysis
+                  personId={person.id}
                   personName={getFullName(person)}
                 />
+              </div>
+            )}
+
+            {activeTab === 'transactions' && (
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Received</h3>
+                  <TransactionTable transactions={personTransactions.filter(t => t.direction === 'received')} emptyText="Nothing received." />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Given</h3>
+                  <TransactionTable transactions={personTransactions.filter(t => t.direction === 'given')} emptyText="Nothing given." />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'assets' && (
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Assets Currently Held</h3>
+                {personAssets.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No assets currently held.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {personAssets.map(a => (
+                      <div key={a.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{a.name}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{[a.category, a.status].filter(Boolean).join(' · ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'ledger' && (
+              <div className="p-6">
+                <EntityLedger entityType="people" entityId={person.id} />
               </div>
             )}
           </div>

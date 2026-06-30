@@ -18,6 +18,24 @@ export const UIProvider = ({ children }) => {
   const [editingBusiness, setEditingBusiness] = useState(null);
   const [showAddBusinessForm, setShowAddBusinessForm] = useState(false);
 
+  // Property modals (issue #43)
+  const [selectedPropertyForDetail, setSelectedPropertyForDetail] = useState(null);
+  const [editingProperty, setEditingProperty] = useState(null);
+  const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
+
+  // Asset modals
+  const [selectedAssetForDetail, setSelectedAssetForDetail] = useState(null);
+  const [editingAsset, setEditingAsset] = useState(null);
+  const [showAddAssetForm, setShowAddAssetForm] = useState(false);
+
+  // Transaction modals
+  const [selectedTransactionForDetail, setSelectedTransactionForDetail] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [showAddTransactionForm, setShowAddTransactionForm] = useState(false);
+
+  // Business detail modal (issue #43 — venue activity / ledger surface)
+  const [selectedBusinessForDetail, setSelectedBusinessForDetail] = useState(null);
+
   // Other modals
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
@@ -31,6 +49,16 @@ export const UIProvider = ({ children }) => {
       showAddToolForm, setShowAddToolForm,
       editingBusiness, setEditingBusiness,
       showAddBusinessForm, setShowAddBusinessForm,
+      selectedPropertyForDetail, setSelectedPropertyForDetail,
+      editingProperty, setEditingProperty,
+      showAddPropertyForm, setShowAddPropertyForm,
+      selectedAssetForDetail, setSelectedAssetForDetail,
+      editingAsset, setEditingAsset,
+      showAddAssetForm, setShowAddAssetForm,
+      selectedTransactionForDetail, setSelectedTransactionForDetail,
+      editingTransaction, setEditingTransaction,
+      showAddTransactionForm, setShowAddTransactionForm,
+      selectedBusinessForDetail, setSelectedBusinessForDetail,
       showAdvancedSearch, setShowAdvancedSearch,
     }}>
       {children}

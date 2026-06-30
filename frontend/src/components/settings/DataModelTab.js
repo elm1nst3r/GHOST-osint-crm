@@ -12,6 +12,11 @@ const MODEL_TYPE_LABELS = {
   connection_type: 'Connection Types',
   location_type: 'Location Types',
   osint_data_type: 'OSINT Data Types',
+  transaction_type: 'Transaction Types',
+  transaction_item_category: 'Transaction Item Categories',
+  asset_category: 'Asset Categories',
+  asset_status: 'Asset Statuses',
+  property_type: 'Property Types',
 };
 
 const EMPTY_FORM = { option_value: '', option_label: '', display_order: 999, is_active: true };

@@ -414,4 +414,53 @@ export const wirelessNetworksAPI = {
   }),
 };
 
+// Helper to build a query string from a params object (skips empty values)
+const buildQuery = (params = {}) => {
+  const qp = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') qp.append(key, value);
+  });
+  const s = qp.toString();
+  return s ? `?${s}` : '';
+};
+
+// Properties API (transaction tracking — issue #43)
+export const propertiesAPI = {
+  getAll: (params = {}) => fetchAPI(`/properties${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/properties/${id}`),
+  create: (data) => fetchAPI('/properties', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/properties/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/properties/${id}`, { method: 'DELETE' }),
+  getTransactions: (id) => fetchAPI(`/properties/${id}/transactions`),
+  getLedger: (id, params = {}) => fetchAPI(`/properties/${id}/ledger${buildQuery(params)}`),
+};
+
+// Assets API
+export const assetsAPI = {
+  getAll: (params = {}) => fetchAPI(`/assets${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/assets/${id}`),
+  create: (data) => fetchAPI('/assets', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/assets/${id}`, { method: 'DELETE' }),
+  getByPerson: (personId) => fetchAPI(`/people/${personId}/assets`),
+};
+
+// Transactions API
+export const transactionsAPI = {
+  getAll: (params = {}) => fetchAPI(`/transactions${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/transactions/${id}`),
+  create: (data) => fetchAPI('/transactions', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/transactions/${id}`, { method: 'DELETE' }),
+  getByPerson: (personId) => fetchAPI(`/people/${personId}/transactions`),
+  getByBusiness: (businessId) => fetchAPI(`/businesses/${businessId}/transactions`),
+  getByProperty: (propertyId) => fetchAPI(`/properties/${propertyId}/transactions`),
+};
+
+// Entity ledger + venue analytics API
+export const ledgerAPI = {
+  get: (entityType, id, params = {}) => fetchAPI(`/${entityType}/${id}/ledger${buildQuery(params)}`),
+  venueStats: (businessId) => fetchAPI(`/businesses/${businessId}/venue-stats`),
+};
+
 export { API_BASE_URL };

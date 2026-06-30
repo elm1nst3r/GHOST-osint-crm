@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt } from 'lucide-react';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
@@ -25,6 +25,16 @@ import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
 import SystemHealth from './components/SystemHealth';
 import WirelessNetworks from './components/WirelessNetworks';
+import PropertyList from './components/PropertyList';
+import AddEditPropertyForm from './components/AddEditPropertyForm';
+import PropertyDetailModal from './components/PropertyDetailModal';
+import AssetsList from './components/AssetsList';
+import AddEditAssetForm from './components/AddEditAssetForm';
+import AssetDetailModal from './components/AssetDetailModal';
+import TransactionsList from './components/TransactionsList';
+import AddEditTransactionForm from './components/AddEditTransactionForm';
+import TransactionDetailModal from './components/TransactionDetailModal';
+import BusinessDetailModal from './components/BusinessDetailModal';
 import Login from './components/Login';
 
 // Fix default Leaflet marker icons
@@ -40,6 +50,9 @@ const navigationItems = [
   { id: 'cases',         label: 'Cases',              icon: Folder },
   { id: 'people',        label: 'People',             icon: Users },
   { id: 'businesses',    label: 'Businesses',         icon: Building2 },
+  { id: 'properties',    label: 'Properties',         icon: Landmark },
+  { id: 'assets',        label: 'Assets',             icon: Package },
+  { id: 'transactions',  label: 'Transactions',       icon: Receipt },
   { id: 'tools',         label: 'OSINT Tools',        icon: Wrench },
   { id: 'relationships', label: 'Entity Network',     icon: Network },
   { id: 'map',           label: 'Locations',          icon: Map },
@@ -61,6 +74,16 @@ const AppShell = () => {
     showAddToolForm, setShowAddToolForm,
     editingBusiness, setEditingBusiness,
     showAddBusinessForm, setShowAddBusinessForm,
+    selectedPropertyForDetail, setSelectedPropertyForDetail,
+    editingProperty, setEditingProperty,
+    showAddPropertyForm, setShowAddPropertyForm,
+    selectedAssetForDetail, setSelectedAssetForDetail,
+    editingAsset, setEditingAsset,
+    showAddAssetForm, setShowAddAssetForm,
+    selectedTransactionForDetail, setSelectedTransactionForDetail,
+    editingTransaction, setEditingTransaction,
+    showAddTransactionForm, setShowAddTransactionForm,
+    selectedBusinessForDetail, setSelectedBusinessForDetail,
     showAdvancedSearch, setShowAdvancedSearch,
   } = useUI();
 
@@ -175,6 +198,9 @@ const AppShell = () => {
               {activeSection === 'people'        && <PeopleList />}
               {activeSection === 'tools'         && <ToolsList />}
               {activeSection === 'businesses'    && <BusinessList />}
+              {activeSection === 'properties'    && <PropertyList />}
+              {activeSection === 'assets'        && <AssetsList />}
+              {activeSection === 'transactions'  && <TransactionsList />}
               {activeSection === 'map'           && <div className="h-full"><GlobalMap /></div>}
               {activeSection === 'wireless'      && <div className="h-full"><WirelessNetworks /></div>}
               {activeSection === 'settings'      && <SettingsPage />}
@@ -206,6 +232,24 @@ const AppShell = () => {
       {editingTool        && <AddEditToolForm tool={editingTool} onSave={() => { setEditingTool(null); }} onCancel={() => setEditingTool(null)} />}
       {showAddBusinessForm && <AddEditBusinessForm business={null} onSave={() => { setShowAddBusinessForm(false); }} onCancel={() => setShowAddBusinessForm(false)} />}
       {editingBusiness    && <AddEditBusinessForm business={editingBusiness} onSave={() => { setEditingBusiness(null); }} onCancel={() => setEditingBusiness(null)} />}
+
+      {/* Property modals */}
+      {showAddPropertyForm && <AddEditPropertyForm property={null} onClose={() => setShowAddPropertyForm(false)} />}
+      {editingProperty     && <AddEditPropertyForm property={editingProperty} onClose={() => setEditingProperty(null)} />}
+      {selectedPropertyForDetail && <PropertyDetailModal property={selectedPropertyForDetail} onClose={() => setSelectedPropertyForDetail(null)} />}
+
+      {/* Asset modals */}
+      {showAddAssetForm && <AddEditAssetForm asset={null} onClose={() => setShowAddAssetForm(false)} />}
+      {editingAsset     && <AddEditAssetForm asset={editingAsset} onClose={() => setEditingAsset(null)} />}
+      {selectedAssetForDetail && <AssetDetailModal asset={selectedAssetForDetail} onClose={() => setSelectedAssetForDetail(null)} />}
+
+      {/* Transaction modals */}
+      {showAddTransactionForm && <AddEditTransactionForm transaction={null} onClose={() => setShowAddTransactionForm(false)} />}
+      {editingTransaction     && <AddEditTransactionForm transaction={editingTransaction} onClose={() => setEditingTransaction(null)} />}
+      {selectedTransactionForDetail && <TransactionDetailModal transaction={selectedTransactionForDetail} onClose={() => setSelectedTransactionForDetail(null)} />}
+
+      {/* Business detail (venue activity / ledger) */}
+      {selectedBusinessForDetail && <BusinessDetailModal business={selectedBusinessForDetail} onClose={() => setSelectedBusinessForDetail(null)} />}
       {showAdvancedSearch && (
         <AdvancedSearch
           onSelectPerson={(person) => { setSelectedPersonForDetail(person); setShowAdvancedSearch(false); }}
