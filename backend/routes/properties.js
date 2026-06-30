@@ -4,6 +4,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { validate, PropertyCreateSchema, PropertyUpdateSchema } = require('../middleware/schemas');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
@@ -55,16 +56,12 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // POST / — create property
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) => {
   try {
     const {
       name, property_type, description, address, city, state, country, postal_code,
       latitude, longitude, owner_person_id, case_id, notes
     } = req.body;
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'Property name is required' });
-    }
 
     let geo = { latitude, longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
@@ -120,7 +117,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 // PUT /:id — update
-router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema), async (req, res) => {
   try {
     const id = req.params.id;
     const existing = await pool.query('SELECT * FROM properties WHERE id = $1', [id]);
@@ -130,10 +127,6 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
       name, property_type, description, address, city, state, country, postal_code,
       latitude, longitude, owner_person_id, case_id, notes
     } = req.body;
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'Property name is required' });
-    }
 
     let geo = { latitude, longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {

@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validateToolData, validateIdParam } = require('../middleware/validation');
+const { validateIdParam } = require('../middleware/validation');
+const { validate, ToolCreateSchema, ToolUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -17,7 +18,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, validateToolData, async (req, res) => {
+router.post('/', requireAuth, validate(ToolCreateSchema), async (req, res) => {
   const { name, link, description, category, status, tags, notes } = req.body;
 
   const query = `INSERT INTO tools (name, link, description, category, status, tags, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
@@ -32,7 +33,7 @@ router.post('/', requireAuth, validateToolData, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, validateIdParam, validateToolData, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(ToolUpdateSchema), async (req, res) => {
   const toolId = req.params.id;
   const { name, link, description, category, status, tags, notes } = req.body;
 

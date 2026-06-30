@@ -4,6 +4,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { validate, AssetCreateSchema, AssetUpdateSchema } = require('../middleware/schemas');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
@@ -151,7 +152,7 @@ function validateAssetBody(body) {
 }
 
 // POST / — create asset (optional initial_holder seeds an acquisition transaction)
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
   const clientErr = validateAssetBody(req.body);
   if (clientErr) return res.status(400).json({ error: clientErr });
 
@@ -231,7 +232,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 // PUT /:id — update (incl. location_mode changes)
-router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), async (req, res) => {
   const clientErr = validateAssetBody(req.body);
   if (clientErr) return res.status(400).json({ error: clientErr });
   const b = req.body;

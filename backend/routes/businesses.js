@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validateBusinessData, validateIdParam } = require('../middleware/validation');
+const { validateIdParam } = require('../middleware/validation');
+const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
@@ -47,17 +48,13 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 // POST / — create business
-router.post('/', requireAuth, validateBusinessData, async (req, res) => {
+router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) => {
   try {
     const {
       name, type, industry, address, city, state, country, postal_code,
       latitude, longitude, phone, email, website, owner_person_id,
       registration_number, registration_date, status, employees, notes
     } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Business name is required' });
-    }
 
     // Geocode address if provided and coordinates not set
     let finalLatitude = latitude;
@@ -126,7 +123,7 @@ router.post('/', requireAuth, validateBusinessData, async (req, res) => {
 });
 
 // PUT /:id — update business
-router.put('/:id', requireAuth, validateIdParam, validateBusinessData, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema), async (req, res) => {
   try {
     const businessId = req.params.id;
 
@@ -135,10 +132,6 @@ router.put('/:id', requireAuth, validateIdParam, validateBusinessData, async (re
       latitude, longitude, phone, email, website, owner_person_id,
       registration_number, registration_date, status, employees, notes
     } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Business name is required' });
-    }
 
     // Get old business for audit
     const oldResult = await pool.query('SELECT * FROM businesses WHERE id = $1', [businessId]);

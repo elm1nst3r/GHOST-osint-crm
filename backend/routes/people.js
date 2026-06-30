@@ -3,7 +3,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { validatePersonData, validateIdParam } = require('../middleware/validation');
+const { validateIdParam } = require('../middleware/validation');
+const { validate, PersonCreateSchema, PersonUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
@@ -37,14 +38,12 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // POST / — create person
-router.post('/', requireAuth, validatePersonData, async (req, res) => {
+router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => {
   const {
     firstName, lastName, aliases, dateOfBirth, category, status, crmStatus,
     caseName, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
-
-  if (!firstName) return res.status(400).json({ error: 'First name is required' });
 
   // Geocode locations before saving using improved service if available.
   // Always merge results back into the original array so already-geocoded entries
@@ -156,15 +155,13 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 // PUT /:id — update person
-router.put('/:id', requireAuth, validateIdParam, validatePersonData, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), async (req, res) => {
   const personId = req.params.id;
   const {
     firstName, lastName, aliases, dateOfBirth, category, status, crmStatus,
     caseName, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
-
-  if (!firstName) return res.status(400).json({ error: 'First name is required for update' });
 
   try {
     // Get old values for audit

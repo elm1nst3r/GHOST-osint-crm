@@ -3,6 +3,13 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const {
+  validate,
+  SettingsCustomFieldCreateSchema,
+  SettingsCustomFieldUpdateSchema,
+  SettingsModelOptionCreateSchema,
+  SettingsModelOptionUpdateSchema,
+} = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -18,14 +25,8 @@ router.get('/custom-fields', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/custom-fields', requireAdmin, async (req, res) => {
+router.post('/custom-fields', requireAdmin, validate(SettingsCustomFieldCreateSchema), async (req, res) => {
   const { field_name, field_label, field_type, options, is_active } = req.body;
-  if (!field_name || !field_label || !field_type) {
-    return res.status(400).json({ error: 'field_name, field_label, and field_type are required' });
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(field_name)) {
-    return res.status(400).json({ error: 'field_name can only contain alphanumeric characters and underscores.' });
-  }
 
   const query = `INSERT INTO custom_person_fields (field_name, field_label, field_type, options, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
   const values = [field_name, field_label, field_type, JSON.stringify(options || []), is_active !== undefined ? is_active : true];
@@ -42,12 +43,9 @@ router.post('/custom-fields', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/custom-fields/:id', requireAdmin, validateIdParam, async (req, res) => {
+router.put('/custom-fields/:id', requireAdmin, validateIdParam, validate(SettingsCustomFieldUpdateSchema), async (req, res) => {
   const fieldId = req.params.id;
   const { field_label, field_type, options, is_active } = req.body;
-  if (!field_label || !field_type) {
-    return res.status(400).json({ error: 'field_label and field_type are required for update' });
-  }
 
   const query = `UPDATE custom_person_fields SET field_label = $1, field_type = $2, options = $3, is_active = $4 WHERE id = $5 RETURNING *;`;
   const values = [field_label, field_type, JSON.stringify(options || []), is_active !== undefined ? is_active : true, fieldId];
@@ -86,12 +84,8 @@ router.get('/model-options', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/model-options', requireAdmin, async (req, res) => {
+router.post('/model-options', requireAdmin, validate(SettingsModelOptionCreateSchema), async (req, res) => {
   const { model_type, option_value, option_label, display_order } = req.body;
-
-  if (!model_type || !option_value || !option_label) {
-    return res.status(400).json({ error: 'model_type, option_value, and option_label are required' });
-  }
 
   try {
     const result = await pool.query(
@@ -109,7 +103,7 @@ router.post('/model-options', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/model-options/:id', requireAdmin, validateIdParam, async (req, res) => {
+router.put('/model-options/:id', requireAdmin, validateIdParam, validate(SettingsModelOptionUpdateSchema), async (req, res) => {
   const optionId = req.params.id;
   const { option_label, is_active, display_order } = req.body;
 

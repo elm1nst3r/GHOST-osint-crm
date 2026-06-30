@@ -4,6 +4,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { validate, TransactionCreateSchema, TransactionUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 router.use(apiLimiter);
@@ -102,7 +103,7 @@ function buildValues(body, geo) {
 }
 
 // POST /
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res) => {
   const err = await validateTransaction(req.body);
   if (err) return res.status(400).json({ error: err });
   normaliseSubject(req.body);
@@ -137,7 +138,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 // PUT /:id
-router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchema), async (req, res) => {
   const err = await validateTransaction(req.body);
   if (err) return res.status(400).json({ error: err });
   normaliseSubject(req.body);

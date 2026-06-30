@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { validate, TravelHistoryCreateSchema, TravelHistoryUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -26,7 +27,7 @@ router.get('/people/:id/travel-history', requireAuth, validateIdParam, async (re
 });
 
 // Create travel history entry
-router.post('/people/:id/travel-history', requireAuth, validateIdParam, async (req, res) => {
+router.post('/people/:id/travel-history', requireAuth, validateIdParam, validate(TravelHistoryCreateSchema), async (req, res) => {
   const personId = req.params.id;
 
   const {
@@ -36,8 +37,6 @@ router.post('/people/:id/travel-history', requireAuth, validateIdParam, async (r
 
   const parsedArrival = arrival_date ? new Date(arrival_date) : null;
   const parsedDeparture = departure_date ? new Date(departure_date) : null;
-  if (arrival_date && isNaN(parsedArrival)) return res.status(400).json({ error: 'Invalid arrival_date' });
-  if (departure_date && isNaN(parsedDeparture)) return res.status(400).json({ error: 'Invalid departure_date' });
 
   try {
     const result = await pool.query(
@@ -58,7 +57,7 @@ router.post('/people/:id/travel-history', requireAuth, validateIdParam, async (r
 });
 
 // Update travel history entry
-router.put('/travel-history/:id', requireAuth, validateIdParam, async (req, res) => {
+router.put('/travel-history/:id', requireAuth, validateIdParam, validate(TravelHistoryUpdateSchema), async (req, res) => {
   const travelId = req.params.id;
 
   const {
@@ -68,8 +67,6 @@ router.put('/travel-history/:id', requireAuth, validateIdParam, async (req, res)
 
   const parsedArrival = arrival_date ? new Date(arrival_date) : null;
   const parsedDeparture = departure_date ? new Date(departure_date) : null;
-  if (arrival_date && isNaN(parsedArrival)) return res.status(400).json({ error: 'Invalid arrival_date' });
-  if (departure_date && isNaN(parsedDeparture)) return res.status(400).json({ error: 'Invalid departure_date' });
 
   try {
     const result = await pool.query(

@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { validate, CaseCreateSchema, CaseUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -17,9 +18,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(CaseCreateSchema), async (req, res) => {
   const { case_name, description } = req.body;
-  if (!case_name) return res.status(400).json({ error: 'Case name is required' });
 
   try {
     const result = await pool.query(
@@ -36,11 +36,9 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
+router.put('/:id', requireAuth, validateIdParam, validate(CaseUpdateSchema), async (req, res) => {
   const caseId = req.params.id;
   const { case_name, description, status } = req.body;
-
-  if (!case_name) return res.status(400).json({ error: 'Case name is required for update' });
 
   try {
     const result = await pool.query(
