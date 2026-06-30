@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter } from 'lucide-react';
-import { wirelessNetworksAPI } from '../utils/api';
+import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
+import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 import { locationColors, buildIconCache } from './map/mapUtils';
 import AddLocationModal from './map/AddLocationModal';
@@ -35,6 +35,17 @@ const GlobalMap = () => {
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [wirelessNetworks, setWirelessNetworks] = useState([]);
   const [showNetworks, setShowNetworks] = useState(true);
+  // Transaction-tracking layers (issue #43)
+  const [properties, setProperties] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [txEvents, setTxEvents] = useState([]);
+  const [showProperties, setShowProperties] = useState(true);
+  const [showAssets, setShowAssets] = useState(true);
+  const [showTransactions, setShowTransactions] = useState(false);
+  const [filterTxType, setFilterTxType] = useState('');
+  const [filterAssetCategory, setFilterAssetCategory] = useState('');
+  const [txTypeOptions, setTxTypeOptions] = useState([]);
+  const [assetCategoryOptions, setAssetCategoryOptions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [includeRelated, setIncludeRelated] = useState(false);
   const [selectedLocationTypes, setSelectedLocationTypes] = useState(Object.keys(locationColors));
@@ -53,7 +64,26 @@ const GlobalMap = () => {
     fetchAllPeople();
     fetchWirelessNetworks();
     fetchGeocodingStats();
+    fetchTransactionLayers();
   }, []);
+
+  const fetchTransactionLayers = async () => {
+    try {
+      const [props, asts, txns] = await Promise.all([
+        propertiesAPI.getAll({ limit: 1000 }),
+        assetsAPI.getAll({ limit: 1000 }),
+        transactionsAPI.getAll({ limit: 1000 }),
+      ]);
+      setProperties((props.data || []).filter(p => p.latitude && p.longitude));
+      setAssets((asts.data || []).filter(a => a.resolved_location && a.resolved_location.latitude != null));
+      setTxEvents((txns.data || []).filter(t => t.latitude && t.longitude));
+      const opts = await modelOptionsAPI.getAll();
+      setTxTypeOptions(opts.filter(o => o.model_type === 'transaction_type' && o.is_active));
+      setAssetCategoryOptions(opts.filter(o => o.model_type === 'asset_category' && o.is_active));
+    } catch (err) {
+      console.error('Error fetching transaction map layers:', err);
+    }
+  };
 
   const fetchPeople = async (page = 0, limit = 100) => {
     try {
@@ -173,6 +203,16 @@ const GlobalMap = () => {
 
   const iconCache = useMemo(() => buildIconCache(), []);
 
+  // Simple coloured pin icons for the transaction-tracking layers.
+  const featureIcons = useMemo(() => {
+    const make = (color, glyph) => L.divIcon({
+      className: 'ghost-feature-icon',
+      html: `<div style="background:${color};width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;color:#fff;font-weight:bold;">${glyph}</span></div>`,
+      iconSize: [22, 22], iconAnchor: [11, 22], popupAnchor: [0, -20],
+    });
+    return { property: make('#059669', 'P'), asset: make('#ea580c', 'A'), transaction: make('#2563eb', 'T') };
+  }, []);
+
   const markers = useMemo(() => {
     const list = [];
     filteredPeople.forEach(person => {
@@ -215,8 +255,42 @@ const GlobalMap = () => {
         });
       });
     }
+    if (showProperties) {
+      properties.forEach(p => {
+        list.push({
+          id: `property-${p.id}`, kind: 'property', lat: parseFloat(p.latitude), lng: parseFloat(p.longitude),
+          name: p.name, propertyType: p.property_type, address: [p.address, p.city, p.country].filter(Boolean).join(', '),
+          ownerName: p.owner_name, icon: featureIcons.property,
+        });
+      });
+    }
+    if (showAssets) {
+      assets.forEach(a => {
+        if (filterAssetCategory && a.category !== filterAssetCategory) return;
+        const loc = a.resolved_location;
+        list.push({
+          id: `asset-${a.id}`, kind: 'asset', lat: parseFloat(loc.latitude), lng: parseFloat(loc.longitude),
+          name: a.name, assetCategory: a.category, locationMode: a.location_mode,
+          holderName: a.current_holder ? a.current_holder.label : null,
+          locLabel: loc.label, icon: featureIcons.asset,
+        });
+      });
+    }
+    if (showTransactions) {
+      txEvents.forEach(t => {
+        if (filterTxType && t.transaction_type !== filterTxType) return;
+        list.push({
+          id: `tx-${t.id}`, kind: 'transaction', lat: parseFloat(t.latitude), lng: parseFloat(t.longitude),
+          txType: t.transaction_type, fromLabel: t.resolved_from && t.resolved_from.label, toLabel: t.resolved_to && t.resolved_to.label,
+          subjectLabel: t.resolved_subject && t.resolved_subject.label, value: t.value, currency: t.currency,
+          locLabel: t.location_name || t.resolved_location?.label, icon: featureIcons.transaction,
+        });
+      });
+    }
     return list;
-  }, [filteredPeople, selectedLocationTypes, iconCache, wirelessNetworks, showNetworks]);
+  }, [filteredPeople, selectedLocationTypes, iconCache, wirelessNetworks, showNetworks,
+      properties, assets, txEvents, showProperties, showAssets, showTransactions,
+      filterAssetCategory, filterTxType, featureIcons]);
 
   const toggleLocationType = (type) =>
     setSelectedLocationTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -293,6 +367,18 @@ const GlobalMap = () => {
                 Wireless Networks ({wirelessNetworks.length})
               </span>
             </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" checked={showProperties} onChange={e => setShowProperties(e.target.checked)} className="h-4 w-4 text-emerald-600 rounded" />
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Landmark className="w-4 h-4 mr-1" />Properties ({properties.length})</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" checked={showAssets} onChange={e => setShowAssets(e.target.checked)} className="h-4 w-4 text-orange-600 rounded" />
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Package className="w-4 h-4 mr-1" />Assets ({assets.length})</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" checked={showTransactions} onChange={e => setShowTransactions(e.target.checked)} className="h-4 w-4 text-blue-600 rounded" />
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Receipt className="w-4 h-4 mr-1" />Transactions ({txEvents.length})</span>
+            </label>
           </div>
         </div>
 
@@ -313,6 +399,20 @@ const GlobalMap = () => {
               </button>
             ))}
           </div>
+          {showAssets && (
+            <select value={filterAssetCategory} onChange={e => setFilterAssetCategory(e.target.value)}
+              className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded dark:bg-slate-800 dark:text-gray-100">
+              <option value="">All asset categories</option>
+              {assetCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+            </select>
+          )}
+          {showTransactions && (
+            <select value={filterTxType} onChange={e => setFilterTxType(e.target.value)}
+              className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded dark:bg-slate-800 dark:text-gray-100">
+              <option value="">All transaction types</option>
+              {txTypeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+            </select>
+          )}
         </div>
       </div>
 
@@ -325,7 +425,29 @@ const GlobalMap = () => {
               {markers.map(marker => (
                 <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={marker.icon}>
                   <Popup>
-                    {marker.type === 'wireless_network' ? (
+                    {marker.kind === 'property' ? (
+                      <div className="p-2 min-w-[200px]">
+                        <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center"><Landmark className="w-4 h-4 mr-2" />{marker.name}</h3>
+                        {marker.propertyType && <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{marker.propertyType.replace(/_/g, ' ')}</p>}
+                        {marker.address && <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{marker.address}</p>}
+                        {marker.ownerName && marker.ownerName.trim() && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Owner: {marker.ownerName}</p>}
+                      </div>
+                    ) : marker.kind === 'asset' ? (
+                      <div className="p-2 min-w-[200px]">
+                        <h3 className="font-semibold text-orange-600 dark:text-orange-400 flex items-center"><Package className="w-4 h-4 mr-2" />{marker.name}</h3>
+                        {marker.assetCategory && <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{marker.assetCategory.replace(/_/g, ' ')}</p>}
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">Holder: {marker.holderName || '—'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{marker.locLabel} ({(marker.locationMode || '').replace(/_/g, ' ')})</p>
+                      </div>
+                    ) : marker.kind === 'transaction' ? (
+                      <div className="p-2 min-w-[200px]">
+                        <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex items-center capitalize"><Receipt className="w-4 h-4 mr-2" />{(marker.txType || '').replace(/_/g, ' ')}</h3>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{marker.fromLabel || '—'} → {marker.toLabel || '—'}</p>
+                        {marker.subjectLabel && <p className="text-xs text-gray-600 dark:text-gray-400">Subject: {marker.subjectLabel}</p>}
+                        {marker.value != null && <p className="text-xs text-gray-600 dark:text-gray-400">Value: {marker.value} {marker.currency || ''}</p>}
+                        {marker.locLabel && <p className="text-xs text-gray-500 dark:text-gray-400">{marker.locLabel}</p>}
+                      </div>
+                    ) : marker.type === 'wireless_network' ? (
                       <div className="p-2 min-w-[200px]">
                         <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex items-center">
                           <Wifi className="w-4 h-4 mr-2" />{marker.ssid}

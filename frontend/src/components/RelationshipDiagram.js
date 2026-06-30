@@ -11,7 +11,8 @@ import ReactFlow, {
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { User, Database, Mail, Phone, Globe, MapPin, Hash, Link, UserPlus, X, Edit2, Save, AlertCircle, Trash2, Bug } from 'lucide-react';
+import { User, Database, Mail, Phone, Globe, MapPin, Hash, Link, UserPlus, X, Edit2, Save, AlertCircle, Trash2, Bug, Building2, Landmark, Network } from 'lucide-react';
+import { transactionsAPI } from '../utils/api';
 
 // Debug component to show data structure
 const DebugPanel = ({ people, nodes, edges, show }) => {
@@ -105,9 +106,33 @@ const PersonNode = ({ data, selected }) => {
   );
 };
 
+// Hub node for businesses / properties in the transaction layer (issue #43)
+const EntityNode = ({ data, selected }) => {
+  const isProperty = data.kind === 'property';
+  const Icon = isProperty ? Landmark : Building2;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
+      <div className={`px-4 py-3 shadow-lg rounded-lg border-2 ${selected ? 'border-blue-500' : 'border-gray-300 dark:border-slate-600'} ${isProperty ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-indigo-50 dark:bg-indigo-900/30'} cursor-pointer min-w-[180px]`}>
+        <div className="flex items-center space-x-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0 ${isProperty ? 'bg-emerald-600' : 'bg-indigo-600'}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">{data.label}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{data.kind}{data.eventCount ? ` · ${data.eventCount} event${data.eventCount !== 1 ? 's' : ''}` : ''}</div>
+          </div>
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} style={{ background: '#555' }} />
+    </>
+  );
+};
+
 // Node type mapping
 const nodeTypes = {
   person: PersonNode,
+  entity: EntityNode,
 };
 
 // Edge styles
@@ -139,6 +164,15 @@ const RelationshipDiagram = ({
   const [connectionModal, setConnectionModal] = useState(null);
   const [connectionType, setConnectionType] = useState('associate');
   const [connectionNote, setConnectionNote] = useState('');
+  // Transaction/venue layer (issue #43)
+  const [showTransactionLayer, setShowTransactionLayer] = useState(false);
+  const [txData, setTxData] = useState([]);
+
+  useEffect(() => {
+    transactionsAPI.getAll({ limit: 1000 })
+      .then(r => setTxData(r.data || []))
+      .catch(err => console.error('Error loading transactions for graph:', err));
+  }, []);
 
   // Helper function to get full name
   const getFullName = (person) => {
@@ -351,9 +385,56 @@ const RelationshipDiagram = ({
       });
     });
     
+    // Transaction/venue layer: businesses & properties as hubs, edges to parties.
+    if (showTransactionLayer && txData.length > 0) {
+      const nodeIds = new Set(newNodes.map(n => n.id));
+      const ensureEntity = (kind, id, label) => {
+        const nid = `${kind === 'business' ? 'biz' : 'prop'}-${id}`;
+        if (!nodeIds.has(nid)) {
+          newNodes.push({ id: nid, type: 'entity', position: { x: 0, y: 0 }, data: { label: label || `${kind} #${id}`, kind, eventCount: 0 } });
+          nodeIds.add(nid);
+        }
+        return nid;
+      };
+      const txEdgeMap = new Map();
+      txData.forEach(t => {
+        const hubs = [];
+        if (t.location_business_id) hubs.push(ensureEntity('business', t.location_business_id, t.resolved_location?.label));
+        if (t.location_property_id) hubs.push(ensureEntity('property', t.location_property_id, t.resolved_location?.label));
+        if (t.subject_business_id) hubs.push(ensureEntity('business', t.subject_business_id, t.resolved_subject?.label));
+        if (t.subject_property_id) hubs.push(ensureEntity('property', t.subject_property_id, t.resolved_subject?.label));
+        if (hubs.length === 0) return;
+        const spokes = [];
+        [t.resolved_from, t.resolved_to].forEach(party => {
+          if (!party) return;
+          if (party.type === 'person') { const nid = `person-${party.id}`; if (nodeIds.has(nid)) spokes.push(nid); }
+          else if (party.type === 'business') spokes.push(ensureEntity('business', party.id, party.label));
+        });
+        hubs.forEach(hub => {
+          const hubNode = newNodes.find(n => n.id === hub);
+          if (hubNode) hubNode.data.eventCount = (hubNode.data.eventCount || 0) + 1;
+          spokes.forEach(spoke => {
+            if (spoke === hub) return;
+            const key = `${hub}|${spoke}`;
+            txEdgeMap.set(key, (txEdgeMap.get(key) || 0) + 1);
+          });
+        });
+      });
+      txEdgeMap.forEach((count, key) => {
+        const [hub, spoke] = key.split('|');
+        newEdges.push({
+          id: `txedge-${hub}-${spoke}`, source: hub, target: spoke, type: 'straight',
+          label: count > 1 ? String(count) : undefined,
+          style: { stroke: '#0891b2', strokeWidth: Math.min(8, 1 + count), strokeDasharray: '4 3', cursor: 'default' },
+          labelStyle: { fontSize: 10, fill: '#0e7490' },
+          data: { txLayer: true },
+        });
+      });
+    }
+
     console.log(`Total nodes created: ${newNodes.length}`);
     console.log(`Total edges created: ${newEdges.length}`);
-    
+
     // Apply layout
     const layoutedNodes = applyLayout(newNodes, newEdges, layoutType);
     
@@ -361,7 +442,7 @@ const RelationshipDiagram = ({
     setNodes(layoutedNodes);
     setEdges(newEdges);
     
-  }, [people, layoutType, setNodes, setEdges, applyLayout]);
+  }, [people, layoutType, setNodes, setEdges, applyLayout, showTransactionLayer, txData]);
 
   // Handle connection creation
   const onConnect = useCallback((params) => {
@@ -450,9 +531,9 @@ const RelationshipDiagram = ({
   const onEdgeClick = useCallback((event, edge) => {
     console.log('Edge clicked:', edge);
     event.stopPropagation();
-    
-    if (!edge.data) return;
-    
+
+    if (!edge.data || edge.data.txLayer) return;
+
     const confirmed = window.confirm(
       `Delete connection between ${edge.source} and ${edge.target}?\n` +
       `Type: ${edge.data.type || 'Unknown'}\n` +
@@ -503,6 +584,15 @@ const RelationshipDiagram = ({
               <span>Connect</span>
             </button>
           )}
+
+          <button
+            onClick={() => setShowTransactionLayer(v => !v)}
+            className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${showTransactionLayer ? 'bg-cyan-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            title="Toggle transaction / venue layer"
+          >
+            <Network className="w-4 h-4" />
+            <span>{showTransactionLayer ? 'Hide' : 'Show'} Venues</span>
+          </button>
         </div>
         
         {isAddingConnection && (

@@ -5,7 +5,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
-const { TX_SELECT, decorateTransaction, fullName } = require('../utils/transactionHelpers');
+const { TX_SELECT, decorateTransaction, fullName, aggregateVenueStats, deriveLedger } = require('../utils/transactionHelpers');
 
 const ENTITY_TYPES = { people: 'person', businesses: 'business', properties: 'property' };
 
@@ -73,36 +73,9 @@ router.get('/businesses/:id/venue-stats', requireAuth, validateIdParam, async (r
 
     const txResult = await pool.query(
       `${TX_SELECT} WHERE t.location_business_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
-    const txns = txResult.rows.map(decorateTransaction);
+    const stats = aggregateVenueStats(txResult.rows);
 
-    const peopleMap = new Map();
-    const byType = {};
-    let firstEvent = null, lastEvent = null;
-    for (const t of txns) {
-      byType[t.transaction_type] = (byType[t.transaction_type] || 0) + 1;
-      if (t.occurred_on) {
-        if (!firstEvent || t.occurred_on < firstEvent) firstEvent = t.occurred_on;
-        if (!lastEvent || t.occurred_on > lastEvent) lastEvent = t.occurred_on;
-      }
-      for (const party of [t.resolved_from, t.resolved_to]) {
-        if (party && party.type === 'person' && party.id) {
-          const cur = peopleMap.get(party.id) || { id: party.id, label: party.label, event_count: 0 };
-          cur.event_count += 1;
-          peopleMap.set(party.id, cur);
-        }
-      }
-    }
-    const people = Array.from(peopleMap.values()).sort((a, b) => b.event_count - a.event_count);
-
-    res.json({
-      business: { id: bizResult.rows[0].id, label: bizResult.rows[0].name },
-      event_count: txns.length,
-      distinct_people: people.length,
-      people,
-      first_event: firstEvent,
-      last_event: lastEvent,
-      by_type: byType,
-    });
+    res.json({ business: { id: bizResult.rows[0].id, label: bizResult.rows[0].name }, ...stats });
   } catch (err) {
     console.error('Error fetching venue stats:', err);
     res.status(500).json({ error: 'Failed to fetch venue stats' });
@@ -161,73 +134,8 @@ router.get('/:entityType/:id/ledger', requireAuth, validateIdParam, async (req, 
 
     const txResult = await pool.query(
       `${TX_SELECT} WHERE ${filters.join(' AND ')} ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, params);
-    const txns = txResult.rows.map(decorateTransaction);
 
-    const entries = [];
-    const seen = new Set();
-    const counterpartyKeys = new Set();
-    const countByType = {};
-    const byCurrencyMap = new Map();
-
-    const ensureCurrency = (cur) => {
-      const c = cur || 'UNSPEC';
-      if (!byCurrencyMap.has(c)) byCurrencyMap.set(c, { currency: cur || null, value_in: 0, value_out: 0, net: 0 });
-      return byCurrencyMap.get(c);
-    };
-
-    for (const t of txns) {
-      countByType[t.transaction_type] = (countByType[t.transaction_type] || 0) + 1;
-      const raw = txResult.rows.find(r => r.id === t.id);
-      const isTo = kind === 'person' ? raw.to_person_id === id : kind === 'business' ? raw.to_business_id === id : false;
-      const isFrom = kind === 'person' ? raw.from_person_id === id : kind === 'business' ? raw.from_business_id === id : false;
-      const isSubject = kind === 'business' ? raw.subject_business_id === id : kind === 'property' ? raw.subject_property_id === id : false;
-      const isVenue = kind === 'business' ? raw.location_business_id === id : kind === 'property' ? raw.location_property_id === id : false;
-      const value = t.value != null ? parseFloat(t.value) : null;
-
-      const pushEntry = (role, value_direction, counterparty, entryValue) => {
-        const key = `${t.id}:${role}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        if (counterparty && counterparty.label) counterpartyKeys.add(`${counterparty.type}:${counterparty.id}:${counterparty.label}`);
-        entries.push({
-          transaction_id: t.id,
-          occurred_on: t.occurred_on,
-          transaction_type: t.transaction_type,
-          role,
-          counterparty: counterparty || null,
-          subject: t.resolved_subject,
-          location: t.resolved_location,
-          value: entryValue,
-          currency: t.currency,
-          value_direction,
-          notes: t.notes,
-        });
-      };
-
-      if (isTo) {
-        pushEntry('received', 'in', t.resolved_from, value);
-        if (value != null) { const c = ensureCurrency(t.currency); c.value_in += value; }
-        if (raw.subject_asset_id) pushEntry('acquired_custody', 'in', t.resolved_from, null);
-      }
-      if (isFrom) {
-        pushEntry('gave', 'out', t.resolved_to, value);
-        if (value != null) { const c = ensureCurrency(t.currency); c.value_out += value; }
-        if (raw.subject_asset_id) pushEntry('released_custody', 'out', t.resolved_to, null);
-      }
-      if (isSubject) pushEntry('subject', 'neutral', t.resolved_from || t.resolved_to, value);
-      if (isVenue) pushEntry('venue', 'neutral', t.resolved_from || t.resolved_to, value);
-    }
-
-    entries.sort((a, b) => {
-      const da = a.occurred_on || ''; const db = b.occurred_on || '';
-      if (da === db) return a.transaction_id - b.transaction_id;
-      return da < db ? -1 : 1;
-    });
-
-    const byCurrency = Array.from(byCurrencyMap.values()).map(c => ({ ...c, net: c.value_in - c.value_out }));
-    const totalIn = byCurrency.reduce((s, c) => s + c.value_in, 0);
-    const totalOut = byCurrency.reduce((s, c) => s + c.value_out, 0);
-    const singleCurrency = byCurrency.length <= 1;
+    const { entries, summary } = deriveLedger(kind, id, txResult.rows);
 
     let assetsHeld = [];
     if (kind === 'person') assetsHeld = await currentHoldings('person', id);
@@ -236,15 +144,7 @@ router.get('/:entityType/:id/ledger', requireAuth, validateIdParam, async (req, 
     res.json({
       entity: { type: kind, id, label },
       entries,
-      summary: {
-        value_in: singleCurrency ? totalIn : null,
-        value_out: singleCurrency ? totalOut : null,
-        net: singleCurrency ? totalIn - totalOut : null,
-        by_currency: byCurrency,
-        count_by_type: countByType,
-        distinct_counterparties: counterpartyKeys.size,
-        assets_currently_held: assetsHeld,
-      },
+      summary: { ...summary, assets_currently_held: assetsHeld },
     });
   } catch (err) {
     console.error('Error building ledger:', err);

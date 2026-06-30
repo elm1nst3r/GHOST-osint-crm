@@ -159,8 +159,150 @@ function deriveCustody(orderedTxns, ownershipTypes) {
   return { currentHolder, since, chain };
 }
 
+// Pure venue-stats aggregation from raw joined transaction rows (location_business_id = id).
+function aggregateVenueStats(rawRows) {
+  const peopleMap = new Map();
+  const byType = {};
+  let firstEvent = null, lastEvent = null;
+  const decorated = rawRows.map(decorateTransaction);
+  decorated.forEach(t => {
+    byType[t.transaction_type] = (byType[t.transaction_type] || 0) + 1;
+    if (t.occurred_on) {
+      const d = t.occurred_on instanceof Date ? t.occurred_on.toISOString().slice(0, 10) : String(t.occurred_on);
+      if (!firstEvent || d < firstEvent) firstEvent = d;
+      if (!lastEvent || d > lastEvent) lastEvent = d;
+    }
+    [t.resolved_from, t.resolved_to].forEach(party => {
+      if (party && party.type === 'person' && party.id) {
+        const cur = peopleMap.get(party.id) || { id: party.id, label: party.label, event_count: 0 };
+        cur.event_count += 1;
+        peopleMap.set(party.id, cur);
+      }
+    });
+  });
+  const people = Array.from(peopleMap.values()).sort((a, b) => b.event_count - a.event_count);
+  return { event_count: decorated.length, distinct_people: people.length, people, first_event: firstEvent, last_event: lastEvent, by_type: byType };
+}
+
+// Pure ledger derivation (entries + summary) for an entity from raw joined rows.
+// kind ∈ 'person'|'business'|'property'. assets_currently_held is added by the caller.
+function deriveLedger(kind, id, rawRows) {
+  const entries = [];
+  const seen = new Set();
+  const counterpartyKeys = new Set();
+  const countByType = {};
+  const byCurrencyMap = new Map();
+  const ensureCurrency = (cur) => {
+    const c = cur || 'UNSPEC';
+    if (!byCurrencyMap.has(c)) byCurrencyMap.set(c, { currency: cur || null, value_in: 0, value_out: 0, net: 0 });
+    return byCurrencyMap.get(c);
+  };
+
+  rawRows.forEach(raw => {
+    const t = decorateTransaction(raw);
+    countByType[t.transaction_type] = (countByType[t.transaction_type] || 0) + 1;
+    const isTo = kind === 'person' ? raw.to_person_id === id : kind === 'business' ? raw.to_business_id === id : false;
+    const isFrom = kind === 'person' ? raw.from_person_id === id : kind === 'business' ? raw.from_business_id === id : false;
+    const isSubject = kind === 'business' ? raw.subject_business_id === id : kind === 'property' ? raw.subject_property_id === id : false;
+    const isVenue = kind === 'business' ? raw.location_business_id === id : kind === 'property' ? raw.location_property_id === id : false;
+    const value = t.value != null ? parseFloat(t.value) : null;
+
+    const pushEntry = (role, value_direction, counterparty, entryValue) => {
+      const key = `${t.id}:${role}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      if (counterparty && counterparty.label) counterpartyKeys.add(`${counterparty.type}:${counterparty.id}:${counterparty.label}`);
+      entries.push({
+        transaction_id: t.id, occurred_on: t.occurred_on, transaction_type: t.transaction_type,
+        role, counterparty: counterparty || null, subject: t.resolved_subject, location: t.resolved_location,
+        value: entryValue, currency: t.currency, value_direction, notes: t.notes,
+      });
+    };
+
+    if (isTo) {
+      pushEntry('received', 'in', t.resolved_from, value);
+      if (value != null) ensureCurrency(t.currency).value_in += value;
+      if (raw.subject_asset_id) pushEntry('acquired_custody', 'in', t.resolved_from, null);
+    }
+    if (isFrom) {
+      pushEntry('gave', 'out', t.resolved_to, value);
+      if (value != null) ensureCurrency(t.currency).value_out += value;
+      if (raw.subject_asset_id) pushEntry('released_custody', 'out', t.resolved_to, null);
+    }
+    if (isSubject) pushEntry('subject', 'neutral', t.resolved_from || t.resolved_to, value);
+    if (isVenue) pushEntry('venue', 'neutral', t.resolved_from || t.resolved_to, value);
+  });
+
+  entries.sort((a, b) => {
+    const da = a.occurred_on || ''; const db = b.occurred_on || '';
+    if (da === db) return a.transaction_id - b.transaction_id;
+    return da < db ? -1 : 1;
+  });
+
+  const byCurrency = Array.from(byCurrencyMap.values()).map(c => ({ ...c, net: c.value_in - c.value_out }));
+  const totalIn = byCurrency.reduce((s, c) => s + c.value_in, 0);
+  const totalOut = byCurrency.reduce((s, c) => s + c.value_out, 0);
+  const singleCurrency = byCurrency.length <= 1;
+
+  return {
+    entries,
+    summary: {
+      value_in: singleCurrency ? totalIn : null,
+      value_out: singleCurrency ? totalOut : null,
+      net: singleCurrency ? totalIn - totalOut : null,
+      by_currency: byCurrency,
+      count_by_type: countByType,
+      distinct_counterparties: counterpartyKeys.size,
+    },
+  };
+}
+
+// Pure validation of transaction body shape (§5 rules 2-5). The transaction_type
+// required + active-option check stays in the route (needs DB). Returns error string or null.
+const FROM_REFS = ['from_person_id', 'from_business_id', 'from_external'];
+const TO_REFS = ['to_person_id', 'to_business_id', 'to_external'];
+const SUBJECT_REFS = ['subject_asset_id', 'subject_business_id', 'subject_property_id'];
+const LOCATION_REFS = ['location_business_id', 'location_property_id'];
+
+function countSet(body, keys) {
+  return keys.filter(k => body[k] !== undefined && body[k] !== null && body[k] !== '').length;
+}
+function isPositiveIntOrNull(v) {
+  if (v === undefined || v === null || v === '') return true;
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0;
+}
+
+function validateTransactionShape(body) {
+  if (countSet(body, FROM_REFS) === 0 && countSet(body, TO_REFS) === 0) {
+    return 'At least one party (from_* or to_*) is required';
+  }
+  if (countSet(body, FROM_REFS) > 1) return 'Only one giver (from_*) may be set';
+  if (countSet(body, TO_REFS) > 1) return 'Only one receiver (to_*) may be set';
+  if (countSet(body, SUBJECT_REFS) > 1) return 'Only one referenced subject may be set';
+  if (countSet(body, LOCATION_REFS) > 1) return 'Only one event location reference may be set';
+  for (const k of [...FROM_REFS.slice(0, 2), ...TO_REFS.slice(0, 2), ...SUBJECT_REFS, ...LOCATION_REFS, 'case_id']) {
+    if (!isPositiveIntOrNull(body[k])) return `${k} must be a positive integer`;
+  }
+  if (body.value != null && body.value !== '' && (isNaN(Number(body.value)) || Number(body.value) < 0)) {
+    return 'value must be a non-negative number';
+  }
+  if (body.occurred_on) {
+    const d = new Date(body.occurred_on);
+    if (isNaN(d.getTime())) return 'occurred_on is not a valid date';
+  }
+  return null;
+}
+
 module.exports = {
   TX_SELECT,
+  FROM_REFS,
+  TO_REFS,
+  SUBJECT_REFS,
+  LOCATION_REFS,
+  countSet,
+  isPositiveIntOrNull,
+  validateTransactionShape,
   fullName,
   resolveParty,
   resolveSubject,
@@ -168,4 +310,6 @@ module.exports = {
   decorateTransaction,
   geocodeFields,
   deriveCustody,
+  aggregateVenueStats,
+  deriveLedger,
 };

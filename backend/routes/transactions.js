@@ -4,21 +4,10 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
-const { TX_SELECT, decorateTransaction, geocodeFields } = require('../utils/transactionHelpers');
-
-const FROM_REFS = ['from_person_id', 'from_business_id', 'from_external'];
-const TO_REFS = ['to_person_id', 'to_business_id', 'to_external'];
-const SUBJECT_REFS = ['subject_asset_id', 'subject_business_id', 'subject_property_id'];
-const LOCATION_REFS = ['location_business_id', 'location_property_id'];
-
-function countSet(body, keys) {
-  return keys.filter(k => body[k] !== undefined && body[k] !== null && body[k] !== '').length;
-}
-function isPositiveIntOrNull(v) {
-  if (v === undefined || v === null || v === '') return true;
-  const n = Number(v);
-  return Number.isInteger(n) && n > 0;
-}
+const {
+  TX_SELECT, decorateTransaction, geocodeFields,
+  SUBJECT_REFS, LOCATION_REFS, countSet, validateTransactionShape,
+} = require('../utils/transactionHelpers');
 
 async function validateTransaction(body) {
   if (!body.transaction_type || typeof body.transaction_type !== 'string' || !body.transaction_type.trim()) {
@@ -28,27 +17,7 @@ async function validateTransaction(body) {
     `SELECT 1 FROM model_options WHERE model_type = 'transaction_type' AND option_value = $1 AND is_active = TRUE`,
     [body.transaction_type]);
   if (typeCheck.rows.length === 0) return `Unknown transaction_type: ${body.transaction_type}`;
-
-  if (countSet(body, FROM_REFS) === 0 && countSet(body, TO_REFS) === 0) {
-    return 'At least one party (from_* or to_*) is required';
-  }
-  if (countSet(body, FROM_REFS) > 1) return 'Only one giver (from_*) may be set';
-  if (countSet(body, TO_REFS) > 1) return 'Only one receiver (to_*) may be set';
-  if (countSet(body, SUBJECT_REFS) > 1) return 'Only one referenced subject may be set';
-  if (countSet(body, LOCATION_REFS) > 1) return 'Only one event location reference may be set';
-
-  for (const k of [...FROM_REFS.slice(0, 2), ...TO_REFS.slice(0, 2), ...SUBJECT_REFS, ...LOCATION_REFS,
-                   'case_id']) {
-    if (!isPositiveIntOrNull(body[k])) return `${k} must be a positive integer`;
-  }
-  if (body.value != null && body.value !== '' && (isNaN(Number(body.value)) || Number(body.value) < 0)) {
-    return 'value must be a non-negative number';
-  }
-  if (body.occurred_on) {
-    const d = new Date(body.occurred_on);
-    if (isNaN(d.getTime())) return 'occurred_on is not a valid date';
-  }
-  return null;
+  return validateTransactionShape(body);
 }
 
 // Normalise the body: a referenced subject clears free-text item_label (§5.3).
