@@ -5,7 +5,7 @@
 // instances share a consistent counter.
 const rateLimit = require('express-rate-limit');
 
-// Login limiter: 100 attempts per IP+username combo per 15 minutes by default.
+// Login limiter: 10 attempts per IP+username combo per 15 minutes by default.
 // Override via env: LOGIN_RATE_LIMIT_MAX (integer), LOGIN_RATE_LIMIT_WINDOW_MS (milliseconds).
 // Set LOGIN_RATE_LIMIT_DISABLE=true to remove rate limiting entirely (e.g. for automated clients).
 // Buckets by IP + username so probing different accounts doesn't share a bucket.
@@ -13,7 +13,7 @@ const loginLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
   ? (req, res, next) => next()
   : rateLimit({
   windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 100,
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again later.' },
@@ -33,4 +33,14 @@ const geocodingLimiter = rateLimit({
   message: { error: 'Geocoding rate limit exceeded. Please slow down.' },
 });
 
-module.exports = { loginLimiter, geocodingLimiter };
+// General API limiter: 300 requests per IP per minute.
+// Applied to all authenticated data-access routes to prevent scraping/DoS.
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please slow down.' },
+});
+
+module.exports = { loginLimiter, geocodingLimiter, apiLimiter };

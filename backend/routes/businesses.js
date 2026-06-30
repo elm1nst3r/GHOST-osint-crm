@@ -4,6 +4,9 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateBusinessData, validateIdParam } = require('../middleware/validation');
 const logAudit = require('../utils/logAudit');
+const { apiLimiter } = require('../middleware/rateLimiters');
+
+router.use(apiLimiter);
 
 // GET / — list all businesses
 router.get('/', requireAuth, async (req, res) => {
@@ -19,7 +22,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching businesses:', err);
-    res.status(500).json({ error: 'Failed to fetch businesses', detail: err.message });
+    res.status(500).json({ error: 'Failed to fetch businesses', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
 });
 
@@ -40,7 +43,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching business:', err);
-    res.status(500).json({ error: 'Failed to fetch business', detail: err.message });
+    res.status(500).json({ error: 'Failed to fetch business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
 });
 
@@ -119,7 +122,7 @@ router.post('/', requireAuth, validateBusinessData, async (req, res) => {
     res.status(201).json(newBusiness);
   } catch (err) {
     console.error('Error creating business:', err);
-    res.status(500).json({ error: 'Failed to create business', detail: err.message });
+    res.status(500).json({ error: 'Failed to create business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
 });
 
@@ -202,7 +205,7 @@ router.put('/:id', requireAuth, validateIdParam, validateBusinessData, async (re
     res.json(updatedBusiness);
   } catch (err) {
     console.error('Error updating business:', err);
-    res.status(500).json({ error: 'Failed to update business', detail: err.message });
+    res.status(500).json({ error: 'Failed to update business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
 });
 
@@ -229,7 +232,7 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     res.json({ message: 'Business deleted successfully' });
   } catch (err) {
     console.error('Error deleting business:', err);
-    res.status(500).json({ error: 'Failed to delete business', detail: err.message });
+    res.status(500).json({ error: 'Failed to delete business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
 });
 
