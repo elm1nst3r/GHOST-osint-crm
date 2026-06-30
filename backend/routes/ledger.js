@@ -6,9 +6,12 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { TX_SELECT, decorateTransaction, fullName, aggregateVenueStats, deriveLedger } = require('../utils/transactionHelpers');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
 const ENTITY_TYPES = { people: 'person', businesses: 'business', properties: 'property' };
 
+
+router.use(apiLimiter);
 // ── Convenience sub-routes ────────────────────────────────────────────────
 
 // GET /people/:id/transactions — given + received (direction per row)

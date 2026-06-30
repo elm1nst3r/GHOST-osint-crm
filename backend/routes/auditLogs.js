@@ -3,7 +3,10 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAdmin } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Get audit logs with filtering and pagination
 router.get('/', requireAdmin, async (req, res) => {
   try {

@@ -5,10 +5,13 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
 const LOCATION_MODES = ['with_holder', 'fixed_known', 'fixed_custom', 'unknown'];
 const num = (v) => (v == null ? null : parseFloat(v));
 
+
+router.use(apiLimiter);
 // Build a holder object from the latest-transaction join columns (alias prefix lt_).
 function holderFromRow(row) {
   if (row.lt_to_person_id) return { type: 'person', id: row.lt_to_person_id, label: fullName(row.lt_to_person_first, row.lt_to_person_last) || `Person #${row.lt_to_person_id}`, since: row.lt_occurred_on };

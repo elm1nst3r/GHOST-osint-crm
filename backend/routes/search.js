@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Universal search
 router.get('/', requireAuth, async (req, res) => {
   const { q } = req.query;

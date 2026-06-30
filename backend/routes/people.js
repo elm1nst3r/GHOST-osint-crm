@@ -5,7 +5,10 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validatePersonData, validateIdParam } = require('../middleware/validation');
 const logAudit = require('../utils/logAudit');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // GET / — paginated people list
 router.get('/', requireAuth, async (req, res) => {
   try {

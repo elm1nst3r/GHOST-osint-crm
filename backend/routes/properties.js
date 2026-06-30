@@ -5,9 +5,12 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
 const OWNERSHIP_TYPES = ['sale', 'purchase', 'transfer', 'acquisition'];
 
+
+router.use(apiLimiter);
 // GET / — list properties
 router.get('/', requireAuth, async (req, res) => {
   try {

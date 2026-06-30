@@ -6,7 +6,10 @@ const xml2js = require('xml2js');
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // -------------------------------------------------------------------------
 // IMPORTANT: /stats, /nearby, and /bulk-delete MUST be defined BEFORE /:id
 // to avoid Express treating "stats", "nearby", "bulk-delete" as an :id param.

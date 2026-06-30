@@ -2,7 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Entity relationships endpoints
 router.get('/entity-relationships', async (req, res) => {
   try {

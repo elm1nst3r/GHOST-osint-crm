@@ -4,6 +4,9 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { apiLimiter } = require('../middleware/rateLimiters');
+
+router.use(apiLimiter);
 const {
   TX_SELECT, decorateTransaction, geocodeFields,
   SUBJECT_REFS, LOCATION_REFS, countSet, validateTransactionShape,

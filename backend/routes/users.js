@@ -6,7 +6,10 @@ const { pool } = require('../config/database');
 const { requireAdmin, requireAuth } = require('../middleware/auth');
 const { validatePasswordStrength } = require('../utils/passwordPolicy');
 const { revokeSessionsForUser } = require('../utils/sessions');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Get all users (admin only)
 router.get('/', requireAdmin, async (req, res) => {
   try {

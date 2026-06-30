@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Get locations with filtering and pagination
 router.get('/', requireAuth, async (req, res) => {
   try {
