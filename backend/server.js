@@ -326,7 +326,59 @@ const initializeDatabase = async () => {
       { model_type: 'location_type', option_value: 'work', option_label: 'Work', display_order: 3 },
       { model_type: 'location_type', option_value: 'favorite_hotel', option_label: 'Favorite Hotel', display_order: 4 },
       { model_type: 'location_type', option_value: 'yacht_location', option_label: 'Yacht Location', display_order: 5 },
-      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 }
+      { model_type: 'location_type', option_value: 'other', option_label: 'Other', display_order: 6 },
+
+      // Transaction types
+      { model_type: 'transaction_type', option_value: 'gift',       option_label: 'Gift',                  display_order: 1 },
+      { model_type: 'transaction_type', option_value: 'donation',   option_label: 'Donation',              display_order: 2 },
+      { model_type: 'transaction_type', option_value: 'benefit',    option_label: 'Benefit / Hospitality', display_order: 3 },
+      { model_type: 'transaction_type', option_value: 'sale',       option_label: 'Sale',                  display_order: 4 },
+      { model_type: 'transaction_type', option_value: 'purchase',   option_label: 'Purchase',              display_order: 5 },
+      { model_type: 'transaction_type', option_value: 'transfer',   option_label: 'Transfer',              display_order: 6 },
+      { model_type: 'transaction_type', option_value: 'assignment', option_label: 'Assignment',            display_order: 7 },
+      { model_type: 'transaction_type', option_value: 'return',     option_label: 'Returned',              display_order: 8 },
+      { model_type: 'transaction_type', option_value: 'loan',       option_label: 'Loan / Borrowed',       display_order: 9 },
+      { model_type: 'transaction_type', option_value: 'acquisition',option_label: 'Acquisition',           display_order: 10 },
+      { model_type: 'transaction_type', option_value: 'lost',       option_label: 'Lost',                  display_order: 11 },
+      { model_type: 'transaction_type', option_value: 'seized',     option_label: 'Seized',                display_order: 12 },
+      { model_type: 'transaction_type', option_value: 'visit',      option_label: 'Visit / Attendance',    display_order: 13 },
+      { model_type: 'transaction_type', option_value: 'other',      option_label: 'Other',                 display_order: 14 },
+
+      // Transaction item categories
+      { model_type: 'transaction_item_category', option_value: 'cash_donation',    option_label: 'Cash / Donation',    display_order: 1 },
+      { model_type: 'transaction_item_category', option_value: 'hospitality',      option_label: 'Hospitality / Meal', display_order: 2 },
+      { model_type: 'transaction_item_category', option_value: 'tickets_event',    option_label: 'Tickets / Event',    display_order: 3 },
+      { model_type: 'transaction_item_category', option_value: 'travel',           option_label: 'Travel',             display_order: 4 },
+      { model_type: 'transaction_item_category', option_value: 'real_estate',      option_label: 'Real Estate',        display_order: 5 },
+      { model_type: 'transaction_item_category', option_value: 'business_interest',option_label: 'Business Interest',  display_order: 6 },
+      { model_type: 'transaction_item_category', option_value: 'physical_good',    option_label: 'Physical Good',      display_order: 7 },
+      { model_type: 'transaction_item_category', option_value: 'other',            option_label: 'Other',              display_order: 8 },
+
+      // Asset categories
+      { model_type: 'asset_category', option_value: 'watch',           option_label: 'Watch',           display_order: 1 },
+      { model_type: 'asset_category', option_value: 'jewellery',       option_label: 'Jewellery',       display_order: 2 },
+      { model_type: 'asset_category', option_value: 'electronics',     option_label: 'Electronics',     display_order: 3 },
+      { model_type: 'asset_category', option_value: 'laptop',          option_label: 'Laptop / Device', display_order: 4 },
+      { model_type: 'asset_category', option_value: 'vehicle',         option_label: 'Vehicle',         display_order: 5 },
+      { model_type: 'asset_category', option_value: 'tracking_device', option_label: 'Tracking Device', display_order: 6 },
+      { model_type: 'asset_category', option_value: 'document',        option_label: 'Document',        display_order: 7 },
+      { model_type: 'asset_category', option_value: 'other',           option_label: 'Other',           display_order: 8 },
+
+      // Asset statuses
+      { model_type: 'asset_status', option_value: 'active',    option_label: 'Active',    display_order: 1 },
+      { model_type: 'asset_status', option_value: 'lost',      option_label: 'Lost',      display_order: 2 },
+      { model_type: 'asset_status', option_value: 'destroyed', option_label: 'Destroyed', display_order: 3 },
+      { model_type: 'asset_status', option_value: 'seized',    option_label: 'Seized',    display_order: 4 },
+      { model_type: 'asset_status', option_value: 'disposed',  option_label: 'Disposed',  display_order: 5 },
+
+      // Property types
+      { model_type: 'property_type', option_value: 'parcel',          option_label: 'Parcel / Lot',    display_order: 1 },
+      { model_type: 'property_type', option_value: 'residential',     option_label: 'Residential',     display_order: 2 },
+      { model_type: 'property_type', option_value: 'rental',          option_label: 'Rental Property', display_order: 3 },
+      { model_type: 'property_type', option_value: 'commercial',      option_label: 'Commercial',      display_order: 4 },
+      { model_type: 'property_type', option_value: 'land',            option_label: 'Land',            display_order: 5 },
+      { model_type: 'property_type', option_value: 'development_site', option_label: 'Development Site',display_order: 6 },
+      { model_type: 'property_type', option_value: 'other',           option_label: 'Other',           display_order: 7 }
     ];
 
     for (const option of defaultOptions) {
@@ -541,6 +593,139 @@ const initializeDatabase = async () => {
     `);
     console.log('Backfilled wireless_networks.associated_person_ids from person_id.');
 
+    // ── Transaction tracking feature (issue #43): properties → assets → transactions ──
+    // FK create order matters: transactions references all three; assets references nothing new.
+
+    // Create properties table (real estate / parcels / land / venues)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS properties (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        property_type VARCHAR(100),
+        description TEXT,
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        geocode_confidence INTEGER,
+        geocode_provider VARCHAR(50),
+        geocoded_at TIMESTAMPTZ,
+        owner_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+        case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "properties" table.');
+    await applyUpdatedAtTrigger(client, 'properties');
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_properties_owner ON properties(owner_person_id);
+      CREATE INDEX IF NOT EXISTS idx_properties_case ON properties(case_id);
+      CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longitude);
+      CREATE INDEX IF NOT EXISTS idx_properties_country_city ON properties(country, city);
+    `);
+
+    // Create assets table (persistent physical goods with custody/location model)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS assets (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        category VARCHAR(100),
+        identifier VARCHAR(255),
+        description TEXT,
+        notes TEXT,
+        estimated_value DECIMAL(14, 2),
+        currency VARCHAR(10),
+        status VARCHAR(50) DEFAULT 'active',
+        location_mode VARCHAR(20) DEFAULT 'with_holder',
+        location_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+        location_ref VARCHAR(255),
+        location_name VARCHAR(255),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        geocode_confidence INTEGER,
+        geocode_provider VARCHAR(50),
+        geocoded_at TIMESTAMPTZ,
+        case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "assets" table.');
+    await applyUpdatedAtTrigger(client, 'assets');
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_assets_category ON assets(category);
+      CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
+      CREATE INDEX IF NOT EXISTS idx_assets_case ON assets(case_id);
+      CREATE INDEX IF NOT EXISTS idx_assets_location_person ON assets(location_person_id);
+      CREATE INDEX IF NOT EXISTS idx_assets_coords ON assets(latitude, longitude);
+    `);
+
+    // Create transactions table (event log: gifts, donations, sales, transfers, custody…)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        transaction_type VARCHAR(50) NOT NULL,
+        item_label VARCHAR(255),
+        item_category VARCHAR(100),
+        subject_asset_id INTEGER REFERENCES assets(id) ON DELETE SET NULL,
+        subject_business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+        subject_property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+        from_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+        from_business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+        from_external VARCHAR(255),
+        to_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+        to_business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+        to_external VARCHAR(255),
+        value DECIMAL(14, 2),
+        currency VARCHAR(10),
+        occurred_on DATE,
+        location_business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+        location_property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+        location_name VARCHAR(255),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        geocode_confidence INTEGER,
+        geocode_provider VARCHAR(50),
+        geocoded_at TIMESTAMPTZ,
+        case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Checked/created "transactions" table.');
+    await applyUpdatedAtTrigger(client, 'transactions');
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(transaction_type);
+      CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(occurred_on);
+      CREATE INDEX IF NOT EXISTS idx_transactions_from_person ON transactions(from_person_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_to_person ON transactions(to_person_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_from_business ON transactions(from_business_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_to_business ON transactions(to_business_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_subject_asset ON transactions(subject_asset_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_subject_business ON transactions(subject_business_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_subject_property ON transactions(subject_property_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_location_business ON transactions(location_business_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_location_property ON transactions(location_property_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_case ON transactions(case_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_coords ON transactions(latitude, longitude);
+    `);
+
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
     process.exit(1);
@@ -609,6 +794,10 @@ const todosRoutes = require('./routes/todos');
 const toolsRoutes = require('./routes/tools');
 const travelHistoryRoutes = require('./routes/travelHistory');
 const wirelessNetworksRoutes = require('./routes/wirelessNetworks');
+const propertiesRoutes = require('./routes/properties');
+const assetsRoutes = require('./routes/assets');
+const transactionsRoutes = require('./routes/transactions');
+const ledgerRoutes = require('./routes/ledger');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
@@ -625,6 +814,10 @@ app.use('/api/todos', todosRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api', travelHistoryRoutes);
 app.use('/api/wireless-networks', wirelessNetworksRoutes);
+app.use('/api/properties', propertiesRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/transactions', transactionsRoutes);
+app.use('/api', ledgerRoutes);
 
 app.get('/api', (req, res) => {
   res.json({ message: "Hello from the OSINT CRM Backend!" });

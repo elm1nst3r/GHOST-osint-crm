@@ -3,7 +3,10 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Get travel history for a person
 router.get('/people/:id/travel-history', requireAuth, validateIdParam, async (req, res) => {
   const personId = req.params.id;

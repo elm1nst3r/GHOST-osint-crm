@@ -5,6 +5,62 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ Added — Asset, Property & Transaction Tracking (issue #43)
+
+A unified system for recording persistent physical goods (assets), real estate
+(properties), and one-off transactions/benefits that flow between people,
+businesses, and places. Every change of hands or benefit is one row in a single
+`transactions` event log; assets get their chain of custody "for free" from the
+same log.
+
+- **New tables** (created in `backend/server.js` `initializeDatabase()`):
+  `properties`, `assets`, `transactions` — with indexes, `updated_at` triggers,
+  and `ON CONFLICT DO NOTHING` seeds.
+- **New `model_options` taxonomies**, editable in Settings → Data Model:
+  `transaction_type`, `transaction_item_category`, `asset_category`,
+  `asset_status`, `property_type`.
+- **Backend routes** (`requireAuth` + `validateIdParam`, list shape
+  `{ data, meta }`): `routes/properties.js`, `routes/assets.js`,
+  `routes/transactions.js`, `routes/ledger.js`. Convenience sub-routes:
+  `GET /api/people/:id/transactions`, `GET /api/people/:id/assets`,
+  `GET /api/businesses/:id/transactions`, `GET /api/businesses/:id/venue-stats`,
+  `GET /api/properties/:id/transactions`, and the unified entity ledger
+  `GET /api/:entityType/:id/ledger`.
+- **Polymorphic** giver/receiver (person | business | external), subject
+  (free-text item + category | asset | business | property), and event location
+  (business venue | property | free-text + geocode).
+- **Derived (never stored)** current holder / chain of custody for assets, and
+  current owner for businesses & properties (from `sale|purchase|transfer|acquisition`).
+- **Asset location model**: `with_holder` (rides the holder's latest known
+  position), `fixed_known` (live-linked to a person's `people.locations` entry with
+  coordinate snapshot fallback), `fixed_custom` (own geocoded address), `unknown`.
+- **Geocoding** of asset/property/transaction free-text addresses via
+  `improvedGeocodingService`; failures are non-fatal and surface a reason.
+- **Frontend**: new sections (Properties, Assets, Transactions) with list /
+  add-edit / detail components, `DataContext` slices, `assetsAPI`/`propertiesAPI`/
+  `transactionsAPI`/`ledgerAPI`. Detail panels on Person (Gifts & Transactions,
+  Assets Held, Ledger), Business (Venue Activity, Transactions, Ledger), Asset and
+  Property (chain-of-custody timelines).
+- **Entity Ledger** view (`EntityLedger.js`) + exportable "Entity Ledger" report
+  type (markdown / .docx via the existing Report Generator).
+- **Global Map**: property / asset / transaction layers with toggles and
+  type/category filters.
+- **Entity-network graph**: toggleable venue/transaction layer rendering businesses
+  and properties as hubs with edge thickness reflecting event count.
+- **Tests**: `backend/utils/transactionHelpers.test.js` covering party/subject/
+  location resolution, derived custody, geocoding, venue-stats aggregation, ledger
+  role/value-direction derivation, and transaction validation rules.
+
+#### Deferred (Phase 2)
+- Cross-venue ranked "influence" leaderboard and trend analytics.
+- Per-transaction historical coordinates of a moving asset (reconstructable from
+  the holder's `travel_history`).
+- Auto-mutating `owner_person_id` from the custody chain (current owner stays
+  derived for display; the quick field is left untouched).
+- Bulk import.
+
 ## [2.6.0] - 2026-06-14
 
 ### 🧹 Cleanup

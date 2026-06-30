@@ -400,3 +400,100 @@ export const downloadWord = async (data, options) => {
   const blob = await Packer.toBlob(doc);
   saveAs(blob, `investigation-report-${Date.now()}.docx`);
 };
+
+// ── Entity Ledger report (issue #43) ────────────────────────────────────────
+
+const money = (v, currency) => {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (isNaN(n)) return '—';
+  const f = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return currency ? `${f} ${currency}` : f;
+};
+const pretty = (t) => (t || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+export const generateLedgerMarkdown = (ledger) => {
+  const { entity, entries, summary } = ledger;
+  let md = '';
+  md += `# ENTITY LEDGER\n\n`;
+  md += `## ${entity.label || 'Entity'} (${entity.type})\n\n`;
+  md += `**Generated:** ${formatDateTime(new Date())}  \n`;
+  md += `**Classification:** CONFIDENTIAL\n\n---\n\n`;
+
+  md += `## SUMMARY\n\n`;
+  md += `| Metric | Value |\n|--------|-------|\n`;
+  md += `| Value In | ${summary.value_in != null ? money(summary.value_in) : 'mixed currencies'} |\n`;
+  md += `| Value Out | ${summary.value_out != null ? money(summary.value_out) : 'mixed currencies'} |\n`;
+  md += `| Net | ${summary.net != null ? money(summary.net) : 'see per-currency'} |\n`;
+  md += `| Distinct Counterparties | ${summary.distinct_counterparties} |\n\n`;
+
+  if (summary.by_currency && summary.by_currency.length) {
+    md += `### Per Currency\n\n| Currency | In | Out | Net |\n|----------|----|----|-----|\n`;
+    summary.by_currency.forEach(c => {
+      md += `| ${c.currency || 'unspecified'} | ${money(c.value_in)} | ${money(c.value_out)} | ${money(c.net)} |\n`;
+    });
+    md += `\n`;
+  }
+
+  if (summary.count_by_type && Object.keys(summary.count_by_type).length) {
+    md += `### Count by Type\n\n`;
+    Object.entries(summary.count_by_type).forEach(([t, c]) => { md += `- **${pretty(t)}:** ${c}\n`; });
+    md += `\n`;
+  }
+
+  if (summary.assets_currently_held && summary.assets_currently_held.length) {
+    md += `### Currently Held Assets\n\n`;
+    summary.assets_currently_held.forEach(a => { md += `- ${a.name}${a.since ? ` (since ${formatDate(a.since)})` : ''}\n`; });
+    md += `\n`;
+  }
+
+  md += `## LEDGER ENTRIES\n\n`;
+  md += `| Date | Type | Role | Counterparty | Subject | Direction | Value |\n`;
+  md += `|------|------|------|--------------|---------|-----------|-------|\n`;
+  entries.forEach(e => {
+    md += `| ${formatDate(e.occurred_on)} | ${pretty(e.transaction_type)} | ${pretty(e.role)} | ${e.counterparty?.label || '—'} | ${e.subject?.label || '—'} | ${e.value_direction} | ${e.value != null ? money(e.value, e.currency) : '—'} |\n`;
+  });
+  md += `\n---\n*End of Ledger Report*`;
+  return md;
+};
+
+export const downloadLedgerMarkdown = (ledger) => {
+  const md = generateLedgerMarkdown(ledger);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  saveAs(blob, `entity-ledger-${ledger.entity?.type || 'entity'}-${ledger.entity?.id || ''}-${Date.now()}.md`);
+};
+
+export const downloadLedgerWord = async (ledger) => {
+  const { entity, entries, summary } = ledger;
+  const children = [];
+  children.push(p('ENTITY LEDGER', HeadingLevel.TITLE, AlignmentType.CENTER));
+  children.push(p(`${entity.label || 'Entity'} (${entity.type})`, HeadingLevel.HEADING_1, AlignmentType.CENTER));
+  children.push(p(`Generated: ${formatDateTime(new Date())}`, null, AlignmentType.CENTER));
+  children.push(blank());
+
+  children.push(p('Summary', HeadingLevel.HEADING_1));
+  children.push(p(`Value In: ${summary.value_in != null ? money(summary.value_in) : 'mixed currencies'}`));
+  children.push(p(`Value Out: ${summary.value_out != null ? money(summary.value_out) : 'mixed currencies'}`));
+  children.push(p(`Net: ${summary.net != null ? money(summary.net) : 'see per-currency'}`));
+  children.push(p(`Distinct Counterparties: ${summary.distinct_counterparties}`));
+  children.push(blank());
+
+  if (summary.assets_currently_held && summary.assets_currently_held.length) {
+    children.push(p('Currently Held Assets', HeadingLevel.HEADING_2));
+    summary.assets_currently_held.forEach(a => children.push(p(`${a.name}${a.since ? ` (since ${formatDate(a.since)})` : ''}`)));
+    children.push(blank());
+  }
+
+  children.push(p('Ledger Entries', HeadingLevel.HEADING_1));
+  entries.forEach(e => {
+    children.push(p(`${formatDate(e.occurred_on)} — ${pretty(e.transaction_type)} (${pretty(e.role)})`, HeadingLevel.HEADING_2));
+    children.push(p(`Counterparty: ${e.counterparty?.label || '—'} | Subject: ${e.subject?.label || '—'}`));
+    children.push(p(`Direction: ${e.value_direction} | Value: ${e.value != null ? money(e.value, e.currency) : '—'}`));
+    children.push(blank());
+  });
+
+  children.push(p('Classification: CONFIDENTIAL', null, AlignmentType.CENTER));
+  const doc = new Document({ sections: [{ children }] });
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `entity-ledger-${entity?.type || 'entity'}-${entity?.id || ''}-${Date.now()}.docx`);
+};

@@ -3,7 +3,10 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
+const { apiLimiter } = require('../middleware/rateLimiters');
 
+
+router.use(apiLimiter);
 // Custom fields
 router.get('/custom-fields', requireAdmin, async (req, res) => {
   try {

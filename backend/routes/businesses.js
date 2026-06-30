@@ -7,7 +7,6 @@ const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 router.use(apiLimiter);
-
 // GET / — list all businesses
 router.get('/', requireAuth, async (req, res) => {
   try {

@@ -1,13 +1,13 @@
 // File: frontend/src/components/BusinessList.js
 import React, { useState } from 'react';
-import { Building2, Search, Plus, Edit2, Trash2, Users, MapPin, Phone, Mail, Globe, User } from 'lucide-react';
+import { Building2, Search, Plus, Edit2, Trash2, Users, MapPin, Phone, Mail, Globe, User, Eye } from 'lucide-react';
 import { businessAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const BusinessList = () => {
   const { businesses, fetchBusinesses } = useData();
-  const { setShowAddBusinessForm, setEditingBusiness } = useUI();
+  const { setShowAddBusinessForm, setEditingBusiness, setSelectedBusinessForDetail } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -126,6 +126,13 @@ const BusinessList = () => {
                 </div>
               </div>
               <div className="flex space-x-1">
+                <button
+                  onClick={() => setSelectedBusinessForDetail(business)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700"
+                  title="View details"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => setEditingBusiness(business)}
                   className="text-gray-600 dark:text-slate-400 hover:text-gray-700"

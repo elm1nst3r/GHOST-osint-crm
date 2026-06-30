@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Loader2, X } from 'lucide-react';
-import { peopleAPI, casesAPI, todosAPI, businessesAPI, locationsAPI } from '../utils/api';
-import { downloadMarkdown, downloadWord } from '../utils/reportGenerators';
+import { peopleAPI, casesAPI, todosAPI, businessesAPI, locationsAPI, ledgerAPI } from '../utils/api';
+import { downloadMarkdown, downloadWord, downloadLedgerMarkdown, downloadLedgerWord } from '../utils/reportGenerators';
 import ReportOptions from './reports/ReportOptions';
 import ReportPreview from './reports/ReportPreview';
+import LedgerReportPanel from './reports/LedgerReportPanel';
 
 const DEFAULT_OPTIONS = {
   includeSummary: true,
@@ -19,19 +20,34 @@ const DEFAULT_OPTIONS = {
   dateRange: 'all',
 };
 
-const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, onClose }) => {
+const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, ledgerEntity = null, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reportOptions, setReportOptions] = useState(DEFAULT_OPTIONS);
+  const [ledger, setLedger] = useState(null);
   const [data, setData] = useState({
     cases: [], people: [], businesses: [], locations: [], todos: [],
     selectedCase: null, selectedPerson: null,
   });
 
   useEffect(() => {
-    fetchData();
+    if (ledgerEntity) fetchLedger();
+    else fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId, personId]);
+  }, [caseId, personId, ledgerEntity]);
+
+  const fetchLedger = async () => {
+    setLoading(true);
+    try {
+      const data = await ledgerAPI.get(ledgerEntity.type, ledgerEntity.id);
+      setLedger(data);
+    } catch (error) {
+      console.error('Error fetching ledger:', error);
+      alert('Failed to fetch ledger for report');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -80,7 +96,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const handleDownloadMarkdown = async () => {
     setGenerating(true);
     try {
-      downloadMarkdown(data, reportOptions);
+      if (ledgerEntity) downloadLedgerMarkdown(ledger);
+      else downloadMarkdown(data, reportOptions);
     } catch (error) {
       console.error('Error generating Markdown report:', error);
       alert('Failed to generate Markdown report: ' + error.message);
@@ -92,7 +109,8 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const handleDownloadWord = async () => {
     setGenerating(true);
     try {
-      await downloadWord(data, reportOptions);
+      if (ledgerEntity) await downloadLedgerWord(ledger);
+      else await downloadWord(data, reportOptions);
     } catch (error) {
       console.error('Error generating Word report:', error);
       alert('Failed to generate Word report: ' + error.message);
@@ -109,7 +127,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Generate Investigation Report</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">{ledgerEntity ? 'Generate Entity Ledger Report' : 'Generate Investigation Report'}</h2>
           </div>
           <button
             onClick={onClose}
@@ -127,10 +145,14 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-2 gap-8">
-              <ReportOptions reportOptions={reportOptions} onChange={setReportOptions} />
-              <ReportPreview data={data} reportOptions={reportOptions} />
-            </div>
+            {ledgerEntity ? (
+              <LedgerReportPanel ledger={ledger} />
+            ) : (
+              <div className="grid grid-cols-2 gap-8">
+                <ReportOptions reportOptions={reportOptions} onChange={setReportOptions} />
+                <ReportPreview data={data} reportOptions={reportOptions} />
+              </div>
+            )}
           </div>
         )}
 
