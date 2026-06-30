@@ -5,11 +5,15 @@
 // instances share a consistent counter.
 const rateLimit = require('express-rate-limit');
 
-// Login limiter: 10 attempts per IP+username combo per 15 minutes.
+// Login limiter: 100 attempts per IP+username combo per 15 minutes by default.
+// Override via env: LOGIN_RATE_LIMIT_MAX (integer), LOGIN_RATE_LIMIT_WINDOW_MS (milliseconds).
+// Set LOGIN_RATE_LIMIT_DISABLE=true to remove rate limiting entirely (e.g. for automated clients).
 // Buckets by IP + username so probing different accounts doesn't share a bucket.
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+const loginLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
+  ? (req, res, next) => next()
+  : rateLimit({
+  windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 100,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again later.' },
