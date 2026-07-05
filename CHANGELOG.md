@@ -5,7 +5,7 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.7.0] - 2026-07-06
 
 ### ✨ Added — Asset, Property & Transaction Tracking (issue #43)
 
@@ -60,6 +60,53 @@ same log.
 - Auto-mutating `owner_person_id` from the custody chain (current owner stays
   derived for display; the quick field is left untouched).
 - Bulk import.
+
+### 🛡️ Added — Zod schema validation (issue #49)
+
+- **New `backend/middleware/schemas.js`**: 20 Zod schemas covering every entity
+  (people, businesses, tools, cases, todos, travel history, properties, assets,
+  transactions, settings custom-fields and model-options) plus a `validate(schema)`
+  middleware factory wired into all POST/PUT routes.
+- **Structured validation errors**: bad input now returns
+  `{ "error": "Validation failed", "fields": { "email": ["Invalid email"] } }`
+  instead of a generic message — machine-readable field-level feedback (groundwork
+  for OpenAPI/MCP support, issue #44).
+- **Unknown fields stripped** from request bodies before they reach handlers.
+- **Removed** the hand-rolled `validatePersonData` / `validateBusinessData` /
+  `validateToolData` middleware and the dead in-memory rate limiter from
+  `validation.js`.
+
+### ✨ Added — API improvements (PR #45, @zbyte64)
+
+- `GET /api/people/:id` — fetch a single person by ID.
+- `GET /api/businesses/:id` — fetch a single business by ID.
+- **Tunable login rate limiting** via env vars: `LOGIN_RATE_LIMIT_MAX`,
+  `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE=true` (for automated
+  clients). Default remains 10 attempts / 15 min.
+- Business API 500 responses include an error `detail` in non-production
+  environments to aid debugging (suppressed in production).
+
+### 🔒 Security
+
+- **General API rate limiter**: 300 requests/IP/min applied to all authenticated
+  data-access routes (resolves 20 CodeQL missing-rate-limiting alerts).
+- **Error detail leakage**: raw database error messages are no longer exposed to
+  clients when `NODE_ENV=production`.
+
+### 🐛 Bug Fixes
+
+- **White screen on Wireless Networks / Add Business (issue #47)**:
+  `peopleAPI.getAll()` returns `{ data, meta }` but two components treated the
+  response as a plain array and crashed on `.map()` — fixed by destructuring.
+- **docker-compose overrides `.env` (issue #42)**: `NODE_ENV` was hardcoded to
+  `production` in `docker-compose.yml`, silently overriding `.env`. Both
+  `NODE_ENV` and `FRONTEND_URL` now use `${VAR:-default}` passthrough.
+
+### 🧹 Cleanup
+
+- **Removed dead `backend/config/initDatabase.js`** — never imported; all table
+  creation lives in `initializeDatabase()` in `server.js`. A proper migration
+  system is tracked in issue #48.
 
 ## [2.6.0] - 2026-06-14
 
