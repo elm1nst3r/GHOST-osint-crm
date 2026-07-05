@@ -5,6 +5,19 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ Added — OpenAPI specification endpoint (issue #44, phase A)
+
+- **`GET /api/openapi.json`** (authenticated) serves a machine-readable OpenAPI
+  3.1 document describing the full API surface: 54 paths, request-body schemas
+  for every POST/PUT, auth flow, pagination, rate limits, and admin-only markers.
+- Generated at startup from the Zod schemas in `middleware/schemas.js` via
+  Zod 4's native `z.toJSONSchema()` — **zero new dependencies** and no duplicated
+  schema definitions. Validation and documentation share one source of truth.
+- MCP services and other API clients can now discover the schema from the API
+  itself instead of hand-maintaining copies.
+
 ## [2.7.0] - 2026-07-06
 
 ### ✨ Added — Asset, Property & Transaction Tracking (issue #43)

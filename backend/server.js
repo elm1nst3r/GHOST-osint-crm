@@ -798,6 +798,13 @@ const propertiesRoutes = require('./routes/properties');
 const assetsRoutes = require('./routes/assets');
 const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
+const openapiSpec = require('./utils/openapiSpec');
+
+// Machine-readable API description generated from the Zod schemas (issue #44).
+// Mounted before the generic /api routers so no catch-all pattern shadows it.
+app.get('/api/openapi.json', requireAuth, (req, res) => {
+  res.json(openapiSpec);
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
