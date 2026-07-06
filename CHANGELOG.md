@@ -5,7 +5,31 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.8.0] - 2026-07-06
+
+### ⚠️ CRITICAL — data-loss bug in v2.7.0, upgrade immediately
+
+v2.7.0 introduced Zod validation whose `validate()` middleware strips unknown
+fields from request bodies. Several schemas were missing fields that routes
+actually read, causing **silent data loss**:
+
+- **Editing a person WIPED its `connections`, `osint_data`, `attachments`,
+  and `custom_fields`** — the fields were stripped, and the update writes
+  `field || []`, overwriting stored values with empty. If you edited people
+  while on v2.7.0, that data is gone unless you have a database backup.
+- **Asset holders never saved** — `initial_holder` was stripped before the
+  acquisition transaction could be seeded.
+- **Editing any entity could fail validation** — edit forms send `null` for
+  cleared fields and numeric strings from selects; the schemas rejected both
+  ("Validation failed" on transactions, businesses, assets, properties…).
+- **Marking a todo done and creating a case were rejected** — the status
+  enums didn't match the UI vocabulary (`done`/`cancelled`/`attention` and
+  `active`/`on_hold` were not accepted).
+
+All fixed in this release. To prevent recurrence,
+`backend/middleware/schemaRouteConsistency.test.js` statically checks that
+every body field a route (or its helpers) reads is declared in its schema —
+mutation-tested, runs with `npm test`.
 
 ### ✨ Added — OpenAPI specification endpoint (issue #44, phase A)
 
@@ -51,6 +75,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **White screen on Add Network form**: `AddNetworkForm` treated
   `peopleAPI.getAll()`'s `{ data, meta }` envelope as a plain array — same
   class of crash as issue #47, missed in that fix.
+
+### 🐛 Bug Fixes — validation layer (see CRITICAL section above)
+
+- Schema field primitives rewritten as union types: optional strings accept
+  `null`, numeric fields accept numbers, numeric strings (coerced), `''` and
+  `null`; list fields treat `null` as empty. Range/format checks still apply
+  after coercion; required fields unchanged. Unions keep the generated
+  OpenAPI spec representable (no untyped fields).
+- `initial_holder` declared on asset create; person schemas declare
+  `connections` / `osintData` / `attachments` / `custom_fields`.
+- Case status enum corrected to `active`/`on_hold`/`closed`; todo status enum
+  corrected to `open`/`in_progress`/`on_hold`/`attention`/`done`/`cancelled`.
+- Asset edit form gained "Transfer to New Holder" — records a transfer
+  transaction, consistent with holders being derived from the ledger.
+- 23 new tests: form-shaped payload regressions + the schema↔route
+  consistency guard.
 
 ### 🧹 Cleanup
 
