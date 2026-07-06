@@ -275,9 +275,22 @@ const assetBaseFields = {
   case_id: optId(),
 };
 
+// Optional initial holder on create — seeds an acquisition transaction.
+// Must be declared here or validate()'s unknown-field stripping deletes it
+// before the route can read it.
+const initialHolderSchema = z
+  .object({
+    person_id: optId(),
+    business_id: optId(),
+    external: optStr(255),
+    occurred_on: dateString,
+  })
+  .nullable()
+  .optional();
+
 const AssetCreateSchema = z.object({
   name: z.string().min(1, 'Asset name is required').max(255),
-  seed_acquisition: z.boolean().nullable().optional(),
+  initial_holder: initialHolderSchema,
   ...assetBaseFields,
 });
 

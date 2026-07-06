@@ -6,6 +6,7 @@ const {
   TransactionUpdateSchema,
   BusinessUpdateSchema,
   PersonUpdateSchema,
+  AssetCreateSchema,
   AssetUpdateSchema,
   PropertyCreateSchema,
 } = require('./schemas');
@@ -99,6 +100,17 @@ describe('schemas — form-shaped payloads', () => {
   test('asset update with null location_mode falls back to default', () => {
     const result = AssetUpdateSchema.safeParse({ name: 'Rolex', location_mode: null });
     expect(result.success).toBe(true);
+  });
+
+  test('initial_holder survives asset create parse (bug: holder silently dropped)', () => {
+    // Zod strips unknown fields, so initial_holder must be declared in the
+    // schema or the acquisition transaction is never seeded.
+    const result = AssetCreateSchema.safeParse({
+      name: 'Rolex',
+      initial_holder: { person_id: '5', business_id: null, external: null, occurred_on: '2026-07-01' },
+    });
+    expect(result.success).toBe(true);
+    expect(result.data.initial_holder.person_id).toBe(5);
   });
 
   test('invalid dates and out-of-range coordinates still rejected', () => {
