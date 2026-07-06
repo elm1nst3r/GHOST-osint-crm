@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schema definitions. Validation and documentation share one source of truth.
 - MCP services and other API clients can now discover the schema from the API
   itself instead of hand-maintaining copies.
+- Corrected: the people list is documented as returning a plain array with
+  pagination headers (`X-Total-Count` / `X-Has-More`), matching actual
+  behaviour (issue #40 backwards compatibility) — not the `{ data, meta }`
+  envelope used by newer list endpoints.
+
+### ✨ Added — Bundled MCP server (issue #44, phase B)
+
+- **New `mcp/` package**: a Model Context Protocol server (`mcp/ghost-mcp.js`)
+  that exposes the entire GHOST API as LLM tools over stdio. Works with Claude
+  Desktop, Claude Code, and any MCP-compatible client — see `mcp/README.md`.
+- **Spec-driven, zero duplication**: tools are generated at startup from the
+  live `GET /api/openapi.json` — 86 tools covering every endpoint, with real
+  request schemas. Upgrading GHOST automatically upgrades the toolset.
+- **Duplicate protection**: `ghost_create_people` / `ghost_create_businesses`
+  check for same-name records first and refuse with a match list unless
+  `ignorePossibleDuplicates: true` — guards against LLMs inserting without
+  searching. Pattern adapted from @zbyte64's original implementation
+  (issue #44), with credit.
+- **Transparent session handling**: logs in with `GHOST_USERNAME` /
+  `GHOST_PASSWORD` env vars and re-authenticates automatically on expiry.
 
 ## [2.7.0] - 2026-07-06
 

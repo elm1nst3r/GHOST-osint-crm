@@ -205,8 +205,11 @@ const spec = {
     },
 
     // ── People ──
+    // NOTE: unlike properties/assets/transactions, the people list returns a
+    // plain array for backwards compatibility (issue #40); pagination metadata
+    // is in the X-Total-Count / X-Has-More response headers.
     ...crudPaths('People', '/people', 'PersonCreate', 'PersonUpdate', {
-      paginated: true,
+      listParams: paginationParams,
     }),
     '/people/{id}/locations': {
       post: op('People', 'Add a location to a person', { params: [idParam], body: anyObject }),

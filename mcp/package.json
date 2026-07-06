@@ -1,0 +1,15 @@
+{
+  "name": "ghost-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing the GHOST OSINT CRM API as LLM tools, generated from the API's own OpenAPI spec",
+  "type": "module",
+  "bin": {
+    "ghost-mcp": "./ghost-mcp.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
