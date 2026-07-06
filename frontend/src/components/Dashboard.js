@@ -113,16 +113,16 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
         <button
           onClick={() => setShowReportGenerator(true)}
-          className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 flex items-center group active:scale-[0.97]"
+          className="btn btn-primary"
         >
-          <FileText className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+          <FileText className="w-4 h-4" />
           Generate Report
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Active People */}
-        <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150">
+        <div className="glass-card p-5">
           <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Recently Updated People</h3>
           <div className="space-y-3">
             {activePeople.length === 0 ? (
@@ -130,7 +130,7 @@ const Dashboard = () => {
                 <p className="text-sm">No people added yet.</p>
                 <button
                   onClick={() => setActiveSection('people')}
-                  className="mt-3 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-150 text-sm font-medium"
+                  className="btn btn-ghost mt-3"
                 >
                   Add Your First Person →
                 </button>
@@ -155,7 +155,7 @@ const Dashboard = () => {
                   </div>
                   <button
                     onClick={() => setSelectedPersonForDetail(person)}
-                    className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-600 rounded-lg transition-colors duration-150 text-sm font-medium flex-shrink-0 active:scale-[0.97]"
+                    className="btn btn-ghost flex-shrink-0"
                   >
                     View Details
                   </button>
@@ -166,7 +166,7 @@ const Dashboard = () => {
         </div>
 
         {/* To-Do List */}
-        <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150">
+        <div className="glass-card p-5">
           <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">To-Do List</h3>
           <div className="mb-4 flex space-x-3">
             <input
@@ -175,11 +175,11 @@ const Dashboard = () => {
               onChange={(e) => setNewTodo(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddTodo()}
               placeholder="Add a new task..."
-              className="flex-1 px-4 py-3 glass border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:text-slate-100 dark:bg-slate-700 dark:placeholder-slate-500"
+              className="input-base flex-1"
             />
             <button
               onClick={handleAddTodo}
-              className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 font-medium active:scale-[0.97]"
+              className="btn btn-primary"
             >
               Add
             </button>
@@ -275,12 +275,12 @@ const Dashboard = () => {
       </div>
 
       {/* Global Relationship Overview */}
-      <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-glass-lg rounded-lg overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Global Relationship Overview</h3>
           <button
             onClick={() => setActiveSection('relationships')}
-            className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-150 font-medium active:scale-[0.97]"
+            className="btn btn-ghost"
           >
             View Full Network →
           </button>

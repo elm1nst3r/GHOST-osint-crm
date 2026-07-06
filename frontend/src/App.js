@@ -96,7 +96,7 @@ const AppShell = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[100dvh] bg-slate-50 dark:bg-slate-900">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        <div className="text-slate-600 dark:text-slate-400">Loading...</div>
       </div>
     );
   }
@@ -106,35 +106,32 @@ const AppShell = () => {
   }
 
   return (
-    <div className="flex min-h-[100dvh] bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden transition-colors duration-150">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-cosmic opacity-20 dark:opacity-10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-ocean opacity-15 dark:opacity-8 rounded-full blur-3xl"></div>
-      </div>
-
+    <div className="flex min-h-[100dvh] bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
       {/* Sidebar */}
-      <div className="relative w-72 lg:w-72 md:w-64 sm:w-56 glass-card m-4 rounded-glass-lg backdrop-blur-xl border border-white/30 shadow-glass-lg flex-shrink-0">
-        <div className="p-6 border-b border-white/20">
+      <div className="relative w-72 lg:w-72 md:w-64 sm:w-56 glass-card m-4 flex-shrink-0 flex flex-col">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {appSettings.appLogo ? (
-                <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
+                <img src={appSettings.appLogo} alt="Logo" className="h-10 w-10 object-contain rounded-lg" />
               ) : (
-                <div className="p-2 rounded-xl bg-gradient-primary shadow-glow-sm">
-                  <Shield className="w-8 h-8 text-white" />
+                <div className="p-2 rounded-lg bg-accent-primary">
+                  <Shield className="w-6 h-6 text-white" />
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{appSettings.appName}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">OSINT Investigation Suite</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{appSettings.appName}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">OSINT Investigation Suite</p>
               </div>
             </div>
             <DarkModeToggle />
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-3 space-y-0.5 flex-1 overflow-y-auto">
+          <p className="px-3 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
+            Workspace
+          </p>
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -142,44 +139,44 @@ const AppShell = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full text-left p-4 rounded-glass transition-[background-color,box-shadow] duration-150 flex items-center space-x-3 group relative overflow-hidden active:scale-[0.97] ${
+                className={`nav-item ${
                   isActive
-                    ? 'bg-gradient-primary text-white shadow-glow-md'
-                    : 'glass-button text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                    ? 'bg-accent-primary/10 text-accent-primary'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
-                {isActive && <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50"></div>}
-                <Icon className={`w-5 h-5 transition-colors duration-150 ${isActive ? 'text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-accent-primary'}`} />
-                <span className="font-medium relative z-10">{item.label}</span>
-                {isActive && <div className="absolute right-2 w-2 h-2 bg-white rounded-full animate-pulse-soft"></div>}
+                <Icon className={`flex-shrink-0 transition-colors duration-150 ${isActive ? 'text-accent-primary' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
+                <span>{item.label}</span>
               </button>
             );
           })}
 
-          <button
-            onClick={handleLogout}
-            className="w-full text-left p-4 rounded-glass transition-[background-color,box-shadow] duration-150 flex items-center space-x-3 group relative overflow-hidden glass-button text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 active:scale-[0.97] mt-4 border-t border-white/20 pt-4"
-          >
-            <LogOut className="w-5 h-5 transition-colors duration-150" />
-            <span className="font-medium relative z-10">Logout</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{currentUser?.username}</span>
-          </button>
+          <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+            <button
+              onClick={handleLogout}
+              className="nav-item text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+            >
+              <LogOut className="flex-shrink-0" style={{ width: 18, height: 18 }} />
+              <span>Logout</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">{currentUser?.username}</span>
+            </button>
+          </div>
         </nav>
 
-        <div className="p-4 border-t border-white/20">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setShowAdvancedSearch(true)}
-            className="w-full p-4 glass-heavy text-slate-700 rounded-glass hover:shadow-glow-sm transition-[box-shadow] duration-150 flex items-center justify-center space-x-2 group active:scale-[0.97]"
+            className="btn btn-secondary w-full"
           >
-            <Search className="w-5 h-5 text-accent-primary group-hover:animate-pulse" />
-            <span className="font-medium">Advanced Search</span>
+            <Search className="w-4 h-4 text-accent-primary" />
+            <span>Advanced Search</span>
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 relative flex flex-col m-4">
-        <div className="flex-1 glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg overflow-hidden">
+      <div className="flex-1 relative flex flex-col m-4 ml-0">
+        <div className="flex-1 glass-card overflow-hidden">
           <div className="h-full p-6 overflow-auto">
             <div className="max-w-full mx-auto h-full">
 
@@ -197,9 +194,9 @@ const AppShell = () => {
 
               {activeSection === 'relationships' && (
                 <div className="h-full flex flex-col overflow-hidden">
-                  <div className="glass border-b border-white/20 px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">Entity Relationship Network</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Visualize connections between people and businesses</p>
+                  <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex-shrink-0">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Entity Relationship Network</h1>
+                    <p className="text-slate-600 dark:text-slate-400 mt-1">Visualize connections between people and businesses</p>
                   </div>
                   <div className="flex-1 min-h-0 relative">
                     <div className="absolute inset-0 overflow-hidden">

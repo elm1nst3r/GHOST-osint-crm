@@ -186,14 +186,14 @@ const WirelessNetworks = () => {
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddNetworkModal(true)}
-            className="px-4 py-2 bg-green-600 text-white dark:bg-green-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Network
           </button>
           <button
             onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center"
+            className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center"
           >
             <Upload className="w-4 h-4 mr-2" />
             Import KML

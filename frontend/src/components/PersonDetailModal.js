@@ -242,7 +242,7 @@ const PersonDetailModal = () => {
                           <span className="font-medium text-gray-600 dark:text-gray-400">Status:</span>
                           <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
                             person.status === 'Open' ? 'bg-green-600 dark:bg-green-500 text-white' :
-                            person.status === 'Being Investigated' ? 'bg-gradient-warning text-white' :
+                            person.status === 'Being Investigated' ? 'bg-accent-warning text-white' :
                             person.status === 'Closed' ? 'glass text-gray-800 dark:text-slate-200' :
                             'bg-blue-600 text-white dark:bg-blue-500'
                           }`}>

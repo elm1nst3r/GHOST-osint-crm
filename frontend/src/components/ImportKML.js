@@ -414,7 +414,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               onClick={handleClose}
               disabled={importing}
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
-                       hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg-lg
+                       hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg
                        transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
@@ -535,7 +535,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               <button
                 onClick={handleConfirmImport}
                 className="px-6 py-2 text-sm font-medium text-white bg-gradient-primary
-                         rounded-lg hover:shadow-glow-lg transition-all
+                         rounded-lg hover:shadow-glass-lg transition-[background-color,box-shadow]
                          flex items-center space-x-2"
               >
                 <Upload className="w-4 h-4" />
