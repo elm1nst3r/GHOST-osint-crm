@@ -20,35 +20,65 @@ function validate(schema) {
   };
 }
 
-// ── reusable refinements ──────────────────────────────────────────────────────
+// ── reusable field builders ───────────────────────────────────────────────────
+// Real request bodies are messier than the happy path: edit forms send null for
+// cleared fields, HTML inputs send '' when empty, and <select>/<input> values
+// arrive as strings even for numeric fields. These builders accept all of that
+// (unions keep the generated OpenAPI spec representable, unlike z.preprocess):
+//   optStr — string | null, '' allowed
+//   optNum — number | numeric string (coerced) | '' → null | null
+//   optId  — positive integer flavour of optNum
+
+const optStr = (max) => z.union([z.string().max(max), z.null()]).optional();
+
+const optNum = (inner) =>
+  z
+    .union([
+      inner,
+      z.string().min(1).transform(Number).pipe(inner),
+      z.literal('').transform(() => null),
+      z.null(),
+    ])
+    .optional();
+
+const optId = () => optNum(z.number().int().positive());
 
 const dateString = z
-  .string()
-  .optional()
-  .refine((v) => !v || !isNaN(Date.parse(v)), { message: 'Invalid date' });
+  .union([
+    z
+      .string()
+      .refine((v) => v === '' || !isNaN(Date.parse(v)), { message: 'Invalid date' })
+      .transform((v) => (v === '' ? null : v)),
+    z.null(),
+  ])
+  .optional();
+
+// Arrays: treat null like "not provided" so edit forms can't crash list fields.
+const optArray = (item) =>
+  z.union([z.array(item), z.null().transform(() => [])]).default([]);
 
 // ── People ────────────────────────────────────────────────────────────────────
 // NOTE: people.js uses camelCase body keys (firstName, lastName, etc.)
 
 const personLocationSchema = z.object({
-  label: z.string().optional(),
-  address: z.string().optional(),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  label: optStr(500),
+  address: optStr(500),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
 });
 
 const personBaseFields = {
-  lastName: z.string().max(255).optional(),
+  lastName: optStr(255),
   date_of_birth: dateString,
   dateOfBirth: dateString,
-  category: z.string().max(1000).optional(),
-  status: z.string().max(1000).optional(),
-  crmStatus: z.string().max(1000).optional(),
-  caseName: z.string().max(1000).optional(),
-  notes: z.string().max(1000).optional(),
-  profilePictureUrl: z.string().optional(),
-  aliases: z.array(z.string()).optional().default([]),
-  locations: z.array(personLocationSchema).optional().default([]),
+  category: optStr(1000),
+  status: optStr(1000),
+  crmStatus: optStr(1000),
+  caseName: optStr(1000),
+  notes: optStr(1000),
+  profilePictureUrl: optStr(2000),
+  aliases: optArray(z.string()),
+  locations: optArray(personLocationSchema),
 };
 
 const PersonCreateSchema = z.object({
@@ -66,35 +96,37 @@ const PersonUpdateSchema = z
 
 const employeeSchema = z.object({
   name: z.string(),
-  role: z.string().optional(),
-  department: z.string().optional(),
-  email: z.string().optional(),
-  notes: z.string().optional(),
+  role: optStr(500),
+  department: optStr(500),
+  email: optStr(500),
+  notes: optStr(2000),
 });
 
 const businessBaseFields = {
-  type: z.string().max(255).optional(),
-  industry: z.string().max(255).optional(),
-  status: z.string().max(255).optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  website: z.string().url().optional().or(z.literal('')),
+  type: optStr(255),
+  industry: optStr(255),
+  status: optStr(255),
+  email: z.union([z.string().email(), z.literal(''), z.null()]).optional(),
+  website: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
   phone: z
-    .string()
-    .regex(/^[\d\s\-\+\(\)]+$/, 'Invalid phone format')
-    .optional()
-    .or(z.literal('')),
-  address: z.string().max(500).optional(),
-  city: z.string().max(500).optional(),
-  state: z.string().max(500).optional(),
-  country: z.string().max(500).optional(),
-  postal_code: z.string().max(500).optional(),
-  registration_number: z.string().max(500).optional(),
-  notes: z.string().max(500).optional(),
+    .union([
+      z.string().regex(/^[\d\s\-\+\(\)]+$/, 'Invalid phone format'),
+      z.literal(''),
+      z.null(),
+    ])
+    .optional(),
+  address: optStr(500),
+  city: optStr(500),
+  state: optStr(500),
+  country: optStr(500),
+  postal_code: optStr(500),
+  registration_number: optStr(500),
+  notes: optStr(500),
   registration_date: dateString,
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
-  owner_person_id: z.number().int().positive().optional().nullable(),
-  employees: z.array(employeeSchema).optional().default([]),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
+  owner_person_id: optId(),
+  employees: optArray(employeeSchema),
 };
 
 const BusinessCreateSchema = z.object({
@@ -110,12 +142,12 @@ const BusinessUpdateSchema = z.object({
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 const toolBaseFields = {
-  link: z.string().url().optional().or(z.literal('')),
-  description: z.string().max(1000).optional(),
-  category: z.string().max(1000).optional(),
-  status: z.string().max(255).optional(),
-  tags: z.array(z.string()).optional().default([]),
-  notes: z.string().max(1000).optional(),
+  link: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  description: optStr(1000),
+  category: optStr(1000),
+  status: optStr(255),
+  tags: optArray(z.string()),
+  notes: optStr(1000),
 };
 
 const ToolCreateSchema = z.object({
@@ -131,8 +163,8 @@ const ToolUpdateSchema = z.object({
 // ── Cases ─────────────────────────────────────────────────────────────────────
 
 const caseBaseFields = {
-  description: z.string().max(2000).optional(),
-  status: z.enum(['open', 'closed', 'pending']).optional(),
+  description: optStr(2000),
+  status: z.enum(['open', 'closed', 'pending']).nullable().optional(),
 };
 
 const CaseCreateSchema = z.object({
@@ -149,15 +181,15 @@ const CaseUpdateSchema = z.object({
 
 const TodoCreateSchema = z.object({
   text: z.string().min(1, 'Todo text is required').max(2000),
-  status: z.enum(['open', 'in_progress', 'closed']).optional().default('open'),
-  last_update_comment: z.string().max(1000).optional(),
+  status: z.enum(['open', 'in_progress', 'closed']).nullable().optional().default('open'),
+  last_update_comment: optStr(1000),
 });
 
 const TodoUpdateSchema = z
   .object({
     text: z.string().min(1).max(2000).optional(),
-    status: z.enum(['open', 'in_progress', 'closed']).optional(),
-    last_update_comment: z.string().max(1000).optional(),
+    status: z.enum(['open', 'in_progress', 'closed']).nullable().optional(),
+    last_update_comment: optStr(1000),
   })
   .refine((data) => data.text !== undefined || data.status !== undefined, {
     message: 'text or status is required',
@@ -166,20 +198,20 @@ const TodoUpdateSchema = z
 // ── Travel History ────────────────────────────────────────────────────────────
 
 const travelHistoryBaseFields = {
-  location_type: z.string().max(255).optional(),
-  location_name: z.string().max(255).optional(),
-  address: z.string().max(255).optional(),
-  city: z.string().max(255).optional(),
-  state: z.string().max(255).optional(),
-  country: z.string().max(255).optional(),
-  postal_code: z.string().max(255).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
+  location_type: optStr(255),
+  location_name: optStr(255),
+  address: optStr(255),
+  city: optStr(255),
+  state: optStr(255),
+  country: optStr(255),
+  postal_code: optStr(255),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
   arrival_date: dateString,
   departure_date: dateString,
-  purpose: z.string().max(1000).optional(),
-  transportation_mode: z.string().max(1000).optional(),
-  notes: z.string().max(1000).optional(),
+  purpose: optStr(1000),
+  transportation_mode: optStr(1000),
+  notes: optStr(1000),
 };
 
 const TravelHistoryCreateSchema = z.object({ ...travelHistoryBaseFields });
@@ -188,20 +220,20 @@ const TravelHistoryUpdateSchema = z.object({ ...travelHistoryBaseFields });
 // ── Properties ────────────────────────────────────────────────────────────────
 
 const propertyBaseFields = {
-  property_type: z.string().max(500).optional(),
-  description: z.string().max(500).optional(),
-  address: z.string().max(500).optional(),
-  city: z.string().max(500).optional(),
-  state: z.string().max(500).optional(),
-  country: z.string().max(500).optional(),
-  postal_code: z.string().max(500).optional(),
-  notes: z.string().max(500).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
-  owner_person_id: z.number().int().positive().optional().nullable(),
-  case_id: z.number().int().positive().optional().nullable(),
-  area_sqm: z.number().nonnegative().optional().nullable(),
-  purchase_value: z.number().nonnegative().optional().nullable(),
+  property_type: optStr(500),
+  description: optStr(500),
+  address: optStr(500),
+  city: optStr(500),
+  state: optStr(500),
+  country: optStr(500),
+  postal_code: optStr(500),
+  notes: optStr(500),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
+  owner_person_id: optId(),
+  case_id: optId(),
+  area_sqm: optNum(z.number().nonnegative()),
+  purchase_value: optNum(z.number().nonnegative()),
 };
 
 const PropertyCreateSchema = z.object({
@@ -217,34 +249,35 @@ const PropertyUpdateSchema = z.object({
 // ── Assets ────────────────────────────────────────────────────────────────────
 
 const assetBaseFields = {
-  category: z.string().max(500).optional(),
-  identifier: z.string().max(500).optional(),
-  description: z.string().max(500).optional(),
-  notes: z.string().max(500).optional(),
+  category: optStr(500),
+  identifier: optStr(500),
+  description: optStr(500),
+  notes: optStr(500),
   location_mode: z
     .enum(['with_holder', 'fixed_known', 'fixed_custom', 'unknown'])
+    .nullable()
     .optional()
     .default('with_holder'),
-  status: z.string().max(100).optional(),
-  estimated_value: z.number().nonnegative().optional().nullable(),
-  currency: z.string().max(10).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
-  location_name: z.string().max(255).optional(),
-  address: z.string().max(255).optional(),
-  city: z.string().max(255).optional(),
-  state: z.string().max(255).optional(),
-  country: z.string().max(255).optional(),
-  postal_code: z.string().max(255).optional(),
-  location_person_id: z.number().int().positive().optional().nullable(),
-  location_ref: z.union([z.string(), z.number()]).optional().nullable(),
-  owner_person_id: z.number().int().positive().optional().nullable(),
-  case_id: z.number().int().positive().optional().nullable(),
+  status: optStr(100),
+  estimated_value: optNum(z.number().nonnegative()),
+  currency: optStr(10),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
+  location_name: optStr(255),
+  address: optStr(255),
+  city: optStr(255),
+  state: optStr(255),
+  country: optStr(255),
+  postal_code: optStr(255),
+  location_person_id: optId(),
+  location_ref: z.union([z.string(), z.number(), z.null()]).optional(),
+  owner_person_id: optId(),
+  case_id: optId(),
 };
 
 const AssetCreateSchema = z.object({
   name: z.string().min(1, 'Asset name is required').max(255),
-  seed_acquisition: z.boolean().optional(),
+  seed_acquisition: z.boolean().nullable().optional(),
   ...assetBaseFields,
 });
 
@@ -260,37 +293,37 @@ const AssetUpdateSchema = z.object({
 const TransactionCreateSchema = z.object({
   transaction_type: z.string().min(1, 'transaction_type is required'),
   occurred_on: dateString,
-  value: z.number().nonnegative().optional().nullable(),
-  currency: z.string().max(10).optional(),
-  notes: z.string().max(1000).optional(),
-  item_label: z.string().max(1000).optional(),
-  item_category: z.string().max(1000).optional(),
-  from_person_id: z.number().int().positive().optional().nullable(),
-  to_person_id: z.number().int().positive().optional().nullable(),
-  from_business_id: z.number().int().positive().optional().nullable(),
-  to_business_id: z.number().int().positive().optional().nullable(),
-  from_external: z.string().max(255).optional().nullable(),
-  to_external: z.string().max(255).optional().nullable(),
-  subject_asset_id: z.number().int().positive().optional().nullable(),
-  subject_business_id: z.number().int().positive().optional().nullable(),
-  subject_property_id: z.number().int().positive().optional().nullable(),
-  location_business_id: z.number().int().positive().optional().nullable(),
-  location_property_id: z.number().int().positive().optional().nullable(),
-  location_name: z.string().max(255).optional(),
-  location_address: z.string().max(255).optional(),
-  location_city: z.string().max(255).optional(),
-  location_country: z.string().max(255).optional(),
-  location_latitude: z.number().min(-90).max(90).optional().nullable(),
-  location_longitude: z.number().min(-180).max(180).optional().nullable(),
+  value: optNum(z.number().nonnegative()),
+  currency: optStr(10),
+  notes: optStr(1000),
+  item_label: optStr(1000),
+  item_category: optStr(1000),
+  from_person_id: optId(),
+  to_person_id: optId(),
+  from_business_id: optId(),
+  to_business_id: optId(),
+  from_external: optStr(255),
+  to_external: optStr(255),
+  subject_asset_id: optId(),
+  subject_business_id: optId(),
+  subject_property_id: optId(),
+  location_business_id: optId(),
+  location_property_id: optId(),
+  location_name: optStr(255),
+  location_address: optStr(255),
+  location_city: optStr(255),
+  location_country: optStr(255),
+  location_latitude: optNum(z.number().min(-90).max(90)),
+  location_longitude: optNum(z.number().min(-180).max(180)),
   // transaction body also uses address/city/country/state/postal_code for geocoding
-  address: z.string().max(255).optional(),
-  city: z.string().max(255).optional(),
-  state: z.string().max(255).optional(),
-  country: z.string().max(255).optional(),
-  postal_code: z.string().max(255).optional(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
-  case_id: z.number().int().positive().optional().nullable(),
+  address: optStr(255),
+  city: optStr(255),
+  state: optStr(255),
+  country: optStr(255),
+  postal_code: optStr(255),
+  latitude: optNum(z.number().min(-90).max(90)),
+  longitude: optNum(z.number().min(-180).max(180)),
+  case_id: optId(),
 });
 
 const TransactionUpdateSchema = TransactionCreateSchema;
@@ -309,8 +342,8 @@ const SettingsCustomFieldCreateSchema = z.object({
   field_type: z.enum(['text', 'number', 'date', 'boolean', 'select'], {
     required_error: 'field_type is required',
   }),
-  options: z.array(z.string()).optional(),
-  is_active: z.boolean().optional(),
+  options: optArray(z.string()),
+  is_active: z.boolean().nullable().optional(),
 });
 
 const SettingsCustomFieldUpdateSchema = z.object({
@@ -318,8 +351,8 @@ const SettingsCustomFieldUpdateSchema = z.object({
   field_type: z.enum(['text', 'number', 'date', 'boolean', 'select'], {
     required_error: 'field_type is required',
   }),
-  options: z.array(z.string()).optional(),
-  is_active: z.boolean().optional(),
+  options: optArray(z.string()),
+  is_active: z.boolean().nullable().optional(),
 });
 
 // ── Settings — Model Options ──────────────────────────────────────────────────
@@ -328,13 +361,13 @@ const SettingsModelOptionCreateSchema = z.object({
   model_type: z.string().min(1, 'model_type is required').max(100),
   option_value: z.string().min(1, 'option_value is required').max(255),
   option_label: z.string().min(1, 'option_label is required').max(255),
-  display_order: z.number().int().optional(),
+  display_order: optNum(z.number().int()),
 });
 
 const SettingsModelOptionUpdateSchema = z.object({
   option_label: z.string().max(255).optional(),
-  is_active: z.boolean().optional(),
-  display_order: z.number().int().optional(),
+  is_active: z.boolean().nullable().optional(),
+  display_order: optNum(z.number().int()),
 });
 
 // ── exports ───────────────────────────────────────────────────────────────────
