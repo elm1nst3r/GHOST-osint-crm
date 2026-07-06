@@ -8,6 +8,7 @@ import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Bu
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 import Dashboard from './components/Dashboard';
 import CaseManagement from './components/CaseManagement';
@@ -87,21 +88,10 @@ const AppShell = () => {
     showAdvancedSearch, setShowAdvancedSearch,
   } = useUI();
 
-  const [darkMode, setDarkMode] = React.useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
-
   // Fetch all data once authenticated
   useEffect(() => {
     if (authenticated) refreshAll();
   }, [authenticated, refreshAll]);
-
-  // Persist dark mode preference and apply CSS class
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
 
   if (authLoading) {
     return (
@@ -140,7 +130,7 @@ const AppShell = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">OSINT Investigation Suite</p>
               </div>
             </div>
-            <DarkModeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
+            <DarkModeToggle />
           </div>
         </div>
 
@@ -265,13 +255,15 @@ const AppShell = () => {
 // ── Root: wrap providers around the shell ────────────────────────────────────
 
 const App = () => (
-  <AuthProvider>
-    <DataProvider>
-      <UIProvider>
-        <AppShell />
-      </UIProvider>
-    </DataProvider>
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <DataProvider>
+        <UIProvider>
+          <AppShell />
+        </UIProvider>
+      </DataProvider>
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 export default App;
