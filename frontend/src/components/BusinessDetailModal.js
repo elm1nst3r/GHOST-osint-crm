@@ -6,7 +6,7 @@ import { useUI } from '../contexts/UIContext';
 import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
-import { formatDate, prettyType } from '../utils/transactionFormat';
+import { formatDate } from '../utils/transactionFormat';
 
 const BusinessDetailModal = ({ business, onClose }) => {
   const { setEditingBusiness, setSelectedPersonForDetail } = useUI();

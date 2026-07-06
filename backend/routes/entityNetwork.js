@@ -2,12 +2,16 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
+const { requireAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
 router.use(apiLimiter);
+// NOTE: this router mounts at bare /api, so requireAuth must be applied
+// per-route — router.use() here would also gate /api/health and every
+// route mounted after this one.
 // Entity relationships endpoints
-router.get('/entity-relationships', async (req, res) => {
+router.get('/entity-relationships', requireAuth, async (req, res) => {
   try {
     // Extract relationships from people connections
     const peopleResult = await pool.query(`
@@ -41,7 +45,7 @@ router.get('/entity-relationships', async (req, res) => {
   }
 });
 
-router.post('/entity-relationships', async (req, res) => {
+router.post('/entity-relationships', requireAuth, async (req, res) => {
   try {
     const { source_type, source_id, target_type, target_id, relationship_type, note } = req.body;
     
@@ -82,7 +86,7 @@ router.post('/entity-relationships', async (req, res) => {
   }
 });
 
-router.delete('/entity-relationships/:id', async (req, res) => {
+router.delete('/entity-relationships/:id', requireAuth, async (req, res) => {
   try {
     // Parse the relationship ID to extract source_id, target_id, and type
     const parts = req.params.id.split('-');
@@ -122,7 +126,7 @@ router.delete('/entity-relationships/:id', async (req, res) => {
 });
 
 // Relationship types endpoint
-router.get('/relationship-types', async (req, res) => {
+router.get('/relationship-types', requireAuth, async (req, res) => {
   try {
     // Get relationship types from model_options
     const result = await pool.query(`
@@ -140,7 +144,7 @@ router.get('/relationship-types', async (req, res) => {
 });
 
 // Entity network endpoint - builds a network graph from people and their connections
-router.get('/entity-network', async (req, res) => {
+router.get('/entity-network', requireAuth, async (req, res) => {
   try {
     const { entity_type, entity_id } = req.query;
     

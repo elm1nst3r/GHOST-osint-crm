@@ -1,8 +1,8 @@
 // File: frontend/src/components/WirelessNetworks.js
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Wifi, Upload, Download, Map as MapIcon, List, Search, Filter,
-  Trash2, User, Shield, ShieldAlert, ShieldCheck, Signal,
+  Wifi, Upload, Map as MapIcon, List, Search,
+  Trash2, User, Signal,
   Radio, Bluetooth, RefreshCw, BarChart3, Lock, Unlock, Plus
 } from 'lucide-react';
 import { wirelessNetworksAPI, peopleAPI } from '../utils/api';

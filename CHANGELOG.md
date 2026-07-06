@@ -38,6 +38,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Transparent session handling**: logs in with `GHOST_USERNAME` /
   `GHOST_PASSWORD` env vars and re-authenticates automatically on expiry.
 
+### 🔒 Security
+
+- **Entity network routes were unauthenticated**: `/api/entity-relationships`
+  (GET/POST/DELETE), `/api/relationship-types`, and `/api/entity-network`
+  had no `requireAuth`, exposing the full relationship graph (names,
+  connections, locations) without login. All five routes now require an
+  authenticated session.
+
+### 🐛 Bug Fixes
+
+- **White screen on Add Network form**: `AddNetworkForm` treated
+  `peopleAPI.getAll()`'s `{ data, meta }` envelope as a plain array — same
+  class of crash as issue #47, missed in that fix.
+
+### 🧹 Cleanup
+
+- Removed debug `console.log` of user-creation payloads from the users route.
+- Removed ~90 unused imports/variables and 4 dead helper functions across
+  22 frontend components; added missing `default` cases to two `switch`
+  statements. Frontend now builds with zero `no-unused-vars` warnings.
+
 ## [2.7.0] - 2026-07-06
 
 ### ✨ Added — Asset, Property & Transaction Tracking (issue #43)

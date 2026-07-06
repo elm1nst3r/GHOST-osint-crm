@@ -1,6 +1,5 @@
 import React from 'react';
-import { Search, Download, SortAsc, SortDesc, Network, Phone, Mail, Globe, Hash, Tag, Briefcase, MapPin, FileText, Database, Users, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import ReportGenerator from '../ReportGenerator';
+import { Search, Download, SortAsc, SortDesc, Network, Tag, Briefcase, MapPin, FileText, Database } from 'lucide-react';
 
 const SearchResults = ({
   results, totalResults, loading,

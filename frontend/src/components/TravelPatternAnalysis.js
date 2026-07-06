@@ -1,15 +1,14 @@
 // File: frontend/src/components/TravelPatternAnalysis.js
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Popup, Polyline, CircleMarker } from 'react-leaflet';
 import { 
-  MapPin, Calendar, Clock, TrendingUp, BarChart2, 
+  MapPin, Calendar, Clock, BarChart2,
   Plane, Car, Train, Ship, AlertCircle, Plus,
-  Edit2, Trash2, X, Save, Globe, Activity
+  Edit2, Trash2, Globe, Activity
 } from 'lucide-react';
 import { travelHistoryAPI } from '../utils/api';
 import { TRAVEL_PURPOSES, TRANSPORTATION_MODES } from '../utils/constants';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
-import L from 'leaflet';
 
 const TravelPatternAnalysis = ({ personId, personName }) => {
   const [travelData, setTravelData] = useState(null);

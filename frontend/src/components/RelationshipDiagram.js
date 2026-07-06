@@ -1,5 +1,5 @@
 // File: frontend/src/components/RelationshipDiagram.js
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -11,7 +11,7 @@ import ReactFlow, {
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { User, Database, Mail, Phone, Globe, MapPin, Hash, Link, UserPlus, X, Edit2, Save, AlertCircle, Trash2, Bug, Building2, Landmark, Network } from 'lucide-react';
+import { Link, UserPlus, Bug, Building2, Landmark, Network } from 'lucide-react';
 import { transactionsAPI } from '../utils/api';
 
 // Debug component to show data structure
@@ -272,6 +272,8 @@ const RelationshipDiagram = ({
         });
         break;
       }
+      default:
+        break;
     }
     
     return nodesCopy;

@@ -1,6 +1,6 @@
 // File: frontend/src/components/ToolsList.js
 import React, { useState, useMemo } from 'react';
-import { Globe, Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_STATUSES, TOOL_CATEGORIES } from '../utils/constants';
 import { useData } from '../contexts/DataContext';

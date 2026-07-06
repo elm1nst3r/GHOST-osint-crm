@@ -1,8 +1,8 @@
 import React from 'react';
 import {
-  Search, Filter, X, ChevronDown, ChevronUp, Calendar, MapPin,
-  Users, Tag, Briefcase, Clock, Network, Database, Phone, Mail,
-  Globe, Hash, RefreshCw
+  Search, X, ChevronDown, ChevronUp, Calendar, MapPin,
+  Tag, Network, Database,
+  RefreshCw
 } from 'lucide-react';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES } from '../../utils/constants';
 

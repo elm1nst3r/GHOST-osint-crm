@@ -9,7 +9,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const Dashboard = () => {
-  const { people, tools, todos, setTodos } = useData();
+  const { people, todos, setTodos } = useData();
   const { setSelectedPersonForDetail, setActiveSection } = useUI();
   // Show most recently updated people (up to 5)
   const activePeople = [...people]

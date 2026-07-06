@@ -1,7 +1,7 @@
 // File: frontend/src/components/PropertyList.js
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { FixedSizeList } from 'react-window';
-import { Landmark, Search, Plus, Edit2, Trash2, Eye, MapPin, Tag, User } from 'lucide-react';
+import { Landmark, Search, Plus, Edit2, Trash2, Eye, MapPin, User } from 'lucide-react';
 import { propertiesAPI, modelOptionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';

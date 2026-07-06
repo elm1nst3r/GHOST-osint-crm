@@ -3,11 +3,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import RelationshipDiagram from '../RelationshipDiagram';
 import ObsidianGraph from './ObsidianGraph';
 import {
-  AlertCircle, Loader2, Network, Users, Eye, EyeOff,
+  AlertCircle, Loader2, Network,
   Maximize2, RefreshCw, Bug, Filter, X, Search,
-  Briefcase, Tag, CheckCircle, GitBranch, Sparkles
+  Briefcase, Tag, GitBranch, Sparkles
 } from 'lucide-react';
-import { peopleAPI, casesAPI, businessesAPI } from '../../utils/api';
+import { casesAPI, businessesAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -21,7 +21,7 @@ const RelationshipManager = ({
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showOsintData, setShowOsintData] = useState(false);
+  const [showOsintData] = useState(false);
   const [layoutType, setLayoutType] = useState('hierarchical');
   const [fullScreen, setFullScreen] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
@@ -332,6 +332,8 @@ const RelationshipManager = ({
           break;
         case 'year':
           cutoffDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
           break;
       }
       

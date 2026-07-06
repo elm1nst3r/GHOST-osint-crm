@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Filter, Calendar, User, Activity } from 'lucide-react';
+import { FileText, Filter, User } from 'lucide-react';
 import { auditLogsAPI } from '../utils/authAPI';
 
 const AuditLogs = () => {

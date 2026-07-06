@@ -54,11 +54,8 @@ router.post('/', requireAdmin, async (req, res) => {
   try {
     const { username, email, password, first_name, last_name, role } = req.body;
 
-    console.log('Creating user with data:', { username, email, password: password ? '[PROVIDED]' : '[MISSING]', first_name, last_name, role });
-
     // Validation
     if (!username || !password) {
-      console.log('Validation failed: missing username or password');
       return res.status(400).json({ error: 'Username and password are required' });
     }
 

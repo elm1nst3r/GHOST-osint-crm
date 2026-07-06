@@ -3,7 +3,7 @@ import { Save, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import { authAPI } from '../../utils/authAPI';
 
 const ProfileTab = () => {
-  const [localCurrentUser, setLocalCurrentUser] = useState(null);
+  const [, setLocalCurrentUser] = useState(null);
   const [profileForm, setProfileForm] = useState({
     username: '', email: '', first_name: '', last_name: '',
     current_password: '', new_password: '', confirm_password: ''

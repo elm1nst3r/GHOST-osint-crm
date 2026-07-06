@@ -370,28 +370,6 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
     document.body.removeChild(a);
   };
 
-  const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Unknown';
-  };
-
-  const getCrmStatuses = () => {
-    return modelOptions
-      .filter(opt => opt.model_type === 'crm_status' && opt.is_active)
-      .sort((a, b) => a.display_order - b.display_order);
-  };
-
-  const getConnectionTypes = () => {
-    return modelOptions
-      .filter(opt => opt.model_type === 'connection_type' && opt.is_active)
-      .sort((a, b) => a.display_order - b.display_order);
-  };
-
-  const getLocationTypes = () => {
-    return modelOptions
-      .filter(opt => opt.model_type === 'location_type' && opt.is_active)
-      .sort((a, b) => a.display_order - b.display_order);
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex">

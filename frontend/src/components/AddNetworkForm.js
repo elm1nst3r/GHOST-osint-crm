@@ -32,7 +32,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
   const fetchPeopleAndBusinesses = async () => {
     try {
-      const [peopleData, businessData] = await Promise.all([
+      const [{ data: peopleData }, businessData] = await Promise.all([
         peopleAPI.getAll(),
         businessesAPI.getAll()
       ]);

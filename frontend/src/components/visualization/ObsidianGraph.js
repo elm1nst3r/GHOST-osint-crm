@@ -4,8 +4,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import {
-  ZoomIn, ZoomOut, Maximize2, Minimize2, Users, Building2,
-  Target, Circle, Square, Triangle, X, Info, Edit, Trash2, Link as LinkIcon
+  ZoomIn, ZoomOut, Maximize2, Users,
+  Circle, X, Info, Link as LinkIcon
 } from 'lucide-react';
 
 const ObsidianGraph = ({
@@ -239,7 +239,7 @@ const ObsidianGraph = ({
           .attr('stroke-opacity', 1);
 
         // Show edge tooltip
-        const tooltip = g.append('text')
+        g.append('text')
           .attr('class', 'edge-tooltip')
           .attr('x', (d.source.x + d.target.x) / 2)
           .attr('y', (d.source.y + d.target.y) / 2)
@@ -270,7 +270,7 @@ const ObsidianGraph = ({
       .on('contextmenu', handleContextMenu);
 
     // Add circles for nodes
-    const circles = node.append('circle')
+    node.append('circle')
       .attr('r', d => getNodeSize(d))
       .attr('fill', d => getNodeColor(d, selectedNode?.id === d.id))
       .attr('stroke', '#fff')

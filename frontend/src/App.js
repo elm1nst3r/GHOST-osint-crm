@@ -68,8 +68,8 @@ const AppShell = () => {
   const {
     activeSection, setActiveSection,
     selectedPersonForDetail, setSelectedPersonForDetail,
-    editingPerson, setEditingPerson,
-    showAddPersonForm, setShowAddPersonForm,
+    editingPerson,
+    showAddPersonForm,
     editingTool, setEditingTool,
     showAddToolForm, setShowAddToolForm,
     editingBusiness, setEditingBusiness,

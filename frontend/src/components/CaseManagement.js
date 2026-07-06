@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search, 
-  Edit2, Trash2, Calendar, AlertCircle, CheckCircle, User, 
-  UserPlus, X, Save, FolderOpen, FileText 
+  Edit2, Trash2, User,
+  UserPlus, FileText
 } from 'lucide-react';
 import { casesAPI, peopleAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
@@ -12,7 +12,7 @@ import { useUI } from '../contexts/UIContext';
 
 const CaseManagement = () => {
   const { people, fetchPeople } = useData();
-  const { setEditingPerson, setShowAddPersonForm, setSelectedPersonForDetail } = useUI();
+  const { setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [cases, setCases] = useState([]);
   const [expandedCases, setExpandedCases] = useState({});
   const [editingCase, setEditingCase] = useState(null);
