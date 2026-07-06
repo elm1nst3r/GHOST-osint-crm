@@ -1,7 +1,7 @@
 // File: frontend/src/components/AddEditAssetForm.js
 import React, { useState, useEffect } from 'react';
 import { X, Package } from 'lucide-react';
-import { assetsAPI, modelOptionsAPI, casesAPI } from '../utils/api';
+import { assetsAPI, modelOptionsAPI, casesAPI, transactionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
@@ -46,7 +46,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
     longitude: asset?.longitude || '',
   });
 
-  // initial holder (create only)
+  // Create: seeds an acquisition transaction. Edit: records a transfer transaction.
   const [holderKind, setHolderKind] = useState('none');
   const [holderId, setHolderId] = useState('');
   const [holderExternal, setHolderExternal] = useState('');
@@ -96,8 +96,22 @@ const AddEditAssetForm = ({ asset, onClose }) => {
       };
     }
     try {
-      if (isEdit) await assetsAPI.update(asset.id, payload);
-      else await assetsAPI.create(payload);
+      if (isEdit) {
+        await assetsAPI.update(asset.id, payload);
+        if (holderKind !== 'none') {
+          await transactionsAPI.create({
+            transaction_type: 'transfer',
+            subject_asset_id: asset.id,
+            to_person_id: holderKind === 'person' ? holderId || null : null,
+            to_business_id: holderKind === 'business' ? holderId || null : null,
+            to_external: holderKind === 'external' ? holderExternal || null : null,
+            occurred_on: holderDate || new Date().toISOString().slice(0, 10),
+            case_id: form.case_id || null,
+          });
+        }
+      } else {
+        await assetsAPI.create(payload);
+      }
       await fetchAssets(0);
       onClose();
     } catch (err) {
@@ -173,10 +187,13 @@ const AddEditAssetForm = ({ asset, onClose }) => {
             )}
           </div>
 
-          {/* Initial holder (create only) */}
-          {!isEdit && (
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-3">
-              <label className={labelClass}>Initial Holder (seeds an acquisition transaction)</label>
+          {/* Holder: acquisition on create, transfer on edit */}
+          <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-3">
+              <label className={labelClass}>
+                {isEdit
+                  ? 'Transfer to New Holder (records a transfer transaction)'
+                  : 'Initial Holder (seeds an acquisition transaction)'}
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <select className={inputClass} value={holderKind} onChange={e => { setHolderKind(e.target.value); setHolderId(''); }}>
                   <option value="none">— None —</option>
@@ -198,9 +215,8 @@ const AddEditAssetForm = ({ asset, onClose }) => {
                 )}
                 {holderKind === 'external' && <input className={inputClass} value={holderExternal} onChange={e => setHolderExternal(e.target.value)} placeholder="External holder name" />}
               </div>
-              {holderKind !== 'none' && <div><label className={labelClass}>Acquired on</label><input type="date" className={inputClass} value={holderDate} onChange={e => setHolderDate(e.target.value)} /></div>}
+              {holderKind !== 'none' && <div><label className={labelClass}>{isEdit ? 'Transferred on' : 'Acquired on'}</label><input type="date" className={inputClass} value={holderDate} onChange={e => setHolderDate(e.target.value)} /></div>}
             </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div><label className={labelClass}>Case</label>
