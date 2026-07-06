@@ -9,6 +9,8 @@ const {
   AssetCreateSchema,
   AssetUpdateSchema,
   PropertyCreateSchema,
+  TodoUpdateSchema,
+  CaseCreateSchema,
 } = require('./schemas');
 
 describe('schemas — form-shaped payloads', () => {
@@ -120,6 +122,27 @@ describe('schemas — form-shaped payloads', () => {
     expect(
       TransactionUpdateSchema.safeParse({ transaction_type: 'gift', occurred_on: 'not-a-date' }).success
     ).toBe(false);
+  });
+
+  test('person JSONB blobs survive parse (bug: connections wiped on edit)', () => {
+    const result = PersonUpdateSchema.safeParse({
+      firstName: 'Jane',
+      connections: [{ person_id: 2, type: 'associate', note: 'seen together' }],
+      osintData: [{ type: 'email', value: 'j@example.com' }],
+      attachments: [{ name: 'report.pdf', url: '/files/report.pdf' }],
+      custom_fields: { clearance: 'L2' },
+    });
+    expect(result.success).toBe(true);
+    expect(result.data.connections).toHaveLength(1);
+    expect(result.data.custom_fields.clearance).toBe('L2');
+  });
+
+  test('status enums match the UI vocabulary (bugs: todo done / case active rejected)', () => {
+    expect(TodoUpdateSchema.safeParse({ status: 'done' }).success).toBe(true);
+    expect(TodoUpdateSchema.safeParse({ status: 'cancelled' }).success).toBe(true);
+    expect(TodoUpdateSchema.safeParse({ status: 'attention' }).success).toBe(true);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'active' }).success).toBe(true);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'bogus' }).success).toBe(false);
   });
 
   test('required fields still enforced', () => {

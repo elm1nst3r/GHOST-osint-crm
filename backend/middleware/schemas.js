@@ -79,6 +79,16 @@ const personBaseFields = {
   profilePictureUrl: optStr(2000),
   aliases: optArray(z.string()),
   locations: optArray(personLocationSchema),
+  // JSONB blobs stored as-is by the route. They MUST be declared here even
+  // though we don't validate their internals — validate() strips unknown
+  // fields, and the route writes `field || []`, so an undeclared field
+  // doesn't just fail to save: editing a person WIPES it to empty.
+  connections: optArray(z.record(z.string(), z.any())),
+  osintData: optArray(z.record(z.string(), z.any())),
+  attachments: optArray(z.record(z.string(), z.any())),
+  custom_fields: z
+    .union([z.record(z.string(), z.any()), z.null().transform(() => ({}))])
+    .optional(),
 };
 
 const PersonCreateSchema = z.object({
@@ -162,9 +172,11 @@ const ToolUpdateSchema = z.object({
 
 // ── Cases ─────────────────────────────────────────────────────────────────────
 
+// Status vocabularies must match what the UI actually sends (CaseManagement.js
+// and Dashboard.js option lists), not an idealised set.
 const caseBaseFields = {
   description: optStr(2000),
-  status: z.enum(['open', 'closed', 'pending']).nullable().optional(),
+  status: z.enum(['active', 'on_hold', 'closed']).nullable().optional(),
 };
 
 const CaseCreateSchema = z.object({
@@ -179,16 +191,18 @@ const CaseUpdateSchema = z.object({
 
 // ── Todos ─────────────────────────────────────────────────────────────────────
 
+const TODO_STATUSES = ['open', 'in_progress', 'on_hold', 'attention', 'done', 'cancelled'];
+
 const TodoCreateSchema = z.object({
   text: z.string().min(1, 'Todo text is required').max(2000),
-  status: z.enum(['open', 'in_progress', 'closed']).nullable().optional().default('open'),
+  status: z.enum(TODO_STATUSES).nullable().optional().default('open'),
   last_update_comment: optStr(1000),
 });
 
 const TodoUpdateSchema = z
   .object({
     text: z.string().min(1).max(2000).optional(),
-    status: z.enum(['open', 'in_progress', 'closed']).nullable().optional(),
+    status: z.enum(TODO_STATUSES).nullable().optional(),
     last_update_comment: optStr(1000),
   })
   .refine((data) => data.text !== undefined || data.status !== undefined, {
