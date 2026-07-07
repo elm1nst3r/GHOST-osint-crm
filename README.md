@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.6.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.8.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -88,6 +88,23 @@ If this project is ever shelved, this section will be updated and the repository
 - **Employee mapping**: Track personnel
 - **Business relationships**: Link to people and other businesses
 - **Address and contact management**: Full business profiles
+
+### 💸 Asset, Property & Transaction Tracking
+- **Assets**: Persistent physical goods (vehicles, devices, jewellery…) with categories, value, and status
+- **Properties**: Real estate with type, address, and geocoded map position
+- **Transactions**: One event log for every gift, sale, purchase, transfer, or benefit between people, businesses, and external parties
+- **Chain of custody**: An asset's current holder and full custody history are derived from the transaction ledger — never stored, never stale
+- **Entity Ledger**: Unified per-person / per-business / per-property ledger view, exportable as a report (markdown / .docx)
+- **Venue analytics**: See which businesses host the most activity
+- **Map & graph layers**: Properties, assets, and transactions appear as toggleable layers on the Global Map and the entity network graph
+- **Configurable taxonomies**: Transaction types, item categories, asset categories/statuses, and property types are editable in Settings → Data Model
+
+### 🤖 API, OpenAPI & MCP Server
+- **OpenAPI 3.1 spec**: `GET /api/openapi.json` (authenticated) serves a machine-readable description of the full API — 54 paths, request schemas, auth flow, pagination, rate limits
+- **Single source of truth**: The spec is generated at startup from the same Zod schemas that validate requests — documentation can't drift from behaviour
+- **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the entire GHOST API as ~86 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
+- **Duplicate protection**: MCP create tools check for same-name records first and refuse with a match list unless explicitly overridden
+- **Schema validation everywhere**: All POST/PUT routes validate bodies against Zod schemas and return structured field-level errors
 
 ### 🌓 Modern UI/UX
 - **Solid backgrounds**: Professional, readable interface with proper contrast
@@ -193,11 +210,12 @@ GHOST-osint-crm/
 │   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
 ├── backend/                     # Node.js/Express API
 │   ├── server.js                # App entry point (~1,000 lines)
-│   ├── routes/                  # 11 route modules (people, cases, locations…)
-│   ├── middleware/              # Auth, audit, rate limiters, validation
+│   ├── routes/                  # 19 route modules (people, cases, assets, transactions…)
+│   ├── middleware/              # Auth, audit, rate limiters, Zod schemas & validation
 │   ├── services/                # Geocoding services
-│   ├── utils/                   # Password policy, session revocation
+│   ├── utils/                   # Password policy, session revocation, transaction helpers
 │   └── public/uploads/          # File uploads
+├── mcp/                         # Bundled MCP server (86 tools from the OpenAPI spec)
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
 ```
@@ -273,7 +291,9 @@ GHOST-osint-crm/
 - 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
-- 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username; geocoding endpoints limited to 60 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
+- 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
+- 🔒 **Request body validation** — every POST/PUT route validates against a Zod schema; unknown fields are stripped and errors are returned per-field
+- 🔒 **Error detail suppression** — raw database error messages are not exposed to clients when `NODE_ENV=production`
 - 🔒 **Geocoding endpoints require authentication** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` reject unauthenticated requests
 - 🔒 **KML upload size-limited** — defaults to 5 MB; override with `KML_MAX_BYTES` env var (in bytes)
 - 🔒 **PostgreSQL is not exposed to the host network** by default — only available within the Docker network
@@ -416,10 +436,15 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 **Backend:**
 - Node.js / Express 5
 - PostgreSQL 15
+- Zod (request validation + OpenAPI generation)
 - xml2js (KML parsing)
 - papaparse (CSV parsing)
-- express-rate-limit (login & geocoding throttling)
+- express-rate-limit (login, geocoding & general API throttling)
 - Jest (tests)
+
+**Integrations:**
+- OpenAPI 3.1 spec at `/api/openapi.json`
+- MCP server (`mcp/`) via `@modelcontextprotocol/sdk`
 
 **Infrastructure:**
 - Docker & Docker Compose
@@ -428,6 +453,22 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.8.0 (July 2026)
+- ⚠️ **Critical fix — upgrade from v2.7.0 immediately**: the Zod validation layer introduced in v2.7.0 silently stripped fields some routes actually read, which could **wipe a person's connections, OSINT data, attachments, and custom fields on edit** and prevented asset holders from ever saving. All schemas corrected; a static schema↔route consistency test now prevents recurrence
+- 🐛 **Validation accepts real form payloads** — `null` for cleared fields, numeric strings from selects, `''` for optional fields; case/todo status enums now match the UI vocabulary
+- 🔒 **Entity network routes locked down** — relationship graph endpoints were missing authentication
+- ✨ **Asset holder transfer** — "Transfer to New Holder" on the asset edit form records a transfer transaction
+- 🧹 **Lint cleanup** — ~90 unused imports/variables removed; frontend builds with zero warnings
+
+### Version 2.7.0 (July 2026)
+- 💸 **Asset, Property & Transaction tracking** — new first-class entities with a unified transaction event log, derived chain of custody, per-entity ledger views, an exportable Entity Ledger report, and map/graph layers (issue #43)
+- 🤖 **OpenAPI 3.1 endpoint** — `GET /api/openapi.json` describes the full API, generated from the Zod validation schemas (issue #44)
+- 🤖 **Bundled MCP server** — `mcp/` package exposes the whole API as ~86 LLM tools for Claude Desktop / Claude Code / any MCP client, generated from the live OpenAPI spec (issue #44, with credit to @zbyte64)
+- 🛡️ **Zod schema validation** — 20 schemas covering every entity, structured field-level validation errors (issue #49)
+- ✨ **API improvements** (PR #45, @zbyte64) — `GET /api/people/:id`, `GET /api/businesses/:id`, tunable login rate limiting via env vars
+- 🔒 **General API rate limiter** — 300 req/IP/min on all authenticated data routes; DB error details suppressed in production
+- 🐛 **White screen on Wireless Networks / Add Business fixed** (issue #47); `NODE_ENV`/`FRONTEND_URL` no longer silently overridden by docker-compose (issue #42)
 
 ### Version 2.6.0 (June 2026)
 - 🧹 **Removed dead `backend/migrations/` directory** — schema is created on startup by `initializeDatabase()` in `server.js`; the standalone SQL files were redundant and could leave `wireless_networks` owned by `postgres` on bare-metal installs (issue #11)
@@ -489,5 +530,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.6.0
-**Last Updated:** June 14, 2026
+**Version:** 2.8.0
+**Last Updated:** July 7, 2026

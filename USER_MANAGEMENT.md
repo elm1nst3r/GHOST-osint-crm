@@ -89,7 +89,7 @@ Enforced at every password-setting point (login, change, admin create, admin res
 - Hashed with bcryptjs before storage — never stored in plain text
 
 ### Rate Limiting
-- Login: **10 attempts per 15 minutes** per IP + username
+- Login: **10 attempts per 15 minutes** per IP + username — tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS`, or disabled for automated clients with `LOGIN_RATE_LIMIT_DISABLE=true`
 - Password change: **5 attempts per hour**
 
 ### Access Control

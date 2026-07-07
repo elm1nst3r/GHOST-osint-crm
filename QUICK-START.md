@@ -1,274 +1,141 @@
-# GHOST OSINT CRM - Quick Start Guide
+# GHOST OSINT CRM — Quick Start Guide
 
-## 🎉 System is Secure and Ready to Use!
+Get GHOST running locally with Docker in about five minutes.
 
-Your GHOST OSINT CRM application is now fully secured with authentication on all endpoints.
+## 1. Prerequisites
 
-## Access the Application
+- Docker & Docker Compose
+- `openssl` (for generating secrets — preinstalled on macOS/Linux)
 
-**Web Interface:** http://localhost:8080
+## 2. Clone & Configure
 
-**Login Credentials:**
-- **Username:** `ghost`
-- **Password:** `admin123`
+```bash
+git clone https://github.com/elm1nst3r/GHOST-osint-crm.git
+cd GHOST-osint-crm
 
-## What's Running
+# Generate .env with secure random credentials
+printf "DB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
+```
 
-- ✅ Frontend (Nginx): http://localhost:8080
-- ✅ Backend API (Node.js): http://localhost:3001
-- ✅ Database (PostgreSQL): port 5432
-- ✅ All services healthy
+`SESSION_SECRET` and `DB_PASSWORD` are **mandatory** — the backend refuses to
+start without them, and weak passwords (`changeme`, `password`, …) are rejected.
 
-## Test Data Available
+## 3. Start the Stack
 
-The application includes realistic test data:
-- **6 People** - Suspects, witnesses, victims across 3 investigation cases
-- **3 Cases** - Cybercrime, corporate espionage, missing person
-- **2 Businesses** - Related companies
-- **8 OSINT Tools** - Pre-configured tool inventory
-- **8 Tasks** - Investigation todos
-- **5 Travel History** records
+```bash
+docker compose up --build -d
+```
 
-## Key Features to Explore
+This starts three services:
 
-### 1. People Management
-- View all people under investigation
-- See detailed profiles with OSINT data
-- Track social media, emails, phone numbers
-- View connections between people
+- **Frontend** (Nginx): http://localhost:8080
+- **Backend API** (Node.js): http://localhost:3001
+- **Database** (PostgreSQL): internal to the Docker network — not exposed to the host
 
-### 2. Entity Network Visualization
-- Navigate to "Entity Network" section
-- See interactive relationship diagram
-- Explore connections between people
-- Click nodes for details
+Wait until `docker compose ps` shows all services as `(healthy)`.
 
-### 3. Global Intelligence Map
-- View geographic locations on map
-- See clustering of people in La Jolla, San Jose, San Francisco
-- Track movement patterns
-- Filter by case or person
+## 4. Create Your First Admin User
 
-### 4. Cases
-- 3 active investigation cases
-- Track people associated with each case
-- Manage case status and details
+There are **no default credentials**. Create your admin account:
 
-### 5. Businesses
-- CyberShield Solutions LLC (suspect company)
-- TechCorp Industries (victim company)
-- Link businesses to people
+```bash
+docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
 
-### 6. Travel History
-- Track international and domestic travel
-- Marcus Rivera's Moscow trip
-- David Chen's suspicious Austin visit
-- Sarah Chen's last known trip to LA
+# Example:
+docker exec osint-crm-backend node scripts/createAdminSimple.js admin MyStr0ngPassw0rd
+```
 
-## Security Changes Applied
+Password rules: at least 12 characters, mixed case, at least one digit.
+Common weak passwords are rejected. Email is optional.
 
-All API endpoints now require authentication:
+## 5. Log In and Explore
 
-### What This Means
-- ✅ You must log in to access any data
-- ✅ All actions are tracked to your user account
-- ✅ Admin-only operations (export, import, settings) are restricted
-- ✅ Your investigation data is protected
+Open http://localhost:8080 and log in. A good first tour:
 
-### Before (VULNERABLE)
-Anyone could access or modify data without logging in.
-
-### After (SECURE)
-All endpoints require authentication. Only logged-in users can access data.
+1. **Cases** — create your first investigation case
+2. **People** — add subjects with OSINT data, locations, and connections
+3. **Relationships** — see the interactive entity network graph
+4. **Locations** — geocoded addresses appear on the Global Map
+5. **Assets / Properties / Transactions** — track goods, real estate, and the events that move them between parties
+6. **Wireless Networks** — add networks manually or import WiGLE KML files
+7. **OSINT Tools** — catalogue your tool arsenal
+8. **Settings → Data Model** — customise categories, statuses, and taxonomies
 
 ## Common Tasks
 
-### View Investigation Data
-1. Log in at http://localhost:8080
-2. Navigate to "People" to see all subjects
-3. Click on any person to see full details
-4. View "Entity Network" for relationship mapping
-
-### Import Additional Data
-1. Go to Settings → Data Management
-2. Click "Import Data"
-3. Upload a JSON file in the correct format
-4. Review preview and confirm
-
-### Export Data
-1. Go to Settings → Data Management (admin only)
-2. Click "Export Data"
-3. Download complete database as JSON
-
-### Add New People
-1. Navigate to People section
-2. Click "Add Person"
-3. Fill in details (OSINT data, connections, locations)
-4. Save
-
-### View Audit Logs
-1. Navigate to "Audit Logs" section (admin only)
-2. See all system changes
-3. Filter by user, action, entity type, date range
-
-## Docker Container Management
-
-### View Logs
+### Manage users
+Settings → User Management (admin only), or via CLI:
 ```bash
-# Backend logs
-docker-compose logs backend
-
-# Frontend logs
-docker-compose logs frontend
-
-# Database logs
-docker-compose logs db
-
-# All logs
-docker-compose logs
+docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
 ```
 
-### Restart Services
-```bash
-# Restart all
-docker-compose restart
+### Export / import data
+Settings → Data Management (admin only) — full database export/import as JSON.
 
-# Restart specific service
-docker-compose restart backend
+### View audit logs
+Audit Logs section (admin only) — filter by user, action, entity type, date range.
+
+### API access for scripts and integrations
+```bash
+# Log in and store the session cookie
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"<user>","password":"<pass>"}' \
+  -c cookies.txt
+
+# Authenticated requests
+curl -b cookies.txt http://localhost:3001/api/people
+curl -b cookies.txt http://localhost:3001/api/openapi.json   # full OpenAPI 3.1 spec
 ```
 
-### Stop Services
-```bash
-docker-compose stop
-```
+### Use GHOST from Claude (MCP)
+GHOST ships an MCP server that exposes the whole API as LLM tools —
+see [mcp/README.md](mcp/README.md) for setup with Claude Desktop / Claude Code.
 
-### Start Services
-```bash
-docker-compose up -d
-```
+## Container Management
 
-### View Running Containers
 ```bash
-docker-compose ps
+docker compose ps                # status
+docker compose logs backend      # logs (also: frontend, db)
+docker compose restart backend   # restart a service
+docker compose stop              # stop everything
+docker compose up -d             # start again
+docker compose down -v           # ⚠️ stop AND DELETE ALL DATA
 ```
 
 ## Troubleshooting
 
-### Can't Login
-- Check that backend is running: `docker-compose ps`
-- Check backend health: `curl http://localhost:3001/api/health`
-- Verify credentials: username `ghost`, password `admin123`
+### Can't log in / no session cookie
+If `NODE_ENV=production` the session cookie is `Secure` and **only sent over
+HTTPS** — over plain HTTP the browser silently drops it. For local HTTP use
+`NODE_ENV=development`; in production terminate TLS at a reverse proxy.
+See the [README](README.md#-security-considerations) for details.
 
-### Audit Logs Empty
-- Audit logs track user-initiated changes through the UI
-- Import operations may not generate audit entries
-- Make a change (edit a person, create a case) to see logs populate
-
-### Forgot Password
+### Backend unhealthy after changing DB_PASSWORD
+The old PostgreSQL volume still has the old password. Reset (deletes all data):
 ```bash
-# Reset password
-docker exec -it osint-crm-backend node -e "
-const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
-const pool = new Pool({
-  user: 'postgres', host: 'db',
-  database: 'osint_crm_db', password: 'changeme', port: 5432
-});
-(async () => {
-  const hash = await bcrypt.hash('newpassword', 10);
-  await pool.query('UPDATE users SET password_hash = \$1 WHERE username = \$2', [hash, 'ghost']);
-  console.log('Password reset to: newpassword');
-  await pool.end();
-})();
-"
+docker compose down -v && docker compose up --build -d
 ```
 
-### Frontend Not Loading
-- Check if port 8080 is available: `lsof -i :8080`
-- Check frontend logs: `docker-compose logs frontend`
-- Try clearing browser cache
+### Forgot your password
+Have another admin reset it in Settings → User Management, or create a fresh
+admin from the CLI (step 4) and use that account.
 
-### API Not Responding
-- Check backend health: `curl http://localhost:3001/api/health`
-- Check backend logs: `docker-compose logs backend`
-- Ensure database is connected
-
-## API Access (For Developers)
-
-If you need to access the API programmatically:
-
+### General checks
 ```bash
-# Step 1: Login
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"ghost","password":"admin123"}' \
-  -c cookies.txt
-
-# Step 2: Make authenticated requests
-curl -b cookies.txt http://localhost:3001/api/people
-curl -b cookies.txt http://localhost:3001/api/cases
-curl -b cookies.txt http://localhost:3001/api/businesses
+docker compose ps                            # all services (healthy)?
+curl http://localhost:3001/api/health        # backend + DB status
+docker compose logs backend                  # error details
 ```
 
-## User Management
+Still stuck? [Open an issue](https://github.com/elm1nst3r/GHOST-osint-crm/issues)
+with logs, steps to reproduce, Docker version, and OS.
 
-### Create Additional Users
-1. Log in as admin (ghost)
-2. Navigate to Settings → User Management
-3. Click "Add User"
-4. Set username, password, role (admin/user)
+## Further Reading
 
-### Via Command Line
-```bash
-docker exec -it osint-crm-backend node scripts/createAdminUser.js
-```
-
-## Production Deployment Notes
-
-⚠️ **Before deploying to production:**
-
-1. **Change default password** for ghost user
-2. **Generate secure SESSION_SECRET**: `openssl rand -base64 32`
-3. **Set strong DB_PASSWORD**
-4. **Configure FRONTEND_URL** in .env
-5. **Enable HTTPS** with valid SSL certificate
-6. **Don't expose database port** externally
-7. **Use firewall** to restrict access to necessary ports only
-8. **Regular backups** of PostgreSQL database
-9. **Monitor logs** for suspicious activity
-10. **Keep dependencies updated**
-
-## Files for Reference
-
-- **SECURITY-STATUS.md** - Current security status (all secure)
-- **SECURITY-FIX-SUMMARY.md** - Detailed fix documentation
-- **SECURITY-AUDIT.md** - Original vulnerability report
-- **TEST-DATA-README.md** - Test data documentation
-- **README.md** - Full application documentation
-- **CHANGELOG.md** - Version history
-
-## Support
-
-For issues:
-1. Check logs: `docker-compose logs`
-2. Check health: `curl http://localhost:3001/api/health`
-3. Review documentation files above
-4. Open issue on GitHub repository
-
-## Next Steps
-
-1. **Explore the test data** - Navigate through people, cases, network diagram
-2. **Try the map view** - See geographic distribution of investigation subjects
-3. **Check entity relationships** - View the interactive network diagram
-4. **Review travel history** - Track subject movements
-5. **Add your own data** - Create new people, cases, businesses
-
----
-
-**Status:** ✅ All systems operational and secure
-**Documentation:** Complete
-**Test Data:** Loaded
-**Security:** Verified
-**Ready for:** Investigation work
-
-Enjoy using GHOST OSINT CRM! 🕵️
+- [README.md](README.md) — full feature list and documentation
+- [CHANGELOG.md](CHANGELOG.md) — version history
+- [SECURITY.md](SECURITY.md) — hardening posture and disclosure process
+- [USER_MANAGEMENT.md](USER_MANAGEMENT.md) — roles and account administration
+- [mcp/README.md](mcp/README.md) — MCP server setup
+- [Project Wiki](https://github.com/elm1nst3r/GHOST-osint-crm/wiki) — guided tour with screenshots

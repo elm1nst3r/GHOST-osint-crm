@@ -21,13 +21,14 @@ We aim to respond within 48 hours and will keep you informed of progress toward 
 
 | Version | Supported |
 |---------|-----------|
-| 2.5.x   | ✅ Active |
-| 2.4.x   | ✅ Security patches only |
+| 2.8.x   | ✅ Active |
+| 2.7.x   | ⚠️ Upgrade immediately — contains a silent data-loss bug fixed in 2.8.0 |
+| 2.4.x – 2.6.x | ✅ Security patches only |
 | < 2.4   | ❌ No longer supported |
 
 ---
 
-## Security Architecture (v2.5.0)
+## Security Architecture (v2.8.0)
 
 ### Authentication & Sessions
 - ✅ Session-based authentication via `express-session` with `connect-pg-simple` (sessions stored in PostgreSQL)
@@ -45,9 +46,10 @@ We aim to respond within 48 hours and will keep you informed of progress toward 
 - ✅ Policy enforced at every password-setting point: login, change, admin create, admin reset
 
 ### Rate Limiting
-- ✅ Login: 10 attempts per 15 minutes per IP + username combination
+- ✅ Login: 10 attempts per 15 minutes per IP + username combination (tunable via `LOGIN_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE`)
 - ✅ Password change: 5 attempts per hour
 - ✅ Geocoding endpoints: 60 requests per minute per IP
+- ✅ General API limiter: 300 requests per minute per IP on all authenticated data routes
 - ⚠️ **Multi-instance note**: limiters use in-process memory. For multi-replica deployments configure a shared store (Redis or PostgreSQL) in `backend/middleware/rateLimiters.js`
 
 ### Input Validation & Sanitisation
@@ -55,7 +57,9 @@ We aim to respond within 48 hours and will keep you informed of progress toward 
 - ✅ String inputs stripped of `<script>`, `<iframe>`, and inline event handlers before storage
 - ✅ SQL injection prevented — all queries use parameterised statements (no string concatenation)
 - ✅ Email, URL, and date formats validated at API boundaries
-- ✅ Person, tool, and business data validated via dedicated middleware before DB writes
+- ✅ Every POST/PUT request body validated against a Zod schema (`backend/middleware/schemas.js`); unknown fields stripped, structured field-level errors returned
+- ✅ Schema↔route consistency enforced by a static test (`schemaRouteConsistency.test.js`) — every body field a route reads must be declared in its schema
+- ✅ Raw database error messages suppressed in responses when `NODE_ENV=production`
 
 ### Geocoding Endpoints
 - ✅ `/api/geocode/suggestions`, `/api/geocode/address`, `/api/geocode/stats` require authentication
