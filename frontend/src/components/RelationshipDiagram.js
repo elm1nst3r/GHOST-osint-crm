@@ -145,6 +145,7 @@ const edgeStyles = {
   suspect: { stroke: '#ef4444', strokeWidth: 3, label: 'Suspect Connection' },
   witness: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '3 3', label: 'Witness' },
   victim: { stroke: '#ec4899', strokeWidth: 2, label: 'Victim' },
+  owner: { stroke: '#48bb78', strokeWidth: 2, label: 'Owner' },
   other: { stroke: '#6b7280', strokeWidth: 2, label: 'Other' }
 };
 
@@ -320,8 +321,8 @@ const RelationshipDiagram = ({
       console.log(`Processing connections for ${person.id} - ${getFullName(person)}: ${person.connections.length} connections`);
       
       person.connections.forEach((connection, idx) => {
-        // Validate connection
-        if (!connection || typeof connection.person_id === 'undefined') {
+        // Validate connection — person_id: null must be skipped too (issue #56)
+        if (!connection || connection.person_id == null) {
           console.warn(`Invalid connection at index ${idx} for person ${person.id}`);
           return;
         }
@@ -337,8 +338,10 @@ const RelationshipDiagram = ({
         const sourceNodeId = `person-${person.id}`;
         const targetNodeId = `person-${targetPersonId}`;
         
-        // Create unique edge key to avoid duplicates
-        const edgeKey = `${Math.min(person.id, targetPersonId)}-${Math.max(person.id, targetPersonId)}`;
+        // Create unique edge key to avoid duplicates. String sort, not
+        // Math.min/max — business entity ids are strings ('business-5'),
+        // which would collapse every ownership edge into one 'NaN-NaN' key.
+        const edgeKey = [String(person.id), String(targetPersonId)].sort().join('~');
         
         if (!edgeMap.has(edgeKey)) {
           const style = edgeStyles[connection.type] || edgeStyles.other;
@@ -535,6 +538,13 @@ const RelationshipDiagram = ({
     event.stopPropagation();
 
     if (!edge.data || edge.data.txLayer) return;
+
+    // Ownership edges are derived from the business record, not a person
+    // connection — deleting them here would silently fail
+    if (edge.data.type === 'owner' || typeof edge.data.sourcePersonId !== 'number') {
+      alert('Ownership links are managed on the business record (Businesses → Edit → Owner).');
+      return;
+    }
 
     const confirmed = window.confirm(
       `Delete connection between ${edge.source} and ${edge.target}?\n` +

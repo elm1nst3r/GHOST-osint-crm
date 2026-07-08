@@ -48,6 +48,7 @@ const ObsidianGraph = ({
       suspect: '#ef4444',
       witness: '#f59e0b',
       victim: '#ec4899',
+      owner: '#48bb78',
       other: '#6b7280'
     },
     grid: '#2d3748',
@@ -84,7 +85,10 @@ const ObsidianGraph = ({
 
       if (person.connections && Array.isArray(person.connections)) {
         person.connections.forEach(conn => {
-          const targetId = conn.person_id.toString();
+          // Bad data (e.g. person_id: null from an old bug or an API write)
+          // must be skipped, not crash the whole graph (issue #56)
+          if (!conn || conn.person_id == null) return;
+          const targetId = String(conn.person_id);
 
           // Only add edge if target exists
           if (nodeMap.has(targetId)) {
@@ -448,15 +452,23 @@ const ObsidianGraph = ({
 
   // Handle create connection
   const handleCreateConnection = (source, target) => {
+    // Person↔business links aren't supported by the connections model yet —
+    // parseInt('business-N') is NaN and used to persist person_id: null,
+    // permanently crashing this view (issue #56)
+    if (source.type === 'business' || target.type === 'business') {
+      alert('Connections to businesses are not supported yet. Set the owner on the business instead, or link the people directly.');
+      return;
+    }
+    const sourceId = parseInt(source.id, 10);
+    const targetId = parseInt(target.id, 10);
+    if (!Number.isInteger(sourceId) || !Number.isInteger(targetId)) {
+      alert('Could not create connection: unrecognised node.');
+      return;
+    }
     // This would open a modal to select connection type
     const type = prompt('Connection type (family, friend, associate, etc.):');
     if (type && onUpdateConnection) {
-      onUpdateConnection(
-        parseInt(source.id),
-        parseInt(target.id),
-        type,
-        ''
-      );
+      onUpdateConnection(sourceId, targetId, type, '');
     }
   };
 

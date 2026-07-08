@@ -10,10 +10,20 @@ export const locationColors = {
   other:             '#6b7280',
 };
 
-export const buildIconCache = () => {
+// Deterministic colors for user-defined location types (settings → Data
+// Model → Location Types, issue #51). Same type always gets the same color.
+const customPalette = ['#e11d48', '#7c3aed', '#0d9488', '#ca8a04', '#db2777', '#4f46e5', '#65a30d', '#c2410c'];
+
+export const colorForCustomType = (type) => {
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) hash = (hash * 31 + type.charCodeAt(i)) >>> 0;
+  return customPalette[hash % customPalette.length];
+};
+
+export const buildIconCache = (extraColors = {}) => {
   const cache = {};
 
-  Object.entries(locationColors).forEach(([type, color]) => {
+  Object.entries({ ...locationColors, ...extraColors }).forEach(([type, color]) => {
     cache[`${type}-full`] = L.divIcon({
       className: 'custom-div-icon',
       html: `<div style="background-color:${color};width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>`,

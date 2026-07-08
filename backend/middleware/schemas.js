@@ -83,7 +83,13 @@ const personBaseFields = {
   // though we don't validate their internals — validate() strips unknown
   // fields, and the route writes `field || []`, so an undeclared field
   // doesn't just fail to save: editing a person WIPES it to empty.
-  connections: optArray(z.record(z.string(), z.any())),
+  // connections entries without a person_id can't be rendered or resolved
+  // (a null person_id used to crash the Entity Network view, issue #56), so
+  // they are dropped rather than rejected — rejecting would make a person
+  // with one bad legacy entry uneditable.
+  connections: optArray(z.record(z.string(), z.any())).transform((arr) =>
+    arr.filter((c) => c && c.person_id != null)
+  ),
   osintData: optArray(z.record(z.string(), z.any())),
   attachments: optArray(z.record(z.string(), z.any())),
   custom_fields: z

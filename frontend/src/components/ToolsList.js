@@ -242,7 +242,7 @@ const ToolsList = () => {
             
             {tool.category && (
               <div className="mb-3">
-                <span className="inline-flex items-center px-3 py-1 text-xs glass rounded-lg bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 text-blue-600 dark:text-blue-400 font-medium">
+                <span className="inline-flex items-center px-3 py-1 text-xs rounded-lg bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 font-medium">
                   <Tag className="w-3 h-3 mr-1" />
                   {tool.category}
                 </span>
@@ -252,7 +252,7 @@ const ToolsList = () => {
             {tool.tags && tool.tags.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-1">
                 {tool.tags.map((tag, index) => (
-                  <span key={index} className="inline-block px-2 py-1 text-xs glass rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-700 dark:text-blue-400 font-medium">
+                  <span key={index} className="inline-block px-2 py-1 text-xs rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-medium">
                     {tag}
                   </span>
                 ))}

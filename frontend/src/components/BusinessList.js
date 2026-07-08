@@ -13,10 +13,9 @@ const BusinessList = () => {
   const [filterStatus, setFilterStatus] = useState('');
 
   const filteredBusinesses = businesses.filter(business => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (business.owner_first_name && business.owner_last_name && 
-        `${business.owner_first_name} ${business.owner_last_name}`.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (business.owner_name && business.owner_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (business.city && business.city.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesIndustry = filterIndustry === '' || business.industry === filterIndustry;
@@ -158,11 +157,11 @@ const BusinessList = () => {
                 </div>
               )}
               
-              {(business.owner_first_name || business.owner_last_name) && (
+              {business.owner_name && business.owner_name.trim() && (
                 <div className="flex items-center text-sm">
                   <User className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
-                    Owner: {business.owner_first_name} {business.owner_last_name}
+                    Owner: {business.owner_name}
                   </span>
                 </div>
               )}
@@ -178,10 +177,10 @@ const BusinessList = () => {
                 </div>
               )}
               
-              {business.employee_count > 0 && (
+              {Array.isArray(business.employees) && business.employees.length > 0 && (
                 <div className="flex items-center text-sm">
                   <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
-                  <span className="text-gray-600 dark:text-gray-400">{business.employee_count} employees</span>
+                  <span className="text-gray-600 dark:text-gray-400">{business.employees.length} employees</span>
                 </div>
               )}
               

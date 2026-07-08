@@ -76,9 +76,10 @@ const RelationshipManager = ({
           }
         }
         
-        // Validate each connection
+        // Validate each connection — person_id: null (legacy bad writes)
+        // must be dropped too, or the graph crashes rendering it (issue #56)
         connections = connections.filter(conn => {
-          if (!conn || typeof conn.person_id === 'undefined') {
+          if (!conn || conn.person_id == null) {
             console.warn(`Invalid connection found for person ${person.id}`);
             return false;
           }
@@ -115,7 +116,11 @@ const RelationshipManager = ({
         category: 'Business',
         type: 'business',
         businessData: business, // Keep original business data
-        connections: [], // Businesses don't have direct connections in the current schema
+        // Ownership is the one person link the schema has today — draw it
+        // so businesses aren't isolated islands in the graph (issue #50)
+        connections: business.owner_person_id != null
+          ? [{ person_id: business.owner_person_id, type: 'owner', note: 'Owner' }]
+          : [],
         status: business.status || 'Active',
         case_name: business.case_name
       }));
@@ -147,7 +152,14 @@ const RelationshipManager = ({
     try {
       console.log('=== Updating connection ===');
       console.log('Source:', sourceId, 'Target:', targetId, 'Type:', type);
-      
+
+      // Guard against non-numeric ids (e.g. business nodes) — persisting a
+      // NaN target becomes person_id: null in the DB and used to make the
+      // Entity Network view permanently crash (issue #56)
+      if (!Number.isInteger(sourceId) || !Number.isInteger(targetId)) {
+        throw new Error('Connections can only be created between two people');
+      }
+
       // Get the source person's current data
       const sourcePerson = people.find(p => p.id === sourceId);
       if (!sourcePerson) {

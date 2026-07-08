@@ -248,12 +248,12 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.tags.map((tag, index) => (
-                <span key={index} className="inline-flex items-center px-3 py-1 glass rounded-lg text-sm bg-gradient-to-r from-accent-primary to-accent-secondary text-white">
+                <span key={index} className="inline-flex items-center px-3 py-1 rounded-lg text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-medium">
                   {tag}
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="ml-2 text-white/80 hover:text-white transition-colors"
+                    className="ml-2 text-blue-600/70 hover:text-blue-800 dark:text-blue-400/70 dark:hover:text-blue-300 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>

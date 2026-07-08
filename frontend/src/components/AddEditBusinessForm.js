@@ -42,8 +42,10 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         state: business.state || '',
         country: business.country || '',
         postal_code: business.postal_code || '',
-        latitude: business.latitude,
-        longitude: business.longitude,
+        // DECIMAL columns arrive as strings from the API — coerce so
+        // .toFixed() below doesn't crash (issue #53)
+        latitude: business.latitude != null ? Number(business.latitude) : null,
+        longitude: business.longitude != null ? Number(business.longitude) : null,
         phone: business.phone || '',
         email: business.email || '',
         website: business.website || '',

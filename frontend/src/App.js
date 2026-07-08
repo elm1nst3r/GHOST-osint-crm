@@ -35,6 +35,7 @@ import TransactionsList from './components/TransactionsList';
 import AddEditTransactionForm from './components/AddEditTransactionForm';
 import TransactionDetailModal from './components/TransactionDetailModal';
 import BusinessDetailModal from './components/BusinessDetailModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './components/Login';
 
 // Fix default Leaflet marker icons
@@ -64,7 +65,7 @@ const navigationItems = [
 
 const AppShell = () => {
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
-  const { refreshAll, appSettings } = useData();
+  const { refreshAll, appSettings, fetchBusinesses } = useData();
   const {
     activeSection, setActiveSection,
     selectedPersonForDetail, setSelectedPersonForDetail,
@@ -192,6 +193,7 @@ const AppShell = () => {
         <div className="flex-1 glass-card backdrop-blur-xl border border-white/20 shadow-glass-lg rounded-glass-lg overflow-hidden">
           <div className="h-full p-6 overflow-auto">
             <div className="max-w-full mx-auto h-full">
+              <ErrorBoundary resetKey={activeSection}>
 
               {activeSection === 'dashboard'     && <Dashboard />}
               {activeSection === 'cases'         && <CaseManagement />}
@@ -219,6 +221,7 @@ const AppShell = () => {
                 </div>
               )}
 
+              </ErrorBoundary>
             </div>
           </div>
         </div>
@@ -230,8 +233,8 @@ const AppShell = () => {
       {selectedPersonForDetail && <PersonDetailModal />}
       {showAddToolForm    && <AddEditToolForm tool={null} onSave={() => { setShowAddToolForm(false); }} onCancel={() => setShowAddToolForm(false)} />}
       {editingTool        && <AddEditToolForm tool={editingTool} onSave={() => { setEditingTool(null); }} onCancel={() => setEditingTool(null)} />}
-      {showAddBusinessForm && <AddEditBusinessForm business={null} onSave={() => { setShowAddBusinessForm(false); }} onCancel={() => setShowAddBusinessForm(false)} />}
-      {editingBusiness    && <AddEditBusinessForm business={editingBusiness} onSave={() => { setEditingBusiness(null); }} onCancel={() => setEditingBusiness(null)} />}
+      {showAddBusinessForm && <AddEditBusinessForm business={null} onSave={() => { setShowAddBusinessForm(false); fetchBusinesses(); }} onCancel={() => setShowAddBusinessForm(false)} />}
+      {editingBusiness    && <AddEditBusinessForm business={editingBusiness} onSave={() => { setEditingBusiness(null); fetchBusinesses(); }} onCancel={() => setEditingBusiness(null)} />}
 
       {/* Property modals */}
       {showAddPropertyForm && <AddEditPropertyForm property={null} onClose={() => setShowAddPropertyForm(false)} />}

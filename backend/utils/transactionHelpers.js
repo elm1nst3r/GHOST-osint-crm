@@ -267,6 +267,14 @@ const LOCATION_REFS = ['location_business_id', 'location_property_id'];
 function countSet(body, keys) {
   return keys.filter(k => body[k] !== undefined && body[k] !== null && body[k] !== '').length;
 }
+// Error message for mutually exclusive reference groups that names the
+// conflicting fields and their values, so an API caller can see exactly
+// which one to drop without another round trip (issue #43 feedback).
+function exclusivityError(body, keys, groupLabel) {
+  const set = keys.filter(k => body[k] !== undefined && body[k] !== null && body[k] !== '');
+  const listed = set.map(k => `${k} (${JSON.stringify(body[k])})`).join(' and ');
+  return `${listed} are both set; include at most one of ${keys.join(', ')} as the ${groupLabel}`;
+}
 function isPositiveIntOrNull(v) {
   if (v === undefined || v === null || v === '') return true;
   const n = Number(v);
@@ -277,10 +285,10 @@ function validateTransactionShape(body) {
   if (countSet(body, FROM_REFS) === 0 && countSet(body, TO_REFS) === 0) {
     return 'At least one party (from_* or to_*) is required';
   }
-  if (countSet(body, FROM_REFS) > 1) return 'Only one giver (from_*) may be set';
-  if (countSet(body, TO_REFS) > 1) return 'Only one receiver (to_*) may be set';
-  if (countSet(body, SUBJECT_REFS) > 1) return 'Only one referenced subject may be set';
-  if (countSet(body, LOCATION_REFS) > 1) return 'Only one event location reference may be set';
+  if (countSet(body, FROM_REFS) > 1) return exclusivityError(body, FROM_REFS, 'giver');
+  if (countSet(body, TO_REFS) > 1) return exclusivityError(body, TO_REFS, 'receiver');
+  if (countSet(body, SUBJECT_REFS) > 1) return exclusivityError(body, SUBJECT_REFS, 'referenced subject');
+  if (countSet(body, LOCATION_REFS) > 1) return exclusivityError(body, LOCATION_REFS, 'event location reference');
   for (const k of [...FROM_REFS.slice(0, 2), ...TO_REFS.slice(0, 2), ...SUBJECT_REFS, ...LOCATION_REFS, 'case_id']) {
     if (!isPositiveIntOrNull(body[k])) return `${k} must be a positive integer`;
   }

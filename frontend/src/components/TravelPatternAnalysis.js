@@ -451,9 +451,12 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                           setEditingTravel(travel);
                           setFormData({
                             ...travel,
-                            arrival_date: travel.arrival_date ? 
+                            // DECIMAL columns arrive as strings — coerce so .toFixed() doesn't crash
+                            latitude: travel.latitude != null ? Number(travel.latitude) : null,
+                            longitude: travel.longitude != null ? Number(travel.longitude) : null,
+                            arrival_date: travel.arrival_date ?
                               new Date(travel.arrival_date).toISOString().slice(0, 16) : '',
-                            departure_date: travel.departure_date ? 
+                            departure_date: travel.departure_date ?
                               new Date(travel.departure_date).toISOString().slice(0, 16) : ''
                           });
                         }}

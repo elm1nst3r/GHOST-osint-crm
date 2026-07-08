@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
 import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
-import { locationColors, buildIconCache } from './map/mapUtils';
+import { locationColors, buildIconCache, colorForCustomType } from './map/mapUtils';
 import AddLocationModal from './map/AddLocationModal';
 import MapLegend from './map/MapLegend';
 import MapStats from './map/MapStats';
@@ -46,6 +46,8 @@ const GlobalMap = () => {
   const [filterAssetCategory, setFilterAssetCategory] = useState('');
   const [txTypeOptions, setTxTypeOptions] = useState([]);
   const [assetCategoryOptions, setAssetCategoryOptions] = useState([]);
+  // User-defined location types from settings (issue #51): { type: color }
+  const [customTypeColors, setCustomTypeColors] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [includeRelated, setIncludeRelated] = useState(false);
   const [selectedLocationTypes, setSelectedLocationTypes] = useState(Object.keys(locationColors));
@@ -80,6 +82,14 @@ const GlobalMap = () => {
       const opts = await modelOptionsAPI.getAll();
       setTxTypeOptions(opts.filter(o => o.model_type === 'transaction_type' && o.is_active));
       setAssetCategoryOptions(opts.filter(o => o.model_type === 'asset_category' && o.is_active));
+      // Custom location types must show up on the map like built-in ones (issue #51)
+      const customTypes = opts
+        .filter(o => o.model_type === 'location_type' && o.is_active && !(o.option_value in locationColors))
+        .map(o => o.option_value);
+      if (customTypes.length > 0) {
+        setCustomTypeColors(Object.fromEntries(customTypes.map(t => [t, colorForCustomType(t)])));
+        setSelectedLocationTypes(prev => [...new Set([...prev, ...customTypes])]);
+      }
     } catch (err) {
       console.error('Error fetching transaction map layers:', err);
     }
@@ -201,7 +211,8 @@ const GlobalMap = () => {
     setFilteredPeople(people.filter(p => ids.has(p.id)));
   }, [searchTerm, people, includeRelated]);
 
-  const iconCache = useMemo(() => buildIconCache(), []);
+  const iconCache = useMemo(() => buildIconCache(customTypeColors), [customTypeColors]);
+  const allTypeColors = useMemo(() => ({ ...locationColors, ...customTypeColors }), [customTypeColors]);
 
   // Simple coloured pin icons for the transaction-tracking layers.
   const featureIcons = useMemo(() => {
@@ -218,8 +229,10 @@ const GlobalMap = () => {
     filteredPeople.forEach(person => {
       person.locations?.forEach((loc, i) => {
         if (!loc.latitude || !loc.longitude) return;
-        if (!selectedLocationTypes.includes(loc.type)) return;
+        // Default before the filter check so untyped locations map to 'other'
+        // instead of silently vanishing
         const type = loc.type || 'other';
+        if (!selectedLocationTypes.includes(type)) return;
         const confidence = loc.geocode_confidence || 0;
         const partial = confidence < 50;
         list.push({
@@ -388,7 +401,7 @@ const GlobalMap = () => {
             <Filter className="w-4 h-4 inline mr-1" />Filter by type:
           </span>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(locationColors).map(([type, color]) => (
+            {Object.entries(allTypeColors).map(([type, color]) => (
               <button
                 key={type}
                 onClick={() => toggleLocationType(type)}
@@ -503,7 +516,7 @@ const GlobalMap = () => {
             {markers.length > 0 && <MapBounds markers={markers} />}
           </MapContainer>
 
-          <MapLegend />
+          <MapLegend typeColors={allTypeColors} />
           <MapStats
             peopleCount={filteredPeople.length}
             markersCount={markers.length}

@@ -137,6 +137,19 @@ describe('schemas — form-shaped payloads', () => {
     expect(result.data.custom_fields.clearance).toBe('L2');
   });
 
+  test('connections without person_id are dropped, valid ones kept (bug #56: null person_id crashed Entity Network)', () => {
+    const result = PersonUpdateSchema.safeParse({
+      firstName: 'Jane',
+      connections: [
+        { person_id: 2, type: 'associate' },
+        { person_id: null, type: 'owner' }, // legacy bad write from graph UI
+        { type: 'friend' },                 // person_id missing entirely
+      ],
+    });
+    expect(result.success).toBe(true);
+    expect(result.data.connections).toEqual([{ person_id: 2, type: 'associate' }]);
+  });
+
   test('status enums match the UI vocabulary (bugs: todo done / case active rejected)', () => {
     expect(TodoUpdateSchema.safeParse({ status: 'done' }).success).toBe(true);
     expect(TodoUpdateSchema.safeParse({ status: 'cancelled' }).success).toBe(true);

@@ -19,14 +19,18 @@ describe('validateTransactionShape', () => {
   test('rejects no party', () => {
     expect(validateTransactionShape({})).toMatch(/at least one party/i);
   });
-  test('rejects two givers', () => {
-    expect(validateTransactionShape({ from_person_id: 1, from_business_id: 2 })).toMatch(/one giver/i);
+  test('rejects two givers, naming the conflicting fields', () => {
+    const err = validateTransactionShape({ from_person_id: 1, from_business_id: 2 });
+    expect(err).toMatch(/from_person_id \(1\) and from_business_id \(2\) are both set/);
+    expect(err).toMatch(/at most one of from_person_id, from_business_id, from_external/);
   });
-  test('rejects two subject references', () => {
-    expect(validateTransactionShape({ to_person_id: 1, subject_asset_id: 1, subject_business_id: 2 })).toMatch(/one referenced subject/i);
+  test('rejects two subject references, naming the conflicting fields', () => {
+    const err = validateTransactionShape({ to_person_id: 1, subject_asset_id: 1, subject_business_id: 2 });
+    expect(err).toMatch(/subject_asset_id \(1\) and subject_business_id \(2\) are both set/);
   });
-  test('rejects two location references', () => {
-    expect(validateTransactionShape({ to_person_id: 1, location_business_id: 1, location_property_id: 2 })).toMatch(/one event location/i);
+  test('rejects two location references, naming the conflicting fields', () => {
+    const err = validateTransactionShape({ to_person_id: 1, location_business_id: 1, location_property_id: 2 });
+    expect(err).toMatch(/location_business_id \(1\) and location_property_id \(2\) are both set/);
   });
   test('rejects negative value', () => {
     expect(validateTransactionShape({ to_person_id: 1, value: -5 })).toMatch(/non-negative/i);
