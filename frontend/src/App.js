@@ -307,7 +307,11 @@ const AppShell = () => {
         />
       )}
 
-      <SystemHealth />
+      {/* Admin-only ops widget — the health endpoint is requireAdmin, and
+          rendering it for regular users produced a false "System Offline"
+          from the resulting 403s (issue #58). The component also hides
+          itself on 403 in case the role is stale. */}
+      {currentUser?.role === 'admin' && <SystemHealth />}
     </div>
   );
 };

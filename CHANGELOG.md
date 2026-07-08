@@ -5,6 +5,32 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-07-08
+
+### 🐛 Fixed
+
+- **Regular (non-admin) users locked out with "System Offline"** (issue #58):
+  the frontend requested two admin-only endpoints during startup for every
+  user and treated the expected 403s as an outage.
+  - `GET /settings/custom-fields` is now readable by any authenticated user
+    (every user needs the definitions to render person profiles); writes stay
+    admin-only. The OpenAPI spec reflects the change.
+  - The System Health widget is admin-only in the UI and additionally hides
+    itself (and stops polling) on 403 instead of declaring the system offline.
+  - `fetchAPI` errors now carry the HTTP status so "no permission" can never
+    again be conflated with "backend down".
+- **Adding an address failed with "Geocoding service returned 429"**
+  (issue #57): nothing throttled outbound calls to Nominatim, whose public
+  API allows 1 request/second — address-autocomplete fired per keystroke and
+  batch geocoding ran 3 concurrent, getting the instance rate-limited so even
+  single saves failed.
+  - All Nominatim requests are now serialized through a queue with 1.1s
+    spacing, and a provider 429 gets one automatic retry after backing off.
+  - Autocomplete is debounced client-side (one request per typing pause).
+  - Provider rate-limiting is reported as its own failure reason
+    (`rate_limited`) with a clear "wait a few seconds" message in every
+    geocoding dialog, instead of a raw status code.
+
 ## [2.9.0] - 2026-07-08
 
 ### ✨ Added — URL routing in the frontend (issue #52)

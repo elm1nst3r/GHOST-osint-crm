@@ -15,7 +15,11 @@ const { apiLimiter } = require('../middleware/rateLimiters');
 
 router.use(apiLimiter);
 // Custom fields
-router.get('/custom-fields', requireAdmin, async (req, res) => {
+// Reading the definitions is requireAuth, not requireAdmin: every user needs
+// them to render custom fields on person profiles, and the frontend fetches
+// them at startup — admin-gating locked regular users out (issue #58).
+// Creating/editing/deleting definitions stays admin-only.
+router.get('/custom-fields', requireAuth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM custom_person_fields ORDER BY field_label ASC');
     res.json(result.rows);

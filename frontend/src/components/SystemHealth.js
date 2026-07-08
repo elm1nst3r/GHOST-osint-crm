@@ -20,15 +20,20 @@ const SystemHealth = () => {
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // 403 = the endpoint is admin-only and this user isn't an admin. That is
+  // not an outage — hide the widget and stop polling (issue #58).
+  const [forbidden, setForbidden] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    if (forbidden) return undefined;
     fetchHealth();
-    
+
     // Refresh health data every 30 seconds
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forbidden]);
 
   const fetchHealth = async () => {
     try {
@@ -36,6 +41,11 @@ const SystemHealth = () => {
       setHealth(data);
       setError(null);
     } catch (err) {
+      if (err.status === 403) {
+        setForbidden(true);
+        setError(null);
+        return;
+      }
       console.error('Error fetching system health:', err);
       setError(err.message);
     } finally {
@@ -78,6 +88,8 @@ const SystemHealth = () => {
         return <Activity className="w-3 h-3 text-gray-500 dark:text-slate-400" />;
     }
   };
+
+  if (forbidden) return null;
 
   if (loading) {
     return (

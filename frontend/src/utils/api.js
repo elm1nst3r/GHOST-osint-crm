@@ -24,7 +24,12 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const error = new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      // Callers need the status to tell "no permission" (403) apart from
+      // "backend down" — treating them the same locked non-admin users out
+      // with a false "System Offline" (issue #58)
+      error.status = response.status;
+      throw error;
     }
 
     if (responseType === 'blob') {

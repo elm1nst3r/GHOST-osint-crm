@@ -4,7 +4,26 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 class ImprovedGeocodingService {
   constructor(pool) {
     this.pool = pool;
+    // Nominatim's public API allows at most 1 request/second. All outbound
+    // Nominatim calls are serialized through this chain with enforced spacing;
+    // without it, autocomplete keystrokes and concurrent batch geocodes get
+    // the whole instance 429-blocked (issue #57).
+    this.nominatimChain = Promise.resolve();
+    this.lastNominatimAt = 0;
     this.initializeDatabase();
+  }
+
+  // Serialize + space Nominatim requests (min 1.1s apart, queue-ordered)
+  throttledNominatimFetch(url, options) {
+    const run = async () => {
+      const wait = this.lastNominatimAt + 1100 - Date.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      this.lastNominatimAt = Date.now();
+      return this.fetchWithTimeout(url, options);
+    };
+    const request = this.nominatimChain.then(run, run);
+    this.nominatimChain = request.catch(() => {});
+    return request;
   }
 
   async initializeDatabase() {
@@ -112,13 +131,26 @@ class ImprovedGeocodingService {
   }
 
   // Geocode using Nominatim (public OSM geocoding service)
-  async geocodeWithNominatim(address) {
+  async geocodeWithNominatim(address, isRetry = false) {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5&addressdetails=1`;
 
-      const response = await this.fetchWithTimeout(url, {
+      const response = await this.throttledNominatimFetch(url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
+
+      if (response.status === 429) {
+        // Provider-side rate limit. Retry once after backing off — with the
+        // request queue above this should only happen after earlier bursts.
+        if (!isRetry) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          return this.geocodeWithNominatim(address, true);
+        }
+        return {
+          failure: 'rate_limited',
+          message: 'The geocoding provider is rate limiting requests — wait a few seconds and try again',
+        };
+      }
 
       if (!response.ok) {
         return { failure: 'service_error', message: `Geocoding service returned ${response.status}` };
@@ -323,7 +355,7 @@ class ImprovedGeocodingService {
 
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=1`;
-      const response = await this.fetchWithTimeout(url, {
+      const response = await this.throttledNominatimFetch(url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
       if (!response.ok) return [];

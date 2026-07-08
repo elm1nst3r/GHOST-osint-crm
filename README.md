@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.9.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.9.1-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -457,6 +457,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.9.1 (July 2026)
+- 🐛 **Non-admin users can use the app again** — startup requests to admin-only endpoints no longer produce a false "System Offline"; custom-field definitions are readable by all authenticated users (issue #58)
+- 🐛 **Geocoding no longer rate-limits itself** — Nominatim calls are queued at 1 req/s with retry-on-429, autocomplete is debounced, and provider rate limiting gets a clear message instead of a raw 429 (issue #57)
+
 ### Version 2.9.0 (July 2026)
 - 🔗 **URL routing** — every section has a URL, browser back/forward work, and `/people/:id` / `/businesses/:id` deep-link straight to an entity (issue #52)
 - 🗃️ **Knex schema migrations** — schema now lives in `backend/migrations/` and runs automatically at startup; existing databases are adopted seamlessly by an idempotent baseline (issue #48)
@@ -544,5 +548,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.9.0
+**Version:** 2.9.1
 **Last Updated:** July 7, 2026

@@ -393,7 +393,7 @@ const spec = {
 
     // ── Settings ──
     '/settings/custom-fields': {
-      get: op('Settings', 'List custom field definitions', { admin: true }),
+      get: op('Settings', 'List custom field definitions'),
       post: op('Settings', 'Create a custom field', { admin: true, body: ref('SettingsCustomFieldCreate') }),
     },
     '/settings/custom-fields/{id}': {

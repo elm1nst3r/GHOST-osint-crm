@@ -128,6 +128,8 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
           msg += '\n\nTips:\n• Add city and country (e.g. "Paris, France")\n• Check for spelling mistakes';
         } else if (data.reason === 'timeout') {
           msg += '\n\nGeocoding timed out — check your connection and try again.';
+        } else if (data.reason === 'rate_limited') {
+          msg += '\n\nThe geocoding provider is rate limiting requests. Wait a few seconds and try again.';
         }
         alert(msg);
       }

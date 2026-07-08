@@ -1,18 +1,26 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
 const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
   const [locationData, setLocationData] = useState({ address: '', personId: null });
   const [suggestions, setSuggestions] = useState([]);
+  const suggestTimer = useRef(null);
 
-  const getSuggestions = useCallback(async (query) => {
+  // Debounced: one suggestions request per typing pause, not per keystroke —
+  // the upstream geocoding provider allows 1 request/second (issue #57)
+  const getSuggestions = useCallback((query) => {
+    clearTimeout(suggestTimer.current);
     if (!query || query.length < 3) { setSuggestions([]); return; }
-    try {
-      const res = await fetch(`${API_BASE}/geocode/suggestions?q=${encodeURIComponent(query)}&limit=5`, { credentials: 'include' });
-      if (res.ok) setSuggestions(await res.json());
-    } catch { /* silent */ }
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/geocode/suggestions?q=${encodeURIComponent(query)}&limit=5`, { credentials: 'include' });
+        if (res.ok) setSuggestions(await res.json());
+      } catch { /* silent */ }
+    }, 400);
   }, []);
+
+  useEffect(() => () => clearTimeout(suggestTimer.current), []);
 
   const handleAdd = async () => {
     if (!locationData.address.trim() || !locationData.personId) {
@@ -38,6 +46,8 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
           msg += '\n\nTips:\n• Add a city and country (e.g. "10 Downing St, London, UK")\n• Check for spelling mistakes\n• Try a postcode or zip code instead';
         } else if (geoResult.reason === 'timeout') {
           msg += '\n\nThe geocoding service did not respond. Check your internet connection and try again.';
+        } else if (geoResult.reason === 'rate_limited') {
+          msg += '\n\nThe geocoding provider is rate limiting requests. Wait a few seconds and try again.';
         }
         alert(msg);
         return;
