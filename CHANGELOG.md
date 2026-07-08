@@ -5,6 +5,91 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-07-08
+
+### ✨ Added — URL routing in the frontend (issue #52)
+
+- The UI now uses **react-router**: every section has a URL (`/people`,
+  `/businesses`, `/relationships`, `/map`, …), the browser back/forward
+  buttons navigate between views instead of leaving the site, and views can
+  be bookmarked or shared.
+- **Deep links to entities**: `/people/:id` and `/businesses/:id` open the
+  corresponding detail modal directly.
+- No web-server changes needed — the existing nginx SPA fallback serves all
+  routes.
+
+### ✨ Added — Knex schema migrations (issue #48)
+
+- The database schema is now managed by **Knex migrations** in
+  `backend/migrations/`, run automatically at startup (or manually with
+  `npx knex migrate:latest`). Future schema changes ship as new migration
+  files instead of edits to startup code.
+- **Existing databases are adopted seamlessly**: the baseline migration is
+  the previous idempotent DDL, so on upgrade it simply records itself and
+  changes nothing. Fresh installs get the full schema from the baseline.
+- Default model options are seeded on every boot (outside migrations) so
+  upgrades can introduce new defaults; user edits are never overwritten.
+- `initializeDatabase()` in `server.js` (600 lines of DDL) is gone;
+  `server.js` shrinks to ~650 lines total.
+
+### ✨ Added — Entity Network improvements (issues #50, #56)
+
+- **Ownership edges**: businesses are connected to their owner in both graph
+  views (from `owner_person_id`), so they're no longer isolated islands.
+- **Transaction edges**: a new toggle draws aggregated giver→receiver edges
+  from the transaction log (gifts, purchases, transfers…) between people and
+  businesses, labelled with the transaction types and counts.
+- **Edge-class toggles** in the Obsidian view: People / Ownership /
+  Transactions can be switched independently.
+- **Crash-loop fixed** (issue #56): creating a graph connection to a business
+  node used to persist `person_id: null`, which crashed every subsequent
+  render of the Entity Network and drove a reload/request storm into the rate
+  limiter ("System Offline", HTTP 403s). Person↔business ad-hoc connections
+  are now blocked with a clear message, all graph components skip null
+  connection targets, and the person schema drops such entries on write so
+  affected databases **self-heal on the next save**.
+- New **section-level error boundary**: a render error in one view shows an
+  inline error with a retry button instead of white-screening the whole app.
+
+### ✨ Added — MCP server v1.1 (issues #43, #44)
+
+- **Respawn cache**: session cookie and OpenAPI spec are cached in
+  `~/.ghost-mcp/` (0600 perms), so clients that spawn a fresh process per
+  tool call skip the ~0.4s login + spec fetch. Stale cookies self-correct via
+  re-login-on-401; disable with `GHOST_MCP_CACHE=off`, tune spec TTL with
+  `GHOST_MCP_SPEC_TTL` (default 600s).
+- **Transaction duplicate detection**: `ghost_create_transactions` refuses
+  creates matching an existing transaction on type, date, both parties and
+  value — guards repeated document imports (e.g. Form 700 batches). Same
+  `ignorePossibleDuplicates: true` escape hatch as people/businesses.
+
+### 🐛 Fixed
+
+- **Businesses could not be edited** (issues #53, #55): Postgres returns
+  `DECIMAL` lat/lng columns as strings and `.toFixed()` on them white-screened
+  the edit form. Same latent crash fixed in the travel-history edit form.
+- **Business owner and employee count never displayed** (issue #55): the list
+  read fields the API doesn't return (`owner_first_name`, `employee_count`)
+  instead of `owner_name` and the `employees` array.
+- **Businesses list refreshes after create/edit** instead of showing stale data.
+- **OSINT tool tags invisible in the light theme** (issue #54): chips combined
+  `text-white` with a `.glass` background that wiped their gradient; replaced
+  with explicit light/dark badge colors.
+- **Custom location types now show on the Locations map** (issue #51): active
+  `location_type` options from Settings get deterministic colors, filter
+  chips, legend entries and icons; untyped locations fall back to "Other"
+  instead of silently disappearing.
+
+### 🔧 Improved
+
+- **Transaction validation errors name the conflicting fields** (issue #43
+  feedback), e.g. `from_person_id (63) and from_external ("…") are both set;
+  include at most one of from_person_id, from_business_id, from_external as
+  the giver`. The OpenAPI spec documents the same rules via a machine-readable
+  `x-mutually-exclusive` extension and schema descriptions.
+- **Source maps ship with the production frontend build** (issue #53
+  side-request) so browser consoles show real component names and lines.
+
 ## [2.8.0] - 2026-07-06
 
 ### ⚠️ CRITICAL — data-loss bug in v2.7.0, upgrade immediately

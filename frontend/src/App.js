@@ -1,10 +1,12 @@
 // File: frontend/src/App.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
 import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt } from 'lucide-react';
 
+import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
@@ -92,6 +94,51 @@ const AppShell = () => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+
+  // ── URL ↔ section sync (issue #52) ────────────────────────────────────────
+  // The URL is the source of truth for which section is shown, so browser
+  // back/forward and deep links work. activeSection stays in UIContext because
+  // many components read/set it; the two effects below keep them consistent.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const lastDeepLink = useRef(null);
+  const urlSection = useRef(null); // last section applied FROM the URL
+  const urlSynced = useRef(false); // state has caught up with the initial URL
+
+  // URL → state (also handles back/forward and initial deep links)
+  useEffect(() => {
+    const [, seg, id] = location.pathname.split('/');
+    const section = navigationItems.some(item => item.id === seg) ? seg : 'dashboard';
+    urlSection.current = section;
+    setActiveSection(section);
+
+    // Deep links: /people/:id and /businesses/:id open the detail modal
+    const deepLink = id && /^\d+$/.test(id) ? `${seg}/${id}` : null;
+    if (deepLink && deepLink !== lastDeepLink.current && authenticated) {
+      lastDeepLink.current = deepLink;
+      if (seg === 'people') {
+        peopleAPI.getById(Number(id)).then(setSelectedPersonForDetail).catch(() => {});
+      } else if (seg === 'businesses') {
+        businessAPI.getById(Number(id)).then(setSelectedBusinessForDetail).catch(() => {});
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, authenticated]);
+
+  // state → URL (covers setActiveSection calls from any component). Must not
+  // fire before state has absorbed the initial URL, or a deep link like
+  // /people/5 would be clobbered back to /dashboard on mount.
+  useEffect(() => {
+    if (!urlSynced.current) {
+      if (activeSection === urlSection.current) urlSynced.current = true;
+      return;
+    }
+    if (activeSection !== urlSection.current) {
+      urlSection.current = activeSection;
+      navigate(`/${activeSection}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection]);
 
   // Fetch all data once authenticated
   useEffect(() => {
@@ -268,13 +315,15 @@ const AppShell = () => {
 // ── Root: wrap providers around the shell ────────────────────────────────────
 
 const App = () => (
-  <AuthProvider>
-    <DataProvider>
-      <UIProvider>
-        <AppShell />
-      </UIProvider>
-    </DataProvider>
-  </AuthProvider>
+  <BrowserRouter>
+    <AuthProvider>
+      <DataProvider>
+        <UIProvider>
+          <AppShell />
+        </UIProvider>
+      </DataProvider>
+    </AuthProvider>
+  </BrowserRouter>
 );
 
 export default App;

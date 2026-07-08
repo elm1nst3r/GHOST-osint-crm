@@ -21,11 +21,13 @@ Tool names follow the pattern `ghost_<verb>_<resource>`:
 
 ### Duplicate protection
 
-`ghost_create_people` and `ghost_create_businesses` check for existing records with the same name (or alias) before creating, and refuse with a list of matches if any are found. The LLM can retry with `ignorePossibleDuplicates: true` when it has verified the record is genuinely new. This guards against the common failure mode where an LLM inserts without searching first.
+`ghost_create_people` and `ghost_create_businesses` check for existing records with the same name (or alias) before creating, and refuse with a list of matches if any are found. `ghost_create_transactions` does the same for transactions that match an existing one on type, date, both parties and value — useful when re-running document imports (e.g. Form 700 batches). The LLM can retry with `ignorePossibleDuplicates: true` when it has verified the record is genuinely new. This guards against the common failure mode where an LLM inserts without searching first.
 
-### Session handling
+### Session handling & respawn cache
 
 The server logs in with the configured credentials, holds the session cookie, and transparently re-authenticates if the session expires mid-conversation.
+
+Some MCP clients spawn a fresh server process per tool call, which would mean one login and one OpenAPI fetch per call. To keep respawns instant, the session cookie and the fetched spec are cached in `~/.ghost-mcp/` (directory mode `0700`, files `0600`, keyed per server + user). A stale cookie self-corrects through the re-login-on-401 path; the spec is refetched after `GHOST_MCP_SPEC_TTL` seconds (default 600). Set `GHOST_MCP_CACHE=off` to disable caching entirely (e.g. on shared machines).
 
 ## Setup
 
@@ -73,6 +75,8 @@ Add to `claude_desktop_config.json`:
 | `GHOST_API_URL` | `http://localhost:3001/api` | Base URL of the GHOST backend API |
 | `GHOST_USERNAME` | — (required) | GHOST login username |
 | `GHOST_PASSWORD` | — (required) | GHOST login password |
+| `GHOST_MCP_CACHE` | `on` | Set to `off` to disable the `~/.ghost-mcp` session/spec cache |
+| `GHOST_MCP_SPEC_TTL` | `600` | Seconds before a cached OpenAPI spec is refetched |
 
 Consider creating a dedicated non-admin GHOST user for the LLM: admin-only endpoints (users, audit logs, settings writes) will then return 403, which the tool descriptions flag with "(admin only)".
 

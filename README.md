@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.8.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.9.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -185,8 +185,11 @@ Backend runs on `http://localhost:3001`
 createdb osint_crm_db
 ```
 
-Schema is created automatically by the backend on first startup
-(`initializeDatabase()` in `backend/server.js`) — no manual migrations to run.
+The schema is managed with [Knex](https://knexjs.org) migrations
+(`backend/migrations/`) which the backend runs automatically on startup —
+no manual steps. Existing pre-2.9 databases are adopted seamlessly: the
+baseline migration is idempotent and simply records itself. To run migrations
+by hand: `cd backend && npx knex migrate:latest`.
 Make sure the DB role configured in `.env` owns the database (or the
 `public` schema), otherwise table creation will fail with a permissions error.
 
@@ -454,6 +457,17 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.9.0 (July 2026)
+- 🔗 **URL routing** — every section has a URL, browser back/forward work, and `/people/:id` / `/businesses/:id` deep-link straight to an entity (issue #52)
+- 🗃️ **Knex schema migrations** — schema now lives in `backend/migrations/` and runs automatically at startup; existing databases are adopted seamlessly by an idempotent baseline (issue #48)
+- 🕸️ **Entity Network: ownership + transaction edges** — businesses connect to their owners, and a toggle draws aggregated giver→receiver edges from the transaction log; per-class edge toggles (issue #50)
+- 🐛 **Entity Network crash-loop fixed** — a person↔business connection could poison the graph data and rate-limit the app into "System Offline"; blocked, guarded, and self-healing on save (issue #56)
+- 🐛 **Business editing fixed** — white-screen on edit (DECIMAL coordinates returned as strings) plus owner/employee display and stale-list bugs (issues #53, #55)
+- 🎨 **Tool tags readable in light theme** (issue #54); **custom location types render on the map** with colors, filter chips and legend entries (issue #51)
+- 🤖 **MCP server v1.1** — respawn cache (cached session + spec make per-call process spawns instant) and duplicate detection for transactions (issues #43, #44)
+- 🛡️ **Sharper validation errors** — mutually-exclusive transaction party violations name the conflicting fields; OpenAPI spec documents the rules machine-readably (issue #43)
+- 🧯 **Section-level error boundary** — a view crash shows an inline retry instead of a white screen; production builds ship source maps
+
 ### Version 2.8.0 (July 2026)
 - ⚠️ **Critical fix — upgrade from v2.7.0 immediately**: the Zod validation layer introduced in v2.7.0 silently stripped fields some routes actually read, which could **wipe a person's connections, OSINT data, attachments, and custom fields on edit** and prevented asset holders from ever saving. All schemas corrected; a static schema↔route consistency test now prevents recurrence
 - 🐛 **Validation accepts real form payloads** — `null` for cleared fields, numeric strings from selects, `''` for optional fields; case/todo status enums now match the UI vocabulary
@@ -530,5 +544,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.8.0
+**Version:** 2.9.0
 **Last Updated:** July 7, 2026

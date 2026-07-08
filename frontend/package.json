@@ -1,6 +1,6 @@
 {
   "name": "osint-crm",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "private": true,
   "proxy": "http://localhost:3001",
   "dependencies": {
@@ -17,6 +17,7 @@
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
     "react-leaflet-cluster": "^2.1.0",
+    "react-router-dom": "^6.30.4",
     "react-scripts": "5.0.1",
     "react-window": "^1.8.11",
     "reactflow": "^11.11.4",

@@ -6,6 +6,7 @@
 const { z } = require('zod');
 const { version } = require('../package.json');
 const S = require('../middleware/schemas');
+const { FROM_REFS, TO_REFS, SUBJECT_REFS, LOCATION_REFS } = require('./transactionHelpers');
 
 // ── Zod → JSON Schema ─────────────────────────────────────────────────────────
 
@@ -13,6 +14,33 @@ function toSchema(zodSchema) {
   const json = z.toJSONSchema(zodSchema, { io: 'input', unrepresentable: 'any' });
   delete json.$schema; // component schemas inherit the document's dialect
   return json;
+}
+
+// Transaction party rules (issue #43): the from_*/to_*/subject_*/location_*
+// groups are mutually exclusive at runtime (validateTransactionShape). A strict
+// JSON-Schema oneOf/not-required encoding would falsely reject requests that
+// send the unused keys as null (which the UI does and the API accepts), so the
+// rules are expressed as a machine-readable x-mutually-exclusive extension plus
+// prose — MCP tool generation surfaces the description to the calling LLM.
+const TX_EXCLUSIVE_GROUPS = [
+  { role: 'giver', fields: FROM_REFS },
+  { role: 'receiver', fields: TO_REFS },
+  { role: 'referenced subject', fields: SUBJECT_REFS },
+  { role: 'event location reference', fields: LOCATION_REFS },
+];
+
+function withPartyRules(schema) {
+  const rules = TX_EXCLUSIVE_GROUPS
+    .map(({ role, fields }) => `at most one of ${fields.join(', ')} may be set as the ${role}`)
+    .join('; ');
+  return {
+    ...schema,
+    description:
+      `${schema.description ? schema.description + ' ' : ''}Party rules: ${rules}. ` +
+      'At least one party (from_* or to_*) is required. Explicit null or empty-string ' +
+      'values count as unset. Violations return 400 naming the conflicting fields.',
+    'x-mutually-exclusive': TX_EXCLUSIVE_GROUPS.map(({ role, fields }) => ({ role, fields })),
+  };
 }
 
 // ── shared building blocks ────────────────────────────────────────────────────
@@ -165,8 +193,8 @@ const spec = {
       PropertyUpdate: toSchema(S.PropertyUpdateSchema),
       AssetCreate: toSchema(S.AssetCreateSchema),
       AssetUpdate: toSchema(S.AssetUpdateSchema),
-      TransactionCreate: toSchema(S.TransactionCreateSchema),
-      TransactionUpdate: toSchema(S.TransactionUpdateSchema),
+      TransactionCreate: withPartyRules(toSchema(S.TransactionCreateSchema)),
+      TransactionUpdate: withPartyRules(toSchema(S.TransactionUpdateSchema)),
       SettingsCustomFieldCreate: toSchema(S.SettingsCustomFieldCreateSchema),
       SettingsCustomFieldUpdate: toSchema(S.SettingsCustomFieldUpdateSchema),
       SettingsModelOptionCreate: toSchema(S.SettingsModelOptionCreateSchema),

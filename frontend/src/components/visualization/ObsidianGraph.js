@@ -11,6 +11,8 @@ import {
 const ObsidianGraph = ({
   people = [],
   selectedPersonId = null,
+  edgeClasses = { connections: true, ownership: true, transactions: false },
+  transactionEdges = [],
   onNodeClick = null,
   onUpdateConnection = null,
   onDeleteConnection = null,
@@ -49,6 +51,7 @@ const ObsidianGraph = ({
       witness: '#f59e0b',
       victim: '#ec4899',
       owner: '#48bb78',
+      transaction: '#0891b2',
       other: '#6b7280'
     },
     grid: '#2d3748',
@@ -88,6 +91,8 @@ const ObsidianGraph = ({
           // Bad data (e.g. person_id: null from an old bug or an API write)
           // must be skipped, not crash the whole graph (issue #56)
           if (!conn || conn.person_id == null) return;
+          // Edge class toggles (issue #50)
+          if (conn.type === 'owner' ? !edgeClasses.ownership : !edgeClasses.connections) return;
           const targetId = String(conn.person_id);
 
           // Only add edge if target exists
@@ -104,8 +109,23 @@ const ObsidianGraph = ({
       }
     });
 
+    // Transaction-derived edges (issue #50), pre-aggregated per party pair
+    if (edgeClasses.transactions) {
+      transactionEdges.forEach(edge => {
+        if (nodeMap.has(String(edge.source)) && nodeMap.has(String(edge.target))) {
+          links.push({
+            source: String(edge.source),
+            target: String(edge.target),
+            type: 'transaction',
+            note: edge.note || '',
+            strength: 0.9
+          });
+        }
+      });
+    }
+
     return { nodes, links };
-  }, [people]);
+  }, [people, edgeClasses, transactionEdges]);
 
   // Get connection strength for force simulation
   const getConnectionStrength = (type) => {
@@ -252,7 +272,7 @@ const ObsidianGraph = ({
           .attr('font-size', '12px')
           .attr('font-weight', 'bold')
           .style('pointer-events', 'none')
-          .text(d.type);
+          .text(d.type === 'transaction' && d.note ? d.note : d.type);
       })
       .on('mouseout', function() {
         d3.select(this)

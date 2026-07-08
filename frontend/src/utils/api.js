@@ -61,7 +61,9 @@ const fetchAPI = async (endpoint, options = {}) => {
 export const peopleAPI = {
   getAll: ({ limit = 100, offset = 0 } = {}) =>
     fetchAPI(`/people?limit=${limit}&offset=${offset}`, { returnMeta: true }),
-  
+
+  getById: (id) => fetchAPI(`/people/${id}`),
+
   create: (personData) => fetchAPI('/people', {
     method: 'POST',
     body: JSON.stringify(personData),

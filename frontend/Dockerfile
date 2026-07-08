@@ -23,7 +23,10 @@ RUN if [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit; else n
 # Copy the rest of the application code
 COPY . .
 
-# Build the application with production environment
+# Build the application with production environment.
+# Source maps are shipped on purpose (issue #53) so browser consoles show
+# real component names and line numbers instead of minified frames.
+ENV GENERATE_SOURCEMAP=true
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx

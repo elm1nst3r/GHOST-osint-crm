@@ -7,7 +7,7 @@ import {
   Maximize2, RefreshCw, Bug, Filter, X, Search,
   Briefcase, Tag, GitBranch, Sparkles
 } from 'lucide-react';
-import { casesAPI, businessesAPI } from '../../utils/api';
+import { casesAPI, businessesAPI, transactionsAPI } from '../../utils/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -27,6 +27,9 @@ const RelationshipManager = ({
   const [debugMode, setDebugMode] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('obsidian'); // 'reactflow' or 'obsidian'
+  // Edge classes shown in the Obsidian view (issue #50)
+  const [edgeClasses, setEdgeClasses] = useState({ connections: true, ownership: true, transactions: false });
+  const [txEdges, setTxEdges] = useState([]);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -141,11 +144,44 @@ const RelationshipManager = ({
     }
   }, []);
 
+  // Derive graph edges from the transaction log (issue #50): one aggregated
+  // edge per giver→receiver pair. External (free-text) parties have no node,
+  // so only person/business references become edges.
+  const fetchTransactionEdges = useCallback(async () => {
+    try {
+      const res = await transactionsAPI.getAll({ limit: 1000 });
+      const list = res.data || [];
+      const agg = new Map();
+      list.forEach(t => {
+        const src = t.from_person_id != null ? String(t.from_person_id)
+          : t.from_business_id != null ? `business-${t.from_business_id}` : null;
+        const dst = t.to_person_id != null ? String(t.to_person_id)
+          : t.to_business_id != null ? `business-${t.to_business_id}` : null;
+        if (!src || !dst || src === dst) return;
+        const key = `${src}|${dst}`;
+        const e = agg.get(key) || { source: src, target: dst, count: 0, types: new Set() };
+        e.count += 1;
+        e.types.add(t.transaction_type);
+        agg.set(key, e);
+      });
+      setTxEdges([...agg.values()].map(e => ({
+        source: e.source,
+        target: e.target,
+        type: 'transaction',
+        note: `${[...e.types].join(', ')}${e.count > 1 ? ` ×${e.count}` : ''}`,
+        count: e.count,
+      })));
+    } catch (err) {
+      console.error('Error fetching transaction edges:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPeople();
     fetchBusinesses();
     fetchCases();
-  }, [fetchPeople, fetchBusinesses, fetchCases]);
+    fetchTransactionEdges();
+  }, [fetchPeople, fetchBusinesses, fetchCases, fetchTransactionEdges]);
 
   // Update connection between two people
   const updateConnection = useCallback(async (sourceId, targetId, type, note) => {
@@ -530,6 +566,27 @@ const RelationshipManager = ({
             </button>
           </div>
 
+          {/* Edge class toggles (issue #50) — Obsidian view only */}
+          {viewMode === 'obsidian' && (
+            <div className="flex items-center space-x-3 px-2 py-1.5 bg-gray-100 dark:bg-slate-700 rounded-md text-xs">
+              {[
+                ['connections', 'People'],
+                ['ownership', 'Ownership'],
+                ['transactions', 'Transactions'],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center space-x-1 cursor-pointer text-gray-700 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={edgeClasses[key]}
+                    onChange={(e) => setEdgeClasses({ ...edgeClasses, [key]: e.target.checked })}
+                    className="h-3 w-3 text-blue-600 rounded"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 ${
@@ -842,6 +899,8 @@ const RelationshipManager = ({
           <ObsidianGraph
             people={filteredPeople}
             selectedPersonId={personId}
+            edgeClasses={edgeClasses}
+            transactionEdges={txEdges}
             onUpdateConnection={updateConnection}
             onDeleteConnection={deleteConnection}
             onNodeClick={(person) => {
