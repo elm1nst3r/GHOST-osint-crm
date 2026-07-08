@@ -11,22 +11,11 @@ const util = require('util');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 
-// Add this with the other requires at the top
-let geocodingService;
+// All geocoding goes through ImprovedGeocodingService (Nominatim-throttled,
+// DB-cached). The legacy services/geocodingService.js was removed — its
+// exports were required but never called, and it bypassed the throttle.
 let improvedGeocodingService;
 const ImprovedGeocodingService = require('./services/improvedGeocodingService');
-try {
-  geocodingService = require('./services/geocodingService');
-  console.log('Geocoding services loaded successfully');
-} catch (err) {
-  console.error('Failed to load geocoding service:', err);
-  // Create dummy functions if service fails to load
-  geocodingService = {
-    geocodeAddress: async () => null,
-    batchGeocode: async (locations) => locations
-  };
-}
-const { geocodeAddress, batchGeocode } = geocodingService;
 const execPromise = util.promisify(exec);
 
 const app = express();

@@ -67,7 +67,7 @@ const navigationItems = [
 
 const AppShell = () => {
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
-  const { refreshAll, appSettings, fetchBusinesses } = useData();
+  const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
   const {
     activeSection, setActiveSection,
     selectedPersonForDetail, setSelectedPersonForDetail,
@@ -278,8 +278,8 @@ const AppShell = () => {
       {showAddPersonForm  && <AddEditPersonForm />}
       {editingPerson      && <AddEditPersonForm />}
       {selectedPersonForDetail && <PersonDetailModal />}
-      {showAddToolForm    && <AddEditToolForm tool={null} onSave={() => { setShowAddToolForm(false); }} onCancel={() => setShowAddToolForm(false)} />}
-      {editingTool        && <AddEditToolForm tool={editingTool} onSave={() => { setEditingTool(null); }} onCancel={() => setEditingTool(null)} />}
+      {showAddToolForm    && <AddEditToolForm tool={null} onSave={() => { setShowAddToolForm(false); fetchTools(); }} onCancel={() => setShowAddToolForm(false)} />}
+      {editingTool        && <AddEditToolForm tool={editingTool} onSave={() => { setEditingTool(null); fetchTools(); }} onCancel={() => setEditingTool(null)} />}
       {showAddBusinessForm && <AddEditBusinessForm business={null} onSave={() => { setShowAddBusinessForm(false); fetchBusinesses(); }} onCancel={() => setShowAddBusinessForm(false)} />}
       {editingBusiness    && <AddEditBusinessForm business={editingBusiness} onSave={() => { setEditingBusiness(null); fetchBusinesses(); }} onCancel={() => setEditingBusiness(null)} />}
 
