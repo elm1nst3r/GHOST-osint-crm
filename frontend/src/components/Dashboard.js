@@ -1,6 +1,7 @@
 // File: frontend/src/components/Dashboard.js
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Network, Trash2, Check, ChevronDown, FileText } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
@@ -9,6 +10,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { people, todos, setTodos } = useData();
   const { setSelectedPersonForDetail, setActiveSection } = useUI();
   // Show most recently updated people (up to 5)
@@ -62,7 +64,7 @@ const Dashboard = () => {
       setNewTodo('');
     } catch (error) {
       console.error('Error adding todo:', error);
-      alert('Failed to add todo');
+      alert(t('dashboard.errorAddTodo'));
     }
   };
 
@@ -72,7 +74,7 @@ const Dashboard = () => {
       setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
     } catch (error) {
       console.error('Error updating todo:', error);
-      alert('Failed to update todo');
+      alert(t('dashboard.errorUpdateTodo'));
     }
   };
 
@@ -82,7 +84,7 @@ const Dashboard = () => {
       setTodos(todos.filter(todo => todo.id !== id));
     } catch (error) {
       console.error('Error deleting todo:', error);
-      alert('Failed to delete todo');
+      alert(t('dashboard.errorDeleteTodo'));
     }
   };
 
@@ -99,40 +101,40 @@ const Dashboard = () => {
   };
 
   const statusOptions = [
-    { value: 'open', label: 'Open' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'on_hold', label: 'On Hold' },
-    { value: 'attention', label: 'Attention / Issue' },
-    { value: 'done', label: 'Done' },
-    { value: 'cancelled', label: 'Cancelled' }
+    { value: 'open', label: t('dashboard.todoStatus.open') },
+    { value: 'in_progress', label: t('dashboard.todoStatus.inProgress') },
+    { value: 'on_hold', label: t('dashboard.todoStatus.onHold') },
+    { value: 'attention', label: t('dashboard.todoStatus.attention') },
+    { value: 'done', label: t('dashboard.todoStatus.done') },
+    { value: 'cancelled', label: t('dashboard.todoStatus.cancelled') }
   ];
 
   return (
     <div className="p-8 pb-32 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('dashboard.title')}</h1>
         <button
           onClick={() => setShowReportGenerator(true)}
           className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 flex items-center group active:scale-[0.97]"
         >
           <FileText className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-          Generate Report
+          {t('dashboard.generateReport')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Active People */}
         <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150">
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Recently Updated People</h3>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">{t('dashboard.recentlyUpdatedPeople')}</h3>
           <div className="space-y-3">
             {activePeople.length === 0 ? (
               <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <p className="text-sm">No people added yet.</p>
+                <p className="text-sm">{t('dashboard.noPeopleYet')}</p>
                 <button
                   onClick={() => setActiveSection('people')}
                   className="mt-3 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-150 text-sm font-medium"
                 >
-                  Add Your First Person →
+                  {t('dashboard.addFirstPerson')}
                 </button>
               </div>
             ) : (
@@ -140,15 +142,15 @@ const Dashboard = () => {
                 <div key={person.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group">
                   <div className="flex-1 min-w-0 mr-4">
                     <p className="font-semibold text-slate-900 dark:text-slate-100">{getFullName(person)}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{person.case_name || 'No case assigned'}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{person.case_name || t('dashboard.noCaseAssigned')}</p>
                     <div className="flex items-center mt-2 space-x-3 text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center">
                         <Network className="w-3 h-3 mr-1 text-blue-600 dark:text-blue-400" />
-                        {getRelationshipCount(person.id)} connections
+                        {t('dashboard.connectionsCount', { count: getRelationshipCount(person.id) })}
                       </div>
                       {person.updated_at && (
                         <div className="flex items-center">
-                          <span>Updated {new Date(person.updated_at).toLocaleDateString()}</span>
+                          <span>{t('dashboard.updatedOn', { date: new Date(person.updated_at).toLocaleDateString() })}</span>
                         </div>
                       )}
                     </div>
@@ -157,7 +159,7 @@ const Dashboard = () => {
                     onClick={() => setSelectedPersonForDetail(person)}
                     className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-600 rounded-lg transition-colors duration-150 text-sm font-medium flex-shrink-0 active:scale-[0.97]"
                   >
-                    View Details
+                    {t('dashboard.viewDetails')}
                   </button>
                 </div>
               ))
@@ -167,27 +169,27 @@ const Dashboard = () => {
 
         {/* To-Do List */}
         <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150">
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">To-Do List</h3>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">{t('dashboard.todoList')}</h3>
           <div className="mb-4 flex space-x-3">
             <input
               type="text"
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddTodo()}
-              placeholder="Add a new task..."
+              placeholder={t('dashboard.todoPlaceholder')}
               className="flex-1 px-4 py-3 glass border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:text-slate-100 dark:bg-slate-700 dark:placeholder-slate-500"
             />
             <button
               onClick={handleAddTodo}
               className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 font-medium active:scale-[0.97]"
             >
-              Add
+              {t('common.add')}
             </button>
           </div>
           <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
             {todos.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">No tasks yet. Add one above to get started!</p>
+                <p className="text-sm">{t('dashboard.noTasksYet')}</p>
               </div>
             ) : (
               todos.map(todo => (
@@ -226,10 +228,10 @@ const Dashboard = () => {
                         setEditingTodoId(newId);
                       }}
                       className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center space-x-1 transition-opacity duration-150 ${getStatusStyle(todo.status)} hover:opacity-80`}
-                      title="Change status"
+                      title={t('dashboard.changeStatus')}
                     >
-                      <span className="hidden sm:inline">{statusOptions.find(s => s.value === todo.status)?.label || 'Open'}</span>
-                      <span className="sm:hidden">{statusOptions.find(s => s.value === todo.status)?.label.substring(0, 3) || 'Opn'}</span>
+                      <span className="hidden sm:inline">{statusOptions.find(s => s.value === todo.status)?.label || t('dashboard.todoStatus.open')}</span>
+                      <span className="sm:hidden">{statusOptions.find(s => s.value === todo.status)?.label.substring(0, 3) || t('dashboard.todoStatus.openShort')}</span>
                       <ChevronDown className="w-3 h-3" />
                     </button>
 
@@ -263,7 +265,7 @@ const Dashboard = () => {
                   <button
                     onClick={() => handleDeleteTodo(todo.id)}
                     className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-shrink-0"
-                    title="Delete task"
+                    title={t('dashboard.deleteTask')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -277,12 +279,12 @@ const Dashboard = () => {
       {/* Global Relationship Overview */}
       <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-glass-lg rounded-lg overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Global Relationship Overview</h3>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('dashboard.globalRelationshipOverview')}</h3>
           <button
             onClick={() => setActiveSection('relationships')}
             className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-150 font-medium active:scale-[0.97]"
           >
-            View Full Network →
+            {t('dashboard.viewFullNetwork')}
           </button>
         </div>
         <div className="h-96" style={{ minHeight: '384px' }}>

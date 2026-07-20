@@ -1,7 +1,8 @@
 // File: frontend/src/components/CaseManagement.js
 import React, { useState, useEffect } from 'react';
-import { 
-  Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search, 
+import { useTranslation } from 'react-i18next';
+import {
+  Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search,
   Edit2, Trash2, User,
   UserPlus, FileText
 } from 'lucide-react';
@@ -11,6 +12,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const CaseManagement = () => {
+  const { t } = useTranslation();
   const { people, fetchPeople } = useData();
   const { setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [cases, setCases] = useState([]);
@@ -69,7 +71,7 @@ const CaseManagement = () => {
       fetchCases();
     } catch (error) {
       console.error('Error creating case:', error);
-      alert('Failed to create case');
+      alert(t('caseManagement.errorCreateCase'));
     }
   };
 
@@ -80,18 +82,18 @@ const CaseManagement = () => {
       setEditingCase(null);
     } catch (error) {
       console.error('Error updating case:', error);
-      alert('Failed to update case');
+      alert(t('caseManagement.errorUpdateCase'));
     }
   };
 
   const handleDeleteCase = async (caseId) => {
-    if (window.confirm('Are you sure you want to delete this case? People will not be deleted but will no longer be associated with this case.')) {
+    if (window.confirm(t('caseManagement.confirmDeleteCase'))) {
       try {
         await casesAPI.delete(caseId);
         fetchCases();
       } catch (error) {
         console.error('Error deleting case:', error);
-        alert('Failed to delete case');
+        alert(t('caseManagement.errorDeleteCase'));
       }
     }
   };
@@ -120,7 +122,7 @@ const CaseManagement = () => {
       fetchPeople();
     } catch (error) {
       console.error('Error creating person:', error);
-      alert('Failed to create person');
+      alert(t('caseManagement.errorCreatePerson'));
     }
   };
 
@@ -182,13 +184,13 @@ const CaseManagement = () => {
     const now = new Date();
     const diff = now - date;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return `${Math.floor(days / 365)} years ago`;
+
+    if (days === 0) return t('caseManagement.timeAgo.today');
+    if (days === 1) return t('caseManagement.timeAgo.yesterday');
+    if (days < 7) return t('caseManagement.timeAgo.daysAgo', { count: days });
+    if (days < 30) return t('caseManagement.timeAgo.weeksAgo', { count: Math.floor(days / 7) });
+    if (days < 365) return t('caseManagement.timeAgo.monthsAgo', { count: Math.floor(days / 30) });
+    return t('caseManagement.timeAgo.yearsAgo', { count: Math.floor(days / 365) });
   };
 
   const filteredCases = cases.filter(caseItem => 
@@ -203,13 +205,13 @@ const CaseManagement = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Case Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('caseManagement.title')}</h1>
         <button
           onClick={() => setShowNewCaseForm(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
-          New Case
+          {t('caseManagement.newCase')}
         </button>
       </div>
 
@@ -219,7 +221,7 @@ const CaseManagement = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search cases..."
+            placeholder={t('caseManagement.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -230,26 +232,26 @@ const CaseManagement = () => {
       {/* New Case Form */}
       {showNewCaseForm && (
         <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold mb-4">Create New Case</h3>
+          <h3 className="text-lg font-semibold mb-4">{t('caseManagement.createNewCase')}</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Case Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.caseName')}</label>
               <input
                 type="text"
                 value={newCaseData.case_name}
                 onChange={(e) => setNewCaseData({ ...newCaseData, case_name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter case name..."
+                placeholder={t('caseManagement.caseNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.description')}</label>
               <textarea
                 value={newCaseData.description}
                 onChange={(e) => setNewCaseData({ ...newCaseData, description: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows="3"
-                placeholder="Enter case description..."
+                placeholder={t('caseManagement.descriptionPlaceholder')}
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -260,13 +262,13 @@ const CaseManagement = () => {
                 }}
                 className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateCase}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Create Case
+                {t('caseManagement.createCase')}
               </button>
             </div>
           </div>
@@ -308,13 +310,13 @@ const CaseManagement = () => {
                       setShowReportGenerator(true);
                     }}
                     className="text-blue-600 hover:text-blue-700"
-                    title="Generate Report"
+                    title={t('dashboard.generateReport')}
                   >
                     <FileText className="w-4 h-4" />
                   </button>
                   <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                     <Users className="w-4 h-4" />
-                    <span>{caseItem.peopleCount} people</span>
+                    <span>{t('caseManagement.peopleCount', { count: caseItem.peopleCount })}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                     <Clock className="w-4 h-4" />
@@ -327,15 +329,15 @@ const CaseManagement = () => {
                 <div className="mt-3 flex items-center space-x-6 text-sm">
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Open: {caseItem.openCount}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('caseManagement.open', { count: caseItem.openCount })}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Investigating: {caseItem.investigatingCount}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('caseManagement.investigating', { count: caseItem.investigatingCount })}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Closed: {caseItem.closedCount}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('caseManagement.closed', { count: caseItem.closedCount })}</span>
                   </div>
                 </div>
               )}
@@ -349,12 +351,12 @@ const CaseManagement = () => {
                   {editingCase === caseItem.id ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Case Name</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.caseName')}</label>
                         <input
                           type="text"
                           value={caseItem.case_name}
                           onChange={(e) => {
-                            const updatedCases = cases.map(c => 
+                            const updatedCases = cases.map(c =>
                               c.id === caseItem.id ? { ...c, case_name: e.target.value } : c
                             );
                             setCases(updatedCases);
@@ -363,11 +365,11 @@ const CaseManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.description')}</label>
                         <textarea
                           value={caseItem.description || ''}
                           onChange={(e) => {
-                            const updatedCases = cases.map(c => 
+                            const updatedCases = cases.map(c =>
                               c.id === caseItem.id ? { ...c, description: e.target.value } : c
                             );
                             setCases(updatedCases);
@@ -377,20 +379,20 @@ const CaseManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.status')}</label>
                         <select
                           value={caseItem.status}
                           onChange={(e) => {
-                            const updatedCases = cases.map(c => 
+                            const updatedCases = cases.map(c =>
                               c.id === caseItem.id ? { ...c, status: e.target.value } : c
                             );
                             setCases(updatedCases);
                           }}
                           className="px-3 py-2 border rounded-md"
                         >
-                          <option value="active">Active</option>
-                          <option value="on_hold">On Hold</option>
-                          <option value="closed">Closed</option>
+                          <option value="active">{t('caseManagement.statusActive')}</option>
+                          <option value="on_hold">{t('caseManagement.statusOnHold')}</option>
+                          <option value="closed">{t('caseManagement.statusClosed')}</option>
                         </select>
                       </div>
                       <div className="flex justify-end space-x-2">
@@ -398,7 +400,7 @@ const CaseManagement = () => {
                           onClick={() => setEditingCase(null)}
                           className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                         <button
                           onClick={() => handleUpdateCase(caseItem.id, {
@@ -408,16 +410,16 @@ const CaseManagement = () => {
                           })}
                           className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                         >
-                          Save
+                          {t('common.save')}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{caseItem.description || 'No description'}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{caseItem.description || t('caseManagement.noDescription')}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                          Created: {new Date(caseItem.created_at).toLocaleDateString()}
+                          {t('caseManagement.createdOn', { date: new Date(caseItem.created_at).toLocaleDateString() })}
                         </p>
                       </div>
                       <div className="flex space-x-2">
@@ -441,21 +443,21 @@ const CaseManagement = () => {
                 {/* People in Case */}
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium">People in this case</h4>
+                    <h4 className="font-medium">{t('caseManagement.peopleInCase')}</h4>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setShowAddPeopleModal(caseItem.case_name)}
                         className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
                       >
                         <UserPlus className="w-4 h-4 mr-1" />
-                        Add Existing
+                        {t('caseManagement.addExisting')}
                       </button>
                       <button
                         onClick={() => setShowQuickAdd(caseItem.case_name)}
                         className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Quick Add
+                        {t('caseManagement.quickAdd')}
                       </button>
                     </div>
                   </div>
@@ -466,14 +468,14 @@ const CaseManagement = () => {
                       <div className="flex space-x-2">
                         <input
                           type="text"
-                          placeholder="First Name"
+                          placeholder={t('caseManagement.firstNamePlaceholder')}
                           value={quickAddPerson.firstName}
                           onChange={(e) => setQuickAddPerson({ ...quickAddPerson, firstName: e.target.value })}
                           className="flex-1 px-3 py-2 border rounded-md text-sm"
                         />
                         <input
                           type="text"
-                          placeholder="Last Name"
+                          placeholder={t('caseManagement.lastNamePlaceholder')}
                           value={quickAddPerson.lastName}
                           onChange={(e) => setQuickAddPerson({ ...quickAddPerson, lastName: e.target.value })}
                           className="flex-1 px-3 py-2 border rounded-md text-sm"
@@ -482,7 +484,7 @@ const CaseManagement = () => {
                           onClick={() => handleQuickAddPerson(caseItem.case_name)}
                           className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
                         >
-                          Add
+                          {t('common.add')}
                         </button>
                         <button
                           onClick={() => {
@@ -491,7 +493,7 @@ const CaseManagement = () => {
                           }}
                           className="px-3 py-2 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300 text-sm"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </div>
                     </div>
@@ -519,13 +521,13 @@ const CaseManagement = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Updated {getTimeAgo(new Date(person.updated_at || person.created_at))}
+                            {t('caseManagement.updatedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}
                           </span>
                           <button
                             onClick={() => setSelectedPersonForDetail(person)}
                             className="text-blue-600 hover:text-blue-700 text-sm"
                           >
-                            View
+                            {t('common.view')}
                           </button>
                           <button
                             onClick={() => setEditingPerson(person)}
@@ -549,10 +551,10 @@ const CaseManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold">Add People to {showAddPeopleModal}</h3>
+              <h3 className="text-lg font-semibold">{t('caseManagement.addPeopleToCase', { caseName: showAddPeopleModal })}</h3>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">Select people to add to this case:</p>
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{t('caseManagement.selectPeopleHint')}</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {availablePeople.map(person => (
                   <label key={person.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
@@ -583,14 +585,14 @@ const CaseManagement = () => {
                   }}
                   className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={() => handleAddPeopleToCase(showAddPeopleModal)}
                   disabled={selectedPeopleToAdd.length === 0}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Add {selectedPeopleToAdd.length} People
+                  {t('caseManagement.addNPeople', { count: selectedPeopleToAdd.length })}
                 </button>
               </div>
             </div>
