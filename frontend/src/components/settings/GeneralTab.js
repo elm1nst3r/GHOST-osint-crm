@@ -1,10 +1,13 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Save, Upload, Shield } from 'lucide-react';
 import { uploadLogo } from '../../utils/api';
 import { useData } from '../../contexts/DataContext';
+import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
+  const { i18n } = useTranslation();
   const [tempAppName, setTempAppName] = useState(appSettings.appName);
   const fileInputRef = useRef(null);
 
@@ -64,6 +67,20 @@ const GeneralTab = () => {
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">PNG, JPG, GIF, or SVG. Max 5MB.</p>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Language</label>
+            <select
+              value={i18n.language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="w-full max-w-xs px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>{lang.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">More languages coming via community translation.</p>
           </div>
         </div>
       </div>
