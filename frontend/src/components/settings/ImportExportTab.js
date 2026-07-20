@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Download, Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { exportAPI, importAPI } from '../../utils/api';
 
 const ImportExportTab = () => {
+  const { t } = useTranslation();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -20,7 +22,7 @@ const ImportExportTab = () => {
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to export data: ' + error.message);
+      alert(t('settings.importExport.errorExportData', { message: error.message }));
     } finally {
       setIsExporting(false);
     }
@@ -32,7 +34,7 @@ const ImportExportTab = () => {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      if (!data.version || !data.data) throw new Error('Invalid import file format');
+      if (!data.version || !data.data) throw new Error(t('settings.importExport.errorInvalidFileFormat'));
       const counts = {};
       Object.entries(data.data).forEach(([key, arr]) => {
         if (Array.isArray(arr)) counts[key] = arr.length;
@@ -47,7 +49,7 @@ const ImportExportTab = () => {
       });
       setShowImportPreview(true);
     } catch (error) {
-      alert('Failed to read import file: ' + error.message);
+      alert(t('settings.importExport.errorReadFile', { message: error.message }));
     }
     event.target.value = '';
   };
@@ -64,7 +66,7 @@ const ImportExportTab = () => {
       setTimeout(() => window.location.reload(), 2000);
     } catch (error) {
       console.error('Error importing data:', error);
-      alert('Failed to import data: ' + error.message);
+      alert(t('settings.importExport.errorImportData', { message: error.message }));
     } finally {
       setIsImporting(false);
     }
@@ -74,36 +76,36 @@ const ImportExportTab = () => {
     <div className="space-y-6">
       {/* Export */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Data Export</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('settings.importExport.dataExport')}</h3>
         <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
-          Export all your data (people, tools, todos, custom fields, and settings) to a JSON file for backup or migration.
+          {t('settings.importExport.exportDescription')}
         </p>
         <button onClick={handleExport} disabled={isExporting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-          {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Exporting...</> : <><Download className="w-4 h-4 mr-2" />Export All Data</>}
+          {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>{t('settings.importExport.exporting')}</> : <><Download className="w-4 h-4 mr-2" />{t('settings.importExport.exportAllData')}</>}
         </button>
-        {exportSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />Export completed successfully!</div>}
+        {exportSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />{t('settings.importExport.exportSuccess')}</div>}
       </div>
 
       {/* Import */}
       <div className="pt-6 border-t">
-        <h3 className="text-lg font-semibold mb-4">Data Import</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('settings.importExport.dataImport')}</h3>
         <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
-          Import data from a previously exported JSON file. This will merge the data with existing records.
+          {t('settings.importExport.importDescription')}
         </p>
         <input ref={importInputRef} type="file" accept="application/json" onChange={handleImportPreview} className="hidden" />
         <button onClick={() => importInputRef.current?.click()} disabled={isImporting} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-          {isImporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Importing...</> : <><Upload className="w-4 h-4 mr-2" />Import Data</>}
+          {isImporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>{t('settings.importExport.importing')}</> : <><Upload className="w-4 h-4 mr-2" />{t('settings.importExport.importData')}</>}
         </button>
-        {importSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />Import completed successfully! Reloading page...</div>}
+        {importSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />{t('settings.importExport.importSuccess')}</div>}
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <div className="flex items-start">
             <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-amber-800 font-medium">Important Notes:</p>
+              <p className="text-sm text-amber-800 font-medium">{t('settings.importExport.importantNotes')}</p>
               <ul className="text-sm text-amber-700 mt-1 list-disc list-inside">
-                <li>Import will merge data with existing records</li>
-                <li>Records with matching IDs will be updated</li>
-                <li>Always backup your data before importing</li>
+                <li>{t('settings.importExport.noteMerge')}</li>
+                <li>{t('settings.importExport.noteMatchingIds')}</li>
+                <li>{t('settings.importExport.noteBackup')}</li>
               </ul>
             </div>
           </div>
@@ -114,10 +116,10 @@ const ImportExportTab = () => {
       {showImportPreview && importPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-semibold mb-4">Import Preview</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('settings.importExport.importPreview')}</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {[['File Name', importPreview.fileName], ['File Size', importPreview.fileSize], ['Version', importPreview.version], ['Export Date', importPreview.exportDate ? new Date(importPreview.exportDate).toLocaleString() : 'N/A']].map(([label, value]) => (
+                {[[t('settings.importExport.fileName'), importPreview.fileName], [t('settings.importExport.fileSize'), importPreview.fileSize], [t('settings.importExport.version'), importPreview.version], [t('settings.importExport.exportDate'), importPreview.exportDate ? new Date(importPreview.exportDate).toLocaleString() : t('settings.importExport.notAvailable')]].map(([label, value]) => (
                   <div key={label}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
                     <p className="text-sm text-gray-900 dark:text-slate-100">{value}</p>
@@ -125,7 +127,7 @@ const ImportExportTab = () => {
                 ))}
               </div>
               <div className="border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Records to Import</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('settings.importExport.recordsToImport')}</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(importPreview.counts).map(([key, count]) => (
                     <div key={key} className="flex justify-between items-center bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded">
@@ -138,13 +140,13 @@ const ImportExportTab = () => {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-start">
                   <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-700">This will merge the imported data with your existing records. Make sure you have a backup before proceeding.</p>
+                  <p className="text-sm text-amber-700">{t('settings.importExport.confirmMergeWarning')}</p>
                 </div>
               </div>
             </div>
             <div className="flex justify-end space-x-2 mt-6">
-              <button onClick={() => { setShowImportPreview(false); setImportPreview(null); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200">Cancel</button>
-              <button onClick={handleConfirmImport} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Confirm Import</button>
+              <button onClick={() => { setShowImportPreview(false); setImportPreview(null); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200">{t('common.cancel')}</button>
+              <button onClick={handleConfirmImport} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">{t('settings.importExport.confirmImport')}</button>
             </div>
           </div>
         </div>

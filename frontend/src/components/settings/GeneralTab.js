@@ -7,7 +7,7 @@ import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [tempAppName, setTempAppName] = useState(appSettings.appName);
   const fileInputRef = useRef(null);
 
@@ -21,17 +21,17 @@ const GeneralTab = () => {
       setAppSettings({ ...appSettings, appLogo: logoUrl });
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('Failed to upload logo');
+      alert(t('settings.general.logoUploadFailed'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Application Configuration</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('settings.general.appConfiguration')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Application Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('settings.general.appName')}</label>
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -46,10 +46,10 @@ const GeneralTab = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Application Logo</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('settings.general.appLogo')}</label>
             <div className="flex items-center space-x-4">
               {appSettings.appLogo ? (
-                <img src={appSettings.appLogo} alt="App Logo" className="h-16 w-16 object-contain rounded" />
+                <img src={appSettings.appLogo} alt={t('settings.general.appLogoAlt')} className="h-16 w-16 object-contain rounded" />
               ) : (
                 <div className="h-16 w-16 bg-gray-200 dark:bg-slate-600 rounded flex items-center justify-center">
                   <Shield className="w-8 h-8 text-gray-400 dark:text-slate-500" />
@@ -62,15 +62,15 @@ const GeneralTab = () => {
                   className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload Logo
+                  {t('settings.general.uploadLogo')}
                 </button>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">PNG, JPG, GIF, or SVG. Max 5MB.</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.logoHelp')}</p>
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Language</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('settings.general.language')}</label>
             <select
               value={i18n.language}
               onChange={(e) => changeLanguage(e.target.value)}
@@ -80,17 +80,17 @@ const GeneralTab = () => {
                 <option key={lang.code} value={lang.code}>{lang.label}</option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">More languages coming via community translation.</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.languageHelp')}</p>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">System Information</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('settings.general.systemInformation')}</h3>
         <div className="space-y-2 text-sm">
-          <div><span className="font-medium">Version:</span> 1.0.0</div>
-          <div><span className="font-medium">Database:</span> PostgreSQL</div>
-          <div><span className="font-medium">API URL:</span> {process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}</div>
+          <div><span className="font-medium">{t('settings.general.version')}</span> 1.0.0</div>
+          <div><span className="font-medium">{t('settings.general.database')}</span> PostgreSQL</div>
+          <div><span className="font-medium">{t('settings.general.apiUrl')}</span> {process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}</div>
         </div>
       </div>
     </div>

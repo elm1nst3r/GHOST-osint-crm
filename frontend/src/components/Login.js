@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogIn, AlertCircle } from 'lucide-react';
 
 const Login = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +17,7 @@ const Login = ({ onLogin }) => {
     try {
       await onLogin(username, password);
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || t('login.genericError'));
     } finally {
       setLoading(false);
     }
@@ -32,7 +34,7 @@ const Login = ({ onLogin }) => {
             GHOST OSINT CRM
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Sign in to your account
+            {t('login.subtitle')}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -53,7 +55,7 @@ const Login = ({ onLogin }) => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
-                Username
+                {t('login.username')}
               </label>
               <input
                 id="username"
@@ -62,14 +64,14 @@ const Login = ({ onLogin }) => {
                 autoComplete="username"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
+                placeholder={t('login.username')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                {t('login.password')}
               </label>
               <input
                 id="password"
@@ -78,7 +80,7 @@ const Login = ({ onLogin }) => {
                 autoComplete="current-password"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                placeholder={t('login.password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -94,7 +96,7 @@ const Login = ({ onLogin }) => {
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 <LogIn className="h-5 w-5 text-blue-500 group-hover:text-blue-400" />
               </span>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('login.signingIn') : t('login.signIn')}
             </button>
           </div>
         </form>
