@@ -1,5 +1,6 @@
 // File: frontend/src/components/RelationshipDiagram.js
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -16,37 +17,38 @@ import { transactionsAPI } from '../utils/api';
 
 // Debug component to show data structure
 const DebugPanel = ({ people, nodes, edges, show }) => {
+  const { t } = useTranslation();
   if (!show) return null;
-  
+
   return (
     <div className="absolute bottom-4 left-4 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-md max-h-96 overflow-auto">
-      <h3 className="font-bold mb-2">Debug Information</h3>
+      <h3 className="font-bold mb-2">{t('relationshipDiagram.debugInformation')}</h3>
       <div className="space-y-2 text-xs">
         <div>
-          <strong>People Count:</strong> {people.length}
+          <strong>{t('relationshipDiagram.peopleCountLabel')}</strong> {people.length}
         </div>
         <div>
-          <strong>Nodes Count:</strong> {nodes.length}
+          <strong>{t('relationshipDiagram.nodesCountLabel')}</strong> {nodes.length}
         </div>
         <div>
-          <strong>Edges Count:</strong> {edges.length}
+          <strong>{t('relationshipDiagram.edgesCountLabel')}</strong> {edges.length}
         </div>
         <details>
-          <summary className="cursor-pointer font-medium">People with Connections</summary>
+          <summary className="cursor-pointer font-medium">{t('relationshipDiagram.peopleWithConnections')}</summary>
           <pre className="mt-2 bg-gray-100 dark:bg-slate-700 p-2 rounded overflow-auto">
             {JSON.stringify(
               people.filter(p => p.connections && p.connections.length > 0).map(p => ({
                 id: p.id,
                 name: `${p.first_name} ${p.last_name}`,
                 connections: p.connections
-              })), 
-              null, 
+              })),
+              null,
               2
             )}
           </pre>
         </details>
         <details>
-          <summary className="cursor-pointer font-medium">All Edges</summary>
+          <summary className="cursor-pointer font-medium">{t('relationshipDiagram.allEdges')}</summary>
           <pre className="mt-2 bg-gray-100 dark:bg-slate-700 p-2 rounded overflow-auto">
             {JSON.stringify(edges.map(e => ({
               id: e.id,
@@ -63,8 +65,9 @@ const DebugPanel = ({ people, nodes, edges, show }) => {
 
 // Custom node component with handles
 const PersonNode = ({ data, selected }) => {
+  const { t } = useTranslation();
   const initials = data.label.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
-  
+
   return (
     <>
       <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
@@ -86,7 +89,7 @@ const PersonNode = ({ data, selected }) => {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">{data.label}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{data.category || 'Unknown'}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{data.category || t('relationshipDiagram.unknown')}</div>
             {data.caseName && <div className="text-xs text-blue-600 truncate">{data.caseName}</div>}
           </div>
         </div>
@@ -108,6 +111,7 @@ const PersonNode = ({ data, selected }) => {
 
 // Hub node for businesses / properties in the transaction layer (issue #43)
 const EntityNode = ({ data, selected }) => {
+  const { t } = useTranslation();
   const isProperty = data.kind === 'property';
   const Icon = isProperty ? Landmark : Building2;
   return (
@@ -120,7 +124,7 @@ const EntityNode = ({ data, selected }) => {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">{data.label}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{data.kind}{data.eventCount ? ` · ${data.eventCount} event${data.eventCount !== 1 ? 's' : ''}` : ''}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{data.kind}{data.eventCount ? ` · ${t('relationshipDiagram.eventCount', { count: data.eventCount })}` : ''}</div>
           </div>
         </div>
       </div>
@@ -135,28 +139,28 @@ const nodeTypes = {
   entity: EntityNode,
 };
 
-// Edge styles
-const edgeStyles = {
-  family: { stroke: '#10b981', strokeWidth: 3, label: 'Family' },
-  friend: { stroke: '#3b82f6', strokeWidth: 2, label: 'Friend' },
-  enemy: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5 5', label: 'Enemy' },
-  associate: { stroke: '#6b7280', strokeWidth: 2, label: 'Associate' },
-  employer: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5', label: 'Employer/Employee' },
-  suspect: { stroke: '#ef4444', strokeWidth: 3, label: 'Suspect Connection' },
-  witness: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '3 3', label: 'Witness' },
-  victim: { stroke: '#ec4899', strokeWidth: 2, label: 'Victim' },
-  owner: { stroke: '#48bb78', strokeWidth: 2, label: 'Owner' },
-  other: { stroke: '#6b7280', strokeWidth: 2, label: 'Other' }
-};
-
-const RelationshipDiagram = ({ 
-  people = [], 
-  selectedPersonId = null, 
+const RelationshipDiagram = ({
+  people = [],
+  selectedPersonId = null,
   onUpdateConnection,
   onDeleteConnection,
   showOsintData = false,
-  layoutType = 'hierarchical' 
+  layoutType = 'hierarchical'
 }) => {
+  const { t } = useTranslation();
+  // Edge styles
+  const edgeStyles = useMemo(() => ({
+    family: { stroke: '#10b981', strokeWidth: 3, label: t('relationshipDiagram.edgeStyles.family') },
+    friend: { stroke: '#3b82f6', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.friend') },
+    enemy: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5 5', label: t('relationshipDiagram.edgeStyles.enemy') },
+    associate: { stroke: '#6b7280', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.associate') },
+    employer: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5', label: t('relationshipDiagram.edgeStyles.employer') },
+    suspect: { stroke: '#ef4444', strokeWidth: 3, label: t('relationshipDiagram.edgeStyles.suspect') },
+    witness: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '3 3', label: t('relationshipDiagram.edgeStyles.witness') },
+    victim: { stroke: '#ec4899', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.victim') },
+    owner: { stroke: '#48bb78', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.owner') },
+    other: { stroke: '#6b7280', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.other') }
+  }), [t]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showDebug, setShowDebug] = useState(false);
@@ -176,10 +180,10 @@ const RelationshipDiagram = ({
   }, []);
 
   // Helper function to get full name
-  const getFullName = (person) => {
-    if (!person) return 'Unknown';
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Unknown';
-  };
+  const getFullName = useCallback((person) => {
+    if (!person) return t('relationshipDiagram.unknown');
+    return `${person.first_name || ''} ${person.last_name || ''}`.trim() || t('relationshipDiagram.unknown');
+  }, [t]);
 
   // Layout algorithms
   const applyLayout = useCallback((nodes, edges, type) => {
@@ -447,7 +451,7 @@ const RelationshipDiagram = ({
     setNodes(layoutedNodes);
     setEdges(newEdges);
     
-  }, [people, layoutType, setNodes, setEdges, applyLayout, showTransactionLayer, txData]);
+  }, [people, layoutType, setNodes, setEdges, applyLayout, showTransactionLayer, txData, edgeStyles, getFullName]);
 
   // Handle connection creation
   const onConnect = useCallback((params) => {
@@ -474,7 +478,7 @@ const RelationshipDiagram = ({
         targetName: getFullName(targetPerson)
       });
     }
-  }, [people]);
+  }, [people, getFullName]);
 
   // Handle node click
   const onNodeClick = useCallback((event, node) => {
@@ -510,7 +514,7 @@ const RelationshipDiagram = ({
         });
       }
     }
-  }, [selectedNodes, people]);
+  }, [selectedNodes, people, getFullName]);
 
   // Save connection
   const saveConnection = useCallback(async () => {
@@ -542,20 +546,23 @@ const RelationshipDiagram = ({
     // Ownership edges are derived from the business record, not a person
     // connection — deleting them here would silently fail
     if (edge.data.type === 'owner' || typeof edge.data.sourcePersonId !== 'number') {
-      alert('Ownership links are managed on the business record (Businesses → Edit → Owner).');
+      alert(t('relationshipDiagram.ownershipManagedElsewhere'));
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete connection between ${edge.source} and ${edge.target}?\n` +
-      `Type: ${edge.data.type || 'Unknown'}\n` +
-      `Note: ${edge.data.note || 'None'}`
+      t('relationshipDiagram.confirmDeleteConnection', {
+        source: edge.source,
+        target: edge.target,
+        type: edge.data.type || t('relationshipDiagram.unknown'),
+        note: edge.data.note || t('relationshipDiagram.noneNote'),
+      })
     );
     
     if (confirmed && onDeleteConnection) {
       onDeleteConnection(edge.data.sourcePersonId, edge.data.targetPersonId);
     }
-  }, [onDeleteConnection]);
+  }, [onDeleteConnection, t]);
 
   return (
     <div className="h-full w-full relative" style={{ minHeight: '400px' }}>
@@ -567,54 +574,54 @@ const RelationshipDiagram = ({
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${
               showDebug ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
-            title="Toggle Debug Panel"
+            title={t('relationshipDiagram.toggleDebugPanel')}
           >
             <Bug className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={() => {
               setIsAddingConnection(!isAddingConnection);
               setSelectedNodes([]);
             }}
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${
-              isAddingConnection 
-                ? 'bg-blue-600 text-white' 
+              isAddingConnection
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>{isAddingConnection ? 'Cancel' : 'Add Connection'}</span>
+            <span>{isAddingConnection ? t('common.cancel') : t('relationshipDiagram.addConnection')}</span>
           </button>
-          
+
           {isAddingConnection && selectedNodes.length === 2 && (
             <button
               onClick={createConnection}
               className="px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium flex items-center space-x-2 hover:bg-green-700"
             >
               <Link className="w-4 h-4" />
-              <span>Connect</span>
+              <span>{t('relationshipDiagram.connect')}</span>
             </button>
           )}
 
           <button
             onClick={() => setShowTransactionLayer(v => !v)}
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${showTransactionLayer ? 'bg-cyan-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            title="Toggle transaction / venue layer"
+            title={t('relationshipDiagram.toggleTransactionLayer')}
           >
             <Network className="w-4 h-4" />
-            <span>{showTransactionLayer ? 'Hide' : 'Show'} Venues</span>
+            <span>{showTransactionLayer ? t('relationshipDiagram.hideVenues') : t('relationshipDiagram.showVenues')}</span>
           </button>
         </div>
-        
+
         {isAddingConnection && (
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {selectedNodes.length === 0 && 'Click on two people to connect them'}
-            {selectedNodes.length === 1 && 'Select one more person'}
-            {selectedNodes.length === 2 && 'Click "Connect" to create relationship'}
+            {selectedNodes.length === 0 && t('relationshipDiagram.clickTwoPeople')}
+            {selectedNodes.length === 1 && t('relationshipDiagram.selectOneMore')}
+            {selectedNodes.length === 2 && t('relationshipDiagram.clickConnectToCreate')}
           </div>
         )}
-        
+
         {/* Layout selector */}
         <select
           value={layoutType}
@@ -625,20 +632,20 @@ const RelationshipDiagram = ({
           }}
           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md"
         >
-          <option value="hierarchical">Hierarchical Layout</option>
-          <option value="circular">Circular Layout</option>
-          <option value="grid">Grid Layout</option>
+          <option value="hierarchical">{t('relationshipDiagram.hierarchicalLayout')}</option>
+          <option value="circular">{t('relationshipDiagram.circularLayout')}</option>
+          <option value="grid">{t('relationshipDiagram.gridLayout')}</option>
         </select>
-        
+
         <div className="text-xs text-gray-500 dark:text-slate-400 space-y-1">
-          <div>Nodes: {nodes.length}</div>
-          <div>Connections: {edges.length}</div>
+          <div>{t('relationshipDiagram.nodesLabel', { count: nodes.length })}</div>
+          <div>{t('relationshipDiagram.connectionsLabel', { count: edges.length })}</div>
         </div>
       </div>
 
       {/* Legend */}
       <div className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3">
-        <h4 className="text-sm font-semibold mb-2">Connection Types</h4>
+        <h4 className="text-sm font-semibold mb-2">{t('relationshipDiagram.connectionTypesTitle')}</h4>
         <div className="space-y-1">
           {Object.entries(edgeStyles).map(([type, style]) => (
             <div key={type} className="flex items-center space-x-2">
@@ -707,17 +714,17 @@ const RelationshipDiagram = ({
       {connectionModal && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Create Connection</h3>
-            
+            <h3 className="text-lg font-semibold mb-4">{t('relationshipDiagram.createConnectionTitle')}</h3>
+
             <div className="mb-4">
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-                Connecting: <span className="font-medium">{connectionModal.sourceName}</span> → <span className="font-medium">{connectionModal.targetName}</span>
+                {t('relationshipDiagram.connectingLabel')} <span className="font-medium">{connectionModal.sourceName}</span> → <span className="font-medium">{connectionModal.targetName}</span>
               </p>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                Relationship Type
+                {t('relationshipDiagram.relationshipTypeLabel')}
               </label>
               <select
                 value={connectionType}
@@ -729,20 +736,20 @@ const RelationshipDiagram = ({
                 ))}
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                Notes (optional)
+                {t('personForm.notesOptionalPlaceholder')}
               </label>
               <textarea
                 value={connectionNote}
                 onChange={(e) => setConnectionNote(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md"
                 rows="3"
-                placeholder="Add any relevant notes about this relationship..."
+                placeholder={t('relationshipDiagram.notesPlaceholder')}
               />
             </div>
-            
+
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => {
@@ -752,13 +759,13 @@ const RelationshipDiagram = ({
                 }}
                 className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={saveConnection}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Save Connection
+                {t('relationshipDiagram.saveConnection')}
               </button>
             </div>
           </div>

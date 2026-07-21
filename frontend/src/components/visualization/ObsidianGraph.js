@@ -2,6 +2,7 @@
 // Obsidian-style force-directed graph visualization using D3.js
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as d3 from 'd3';
 import {
   ZoomIn, ZoomOut, Maximize2, Users,
@@ -18,6 +19,7 @@ const ObsidianGraph = ({
   onDeleteConnection = null,
   layoutType = 'force'
 }) => {
+  const { t } = useTranslation();
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const simulationRef = useRef(null);
@@ -69,8 +71,8 @@ const ObsidianGraph = ({
       const nodeId = person.type === 'business' ? person.id : person.id.toString();
       const node = {
         id: nodeId,
-        name: `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Unknown',
-        category: person.category || 'Unknown',
+        name: `${person.first_name || ''} ${person.last_name || ''}`.trim() || t('relationshipDiagram.unknown'),
+        category: person.category || t('relationshipDiagram.unknown'),
         status: person.status,
         caseName: person.case_name,
         type: person.type || 'person',
@@ -125,7 +127,7 @@ const ObsidianGraph = ({
     }
 
     return { nodes, links };
-  }, [people, edgeClasses, transactionEdges]);
+  }, [people, edgeClasses, transactionEdges, t]);
 
   // Get connection strength for force simulation
   const getConnectionStrength = (type) => {
@@ -272,7 +274,7 @@ const ObsidianGraph = ({
           .attr('font-size', '12px')
           .attr('font-weight', 'bold')
           .style('pointer-events', 'none')
-          .text(d.type === 'transaction' && d.note ? d.note : d.type);
+          .text(d.type === 'transaction' && d.note ? d.note : t(`obsidianGraph.edgeTypes.${d.type}`));
       })
       .on('mouseout', function() {
         d3.select(this)
@@ -448,7 +450,7 @@ const ObsidianGraph = ({
     return () => {
       simulation.stop();
     };
-  }, [dimensions, people, selectedPersonId, selectedNode, connectionMode, sourceNode, onNodeClick, prepareGraphData]);
+  }, [dimensions, people, selectedPersonId, selectedNode, connectionMode, sourceNode, onNodeClick, prepareGraphData, t]);
 
   // Handle zoom controls
   const handleZoom = (direction) => {
@@ -476,17 +478,17 @@ const ObsidianGraph = ({
     // parseInt('business-N') is NaN and used to persist person_id: null,
     // permanently crashing this view (issue #56)
     if (source.type === 'business' || target.type === 'business') {
-      alert('Connections to businesses are not supported yet. Set the owner on the business instead, or link the people directly.');
+      alert(t('obsidianGraph.errorBusinessConnectionsNotSupported'));
       return;
     }
     const sourceId = parseInt(source.id, 10);
     const targetId = parseInt(target.id, 10);
     if (!Number.isInteger(sourceId) || !Number.isInteger(targetId)) {
-      alert('Could not create connection: unrecognised node.');
+      alert(t('obsidianGraph.errorUnrecognisedNode'));
       return;
     }
     // This would open a modal to select connection type
-    const type = prompt('Connection type (family, friend, associate, etc.):');
+    const type = prompt(t('obsidianGraph.promptConnectionType'));
     if (type && onUpdateConnection) {
       onUpdateConnection(sourceId, targetId, type, '');
     }
@@ -512,28 +514,28 @@ const ObsidianGraph = ({
         <button
           onClick={() => handleZoom('in')}
           className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition"
-          title="Zoom In"
+          title={t('obsidianGraph.zoomIn')}
         >
           <ZoomIn className="w-5 h-5" />
         </button>
         <button
           onClick={() => handleZoom('out')}
           className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition"
-          title="Zoom Out"
+          title={t('obsidianGraph.zoomOut')}
         >
           <ZoomOut className="w-5 h-5" />
         </button>
         <button
           onClick={handleFitView}
           className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition"
-          title="Fit to View"
+          title={t('obsidianGraph.fitToView')}
         >
           <Maximize2 className="w-5 h-5" />
         </button>
         <button
           onClick={() => setConnectionMode(!connectionMode)}
           className={`p-2 ${connectionMode ? 'bg-blue-600' : 'bg-gray-800'} hover:bg-blue-700 text-white rounded-lg shadow-lg transition`}
-          title="Add Connection"
+          title={t('relationshipDiagram.addConnection')}
         >
           <LinkIcon className="w-5 h-5" />
         </button>
@@ -544,15 +546,15 @@ const ObsidianGraph = ({
         <div className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-1">
             <Users className="w-4 h-4 text-blue-400" />
-            <span>{stats.nodes} nodes</span>
+            <span>{t('obsidianGraph.nodesCountShort', { count: stats.nodes })}</span>
           </div>
           <div className="flex items-center space-x-1">
             <LinkIcon className="w-4 h-4 text-green-400" />
-            <span>{stats.edges} edges</span>
+            <span>{t('obsidianGraph.edgesCountShort', { count: stats.edges })}</span>
           </div>
           <div className="flex items-center space-x-1">
             <Circle className="w-4 h-4 text-purple-400" />
-            <span>{stats.clusters} types</span>
+            <span>{t('obsidianGraph.typesCountShort', { count: stats.clusters })}</span>
           </div>
         </div>
       </div>
@@ -563,7 +565,7 @@ const ObsidianGraph = ({
           <div className="flex items-center space-x-2">
             <LinkIcon className="w-5 h-5" />
             <span className="font-medium">
-              {sourceNode ? `Click target node to connect to "${sourceNode.name}"` : 'Click source node to start connection'}
+              {sourceNode ? t('obsidianGraph.clickTargetNode', { name: sourceNode.name }) : t('obsidianGraph.clickSourceNode')}
             </span>
             <button
               onClick={() => {
@@ -593,31 +595,31 @@ const ObsidianGraph = ({
 
           <div className="space-y-2 text-sm">
             <div>
-              <span className="text-gray-400">Type:</span>
-              <span className="ml-2 font-medium">{selectedNode.type === 'business' ? 'Business' : 'Person'}</span>
+              <span className="text-gray-400">{t('obsidianGraph.typeLabel')}</span>
+              <span className="ml-2 font-medium">{selectedNode.type === 'business' ? t('obsidianGraph.businessLabel') : t('obsidianGraph.personLabel')}</span>
             </div>
 
             <div>
-              <span className="text-gray-400">Category:</span>
+              <span className="text-gray-400">{t('obsidianGraph.categoryLabel')}</span>
               <span className="ml-2 font-medium">{selectedNode.category}</span>
             </div>
 
             {selectedNode.status && (
               <div>
-                <span className="text-gray-400">Status:</span>
+                <span className="text-gray-400">{t('obsidianGraph.statusLabel')}</span>
                 <span className="ml-2 font-medium">{selectedNode.status}</span>
               </div>
             )}
 
             {selectedNode.caseName && (
               <div>
-                <span className="text-gray-400">Case:</span>
+                <span className="text-gray-400">{t('obsidianGraph.caseLabel')}</span>
                 <span className="ml-2 font-medium">{selectedNode.caseName}</span>
               </div>
             )}
 
             <div>
-              <span className="text-gray-400">Connections:</span>
+              <span className="text-gray-400">{t('obsidianGraph.connectionsLabel')}</span>
               <span className="ml-2 font-medium">{selectedNode.connections?.length || 0}</span>
             </div>
           </div>
@@ -638,7 +640,7 @@ const ObsidianGraph = ({
             className="w-full px-4 py-2 hover:bg-gray-700 flex items-center space-x-2 text-left"
           >
             <Info className="w-4 h-4" />
-            <span>View Details</span>
+            <span>{t('peopleList.viewDetails')}</span>
           </button>
 
           <button
@@ -650,7 +652,7 @@ const ObsidianGraph = ({
             className="w-full px-4 py-2 hover:bg-gray-700 flex items-center space-x-2 text-left"
           >
             <LinkIcon className="w-4 h-4" />
-            <span>Add Connection</span>
+            <span>{t('relationshipDiagram.addConnection')}</span>
           </button>
 
           <div className="border-t border-gray-700 my-1"></div>
@@ -660,19 +662,19 @@ const ObsidianGraph = ({
             className="w-full px-4 py-2 hover:bg-gray-700 flex items-center space-x-2 text-left text-gray-400"
           >
             <X className="w-4 h-4" />
-            <span>Close</span>
+            <span>{t('common.close')}</span>
           </button>
         </div>
       )}
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-gray-800 bg-opacity-90 text-white rounded-lg shadow-lg p-3 z-10 max-w-xs">
-        <h4 className="font-bold text-sm mb-2">Connection Types</h4>
+        <h4 className="font-bold text-sm mb-2">{t('relationshipDiagram.connectionTypesTitle')}</h4>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {Object.entries(theme.edge).map(([type, color]) => (
             <div key={type} className="flex items-center space-x-2">
               <div className="w-6 h-0.5" style={{ backgroundColor: color }}></div>
-              <span className="capitalize">{type}</span>
+              <span>{t(`obsidianGraph.edgeTypes.${type}`)}</span>
             </div>
           ))}
         </div>
@@ -680,7 +682,7 @@ const ObsidianGraph = ({
 
       {/* Node Distance Control */}
       <div className="absolute bottom-20 right-4 bg-gray-800 bg-opacity-90 text-white rounded-lg shadow-lg p-3 z-10">
-        <label htmlFor="distance-slider" className="block text-sm font-medium mb-2">Node Distance Multiplier</label>
+        <label htmlFor="distance-slider" className="block text-sm font-medium mb-2">{t('obsidianGraph.nodeDistanceMultiplier')}</label>
         <input
           id="distance-slider"
           type="range"
@@ -700,7 +702,7 @@ const ObsidianGraph = ({
           }}
           className="w-full"
         />
-        <div className="text-xs mt-1">Multiplier: {nodeDistanceMultiplier.toFixed(1)}</div>
+        <div className="text-xs mt-1">{t('obsidianGraph.multiplierValue', { value: nodeDistanceMultiplier.toFixed(1) })}</div>
       </div>
     </div>
   );

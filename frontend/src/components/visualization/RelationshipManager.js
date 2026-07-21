@@ -1,5 +1,6 @@
 // File: frontend/src/components/visualization/RelationshipManager.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import RelationshipDiagram from '../RelationshipDiagram';
 import ObsidianGraph from './ObsidianGraph';
 import {
@@ -16,6 +17,7 @@ const RelationshipManager = ({
   showInModal = false,
   onClose = null
 }) => {
+  const { t } = useTranslation();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [cases, setCases] = useState([]);
@@ -55,7 +57,7 @@ const RelationshipManager = ({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch people: ${response.status} ${response.statusText}`);
+        throw new Error(t('relationshipManager.errorFetchPeoplePrefix', { status: response.status, statusText: response.statusText }));
       }
       
       const data = await response.json();
@@ -102,7 +104,7 @@ const RelationshipManager = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Fetch businesses
   const fetchBusinesses = useCallback(async () => {
@@ -193,13 +195,13 @@ const RelationshipManager = ({
       // NaN target becomes person_id: null in the DB and used to make the
       // Entity Network view permanently crash (issue #56)
       if (!Number.isInteger(sourceId) || !Number.isInteger(targetId)) {
-        throw new Error('Connections can only be created between two people');
+        throw new Error(t('relationshipManager.errorConnectionsOnlyPeople'));
       }
 
       // Get the source person's current data
       const sourcePerson = people.find(p => p.id === sourceId);
       if (!sourcePerson) {
-        throw new Error('Source person not found');
+        throw new Error(t('relationshipManager.errorSourcePersonNotFound'));
       }
 
       // Create updated connections array
@@ -259,25 +261,25 @@ const RelationshipManager = ({
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`Failed to update connection: ${response.status} - ${errorData}`);
+        throw new Error(t('relationshipManager.errorUpdateConnectionPrefix', { status: response.status, errorData }));
       }
 
       // Refresh data
       await fetchPeople();
-      
-      alert('Connection created successfully!');
+
+      alert(t('relationshipManager.connectionCreatedSuccess'));
     } catch (err) {
       console.error('Error updating connection:', err);
-      alert('Failed to create connection: ' + err.message);
+      alert(t('relationshipManager.errorCreateConnection', { message: err.message }));
     }
-  }, [people, fetchPeople]);
+  }, [people, fetchPeople, t]);
 
   // Delete connection
   const deleteConnection = useCallback(async (sourceId, targetId) => {
     try {
       const sourcePerson = people.find(p => p.id === sourceId);
       if (!sourcePerson) {
-        throw new Error('Source person not found');
+        throw new Error(t('relationshipManager.errorSourcePersonNotFound'));
       }
 
       // Remove the connection
@@ -313,12 +315,12 @@ const RelationshipManager = ({
       });
 
       await fetchPeople();
-      alert('Connection deleted successfully!');
+      alert(t('relationshipManager.connectionDeletedSuccess'));
     } catch (err) {
       console.error('Error deleting connection:', err);
-      alert('Failed to delete connection: ' + err.message);
+      alert(t('relationshipManager.errorDeleteConnection', { message: err.message }));
     }
-  }, [people, fetchPeople]);
+  }, [people, fetchPeople, t]);
 
   // Apply filters to people and businesses
   const applyFilters = useCallback(() => {
@@ -497,7 +499,7 @@ const RelationshipManager = ({
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600 dark:text-gray-400">Loading relationships...</span>
+        <span className="ml-2 text-gray-600 dark:text-gray-400">{t('relationshipManager.loadingRelationships')}</span>
       </div>
     );
   }
@@ -506,7 +508,7 @@ const RelationshipManager = ({
     return (
       <div className="flex items-center justify-center h-64">
         <AlertCircle className="w-8 h-8 text-red-500" />
-        <span className="ml-2 text-red-600">Error: {error}</span>
+        <span className="ml-2 text-red-600">{t('relationshipManager.errorLabel', { message: error })}</span>
       </div>
     );
   }
@@ -534,10 +536,14 @@ const RelationshipManager = ({
         <div className="flex items-center space-x-3">
           <Network className="w-5 h-5 text-blue-600" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-            {personId ? 'Person Relationships' : 'Global Relationship Network'}
+            {personId ? t('relationshipManager.personRelationships') : t('relationshipManager.globalRelationshipNetwork')}
           </h3>
           <span className="text-sm text-gray-600 dark:text-slate-400">
-            ({filteredPeople.length} entities: {filteredPeople.filter(e => !e.type || e.type !== 'business').length} people, {filteredPeople.filter(e => e.type === 'business').length} businesses)
+            {t('relationshipManager.entitiesSummary', {
+              total: filteredPeople.length,
+              people: filteredPeople.filter(e => !e.type || e.type !== 'business').length,
+              businesses: filteredPeople.filter(e => e.type === 'business').length,
+            })}
           </span>
         </div>
         
@@ -549,20 +555,20 @@ const RelationshipManager = ({
               className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
                 viewMode === 'obsidian' ? 'bg-white dark:bg-slate-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'
               }`}
-              title="Obsidian View (Force-Directed)"
+              title={t('relationshipManager.obsidianViewTitle')}
             >
               <Sparkles className="w-3 h-3" />
-              <span className="hidden md:inline">Obsidian</span>
+              <span className="hidden md:inline">{t('relationshipManager.obsidian')}</span>
             </button>
             <button
               onClick={() => setViewMode('reactflow')}
               className={`px-2 py-1 text-xs rounded flex items-center space-x-1 transition ${
                 viewMode === 'reactflow' ? 'bg-white dark:bg-slate-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'
               }`}
-              title="Classic View (ReactFlow)"
+              title={t('relationshipManager.classicViewTitle')}
             >
               <GitBranch className="w-3 h-3" />
-              <span className="hidden md:inline">Classic</span>
+              <span className="hidden md:inline">{t('relationshipManager.classic')}</span>
             </button>
           </div>
 
@@ -570,9 +576,9 @@ const RelationshipManager = ({
           {viewMode === 'obsidian' && (
             <div className="flex items-center space-x-3 px-2 py-1.5 bg-gray-100 dark:bg-slate-700 rounded-md text-xs">
               {[
-                ['connections', 'People'],
-                ['ownership', 'Ownership'],
-                ['transactions', 'Transactions'],
+                ['connections', t('relationshipManager.edgeClassPeople')],
+                ['ownership', t('relationshipManager.edgeClassOwnership')],
+                ['transactions', t('relationshipManager.edgeClassTransactions')],
               ].map(([key, label]) => (
                 <label key={key} className="flex items-center space-x-1 cursor-pointer text-gray-700 dark:text-slate-300">
                   <input
@@ -592,10 +598,10 @@ const RelationshipManager = ({
             className={`px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 ${
               showFilters ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
-            title="Toggle Filters"
+            title={t('relationshipManager.toggleFilters')}
           >
             <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filters</span>
+            <span className="hidden sm:inline">{t('relationshipManager.filters')}</span>
             {activeFilterCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-blue-600 rounded-full text-xs font-medium">
                 {activeFilterCount}
@@ -608,29 +614,29 @@ const RelationshipManager = ({
             className={`px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 ${
               debugMode ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             }`}
-            title="Toggle Debug Info"
+            title={t('relationshipManager.toggleDebugInfo')}
           >
             <Bug className="w-4 h-4" />
-            <span className="hidden sm:inline">Debug</span>
+            <span className="hidden sm:inline">{t('relationshipManager.debug')}</span>
           </button>
 
           <button
             onClick={fetchPeople}
             className="px-3 py-1.5 text-sm rounded-md flex items-center space-x-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
-            title="Refresh Data"
+            title={t('relationshipManager.refreshData')}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          
+
           {viewMode === 'reactflow' && (
             <select
               value={layoutType}
               onChange={(e) => setLayoutType(e.target.value)}
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-300"
             >
-              <option value="hierarchical">Hierarchical</option>
-              <option value="circular">Circular</option>
-              <option value="grid">Grid</option>
+              <option value="hierarchical">{t('relationshipManager.hierarchical')}</option>
+              <option value="circular">{t('relationshipManager.circular')}</option>
+              <option value="grid">{t('relationshipManager.grid')}</option>
             </select>
           )}
 
@@ -638,7 +644,7 @@ const RelationshipManager = ({
             <button
               onClick={() => setFullScreen(!fullScreen)}
               className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
-              title={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={fullScreen ? t('relationshipManager.exitFullscreen') : t('relationshipManager.enterFullscreen')}
             >
               <Maximize2 className="w-4 h-4" />
             </button>
@@ -652,7 +658,7 @@ const RelationshipManager = ({
               }}
               className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
             >
-              Close
+              {t('common.close')}
             </button>
           )}
         </div>
@@ -664,7 +670,7 @@ const RelationshipManager = ({
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {/* Search */}
             <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Search</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.searchLabel')}</label>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-3 h-3" />
                 <input
@@ -672,14 +678,14 @@ const RelationshipManager = ({
                   value={filters.searchTerm}
                   onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
                   className="w-full pl-8 pr-2 py-1.5 border rounded text-sm"
-                  placeholder="Name or notes..."
+                  placeholder={t('relationshipManager.searchPlaceholder')}
                 />
               </div>
             </div>
             
             {/* Cases */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cases</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.casesLabel')}</label>
               <select
                 multiple
                 value={filters.selectedCases}
@@ -700,7 +706,7 @@ const RelationshipManager = ({
             
             {/* Categories */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Categories</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.categoriesLabel')}</label>
               <select
                 multiple
                 value={filters.selectedCategories}
@@ -721,7 +727,7 @@ const RelationshipManager = ({
             
             {/* Statuses */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.statusLabel')}</label>
               <select
                 multiple
                 value={filters.selectedStatuses}
@@ -742,7 +748,7 @@ const RelationshipManager = ({
             
             {/* Connection Types */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Connection Types</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipDiagram.connectionTypesTitle')}</label>
               <select
                 multiple
                 value={filters.connectionTypes}
@@ -763,7 +769,7 @@ const RelationshipManager = ({
             
             {/* Min Connections */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Min Connections</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.minConnectionsLabel')}</label>
               <input
                 type="number"
                 value={filters.minConnections}
@@ -775,19 +781,19 @@ const RelationshipManager = ({
             
             {/* Date Range */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Updated</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.updatedLabel')}</label>
               <select
                 value={filters.dateRange}
                 onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
                 className="w-full px-2 py-1.5 border rounded text-sm"
               >
-                <option value="all">All Time</option>
-                <option value="week">Last Week</option>
-                <option value="month">Last Month</option>
-                <option value="year">Last Year</option>
+                <option value="all">{t('relationshipManager.allTime')}</option>
+                <option value="week">{t('relationshipManager.lastWeek')}</option>
+                <option value="month">{t('relationshipManager.lastMonth')}</option>
+                <option value="year">{t('relationshipManager.lastYear')}</option>
               </select>
             </div>
-            
+
             {/* Options */}
             <div className="flex items-center space-x-3 md:col-span-2 lg:col-span-1">
               <label className="flex items-center space-x-1 cursor-pointer">
@@ -797,14 +803,14 @@ const RelationshipManager = ({
                   onChange={(e) => setFilters({ ...filters, showIsolated: e.target.checked })}
                   className="h-3 w-3 text-blue-600 rounded"
                 />
-                <span className="text-xs text-gray-700 dark:text-gray-300">Show Isolated</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">{t('relationshipManager.showIsolated')}</span>
               </label>
-              
+
               <button
                 onClick={resetFilters}
                 className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700"
               >
-                Reset
+                {t('relationshipManager.reset')}
               </button>
             </div>
           </div>
@@ -814,7 +820,7 @@ const RelationshipManager = ({
             <div className="mt-2 flex flex-wrap gap-1">
               {filters.searchTerm && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
-                  Search: {filters.searchTerm}
+                  {t('relationshipManager.searchFilterTag', { term: filters.searchTerm })}
                   <button
                     onClick={() => setFilters({ ...filters, searchTerm: '' })}
                     className="ml-1 text-blue-600 hover:text-blue-800"
@@ -858,7 +864,13 @@ const RelationshipManager = ({
               
               {filters.dateRange !== 'all' && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">
-                  Updated: Last {filters.dateRange}
+                  {t('relationshipManager.updatedFilterTag', {
+                    range: {
+                      week: t('relationshipManager.lastWeek'),
+                      month: t('relationshipManager.lastMonth'),
+                      year: t('relationshipManager.lastYear'),
+                    }[filters.dateRange] || filters.dateRange,
+                  })}
                   <button
                     onClick={() => setFilters({ ...filters, dateRange: 'all' })}
                     className="ml-1 text-orange-600 hover:text-orange-800"
@@ -876,18 +888,18 @@ const RelationshipManager = ({
       {debugMode && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm">
           <details>
-            <summary className="cursor-pointer font-medium">Debug Information</summary>
+            <summary className="cursor-pointer font-medium">{t('relationshipDiagram.debugInformation')}</summary>
             <div className="mt-2 space-y-1">
-              <div>Total People: {people.length}</div>
-              <div>Total Businesses: {businesses.length}</div>
-              <div>Filtered Entities: {filteredPeople.length}</div>
+              <div>{t('relationshipManager.totalPeople', { count: people.length })}</div>
+              <div>{t('relationshipManager.totalBusinesses', { count: businesses.length })}</div>
+              <div>{t('relationshipManager.filteredEntities', { count: filteredPeople.length })}</div>
               <div>
-                Entities with connections: {[...people, ...businesses].filter(e => e.connections && e.connections.length > 0).length}
+                {t('relationshipManager.entitiesWithConnections', { count: [...people, ...businesses].filter(e => e.connections && e.connections.length > 0).length })}
               </div>
               <div>
-                Total connections: {[...people, ...businesses].reduce((sum, e) => sum + (e.connections?.length || 0), 0)}
+                {t('relationshipManager.totalConnectionsDebug', { count: [...people, ...businesses].reduce((sum, e) => sum + (e.connections?.length || 0), 0) })}
               </div>
-              <div>Active Filters: {activeFilterCount}</div>
+              <div>{t('relationshipManager.activeFilters', { count: activeFilterCount })}</div>
             </div>
           </details>
         </div>
