@@ -1,5 +1,6 @@
 // File: frontend/src/components/TransactionsList.js
 import React, { useState, useEffect, useCallback, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FixedSizeList } from 'react-window';
 import { Receipt, Search, Plus, Edit2, Trash2, Eye, ArrowRight } from 'lucide-react';
 import { transactionsAPI, modelOptionsAPI } from '../utils/api';
@@ -11,6 +12,8 @@ const VIRTUAL_THRESHOLD = 150;
 const ROW_HEIGHT = 64;
 
 const TransactionsList = () => {
+  // Aliased to `translate`, not `t` — this file already uses `t` as the transaction variable name throughout
+  const { t: translate } = useTranslation();
   const { transactions, fetchTransactions, transactionsMeta, loadMoreTransactions } = useData();
   const { setShowAddTransactionForm, setEditingTransaction, setSelectedTransactionForDetail } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,9 +27,9 @@ const TransactionsList = () => {
 
   const handleDelete = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this transaction?')) return;
+    if (!window.confirm(translate('transactionsList.confirmDeleteTransaction'))) return;
     try { await transactionsAPI.remove(id); fetchTransactions(0); }
-    catch (err) { alert('Failed to delete: ' + err.message); }
+    catch (err) { alert(translate('transactionsList.errorDeleteTransaction', { message: err.message })); }
   };
 
   const filtered = transactions.filter(t => {
@@ -65,25 +68,29 @@ const TransactionsList = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Transactions</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{translate('transactionsList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
             <Receipt className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-            <span className="font-medium">{transactions.length}{transactionsMeta.total > transactions.length ? ` of ${transactionsMeta.total}` : ''} transactions</span>
+            <span className="font-medium">
+              {transactionsMeta.total > transactions.length
+                ? translate('transactionsList.countTotal', { count: transactions.length, total: transactionsMeta.total })
+                : translate('transactionsList.countSimple', { count: transactions.length })}
+            </span>
           </p>
         </div>
         <button onClick={() => setShowAddTransactionForm(true)} className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition flex items-center active:scale-[0.97]">
-          <Plus className="w-5 h-5 mr-2" />Add Transaction
+          <Plus className="w-5 h-5 mr-2" />{translate('transactionsList.addTransaction')}
         </button>
       </div>
 
       <div className="mb-6 flex space-x-4">
         <div className="flex-1 max-w-md relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
-          <input type="text" placeholder="Search party, subject…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+          <input type="text" placeholder={translate('transactionsList.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
         </div>
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
-          <option value="">All Types</option>
+          <option value="">{translate('transactionsList.allTypes')}</option>
           {typeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
         </select>
       </div>
@@ -91,7 +98,7 @@ const TransactionsList = () => {
       {filtered.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-gray-400">No transactions found.</p>
+          <p className="text-gray-600 dark:text-gray-400">{translate('transactionsList.noResultsFound')}</p>
         </div>
       ) : filtered.length >= VIRTUAL_THRESHOLD ? (
         <FixedSizeList height={700} itemCount={filtered.length} itemSize={ROW_HEIGHT} width="100%" overscanCount={5}>
@@ -103,10 +110,10 @@ const TransactionsList = () => {
 
       {transactionsMeta.hasMore && filtered.length === transactions.length && (
         <div className="flex flex-col items-center py-6 space-y-2">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Showing {transactions.length} of {transactionsMeta.total}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{translate('transactionsList.showingOfTotal', { count: transactions.length, total: transactionsMeta.total })}</p>
           <button onClick={async () => { setLoadingMore(true); await loadMoreTransactions(); setLoadingMore(false); }} disabled={loadingMore}
             className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-60">
-            {loadingMore ? 'Loading…' : `Load more (${transactionsMeta.total - transactions.length} remaining)`}
+            {loadingMore ? translate('common.loadingEllipsis') : translate('common.loadMoreRemaining', { count: transactionsMeta.total - transactions.length })}
           </button>
         </div>
       )}

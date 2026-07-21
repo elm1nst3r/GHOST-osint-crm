@@ -1,6 +1,8 @@
 {
   "common": {
     "loading": "Loading...",
+    "loadingEllipsis": "Loading…",
+    "loadMoreRemaining": "Load more ({{count}} remaining)",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -231,8 +233,6 @@
     "noResultsFound": "No people found matching your search criteria.",
     "adjustFilters": "Try adjusting your filters or search terms.",
     "showingOfTotal": "Showing {{count}} of {{total}} people",
-    "loadingEllipsis": "Loading…",
-    "loadMoreRemaining": "Load more ({{count}} remaining)",
     "confirmDeletePerson": "Are you sure you want to delete this person?",
     "errorDeletePerson": "Failed to delete person",
     "timeAgo": {
@@ -280,5 +280,64 @@
     "importCompletePrefix": "Import complete!",
     "createdCount": "Created: {{count}}",
     "errorsCount": "Errors: {{count}}"
+  },
+  "businessList": {
+    "title": "Business Management",
+    "countTotal": "{{count}} of {{total}} businesses",
+    "countSimple": "{{count}} businesses",
+    "addBusiness": "Add Business",
+    "searchPlaceholder": "Search by name, owner, or city...",
+    "allIndustries": "All Industries",
+    "allStatuses": "All Statuses",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusDissolved": "Dissolved",
+    "viewDetails": "View details",
+    "ownerLabel": "Owner: {{name}}",
+    "employeesCount": "{{count}} employees",
+    "noResultsFound": "No businesses found matching your search criteria.",
+    "confirmDeleteBusiness": "Are you sure you want to delete this business?",
+    "errorDeleteBusiness": "Failed to delete business"
+  },
+  "propertyList": {
+    "title": "Properties",
+    "countTotal": "{{count}} of {{total}} properties",
+    "countSimple": "{{count}} properties",
+    "addProperty": "Add Property",
+    "searchPlaceholder": "Search by name, address, city…",
+    "allTypes": "All Types",
+    "ownerLabel": "Owner: {{name}}",
+    "noResultsFound": "No properties found.",
+    "confirmDeleteProperty": "Delete this property?",
+    "errorDeleteProperty": "Failed to delete property: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
+  "assetsList": {
+    "title": "Assets",
+    "countTotal": "{{count}} of {{total}} assets",
+    "countSimple": "{{count}} assets",
+    "addAsset": "Add Asset",
+    "searchPlaceholder": "Search by name or identifier…",
+    "allCategories": "All Categories",
+    "allStatuses": "All Statuses",
+    "holderLabel": "Holder: {{name}}",
+    "noHolder": "—",
+    "locatedFallback": "Located",
+    "noResultsFound": "No assets found.",
+    "confirmDeleteAsset": "Delete this asset?",
+    "errorDeleteAsset": "Failed to delete asset: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
+  "transactionsList": {
+    "title": "Transactions",
+    "countTotal": "{{count}} of {{total}} transactions",
+    "countSimple": "{{count}} transactions",
+    "addTransaction": "Add Transaction",
+    "searchPlaceholder": "Search party, subject…",
+    "allTypes": "All Types",
+    "noResultsFound": "No transactions found.",
+    "confirmDeleteTransaction": "Delete this transaction?",
+    "errorDeleteTransaction": "Failed to delete: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
   }
 }

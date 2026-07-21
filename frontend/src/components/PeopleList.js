@@ -437,7 +437,7 @@ const PeopleList = () => {
                 disabled={loadingMore}
                 className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:shadow-glow-sm transition-[box-shadow] duration-150 text-sm font-medium disabled:opacity-60 active:scale-[0.97]"
               >
-                {loadingMore ? t('peopleList.loadingEllipsis') : t('peopleList.loadMoreRemaining', { count: peopleMeta.total - people.length })}
+                {loadingMore ? t('common.loadingEllipsis') : t('common.loadMoreRemaining', { count: peopleMeta.total - people.length })}
               </button>
             </div>
           )}

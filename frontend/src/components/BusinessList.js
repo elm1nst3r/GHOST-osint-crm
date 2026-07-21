@@ -1,11 +1,13 @@
 // File: frontend/src/components/BusinessList.js
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Building2, Search, Plus, Edit2, Trash2, Users, MapPin, Phone, Mail, Globe, User, Eye } from 'lucide-react';
 import { businessAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const BusinessList = () => {
+  const { t } = useTranslation();
   const { businesses, fetchBusinesses } = useData();
   const { setShowAddBusinessForm, setEditingBusiness, setSelectedBusinessForDetail } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,13 +27,13 @@ const BusinessList = () => {
   });
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this business?')) {
+    if (window.confirm(t('businessList.confirmDeleteBusiness'))) {
       try {
         await businessAPI.delete(id);
         fetchBusinesses();
       } catch (error) {
         console.error('Error deleting business:', error);
-        alert('Failed to delete business');
+        alert(t('businessList.errorDeleteBusiness'));
       }
     }
   };
@@ -45,19 +47,28 @@ const BusinessList = () => {
     }
   };
 
+  const getStatusLabel = (status) => {
+    const known = {
+      active: t('businessList.statusActive'),
+      inactive: t('businessList.statusInactive'),
+      dissolved: t('businessList.statusDissolved'),
+    };
+    return known[status] || (status.charAt(0).toUpperCase() + status.slice(1));
+  };
+
   const uniqueIndustries = [...new Set(businesses.map(b => b.industry).filter(Boolean))];
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Business Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('businessList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-slate-400 mt-1 flex items-center">
             <Building2 className="w-4 h-4 mr-1" />
             {filteredBusinesses.length === businesses.length ? (
-              <span>{businesses.length} businesses</span>
+              <span>{t('businessList.countSimple', { count: businesses.length })}</span>
             ) : (
-              <span>{filteredBusinesses.length} of {businesses.length} businesses</span>
+              <span>{t('businessList.countTotal', { count: filteredBusinesses.length, total: businesses.length })}</span>
             )}
           </p>
         </div>
@@ -66,7 +77,7 @@ const BusinessList = () => {
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Business
+          {t('businessList.addBusiness')}
         </button>
       </div>
 
@@ -78,7 +89,7 @@ const BusinessList = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by name, owner, or city..."
+                placeholder={t('businessList.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -90,7 +101,7 @@ const BusinessList = () => {
             onChange={(e) => setFilterIndustry(e.target.value)}
             className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">All Industries</option>
+            <option value="">{t('businessList.allIndustries')}</option>
             {uniqueIndustries.map(industry => (
               <option key={industry} value={industry}>{industry}</option>
             ))}
@@ -100,10 +111,10 @@ const BusinessList = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="dissolved">Dissolved</option>
+            <option value="">{t('businessList.allStatuses')}</option>
+            <option value="active">{t('businessList.statusActive')}</option>
+            <option value="inactive">{t('businessList.statusInactive')}</option>
+            <option value="dissolved">{t('businessList.statusDissolved')}</option>
           </select>
         </div>
       </div>
@@ -128,21 +139,21 @@ const BusinessList = () => {
                 <button
                   onClick={() => setSelectedBusinessForDetail(business)}
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-700"
-                  title="View details"
+                  title={t('businessList.viewDetails')}
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setEditingBusiness(business)}
                   className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
-                  title="Edit"
+                  title={t('common.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(business.id)}
                   className="text-red-600 hover:text-red-700"
-                  title="Delete"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -161,7 +172,7 @@ const BusinessList = () => {
                 <div className="flex items-center text-sm">
                   <User className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
-                    Owner: {business.owner_name}
+                    {t('businessList.ownerLabel', { name: business.owner_name })}
                   </span>
                 </div>
               )}
@@ -180,7 +191,7 @@ const BusinessList = () => {
               {Array.isArray(business.employees) && business.employees.length > 0 && (
                 <div className="flex items-center text-sm">
                   <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
-                  <span className="text-gray-600 dark:text-gray-400">{business.employees.length} employees</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('businessList.employeesCount', { count: business.employees.length })}</span>
                 </div>
               )}
               
@@ -206,7 +217,7 @@ const BusinessList = () => {
             {business.status && (
               <div className="mt-4">
                 <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(business.status)}`}>
-                  {business.status.charAt(0).toUpperCase() + business.status.slice(1)}
+                  {getStatusLabel(business.status)}
                 </span>
               </div>
             )}
@@ -216,7 +227,7 @@ const BusinessList = () => {
 
       {filteredBusinesses.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">No businesses found matching your search criteria.</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('businessList.noResultsFound')}</p>
         </div>
       )}
     </div>
