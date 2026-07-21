@@ -3,6 +3,7 @@
 // whole app (issue #56: a crash in the Entity Network graph made the app
 // unusable and triggered a reload/request storm into the rate limiter).
 import React from 'react';
+import { withTranslation } from 'react-i18next';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -32,7 +33,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="flex flex-col items-center justify-center h-64 text-center p-8">
           <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-          <p className="text-gray-900 dark:text-slate-100 font-semibold mb-1">This view failed to render</p>
+          <p className="text-gray-900 dark:text-slate-100 font-semibold mb-1">{this.props.t('errorBoundary.viewFailedToRender')}</p>
           <p className="text-sm text-gray-600 dark:text-slate-400 mb-4 max-w-md break-words">
             {this.state.error.message}
           </p>
@@ -41,7 +42,7 @@ class ErrorBoundary extends React.Component {
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Try again
+            {this.props.t('errorBoundary.tryAgain')}
           </button>
         </div>
       );
@@ -50,4 +51,4 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default ErrorBoundary;
+export default withTranslation()(ErrorBoundary);

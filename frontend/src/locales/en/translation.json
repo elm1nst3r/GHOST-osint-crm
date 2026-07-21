@@ -1213,6 +1213,32 @@
     "itemCategoryLabel": "Item category",
     "locationLabel": "Location"
   },
+  "errorBoundary": {
+    "viewFailedToRender": "This view failed to render",
+    "tryAgain": "Try again"
+  },
+  "toolsList": {
+    "title": "OSINT Tools Directory",
+    "toolsCount_one": "{{count}} tool",
+    "toolsCount_other": "{{count}} tools",
+    "filteredCount_one": "{{count}} filtered",
+    "filteredCount_other": "{{count}} filtered",
+    "addTool": "Add Tool",
+    "searchPlaceholder": "Search tools by name, category, description, or tag...",
+    "categoryLabel": "Category",
+    "statusLabel": "Status",
+    "sortByLabel": "Sort By",
+    "allCategories": "All Categories",
+    "allStatuses": "All Statuses",
+    "sortName": "Name",
+    "sortDateAdded": "Date Added",
+    "sortDescendingTitle": "Sort Descending",
+    "sortAscendingTitle": "Sort Ascending",
+    "visitTool": "Visit Tool",
+    "confirmDeleteTool": "Are you sure you want to delete this tool?",
+    "errorDeleteTool": "Failed to delete tool",
+    "noToolsFound": "No tools found matching your search criteria."
+  },
   "personDetailModal": {
     "confirmRemoveLocation": "Remove this location?",
     "errorDeleteLocation": "Failed to delete location",

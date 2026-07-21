@@ -1,5 +1,6 @@
 // File: frontend/src/components/ToolsList.js
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_STATUSES, TOOL_CATEGORIES } from '../utils/constants';
@@ -7,6 +8,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const ToolsList = () => {
+  const { t } = useTranslation();
   const { tools, fetchTools } = useData();
   const { setShowAddToolForm, setEditingTool } = useUI();
   const [toolSearchTerm, setToolSearchTerm] = useState('');
@@ -75,13 +77,13 @@ const ToolsList = () => {
   }, [tools]);
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this tool?')) {
+    if (window.confirm(t('toolsList.confirmDeleteTool'))) {
       try {
         await toolsAPI.delete(id);
         fetchTools();
       } catch (error) {
         console.error('Error deleting tool:', error);
-        alert('Failed to delete tool');
+        alert(t('toolsList.errorDeleteTool'));
       }
     }
   };
@@ -103,16 +105,16 @@ const ToolsList = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-            OSINT Tools Directory
+            {t('toolsList.title')}
           </h1>
           <div className="flex items-center space-x-4 mt-2">
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
               <BarChart3 className="w-4 h-4 mr-1 text-blue-600 dark:text-blue-400" />
-              <span className="font-medium">{stats.total} tools</span>
+              <span className="font-medium">{t('toolsList.toolsCount', { count: stats.total })}</span>
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-400">
               {filteredAndSortedTools.length !== stats.total && (
-                <span>{filteredAndSortedTools.length} filtered</span>
+                <span>{t('toolsList.filteredCount', { count: filteredAndSortedTools.length })}</span>
               )}
             </div>
           </div>
@@ -122,7 +124,7 @@ const ToolsList = () => {
           className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center group"
         >
           <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-          Add Tool
+          {t('toolsList.addTool')}
         </button>
       </div>
 
@@ -135,7 +137,7 @@ const ToolsList = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search tools by name, category, description, or tag..."
+                placeholder={t('toolsList.searchPlaceholder')}
                 value={toolSearchTerm}
                 onChange={(e) => setToolSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
@@ -148,7 +150,7 @@ const ToolsList = () => {
               }`}
             >
               <Filter className="w-5 h-5 mr-2" />
-              Filters
+              {t('relationshipManager.filters')}
             </button>
           </div>
 
@@ -156,13 +158,13 @@ const ToolsList = () => {
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700 dark:border-gray-600">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('toolsList.categoryLabel')}</label>
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
                   className="w-full px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary transition-all duration-300 dark:text-gray-100 dark:bg-slate-800"
                 >
-                  <option value="">All Categories</option>
+                  <option value="">{t('toolsList.allCategories')}</option>
                   {TOOL_CATEGORIES.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
@@ -170,13 +172,13 @@ const ToolsList = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('toolsList.statusLabel')}</label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="w-full px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary transition-all duration-300 dark:text-gray-100 dark:bg-slate-800"
                 >
-                  <option value="">All Statuses</option>
+                  <option value="">{t('toolsList.allStatuses')}</option>
                   {TOOL_STATUSES.map(status => (
                     <option key={status.value} value={status.value}>{status.label}</option>
                   ))}
@@ -184,22 +186,22 @@ const ToolsList = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('toolsList.sortByLabel')}</label>
                 <div className="flex space-x-2">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="flex-1 px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary transition-all duration-300 dark:text-gray-100 dark:bg-slate-800"
                   >
-                    <option value="name">Name</option>
-                    <option value="category">Category</option>
-                    <option value="status">Status</option>
-                    <option value="created">Date Added</option>
+                    <option value="name">{t('toolsList.sortName')}</option>
+                    <option value="category">{t('toolsList.categoryLabel')}</option>
+                    <option value="status">{t('toolsList.statusLabel')}</option>
+                    <option value="created">{t('toolsList.sortDateAdded')}</option>
                   </select>
                   <button
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                     className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-600 dark:text-blue-400 transition-all duration-300"
-                    title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                    title={sortOrder === 'asc' ? t('toolsList.sortDescendingTitle') : t('toolsList.sortAscendingTitle')}
                   >
                     {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
                   </button>
@@ -222,14 +224,14 @@ const ToolsList = () => {
                 <button
                   onClick={() => setEditingTool(tool)}
                   className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white transition-all duration-300"
-                  title="Edit"
+                  title={t('common.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(tool.id)}
                   className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-600 dark:bg-red-500 hover:text-white transition-all duration-300"
-                  title="Delete"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -267,7 +269,7 @@ const ToolsList = () => {
                 className="inline-flex items-center px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white transition-all duration-300 text-sm font-medium mb-3"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Visit Tool
+                {t('toolsList.visitTool')}
               </a>
             )}
             
@@ -288,8 +290,8 @@ const ToolsList = () => {
             <div className="text-gray-400 dark:text-gray-500 mb-4">
               <Search className="w-12 h-12 mx-auto opacity-50" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 font-medium">No tools found matching your search criteria.</p>
-            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Try adjusting your filters or search terms.</p>
+            <p className="text-gray-600 dark:text-gray-400 font-medium">{t('toolsList.noToolsFound')}</p>
+            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">{t('peopleList.adjustFilters')}</p>
           </div>
         </div>
       )}
