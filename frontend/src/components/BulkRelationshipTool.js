@@ -2,6 +2,7 @@
 // Tool for bulk creating relationships between people
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Link as LinkIcon, Upload, AlertCircle, Check, HelpCircle } from 'lucide-react';
 import { peopleAPI } from '../utils/api';
 
@@ -11,6 +12,7 @@ const RELATIONSHIP_TYPES = [
 ];
 
 const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState('interactive'); // 'interactive' or 'csv'
   const [csvData, setCsvData] = useState('');
   const [relationships, setRelationships] = useState([{
@@ -58,7 +60,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
   const submitInteractiveRelationships = async () => {
     const valid = relationships.filter(r => r.from && r.to);
     if (valid.length === 0) {
-      alert('Please add at least one relationship');
+      alert(t('bulkRelationshipTool.errorAddOneRelationship'));
       return;
     }
 
@@ -70,12 +72,12 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
       const toPerson = getPersonByName(rel.to);
 
       if (!fromPerson) {
-        errors.push(`Person not found: ${rel.from}`);
+        errors.push(t('bulkRelationshipTool.errorPersonNotFound', { name: rel.from }));
         continue;
       }
 
       if (!toPerson) {
-        errors.push(`Person not found: ${rel.to}`);
+        errors.push(t('bulkRelationshipTool.errorPersonNotFound', { name: rel.to }));
         continue;
       }
 
@@ -130,11 +132,11 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
 
         created++;
       } catch (error) {
-        errors.push(`Failed to create: ${rel.from} → ${rel.to} (${error.message})`);
+        errors.push(t('bulkRelationshipTool.errorFailedToCreate', { from: rel.from, to: rel.to, message: error.message }));
       }
     }
 
-    alert(`Bulk Relationship Creation Complete!\nCreated: ${created}\nErrors: ${errors.length}\n${errors.length > 0 ? '\n' + errors.join('\n') : ''}`);
+    alert(t('bulkRelationshipTool.bulkCreateComplete', { created, errorCount: errors.length, errorList: errors.length > 0 ? '\n' + errors.join('\n') : '' }));
 
     if (created > 0 && onComplete) {
       onComplete();
@@ -149,7 +151,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
   const submitCSVRelationships = async () => {
     const lines = csvData.trim().split('\n');
     if (lines.length < 2) {
-      alert('CSV must have a header row and at least one data row');
+      alert(t('bulkRelationshipTool.errorCsvNeedsHeaderRow'));
       return;
     }
 
@@ -173,7 +175,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
       const note = row['note'] || row['notes'] || '';
 
       if (!fromName || !toName) {
-        errors.push(`Row ${i + 2}: Missing from or to person`);
+        errors.push(t('bulkRelationshipTool.errorRowMissingPerson', { row: i + 2 }));
         continue;
       }
 
@@ -181,12 +183,12 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
       const toPerson = getPersonByName(toName);
 
       if (!fromPerson) {
-        errors.push(`Row ${i + 2}: Person not found: ${fromName}`);
+        errors.push(t('bulkRelationshipTool.errorRowPersonNotFound', { row: i + 2, name: fromName }));
         continue;
       }
 
       if (!toPerson) {
-        errors.push(`Row ${i + 2}: Person not found: ${toName}`);
+        errors.push(t('bulkRelationshipTool.errorRowPersonNotFound', { row: i + 2, name: toName }));
         continue;
       }
 
@@ -234,11 +236,11 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
 
         created++;
       } catch (error) {
-        errors.push(`Row ${i + 2}: ${error.message}`);
+        errors.push(t('bulkRelationshipTool.errorRowGeneric', { row: i + 2, message: error.message }));
       }
     }
 
-    alert(`CSV Import Complete!\nCreated: ${created}\nErrors: ${errors.length}\n${errors.length > 0 ? '\n' + errors.join('\n') : ''}`);
+    alert(t('bulkRelationshipTool.csvImportComplete', { created, errorCount: errors.length, errorList: errors.length > 0 ? '\n' + errors.join('\n') : '' }));
 
     if (created > 0 && onComplete) {
       onComplete();
@@ -259,14 +261,14 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
               <LinkIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Bulk Create Relationships</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Add multiple connections between people at once</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('bulkRelationshipTool.title')}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('bulkRelationshipTool.subtitle')}</p>
             </div>
           </div>
           <button
             onClick={() => setShowHelp(!showHelp)}
             className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 rounded-lg transition-all"
-            title="Help"
+            title={t('bulkRelationshipTool.helpTitle')}
           >
             <HelpCircle className="w-5 h-5" />
           </button>
@@ -275,17 +277,17 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         {/* Help Panel */}
         {showHelp && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h4 className="font-semibold text-blue-900 mb-2">How to Use:</h4>
+            <h4 className="font-semibold text-blue-900 mb-2">{t('bulkRelationshipTool.howToUse')}</h4>
             <div className="text-sm text-blue-800 space-y-2">
-              <p><strong>Interactive Mode:</strong> Add relationships one by one using dropdowns</p>
-              <p><strong>CSV Mode:</strong> Paste or upload CSV data with columns:</p>
+              <p><strong>{t('bulkRelationshipTool.interactiveModeLabel')}</strong> {t('bulkRelationshipTool.interactiveModeHelp')}</p>
+              <p><strong>{t('bulkRelationshipTool.csvModeLabel')}</strong> {t('bulkRelationshipTool.csvModeHelp')}</p>
               <ul className="list-disc list-inside ml-4 text-xs space-y-1">
-                <li>From, To, Type, Note</li>
-                <li>Example: John Doe, Jane Smith, family, Siblings</li>
+                <li>{t('bulkRelationshipTool.csvColumnsExample')}</li>
+                <li>{t('bulkRelationshipTool.csvRowExample')}</li>
               </ul>
               <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                Person names must match exactly (case-insensitive). Use "Last, First" or "First Last" format.
+                {t('bulkRelationshipTool.nameMatchHelp')}
               </p>
             </div>
           </div>
@@ -299,7 +301,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
               mode === 'interactive' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Interactive
+            {t('bulkRelationshipTool.interactiveTab')}
           </button>
           <button
             onClick={() => setMode('csv')}
@@ -308,7 +310,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
             }`}
           >
             <Upload className="w-4 h-4" />
-            <span>CSV Import</span>
+            <span>{t('bulkRelationshipTool.csvImportTab')}</span>
           </button>
         </div>
 
@@ -316,10 +318,10 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         {mode === 'interactive' && (
           <div className="space-y-4">
             <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2 px-2">
-              <div className="col-span-4">From Person</div>
-              <div className="col-span-4">To Person</div>
-              <div className="col-span-2">Type</div>
-              <div className="col-span-2">Note</div>
+              <div className="col-span-4">{t('bulkRelationshipTool.fromPersonLabel')}</div>
+              <div className="col-span-4">{t('bulkRelationshipTool.toPersonLabel')}</div>
+              <div className="col-span-2">{t('bulkRelationshipTool.typeLabel')}</div>
+              <div className="col-span-2">{t('bulkRelationshipTool.noteLabel')}</div>
             </div>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -330,7 +332,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                     onChange={(e) => updateRelationship(index, 'from', e.target.value)}
                     className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
-                    <option value="">Select person...</option>
+                    <option value="">{t('bulkRelationshipTool.selectPersonPlaceholder')}</option>
                     {people.map(person => (
                       <option key={person.id} value={`${person.first_name} ${person.last_name}`}>
                         {person.first_name} {person.last_name}
@@ -343,7 +345,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                     onChange={(e) => updateRelationship(index, 'to', e.target.value)}
                     className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
-                    <option value="">Select person...</option>
+                    <option value="">{t('bulkRelationshipTool.selectPersonPlaceholder')}</option>
                     {people.map(person => (
                       <option key={person.id} value={`${person.first_name} ${person.last_name}`}>
                         {person.first_name} {person.last_name}
@@ -357,7 +359,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                     className="col-span-2 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm capitalize"
                   >
                     {RELATIONSHIP_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                      <option key={type} value={type}>{t(`relationshipDiagram.edgeStyles.${type}`)}</option>
                     ))}
                   </select>
 
@@ -365,14 +367,14 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
                     type="text"
                     value={rel.note}
                     onChange={(e) => updateRelationship(index, 'note', e.target.value)}
-                    placeholder="Optional note"
+                    placeholder={t('bulkRelationshipTool.optionalNotePlaceholder')}
                     className="col-span-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   />
 
                   <button
                     onClick={() => removeRelationship(index)}
                     className="col-span-1 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                    title="Remove"
+                    title={t('bulkRelationshipTool.removeTitle')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -384,7 +386,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
               onClick={addRelationship}
               className="w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg text-gray-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 transition-all"
             >
-              + Add Relationship
+              {t('bulkRelationshipTool.addRelationship')}
             </button>
           </div>
         )}
@@ -393,22 +395,22 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         {mode === 'csv' && (
           <div className="space-y-4">
             <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3 text-sm font-mono text-gray-700 dark:text-gray-300">
-              <div className="font-semibold mb-1">Format:</div>
-              <div>From, To, Type, Note</div>
-              <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">Example:</div>
-              <div className="text-xs">John Doe, Jane Smith, family, Siblings</div>
+              <div className="font-semibold mb-1">{t('bulkRelationshipTool.formatLabel')}</div>
+              <div>{t('bulkRelationshipTool.csvColumnsExample')}</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">{t('bulkRelationshipTool.exampleLabel')}</div>
+              <div className="text-xs">{t('bulkRelationshipTool.csvRowExampleBare')}</div>
             </div>
 
             <textarea
               value={csvData}
               onChange={(e) => setCsvData(e.target.value)}
               className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Paste CSV data here...&#10;From, To, Type, Note&#10;John Doe, Jane Smith, family, Siblings&#10;Alice Johnson, Bob Williams, associate, Business partners"
+              placeholder={t('bulkRelationshipTool.csvTextareaPlaceholder')}
             />
 
             <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
               <AlertCircle className="w-4 h-4" />
-              <span>{csvData.split('\n').filter(l => l.trim()).length - 1} relationships to create</span>
+              <span>{t('bulkRelationshipTool.relationshipsToCreate', { count: csvData.split('\n').filter(l => l.trim()).length - 1 })}</span>
             </div>
           </div>
         )}
@@ -419,14 +421,14 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
             onClick={onClose}
             className="px-6 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={mode === 'interactive' ? submitInteractiveRelationships : submitCSVRelationships}
             className="px-6 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
           >
             <Check className="w-4 h-4" />
-            <span>Create Relationships</span>
+            <span>{t('bulkRelationshipTool.createRelationships')}</span>
           </button>
         </div>
       </div>

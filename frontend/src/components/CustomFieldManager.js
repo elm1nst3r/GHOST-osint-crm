@@ -1,10 +1,12 @@
 // File: frontend/src/components/CustomFieldManager.js
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { customFieldsAPI } from '../utils/api';
 import { CUSTOM_FIELD_TYPES } from '../utils/constants';
 
 const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
+  const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [formData, setFormData] = useState({
@@ -42,7 +44,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
       resetForm();
     } catch (error) {
       console.error('Error saving custom field:', error);
-      alert(error.message || 'Failed to save custom field');
+      alert(error.message || t('customFieldManager.errorSaveField'));
     }
   };
 
@@ -59,13 +61,13 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this custom field? This will not delete existing data.')) {
+    if (window.confirm(t('customFieldManager.confirmDeleteField'))) {
       try {
         await customFieldsAPI.delete(id);
         fetchCustomFields();
       } catch (error) {
         console.error('Error deleting custom field:', error);
-        alert('Failed to delete custom field');
+        alert(t('customFieldManager.errorDeleteField'));
       }
     }
   };
@@ -87,49 +89,49 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Custom Person Fields</h3>
+        <h3 className="text-lg font-semibold">{t('customFieldManager.title')}</h3>
         <button
           onClick={() => setShowAddForm(true)}
           className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center"
         >
           <Plus className="w-4 h-4 mr-1" />
-          Add Field
+          {t('customFieldManager.addField')}
         </button>
       </div>
 
       {showAddForm && (
         <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-900 rounded-lg">
-          <h4 className="font-medium mb-3">{editingField ? 'Edit' : 'Add'} Custom Field</h4>
+          <h4 className="font-medium mb-3">{editingField ? t('customFieldManager.editFieldTitle') : t('customFieldManager.addFieldTitle')}</h4>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Name (Internal)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('customFieldManager.fieldNameLabel')}</label>
                 <input
                   type="text"
                   value={formData.field_name}
                   onChange={(e) => setFormData({ ...formData, field_name: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
                   className="w-full px-3 py-2 border rounded-md text-sm"
-                  placeholder="e.g., security_clearance"
+                  placeholder={t('customFieldManager.fieldNamePlaceholder')}
                   required
                   disabled={editingField}
                 />
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Letters, numbers, underscores only</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('customFieldManager.fieldNameHint')}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Label (Display)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('customFieldManager.fieldLabelLabel')}</label>
                 <input
                   type="text"
                   value={formData.field_label}
                   onChange={(e) => setFormData({ ...formData, field_label: e.target.value })}
                   className="w-full px-3 py-2 border rounded-md text-sm"
-                  placeholder="e.g., Security Clearance Level"
+                  placeholder={t('customFieldManager.fieldLabelPlaceholder')}
                   required
                 />
               </div>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Field Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('customFieldManager.fieldTypeLabel')}</label>
               <select
                 value={formData.field_type}
                 onChange={(e) => setFormData({ ...formData, field_type: e.target.value })}
@@ -143,14 +145,14 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
             
             {formData.field_type === 'select' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Options</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('customFieldManager.optionsLabel')}</label>
                 <div className="flex space-x-2 mb-2">
                   <input
                     type="text"
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
-                    placeholder="Add an option"
+                    placeholder={t('customFieldManager.addOptionPlaceholder')}
                     className="flex-1 px-3 py-2 border rounded-md text-sm"
                   />
                   <button
@@ -158,7 +160,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                     onClick={addOption}
                     className="px-3 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700"
                   >
-                    Add
+                    {t('common.add')}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -187,23 +189,23 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                 className="h-4 w-4 text-blue-600 rounded"
               />
               <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                Active (show this field in forms)
+                {t('customFieldManager.activeCheckboxLabel')}
               </label>
             </div>
-            
+
             <div className="flex justify-end space-x-2 pt-3">
               <button
                 type="button"
                 onClick={resetForm}
                 className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
               >
-                {editingField ? 'Update' : 'Create'} Field
+                {editingField ? t('customFieldManager.updateField') : t('customFieldManager.createField')}
               </button>
             </div>
           </form>
@@ -216,9 +218,9 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
             <div>
               <div className="font-medium">{field.field_label}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Type: {field.field_type} | Name: {field.field_name}
+                {t('customFieldManager.typeNameLine', { type: field.field_type, name: field.field_name })}
                 {field.options && field.options.length > 0 && (
-                  <span> | Options: {field.options.join(', ')}</span>
+                  <span> {t('customFieldManager.optionsLine', { options: field.options.join(', ') })}</span>
                 )}
               </div>
             </div>
@@ -226,19 +228,19 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
               <span className={`px-2 py-1 text-xs rounded ${
                 field.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400'
               }`}>
-                {field.is_active ? 'Active' : 'Inactive'}
+                {field.is_active ? t('settings.users.statusActive') : t('settings.users.statusInactive')}
               </span>
               <button
                 onClick={() => handleEdit(field)}
                 className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
-                title="Edit"
+                title={t('common.edit')}
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDelete(field.id)}
                 className="text-red-600 hover:text-red-700"
-                title="Delete"
+                title={t('common.delete')}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
