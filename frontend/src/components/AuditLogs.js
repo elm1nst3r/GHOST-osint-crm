@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, Filter, User } from 'lucide-react';
 import { auditLogsAPI } from '../utils/authAPI';
 
 const AuditLogs = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,10 +90,10 @@ const AuditLogs = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <FileText className="h-6 w-6" />
-          Audit Logs
+          {t('settings.tabs.auditLogs')}
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Track all changes and activities in the system
+          {t('settings.auditLogs.subtitle')}
         </p>
       </div>
 
@@ -99,7 +101,7 @@ const AuditLogs = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              Recent Activity
+              {t('settings.auditLogs.recentActivity')}
             </h3>
             <div className="space-y-1">
               {stats.byAction.slice(0, 3).map((item) => (
@@ -113,7 +115,7 @@ const AuditLogs = () => {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              By Entity Type
+              {t('settings.auditLogs.byEntityType')}
             </h3>
             <div className="space-y-1">
               {stats.byEntityType.slice(0, 3).map((item) => (
@@ -127,12 +129,12 @@ const AuditLogs = () => {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              Top Users
+              {t('settings.auditLogs.topUsers')}
             </h3>
             <div className="space-y-1">
               {stats.byUser.slice(0, 3).map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-gray-700 dark:text-gray-300">{item.username || 'System'}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{item.username || t('settings.auditLogs.systemUser')}</span>
                   <span className="font-medium text-gray-900 dark:text-white">{item.count}</span>
                 </div>
               ))}
@@ -144,45 +146,45 @@ const AuditLogs = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-4">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          <h2 className="font-medium text-gray-900 dark:text-white">Filters</h2>
+          <h2 className="font-medium text-gray-900 dark:text-white">{t('relationshipManager.filters')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Entity Type
+              {t('settings.auditLogs.entityTypeLabel')}
             </label>
             <select
               value={filters.entity_type}
               onChange={(e) => handleFilterChange('entity_type', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
             >
-              <option value="">All</option>
-              <option value="person">Person</option>
-              <option value="tool">Tool</option>
-              <option value="case">Case</option>
-              <option value="user">User</option>
+              <option value="">{t('settings.auditLogs.allOption')}</option>
+              <option value="person">{t('settings.auditLogs.entityPerson')}</option>
+              <option value="tool">{t('settings.auditLogs.entityTool')}</option>
+              <option value="case">{t('settings.auditLogs.entityCase')}</option>
+              <option value="user">{t('settings.auditLogs.entityUser')}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Action
+              {t('settings.auditLogs.actionLabel')}
             </label>
             <select
               value={filters.action}
               onChange={(e) => handleFilterChange('action', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
             >
-              <option value="">All</option>
-              <option value="create">Create</option>
-              <option value="update">Update</option>
-              <option value="delete">Delete</option>
+              <option value="">{t('settings.auditLogs.allOption')}</option>
+              <option value="create">{t('settings.auditLogs.actionCreate')}</option>
+              <option value="update">{t('settings.auditLogs.actionUpdate')}</option>
+              <option value="delete">{t('settings.auditLogs.actionDelete')}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Start Date
+              {t('settings.auditLogs.startDateLabel')}
             </label>
             <input
               type="date"
@@ -194,7 +196,7 @@ const AuditLogs = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              End Date
+              {t('settings.auditLogs.endDateLabel')}
             </label>
             <input
               type="date"
@@ -206,7 +208,7 @@ const AuditLogs = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Limit
+              {t('settings.auditLogs.limitLabel')}
             </label>
             <select
               value={filters.limit}
@@ -223,7 +225,7 @@ const AuditLogs = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading audit logs...</div>
+        <div className="text-center py-8 text-gray-600 dark:text-gray-400">{t('settings.auditLogs.loadingLogs')}</div>
       ) : error ? (
         <div className="text-center py-8 text-red-600 dark:text-red-400">{error}</div>
       ) : (
@@ -233,22 +235,22 @@ const AuditLogs = () => {
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Timestamp
+                    {t('settings.auditLogs.columnTimestamp')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    User
+                    {t('settings.users.columnUser')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Action
+                    {t('settings.auditLogs.actionLabel')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Entity
+                    {t('settings.auditLogs.columnEntity')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Field
+                    {t('settings.auditLogs.columnField')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Changes
+                    {t('settings.auditLogs.columnChanges')}
                   </th>
                 </tr>
               </thead>
@@ -262,7 +264,7 @@ const AuditLogs = () => {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-gray-400 dark:text-slate-500" />
                         <span className="text-gray-900 dark:text-white">
-                          {log.username || 'System'}
+                          {log.username || t('settings.auditLogs.systemUser')}
                         </span>
                       </div>
                     </td>
@@ -281,13 +283,13 @@ const AuditLogs = () => {
                       {log.field_name && (
                         <div className="space-y-1">
                           <div className="text-xs">
-                            <span className="font-medium">Old:</span>{' '}
+                            <span className="font-medium">{t('settings.auditLogs.oldValueLabel')}</span>{' '}
                             <span className="text-red-600 dark:text-red-400">
                               {formatValue(log.old_value)}
                             </span>
                           </div>
                           <div className="text-xs">
-                            <span className="font-medium">New:</span>{' '}
+                            <span className="font-medium">{t('settings.auditLogs.newValueLabel')}</span>{' '}
                             <span className="text-green-600 dark:text-green-400">
                               {formatValue(log.new_value)}
                             </span>
@@ -303,7 +305,11 @@ const AuditLogs = () => {
 
           <div className="mt-4 flex items-center justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Showing {filters.offset + 1} to {Math.min(filters.offset + filters.limit, total)} of {total} entries
+              {t('settings.auditLogs.showingEntries', {
+                from: filters.offset + 1,
+                to: Math.min(filters.offset + filters.limit, total),
+                total,
+              })}
             </div>
             <div className="flex gap-2">
               <button
@@ -311,14 +317,14 @@ const AuditLogs = () => {
                 disabled={filters.offset === 0}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('settings.auditLogs.previous')}
               </button>
               <button
                 onClick={() => handlePageChange(filters.offset + filters.limit)}
                 disabled={filters.offset + filters.limit >= total}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('settings.auditLogs.next')}
               </button>
             </div>
           </div>

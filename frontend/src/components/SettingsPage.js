@@ -1,5 +1,6 @@
 // File: frontend/src/components/SettingsPage.js
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import GeneralTab from './settings/GeneralTab';
 import DataModelTab from './settings/DataModelTab';
@@ -10,22 +11,23 @@ import AuditLogs from './AuditLogs';
 
 const SettingsPage = () => {
   const { currentUser } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('general');
 
   const tabs = [
-    { id: 'general',        label: 'General' },
-    { id: 'profile',        label: 'My Profile' },
-    { id: 'data-model',     label: 'Data Model' },
-    { id: 'import-export',  label: 'Import/Export' },
+    { id: 'general',        label: t('settings.tabs.general') },
+    { id: 'profile',        label: t('settings.tabs.profile') },
+    { id: 'data-model',     label: t('settings.tabs.dataModel') },
+    { id: 'import-export',  label: t('settings.tabs.importExport') },
     ...(currentUser?.role === 'admin' ? [
-      { id: 'users',       label: 'User Management' },
-      { id: 'audit-logs',  label: 'Audit Logs' },
+      { id: 'users',       label: t('settings.tabs.users') },
+      { id: 'audit-logs',  label: t('settings.tabs.auditLogs') },
     ] : []),
   ];
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-6">{t('settings.pageTitle')}</h1>
 
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
         {/* Tab Navigation */}

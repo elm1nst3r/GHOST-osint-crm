@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, Plus, Edit2, Trash2, Shield, User, Check, X, AlertCircle } from 'lucide-react';
 import { usersAPI } from '../utils/authAPI';
 
 const UserManagement = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,19 +44,19 @@ const UserManagement = () => {
 
     // For new users, password is required
     if (!editingUser && !formData.password) {
-      setError('Password is required for new users');
+      setError(t('settings.users.errorPasswordRequired'));
       return;
     }
 
     // Validate password confirmation if password is provided
     if (formData.password) {
       if (formData.password !== formData.confirm_password) {
-        setError('Passwords do not match');
+        setError(t('settings.users.errorPasswordMismatch'));
         return;
       }
 
       if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
+        setError(t('settings.users.errorPasswordTooShort'));
         return;
       }
     }
@@ -88,7 +90,7 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
+    if (!window.confirm(t('settings.users.confirmDeleteUser'))) {
       return;
     }
 
@@ -135,7 +137,7 @@ const UserManagement = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600 dark:text-gray-400">Loading users...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('settings.users.loadingUsers')}</div>
       </div>
     );
   }
@@ -146,10 +148,10 @@ const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Users className="h-6 w-6" />
-            User Management
+            {t('settings.tabs.users')}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage user accounts and permissions
+            {t('settings.users.subtitle')}
           </p>
         </div>
         <button
@@ -157,7 +159,7 @@ const UserManagement = () => {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
-          Add User
+          {t('settings.users.addUser')}
         </button>
       </div>
 
@@ -172,12 +174,12 @@ const UserManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              {editingUser ? 'Edit User' : 'Add New User'}
+              {editingUser ? t('settings.users.editUser') : t('settings.users.addNewUser')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Username *
+                  {t('settings.users.usernameLabel')}
                 </label>
                 <input
                   type="text"
@@ -189,7 +191,7 @@ const UserManagement = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email (optional)
+                  {t('settings.users.emailLabel')}
                 </label>
                 <input
                   type={formData.email ? "email" : "text"}
@@ -201,7 +203,7 @@ const UserManagement = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password {editingUser ? '(leave blank to keep current)' : '*'}
+                  {editingUser ? t('settings.users.passwordLabelEdit') : t('settings.users.passwordLabelNew')}
                 </label>
                 <input
                   type="password"
@@ -209,15 +211,15 @@ const UserManagement = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder={editingUser ? 'Enter new password to change' : 'Enter password'}
+                  placeholder={editingUser ? t('settings.users.passwordPlaceholderEdit') : t('settings.users.passwordPlaceholderNew')}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Minimum 6 characters
+                  {t('settings.users.passwordMinLength')}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Confirm Password {editingUser ? '' : '*'}
+                  {editingUser ? t('settings.users.confirmPasswordLabel') : t('settings.users.confirmPasswordLabelRequired')}
                 </label>
                 <input
                   type="password"
@@ -225,13 +227,13 @@ const UserManagement = () => {
                   value={formData.confirm_password}
                   onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder={editingUser ? 'Confirm new password' : 'Confirm password'}
+                  placeholder={editingUser ? t('settings.users.confirmPasswordPlaceholderEdit') : t('settings.users.confirmPasswordPlaceholderNew')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    First Name
+                    {t('settings.users.firstNameLabel')}
                   </label>
                   <input
                     type="text"
@@ -242,7 +244,7 @@ const UserManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Last Name
+                    {t('settings.users.lastNameLabel')}
                   </label>
                   <input
                     type="text"
@@ -254,15 +256,15 @@ const UserManagement = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Role *
+                  {t('settings.users.roleLabel')}
                 </label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
+                  <option value="user">{t('settings.users.roleUser')}</option>
+                  <option value="admin">{t('settings.users.roleAdmin')}</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -274,7 +276,7 @@ const UserManagement = () => {
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="is_active" className="text-sm text-gray-700 dark:text-gray-300">
-                  Active
+                  {t('settings.users.activeLabel')}
                 </label>
               </div>
               <div className="flex gap-2 pt-4">
@@ -282,14 +284,14 @@ const UserManagement = () => {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  {editingUser ? 'Update' : 'Create'} User
+                  {editingUser ? t('settings.users.updateUser') : t('settings.users.createUser')}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
                   className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -302,22 +304,22 @@ const UserManagement = () => {
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                User
+                {t('settings.users.columnUser')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Email
+                {t('settings.users.columnEmail')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Role
+                {t('settings.users.columnRole')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t('settings.users.columnStatus')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Last Login
+                {t('settings.users.columnLastLogin')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Actions
+                {t('settings.users.columnActions')}
               </th>
             </tr>
           </thead>
@@ -363,11 +365,11 @@ const UserManagement = () => {
                     }`}
                   >
                     {user.is_active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                    {user.is_active ? 'Active' : 'Inactive'}
+                    {user.is_active ? t('settings.users.statusActive') : t('settings.users.statusInactive')}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                  {user.last_login ? new Date(user.last_login).toLocaleDateString() : t('settings.users.never')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
