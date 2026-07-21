@@ -1,5 +1,6 @@
 // File: frontend/src/components/AddEditAssetForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Package } from 'lucide-react';
 import { assetsAPI, modelOptionsAPI, casesAPI, transactionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
@@ -7,14 +8,14 @@ import { useData } from '../contexts/DataContext';
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
-const LOCATION_MODES = [
-  { value: 'with_holder', label: 'With current holder (moves automatically)' },
-  { value: 'fixed_known', label: 'Pinned to a person\'s known location' },
-  { value: 'fixed_custom', label: 'Fixed custom address' },
-  { value: 'unknown', label: 'Unknown' },
-];
-
 const AddEditAssetForm = ({ asset, onClose }) => {
+  const { t } = useTranslation();
+  const LOCATION_MODES = useMemo(() => [
+    { value: 'with_holder', label: t('assetForm.locationModes.withHolder') },
+    { value: 'fixed_known', label: t('assetForm.locationModes.fixedKnown') },
+    { value: 'fixed_custom', label: t('assetForm.locationModes.fixedCustom') },
+    { value: 'unknown', label: t('assetForm.locationModes.unknown') },
+  ], [t]);
   const { people, businesses, fetchAssets } = useData();
   const isEdit = !!asset;
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -74,8 +75,8 @@ const AddEditAssetForm = ({ asset, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Name is required'); return; }
-    if (form.location_mode === 'fixed_known' && !form.location_person_id) { setError('Pick a person for the pinned location'); return; }
+    if (!form.name.trim()) { setError(t('assetForm.errorNameRequired')); return; }
+    if (form.location_mode === 'fixed_known' && !form.location_person_id) { setError(t('assetForm.errorLocationPersonRequired')); return; }
     setSaving(true);
     setError('');
     const payload = {
@@ -115,7 +116,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
       await fetchAssets(0);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save asset');
+      setError(err.message || t('assetForm.errorSaveAsset'));
     } finally {
       setSaving(false);
     }
@@ -126,63 +127,63 @@ const AddEditAssetForm = ({ asset, onClose }) => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Package className="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" />{isEdit ? 'Edit Asset' : 'Add Asset'}
+            <Package className="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" />{isEdit ? t('assetForm.editTitle') : t('assetForm.addTitle')}
           </h2>
           <button onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4">
           {error && <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">{error}</div>}
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className={labelClass}>Name *</label><input className={inputClass} value={form.name} onChange={e => update('name', e.target.value)} /></div>
-            <div><label className={labelClass}>Category</label>
+            <div className="col-span-2"><label className={labelClass}>{t('assetForm.nameRequired')}</label><input className={inputClass} value={form.name} onChange={e => update('name', e.target.value)} /></div>
+            <div><label className={labelClass}>{t('assetForm.category')}</label>
               <select className={inputClass} value={form.category} onChange={e => update('category', e.target.value)}>
-                <option value="">— Select —</option>
+                <option value="">{t('common.selectPlaceholder')}</option>
                 {categoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
               </select>
             </div>
-            <div><label className={labelClass}>Status</label>
+            <div><label className={labelClass}>{t('assetForm.status')}</label>
               <select className={inputClass} value={form.status} onChange={e => update('status', e.target.value)}>
                 {statusOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
               </select>
             </div>
-            <div><label className={labelClass}>Identifier (serial / VIN / IMEI)</label><input className={inputClass} value={form.identifier} onChange={e => update('identifier', e.target.value)} /></div>
+            <div><label className={labelClass}>{t('assetForm.identifierLabel')}</label><input className={inputClass} value={form.identifier} onChange={e => update('identifier', e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><label className={labelClass}>Est. Value</label><input className={inputClass} value={form.estimated_value} onChange={e => update('estimated_value', e.target.value)} /></div>
-              <div><label className={labelClass}>Currency</label><input className={inputClass} value={form.currency} onChange={e => update('currency', e.target.value)} placeholder="USD" /></div>
+              <div><label className={labelClass}>{t('assetForm.estValue')}</label><input className={inputClass} value={form.estimated_value} onChange={e => update('estimated_value', e.target.value)} /></div>
+              <div><label className={labelClass}>{t('assetForm.currency')}</label><input className={inputClass} value={form.currency} onChange={e => update('currency', e.target.value)} placeholder={t('assetForm.currencyPlaceholder')} /></div>
             </div>
-            <div className="col-span-2"><label className={labelClass}>Description</label><textarea className={inputClass} rows={2} value={form.description} onChange={e => update('description', e.target.value)} /></div>
+            <div className="col-span-2"><label className={labelClass}>{t('assetForm.description')}</label><textarea className={inputClass} rows={2} value={form.description} onChange={e => update('description', e.target.value)} /></div>
           </div>
 
           {/* Location model */}
           <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-3">
-            <div><label className={labelClass}>Location Mode</label>
+            <div><label className={labelClass}>{t('assetForm.locationMode')}</label>
               <select className={inputClass} value={form.location_mode} onChange={e => update('location_mode', e.target.value)}>
                 {LOCATION_MODES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             {form.location_mode === 'fixed_known' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={labelClass}>Person</label>
+                <div><label className={labelClass}>{t('assetForm.person')}</label>
                   <select className={inputClass} value={form.location_person_id} onChange={e => { update('location_person_id', e.target.value); update('location_ref', ''); }}>
-                    <option value="">— Select —</option>
+                    <option value="">{t('common.selectPlaceholder')}</option>
                     {people.map(p => <option key={p.id} value={p.id}>{`${p.first_name || ''} ${p.last_name || ''}`.trim()}</option>)}
                   </select>
                 </div>
-                <div><label className={labelClass}>Location entry</label>
+                <div><label className={labelClass}>{t('assetForm.locationEntry')}</label>
                   <select className={inputClass} value={form.location_ref} onChange={e => update('location_ref', e.target.value)}>
-                    <option value="">— Select —</option>
-                    {personLocations.map((loc, idx) => <option key={idx} value={idx}>{(loc.type || loc.location_type || 'location') + ': ' + (loc.location_name || loc.address || [loc.city, loc.country].filter(Boolean).join(', ') || `#${idx}`)}</option>)}
+                    <option value="">{t('common.selectPlaceholder')}</option>
+                    {personLocations.map((loc, idx) => <option key={idx} value={idx}>{(loc.type || loc.location_type || t('assetForm.locationTypeFallback')) + ': ' + (loc.location_name || loc.address || [loc.city, loc.country].filter(Boolean).join(', ') || `#${idx}`)}</option>)}
                   </select>
                 </div>
               </div>
             )}
             {form.location_mode === 'fixed_custom' && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2"><label className={labelClass}>Address</label><input className={inputClass} value={form.address} onChange={e => update('address', e.target.value)} /></div>
-                <div><label className={labelClass}>City</label><input className={inputClass} value={form.city} onChange={e => update('city', e.target.value)} /></div>
-                <div><label className={labelClass}>Country</label><input className={inputClass} value={form.country} onChange={e => update('country', e.target.value)} /></div>
-                <div><label className={labelClass}>Latitude</label><input className={inputClass} value={form.latitude} onChange={e => update('latitude', e.target.value)} placeholder="auto-geocoded if blank" /></div>
-                <div><label className={labelClass}>Longitude</label><input className={inputClass} value={form.longitude} onChange={e => update('longitude', e.target.value)} /></div>
+                <div className="col-span-2"><label className={labelClass}>{t('assetForm.address')}</label><input className={inputClass} value={form.address} onChange={e => update('address', e.target.value)} /></div>
+                <div><label className={labelClass}>{t('assetForm.city')}</label><input className={inputClass} value={form.city} onChange={e => update('city', e.target.value)} /></div>
+                <div><label className={labelClass}>{t('assetForm.country')}</label><input className={inputClass} value={form.country} onChange={e => update('country', e.target.value)} /></div>
+                <div><label className={labelClass}>{t('assetForm.latitude')}</label><input className={inputClass} value={form.latitude} onChange={e => update('latitude', e.target.value)} placeholder={t('common.autoGeocodedHint')} /></div>
+                <div><label className={labelClass}>{t('assetForm.longitude')}</label><input className={inputClass} value={form.longitude} onChange={e => update('longitude', e.target.value)} /></div>
               </div>
             )}
           </div>
@@ -191,46 +192,46 @@ const AddEditAssetForm = ({ asset, onClose }) => {
           <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-3">
               <label className={labelClass}>
                 {isEdit
-                  ? 'Transfer to New Holder (records a transfer transaction)'
-                  : 'Initial Holder (seeds an acquisition transaction)'}
+                  ? t('assetForm.transferToNewHolder')
+                  : t('assetForm.initialHolder')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <select className={inputClass} value={holderKind} onChange={e => { setHolderKind(e.target.value); setHolderId(''); }}>
-                  <option value="none">— None —</option>
-                  <option value="person">Person</option>
-                  <option value="business">Business</option>
-                  <option value="external">External (free text)</option>
+                  <option value="none">{t('common.nonePlaceholder')}</option>
+                  <option value="person">{t('assetForm.holderKindPerson')}</option>
+                  <option value="business">{t('assetForm.holderKindBusiness')}</option>
+                  <option value="external">{t('assetForm.holderKindExternal')}</option>
                 </select>
                 {holderKind === 'person' && (
                   <select className={inputClass} value={holderId} onChange={e => setHolderId(e.target.value)}>
-                    <option value="">— Select —</option>
+                    <option value="">{t('common.selectPlaceholder')}</option>
                     {people.map(p => <option key={p.id} value={p.id}>{`${p.first_name || ''} ${p.last_name || ''}`.trim()}</option>)}
                   </select>
                 )}
                 {holderKind === 'business' && (
                   <select className={inputClass} value={holderId} onChange={e => setHolderId(e.target.value)}>
-                    <option value="">— Select —</option>
+                    <option value="">{t('common.selectPlaceholder')}</option>
                     {businesses.map(bz => <option key={bz.id} value={bz.id}>{bz.name}</option>)}
                   </select>
                 )}
-                {holderKind === 'external' && <input className={inputClass} value={holderExternal} onChange={e => setHolderExternal(e.target.value)} placeholder="External holder name" />}
+                {holderKind === 'external' && <input className={inputClass} value={holderExternal} onChange={e => setHolderExternal(e.target.value)} placeholder={t('assetForm.externalHolderNamePlaceholder')} />}
               </div>
-              {holderKind !== 'none' && <div><label className={labelClass}>{isEdit ? 'Transferred on' : 'Acquired on'}</label><input type="date" className={inputClass} value={holderDate} onChange={e => setHolderDate(e.target.value)} /></div>}
+              {holderKind !== 'none' && <div><label className={labelClass}>{isEdit ? t('assetForm.transferredOn') : t('assetForm.acquiredOn')}</label><input type="date" className={inputClass} value={holderDate} onChange={e => setHolderDate(e.target.value)} /></div>}
             </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div><label className={labelClass}>Case</label>
+            <div><label className={labelClass}>{t('assetForm.case')}</label>
               <select className={inputClass} value={form.case_id} onChange={e => update('case_id', e.target.value)}>
-                <option value="">— None —</option>
+                <option value="">{t('common.nonePlaceholder')}</option>
                 {cases.map(c => <option key={c.id} value={c.id}>{c.case_name}</option>)}
               </select>
             </div>
-            <div className="col-span-2"><label className={labelClass}>Notes</label><textarea className={inputClass} rows={2} value={form.notes} onChange={e => update('notes', e.target.value)} /></div>
+            <div className="col-span-2"><label className={labelClass}>{t('assetForm.notes')}</label><textarea className={inputClass} rows={2} value={form.notes} onChange={e => update('notes', e.target.value)} /></div>
           </div>
 
           <div className="flex justify-end space-x-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">Cancel</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">{t('common.cancel')}</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60">{saving ? t('common.saving') : t('common.save')}</button>
           </div>
         </form>
       </div>

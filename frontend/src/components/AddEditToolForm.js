@@ -1,10 +1,12 @@
 // File: frontend/src/components/AddEditToolForm.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Globe, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_CATEGORIES, TOOL_STATUSES } from '../utils/constants';
 
 const AddEditToolForm = ({ tool, onSave, onCancel }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     link: '',
@@ -84,7 +86,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
       onSave(savedTool);
     } catch (error) {
       console.error('Error saving tool:', error);
-      alert('Failed to save tool: ' + error.message);
+      alert(t('toolForm.errorSaveTool', { message: error.message }));
     }
   };
 
@@ -108,10 +110,10 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {tool ? 'Edit Tool' : 'Add New Tool'}
+              {tool ? t('toolForm.editTitle') : t('toolForm.addTitle')}
             </h2>
             <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-              {tool ? 'Update tool information and settings' : 'Add a new OSINT tool to your directory'}
+              {tool ? t('toolForm.editSubtitle') : t('toolForm.addSubtitle')}
             </p>
           </div>
           <button
@@ -125,21 +127,21 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tool Name *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.toolNameRequired')}</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
-                placeholder="Enter tool name"
+                placeholder={t('toolForm.toolNamePlaceholder')}
                 required
               />
             </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-              Link
-              <span className="text-xs text-gray-500 dark:text-slate-400 ml-2">(Auto-adds https:// if needed)</span>
+              {t('toolForm.link')}
+              <span className="text-xs text-gray-500 dark:text-slate-400 ml-2">{t('toolForm.linkAutoHint')}</span>
             </label>
             <div className="relative">
               <input
@@ -151,7 +153,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                   isValidUrl === false ? 'border-red-300 focus:border-red-500 focus:shadow-md' :
                   'border-gray-300 dark:border-gray-600 focus:border-accent-primary focus:shadow-md'
                 }`}
-                placeholder="www.example.com or https://example.com"
+                placeholder={t('toolForm.linkPlaceholder')}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 {isValidUrl === true && (
@@ -166,7 +168,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="ml-2 text-blue-500 hover:text-blue-700"
-                    title="Test link"
+                    title={t('toolForm.testLink')}
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -177,7 +179,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
               <div className="mt-3 p-3 glass rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center">
                   <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
-                  <span className="text-gray-600 dark:text-slate-400 font-medium">Preview: </span>
+                  <span className="text-gray-600 dark:text-slate-400 font-medium">{t('toolForm.previewLabel')}</span>
                   <span className={`ml-1 font-mono text-sm ${isValidUrl ? 'text-green-600' : 'text-red-600'}`}>
                     {urlPreview}
                   </span>
@@ -187,55 +189,55 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.description')}</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300 resize-none"
               rows="3"
-              placeholder="Describe what this tool does and how it helps with OSINT investigations..."
+              placeholder={t('toolForm.descriptionPlaceholder')}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.category')}</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
               >
-                <option value="">Select Category</option>
+                <option value="">{t('toolForm.selectCategory')}</option>
                 {TOOL_CATEGORIES.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.status')}</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
               >
-                <option value="">Select Status</option>
+                <option value="">{t('toolForm.selectStatus')}</option>
                 {TOOL_STATUSES.map(status => (
                   <option key={status.value} value={status.value}>{status.label}</option>
                 ))}
               </select>
             </div>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tags</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.tags')}</label>
             <div className="flex space-x-2 mb-3">
               <input
                 type="text"
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                placeholder="Add a tag (e.g., investigation, social-media, free)"
+                placeholder={t('toolForm.tagPlaceholder')}
                 className="flex-1 px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
               />
               <button
@@ -243,7 +245,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                 onClick={addTag}
                 className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 font-medium"
               >
-                Add
+                {t('common.add')}
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -263,29 +265,29 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('toolForm.notes')}</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300 resize-none"
               rows="3"
-              placeholder="Additional notes, usage tips, or special considerations..."
+              placeholder={t('toolForm.notesPlaceholder')}
             />
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onCancel}
               className="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-slate-300 hover:bg-gradient-secondary hover:text-white transition-all duration-300 font-medium"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 font-medium"
             >
-              {tool ? 'Update' : 'Create'} Tool
+              {tool ? t('toolForm.updateTool') : t('toolForm.createTool')}
             </button>
           </div>
           </form>
