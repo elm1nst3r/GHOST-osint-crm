@@ -1,5 +1,6 @@
 // File: frontend/src/components/PeopleList.js
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FixedSizeList } from 'react-window';
 import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Users, Grid3x3, Table } from 'lucide-react';
 import { peopleAPI, casesAPI } from '../utils/api';
@@ -13,6 +14,7 @@ const VIRTUAL_THRESHOLD = 150;
 const CARD_ITEM_HEIGHT = 230; // px — card height + gap
 
 const PeopleList = () => {
+  const { t } = useTranslation();
   const { people, fetchPeople, peopleMeta, loadMorePeople } = useData();
   const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -69,13 +71,13 @@ const PeopleList = () => {
     const now = new Date();
     const diff = now - date;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return `${Math.floor(days / 365)} years ago`;
+
+    if (days === 0) return t('peopleList.timeAgo.today');
+    if (days === 1) return t('peopleList.timeAgo.yesterday');
+    if (days < 7) return t('peopleList.timeAgo.daysAgo', { count: days });
+    if (days < 30) return t('peopleList.timeAgo.weeksAgo', { count: Math.floor(days / 7) });
+    if (days < 365) return t('peopleList.timeAgo.monthsAgo', { count: Math.floor(days / 30) });
+    return t('peopleList.timeAgo.yearsAgo', { count: Math.floor(days / 365) });
   };
 
   const isWithinTimeFilter = (person, filter) => {
@@ -114,13 +116,13 @@ const PeopleList = () => {
   });
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this person?')) {
+    if (window.confirm(t('peopleList.confirmDeletePerson'))) {
       try {
         await peopleAPI.delete(id);
         fetchPeople();
       } catch (error) {
         console.error('Error deleting person:', error);
-        alert('Failed to delete person');
+        alert(t('peopleList.errorDeletePerson'));
       }
     }
   };
@@ -157,20 +159,20 @@ const PeopleList = () => {
                   {getFullName(person)}
                   {person.date_of_birth && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({getAge(person.date_of_birth)})</span>}
                 </h3>
-                {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">AKA: {person.aliases.join(', ')}</p>}
+                {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>}
               </div>
             </div>
             <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-              <button onClick={() => setSelectedPersonForDetail(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150" title="View Details"><Eye className="w-4 h-4" /></button>
-              <button onClick={() => setEditingPerson(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-600 hover:text-white transition-colors duration-150" title="Edit"><Edit2 className="w-4 h-4" /></button>
-              <button onClick={() => handleDelete(person.id)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors duration-150" title="Delete"><Trash2 className="w-4 h-4" /></button>
+              <button onClick={() => setSelectedPersonForDetail(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150" title={t('peopleList.viewDetails')}><Eye className="w-4 h-4" /></button>
+              <button onClick={() => setEditingPerson(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-600 hover:text-white transition-colors duration-150" title={t('common.edit')}><Edit2 className="w-4 h-4" /></button>
+              <button onClick={() => handleDelete(person.id)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors duration-150" title={t('common.delete')}><Trash2 className="w-4 h-4" /></button>
             </div>
           </div>
           <div className="space-y-2 mt-3">
             {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 mr-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.category}</span></div>}
             {person.case_name && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-2 text-accent-tertiary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span></div>}
-            <div className="flex items-center text-sm"><Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{connectionCount} connections</span></div>
-            <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">Modified {getTimeAgo(new Date(person.updated_at || person.created_at))}</span></div>
+            <div className="flex items-center text-sm"><Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: connectionCount })}</span></div>
+            <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">{t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}</span></div>
           </div>
           {person.status && <div className="mt-3"><span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>{person.status}</span></div>}
         </div>
@@ -183,15 +185,17 @@ const PeopleList = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 dark:from-gray-100 dark:to-gray-300">People Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 dark:from-gray-100 dark:to-gray-300">{t('peopleList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
             <Users className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
             {filteredPeople.length === people.length ? (
               <span className="font-medium">
-                {people.length}{peopleMeta.total > people.length ? ` of ${peopleMeta.total}` : ''} people
+                {peopleMeta.total > people.length
+                  ? t('peopleList.peopleCountTotal', { count: people.length, total: peopleMeta.total })
+                  : t('peopleList.peopleCountSimple', { count: people.length })}
               </span>
             ) : (
-              <span className="font-medium">{filteredPeople.length} of {people.length} loaded</span>
+              <span className="font-medium">{t('peopleList.peopleCountLoaded', { count: filteredPeople.length, total: people.length })}</span>
             )}
           </p>
         </div>
@@ -203,20 +207,20 @@ const PeopleList = () => {
               className={`px-3 py-2 rounded flex items-center space-x-2 transition ${
                 viewMode === 'cards' ? 'bg-white dark:bg-blue-600 shadow-sm text-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
-              title="Card View"
+              title={t('peopleList.cardView')}
             >
               <Grid3x3 className="w-4 h-4" />
-              <span className="text-sm font-medium hidden md:inline">Cards</span>
+              <span className="text-sm font-medium hidden md:inline">{t('peopleList.cards')}</span>
             </button>
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-2 rounded flex items-center space-x-2 transition ${
                 viewMode === 'table' ? 'bg-white dark:bg-blue-600 shadow-sm text-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
-              title="Table View"
+              title={t('peopleList.tableView')}
             >
               <Table className="w-4 h-4" />
-              <span className="text-sm font-medium hidden md:inline">Table</span>
+              <span className="text-sm font-medium hidden md:inline">{t('peopleList.table')}</span>
             </button>
           </div>
 
@@ -225,7 +229,7 @@ const PeopleList = () => {
             className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 flex items-center group active:scale-[0.97]"
           >
             <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-            Add Person
+            {t('peopleList.addPerson')}
           </button>
         </div>
       </div>
@@ -238,7 +242,7 @@ const PeopleList = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by name, alias, or case..."
+                placeholder={t('peopleList.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white dark:placeholder-gray-500"
@@ -250,7 +254,7 @@ const PeopleList = () => {
             onChange={(e) => setFilterCase(e.target.value)}
             className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
           >
-            <option value="">All Cases</option>
+            <option value="">{t('peopleList.allCases')}</option>
             {cases.map(caseItem => (
               <option key={caseItem.id} value={caseItem.case_name}>{caseItem.case_name}</option>
             ))}
@@ -260,7 +264,7 @@ const PeopleList = () => {
             onChange={(e) => setFilterCategory(e.target.value)}
             className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
           >
-            <option value="">All Categories</option>
+            <option value="">{t('peopleList.allCategories')}</option>
             {PERSON_CATEGORIES.map(cat => (
               <option key={cat.value} value={cat.value}>{cat.label}</option>
             ))}
@@ -270,7 +274,7 @@ const PeopleList = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
           >
-            <option value="">All Statuses</option>
+            <option value="">{t('peopleList.allStatuses')}</option>
             {PERSON_STATUSES.map(status => (
               <option key={status.value} value={status.value}>{status.label}</option>
             ))}
@@ -280,15 +284,15 @@ const PeopleList = () => {
             onChange={(e) => setFilterLastModified(e.target.value)}
             className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
           >
-            <option value="">All Time</option>
-            <option value="week">Last Week</option>
-            <option value="2weeks">Last 2 Weeks</option>
-            <option value="month">Last Month</option>
-            <option value="quarter">Last Quarter</option>
-            <option value="halfyear">Last 6 Months</option>
-            <option value="year">Last Year</option>
-            <option value="prevyear">Previous Year</option>
-            <option value="older">Older</option>
+            <option value="">{t('peopleList.allTime')}</option>
+            <option value="week">{t('peopleList.lastWeek')}</option>
+            <option value="2weeks">{t('peopleList.last2Weeks')}</option>
+            <option value="month">{t('peopleList.lastMonth')}</option>
+            <option value="quarter">{t('peopleList.lastQuarter')}</option>
+            <option value="halfyear">{t('peopleList.last6Months')}</option>
+            <option value="year">{t('peopleList.lastYear')}</option>
+            <option value="prevyear">{t('peopleList.previousYear')}</option>
+            <option value="older">{t('peopleList.older')}</option>
           </select>
         </div>
       </div>
@@ -344,7 +348,7 @@ const PeopleList = () => {
                     )}
                   </h3>
                   {person.aliases && person.aliases.length > 0 && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">AKA: {person.aliases.join(', ')}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
                   )}
                 </div>
               </div>
@@ -352,27 +356,27 @@ const PeopleList = () => {
                 <button
                   onClick={() => setSelectedPersonForDetail(person)}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150 active:scale-[0.97]"
-                  title="View Details"
+                  title={t('peopleList.viewDetails')}
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setEditingPerson(person)}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-600 hover:text-white transition-colors duration-150 active:scale-[0.97]"
-                  title="Edit"
+                  title={t('common.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(person.id)}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors duration-150 active:scale-[0.97]"
-                  title="Delete"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-3 mt-4">
               {person.category && (
                 <div className="flex items-center text-sm">
@@ -388,12 +392,12 @@ const PeopleList = () => {
               )}
               <div className="flex items-center text-sm">
                 <Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">{getRelationshipCount(person.id)} connections</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: getRelationshipCount(person.id) })}</span>
               </div>
               <div className="flex items-center text-sm">
                 <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" />
                 <span className="text-gray-600 dark:text-gray-400">
-                  Modified {getTimeAgo(new Date(person.updated_at || person.created_at))}
+                  {t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}
                 </span>
               </div>
             </div>
@@ -412,8 +416,8 @@ const PeopleList = () => {
             <div className="col-span-full text-center py-12">
               <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-gray-300 dark:border-slate-700 shadow-glass-lg rounded-lg p-8 max-w-md mx-auto">
                 <Users className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-slate-400 font-medium">No people found matching your search criteria.</p>
-                <p className="text-gray-500 dark:text-slate-500 text-sm mt-2">Try adjusting your filters or search terms.</p>
+                <p className="text-gray-600 dark:text-slate-400 font-medium">{t('peopleList.noResultsFound')}</p>
+                <p className="text-gray-500 dark:text-slate-500 text-sm mt-2">{t('peopleList.adjustFilters')}</p>
               </div>
             </div>
           )}
@@ -422,7 +426,7 @@ const PeopleList = () => {
           {peopleMeta.hasMore && filteredPeople.length === people.length && (
             <div className="col-span-full flex flex-col items-center py-6 space-y-2">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Showing {people.length} of {peopleMeta.total} people
+                {t('peopleList.showingOfTotal', { count: people.length, total: peopleMeta.total })}
               </p>
               <button
                 onClick={async () => {
@@ -433,7 +437,7 @@ const PeopleList = () => {
                 disabled={loadingMore}
                 className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:shadow-glow-sm transition-[box-shadow] duration-150 text-sm font-medium disabled:opacity-60 active:scale-[0.97]"
               >
-                {loadingMore ? 'Loading…' : `Load more (${peopleMeta.total - people.length} remaining)`}
+                {loadingMore ? t('peopleList.loadingEllipsis') : t('peopleList.loadMoreRemaining', { count: peopleMeta.total - people.length })}
               </button>
             </div>
           )}

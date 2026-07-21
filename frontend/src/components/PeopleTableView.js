@@ -2,6 +2,7 @@
 // Table view for people with inline editing, quick-add, and bulk operations
 
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Papa from 'papaparse';
 import {
   Save, X, Edit2, Trash2, Eye, Plus, Upload, Download,
@@ -17,6 +18,7 @@ const PeopleTableView = ({
   setEditingPerson,
   setSelectedPersonForDetail
 }) => {
+  const { t } = useTranslation();
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -91,7 +93,7 @@ const PeopleTableView = ({
       fetchPeople();
     } catch (error) {
       console.error('Error updating person:', error);
-      alert('Failed to update person');
+      alert(t('peopleTableView.errorUpdatePerson'));
     }
   };
 
@@ -104,7 +106,7 @@ const PeopleTableView = ({
   // Quick add new person
   const handleQuickAdd = async () => {
     if (!quickAddData.firstName.trim()) {
-      alert('First name is required');
+      alert(t('peopleTableView.errorFirstNameRequired'));
       return;
     }
 
@@ -134,19 +136,19 @@ const PeopleTableView = ({
       fetchPeople();
     } catch (error) {
       console.error('Error creating person:', error);
-      alert('Failed to create person');
+      alert(t('caseManagement.errorCreatePerson'));
     }
   };
 
   // Delete person
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this person?')) {
+    if (window.confirm(t('peopleList.confirmDeletePerson'))) {
       try {
         await peopleAPI.delete(id);
         fetchPeople();
       } catch (error) {
         console.error('Error deleting person:', error);
-        alert('Failed to delete person');
+        alert(t('peopleList.errorDeletePerson'));
       }
     }
   };
@@ -193,12 +195,12 @@ const PeopleTableView = ({
     });
 
     if (rows.length === 0) {
-      alert('CSV must have a header row and at least one data row');
+      alert(t('peopleTableView.csvMustHaveHeader'));
       return;
     }
 
     if (parseErrors.length > 0) {
-      alert(`CSV parse errors:\n${parseErrors.map(e => e.message).join('\n')}`);
+      alert(`${t('peopleTableView.csvParseErrorsPrefix')}\n${parseErrors.map(e => e.message).join('\n')}`);
       return;
     }
 
@@ -224,7 +226,7 @@ const PeopleTableView = ({
       };
 
       if (!personData.firstName) {
-        errors.push(`Row ${i + 2}: Missing first name`);
+        errors.push(t('peopleTableView.rowMissingFirstName', { row: i + 2 }));
         continue;
       }
 
@@ -232,11 +234,11 @@ const PeopleTableView = ({
         await peopleAPI.create(personData);
         created.push(personData.firstName + ' ' + personData.lastName);
       } catch (error) {
-        errors.push(`Row ${i + 2}: ${error.message}`);
+        errors.push(t('peopleTableView.rowError', { row: i + 2, message: error.message }));
       }
     }
 
-    alert(`Import complete!\nCreated: ${created.length}\nErrors: ${errors.length}\n${errors.length > 0 ? '\n' + errors.join('\n') : ''}`);
+    alert(`${t('peopleTableView.importCompletePrefix')}\n${t('peopleTableView.createdCount', { count: created.length })}\n${t('peopleTableView.errorsCount', { count: errors.length })}\n${errors.length > 0 ? '\n' + errors.join('\n') : ''}`);
 
     setBulkImportMode(false);
     setBulkData('');
@@ -245,6 +247,7 @@ const PeopleTableView = ({
 
   // Export to CSV
   const handleExportCSV = () => {
+    // Not translated: the bulk-import parser above matches these column names case-insensitively but in English only
     const headers = ['First Name', 'Last Name', 'Category', 'Status', 'Case', 'Notes', 'Connections'];
     const rows = people.map(person => [
       person.first_name || '',
@@ -302,14 +305,14 @@ const PeopleTableView = ({
               className="px-4 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Quick Add</span>
+              <span>{t('peopleTableView.quickAdd')}</span>
             </button>
             <button
               onClick={() => setShowBulkRelationships(true)}
               className="px-4 py-2 bg-gradient-secondary text-white rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
             >
               <LinkIcon className="w-4 h-4" />
-              <span>Bulk Relationships</span>
+              <span>{t('peopleTableView.bulkRelationships')}</span>
             </button>
 
             <button
@@ -317,7 +320,7 @@ const PeopleTableView = ({
               className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-slate-300 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
             >
               <Upload className="w-4 h-4" />
-              <span>Import CSV</span>
+              <span>{t('peopleTableView.importCsv')}</span>
             </button>
 
             <button
@@ -325,7 +328,7 @@ const PeopleTableView = ({
               className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-slate-300 rounded-lg hover:shadow-md transition-all flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
-              <span>Export CSV</span>
+              <span>{t('peopleTableView.exportCsv')}</span>
             </button>
 
             <input
@@ -341,7 +344,7 @@ const PeopleTableView = ({
             <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-lg">
               <Check className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">
-                {selectedRows.size} selected
+                {t('peopleTableView.selectedCount', { count: selectedRows.size })}
               </span>
               <button
                 onClick={() => setSelectedRows(new Set())}
@@ -360,14 +363,14 @@ const PeopleTableView = ({
           <div className="flex items-center space-x-3">
             <input
               type="text"
-              placeholder="First Name *"
+              placeholder={t('peopleTableView.firstNameRequiredPlaceholder')}
               value={quickAddData.firstName}
               onChange={(e) => setQuickAddData({ ...quickAddData, firstName: e.target.value })}
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <input
               type="text"
-              placeholder="Last Name"
+              placeholder={t('peopleTableView.lastNamePlaceholder')}
               value={quickAddData.lastName}
               onChange={(e) => setQuickAddData({ ...quickAddData, lastName: e.target.value })}
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -392,7 +395,7 @@ const PeopleTableView = ({
             </select>
             <input
               type="text"
-              placeholder="Case Name"
+              placeholder={t('peopleTableView.caseNamePlaceholder')}
               value={quickAddData.caseName}
               onChange={(e) => setQuickAddData({ ...quickAddData, caseName: e.target.value })}
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -402,7 +405,7 @@ const PeopleTableView = ({
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center space-x-2"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Add</span>
+              <span>{t('common.add')}</span>
             </button>
             <button
               onClick={() => setShowQuickAdd(false)}
@@ -419,7 +422,7 @@ const PeopleTableView = ({
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Bulk Import Preview</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{t('peopleTableView.bulkImportPreview')}</h3>
               <button
                 onClick={() => setBulkImportMode(false)}
                 className="text-gray-600 dark:text-slate-400 hover:text-gray-800"
@@ -432,9 +435,9 @@ const PeopleTableView = ({
               <div className="flex items-start space-x-2">
                 <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">CSV Format:</p>
-                  <p>First Name, Last Name, Category, Status, Case, Notes, Aliases</p>
-                  <p className="text-xs mt-1 text-blue-600">Aliases should be separated by semicolons (;)</p>
+                  <p className="font-medium mb-1">{t('peopleTableView.csvFormatLabel')}</p>
+                  <p>{t('peopleTableView.csvFormatColumns')}</p>
+                  <p className="text-xs mt-1 text-blue-600">{t('peopleTableView.csvAliasesHint')}</p>
                 </div>
               </div>
             </div>
@@ -443,7 +446,7 @@ const PeopleTableView = ({
               value={bulkData}
               onChange={(e) => setBulkData(e.target.value)}
               className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Paste CSV data here..."
+              placeholder={t('peopleTableView.csvPastePlaceholder')}
             />
 
             <div className="flex items-center justify-end space-x-3 mt-4">
@@ -451,14 +454,14 @@ const PeopleTableView = ({
                 onClick={() => setBulkImportMode(false)}
                 className="px-4 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={processBulkImport}
                 className="px-6 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
               >
                 <Upload className="w-4 h-4" />
-                <span>Import {bulkData.split('\n').length - 1} People</span>
+                <span>{t('peopleTableView.importNPeople', { count: bulkData.split('\n').length - 1 })}</span>
               </button>
             </div>
           </div>
@@ -479,12 +482,12 @@ const PeopleTableView = ({
                     className="rounded border-gray-300 dark:border-slate-600"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Category</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Case</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Connections</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnName')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCategory')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnStatus')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCase')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnConnections')}</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -513,14 +516,14 @@ const PeopleTableView = ({
                           value={editData.firstName}
                           onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
                           className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-24 text-sm"
-                          placeholder="First"
+                          placeholder={t('peopleTableView.firstPlaceholder')}
                         />
                         <input
                           type="text"
                           value={editData.lastName}
                           onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
                           className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-24 text-sm"
-                          placeholder="Last"
+                          placeholder={t('peopleTableView.lastPlaceholder')}
                         />
                       </div>
                     ) : (
@@ -574,7 +577,7 @@ const PeopleTableView = ({
                         value={editData.caseName}
                         onChange={(e) => setEditData({ ...editData, caseName: e.target.value })}
                         className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded w-full text-sm"
-                        placeholder="Case name"
+                        placeholder={t('peopleTableView.caseNameShortPlaceholder')}
                       />
                     ) : (
                       <span className="text-sm text-gray-600 dark:text-gray-400">{person.case_name || '-'}</span>
@@ -599,14 +602,14 @@ const PeopleTableView = ({
                           <button
                             onClick={() => handleSave(person.id)}
                             className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-all"
-                            title="Save"
+                            title={t('common.save')}
                           >
                             <Save className="w-4 h-4" />
                           </button>
                           <button
                             onClick={handleCancel}
                             className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded transition-all"
-                            title="Cancel"
+                            title={t('common.cancel')}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -616,28 +619,28 @@ const PeopleTableView = ({
                           <button
                             onClick={() => setSelectedPersonForDetail(person)}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-all"
-                            title="View Details"
+                            title={t('peopleList.viewDetails')}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(person)}
                             className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded transition-all"
-                            title="Quick Edit"
+                            title={t('peopleTableView.quickEdit')}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditingPerson(person)}
                             className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-all"
-                            title="Full Edit"
+                            title={t('peopleTableView.fullEdit')}
                           >
                             <Edit2 className="w-4 h-4" fill="currentColor" />
                           </button>
                           <button
                             onClick={() => handleDelete(person.id)}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-all"
-                            title="Delete"
+                            title={t('common.delete')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -653,7 +656,7 @@ const PeopleTableView = ({
           {people.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <UserPlus className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-slate-500" />
-              <p>No people added yet. Click "Quick Add" to get started!</p>
+              <p>{t('peopleTableView.noPeopleYet')}</p>
             </div>
           )}
         </div>
