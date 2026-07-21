@@ -339,5 +339,55 @@
     "confirmDeleteTransaction": "Delete this transaction?",
     "errorDeleteTransaction": "Failed to delete: {{message}}",
     "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
+  "personForm": {
+    "editTitle": "Edit Person",
+    "addTitle": "Add New Person",
+    "optionsLoadError": "Some options failed to load. Categories and connection types may be incomplete.",
+    "firstNameRequired": "First Name *",
+    "lastName": "Last Name",
+    "dateOfBirth": "Date of Birth",
+    "category": "Category",
+    "selectCategory": "Select Category",
+    "status": "Status",
+    "selectStatus": "Select Status",
+    "crmStatus": "CRM Status",
+    "selectCrmStatus": "Select CRM Status",
+    "caseName": "Case Name",
+    "caseNamePlaceholder": "Enter or select case name",
+    "newCaseWillBeCreated": "New case will be created",
+    "similarCases": "Similar cases:",
+    "profilePictureUrl": "Profile Picture URL",
+    "notes": "Notes",
+    "notesOptionalPlaceholder": "Notes (optional)",
+    "aliases": "Aliases",
+    "addAliasPlaceholder": "Add an alias",
+    "updatePerson": "Update Person",
+    "createPerson": "Create Person",
+    "errorSavePerson": "Failed to save person: {{message}}",
+    "locations": {
+      "label": "Locations",
+      "streetAddress": "Street Address",
+      "city": "City",
+      "stateProvince": "State/Province",
+      "country": "Country",
+      "postalCode": "Postal Code",
+      "addLocation": "Add Location"
+    },
+    "osint": {
+      "label": "OSINT Data",
+      "value": "Value"
+    },
+    "connections": {
+      "label": "Connections",
+      "selectPerson": "Select a person",
+      "notesPlaceholder": "Connection notes (optional)",
+      "addConnection": "Add Connection",
+      "unknownPerson": "Unknown"
+    },
+    "customFields": {
+      "label": "Custom Fields",
+      "selectFieldValue": "Select {{fieldLabel}}"
+    }
   }
 }

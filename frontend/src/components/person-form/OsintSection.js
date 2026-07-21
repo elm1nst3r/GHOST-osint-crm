@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 
 const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
+  const { t } = useTranslation();
   const [newItem, setNewItem] = useState({ type: osintDataTypes[0]?.value || 'Email', value: '', notes: '' });
 
   const add = () => {
@@ -14,7 +16,7 @@ const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">OSINT Data</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.osint.label')}</label>
 
       <div className="space-y-2 mb-2">
         <div className="flex space-x-2">
@@ -23,24 +25,24 @@ const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
             onChange={e => setNewItem({ ...newItem, type: e.target.value })}
             className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600"
           >
-            {osintDataTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {osintDataTypes.map(ot => <option key={ot.value} value={ot.value}>{ot.label}</option>)}
           </select>
           <input
             type="text"
             value={newItem.value}
             onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-            placeholder="Value"
+            placeholder={t('personForm.osint.value')}
             className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600"
           />
           <input
             type="text"
             value={newItem.notes}
             onChange={e => setNewItem({ ...newItem, notes: e.target.value })}
-            placeholder="Notes (optional)"
+            placeholder={t('personForm.notesOptionalPlaceholder')}
             className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600"
           />
           <button type="button" onClick={add} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            Add
+            {t('common.add')}
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
 import React, { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 
 const ConnectionsSection = ({ connections, connectionTypes, people, currentPersonId, onChange }) => {
+  const { t } = useTranslation();
   const selectRef = useRef();
   const typeRef = useRef();
   const noteRef = useRef();
@@ -23,28 +25,28 @@ const ConnectionsSection = ({ connections, connectionTypes, people, currentPerso
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Connections</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.connections.label')}</label>
 
       <div className="space-y-2 mb-2">
         <div className="flex space-x-2">
           <select ref={selectRef} className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600">
-            <option value="">Select a person</option>
+            <option value="">{t('personForm.connections.selectPerson')}</option>
             {people.filter(p => !currentPersonId || p.id !== currentPersonId).map(p => (
               <option key={p.id} value={p.id}>{p.first_name} {p.last_name || ''}</option>
             ))}
           </select>
           <select ref={typeRef} defaultValue={connectionTypes[0]?.value || 'associate'} className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600">
-            {connectionTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {connectionTypes.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
           </select>
         </div>
         <input
           type="text"
           ref={noteRef}
-          placeholder="Connection notes (optional)"
+          placeholder={t('personForm.connections.notesPlaceholder')}
           className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
         />
         <button type="button" onClick={add} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-          Add Connection
+          {t('personForm.connections.addConnection')}
         </button>
       </div>
 
@@ -55,10 +57,10 @@ const ConnectionsSection = ({ connections, connectionTypes, people, currentPerso
             <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
               <div>
                 <span className="font-medium">
-                  {person ? `${person.first_name} ${person.last_name || ''}` : 'Unknown'}
+                  {person ? `${person.first_name} ${person.last_name || ''}` : t('personForm.connections.unknownPerson')}
                 </span>
                 <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                  ({connectionTypes.find(t => t.value === conn.type)?.label || conn.type})
+                  ({connectionTypes.find(ct => ct.value === conn.type)?.label || conn.type})
                 </span>
                 {conn.note && <p className="text-sm text-gray-600 dark:text-gray-400">{conn.note}</p>}
               </div>

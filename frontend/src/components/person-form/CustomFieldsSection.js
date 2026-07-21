@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const CustomFieldsSection = ({ customFields, values, onChange }) => {
+  const { t } = useTranslation();
   const active = customFields.filter(f => f.is_active);
   if (active.length === 0) return null;
 
@@ -10,7 +12,7 @@ const CustomFieldsSection = ({ customFields, values, onChange }) => {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Custom Fields</h3>
+      <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personForm.customFields.label')}</h3>
       <div className="space-y-4">
         {active.map(field => (
           <div key={field.id}>
@@ -20,7 +22,7 @@ const CustomFieldsSection = ({ customFields, values, onChange }) => {
             )}
             {field.field_type === 'select' && (
               <select value={values[field.field_name] || ''} onChange={e => set(field.field_name, e.target.value)} className={inputClass}>
-                <option value="">Select {field.field_label}</option>
+                <option value="">{t('personForm.customFields.selectFieldValue', { fieldLabel: field.field_label })}</option>
                 {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             )}
