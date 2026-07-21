@@ -1,5 +1,6 @@
 // File: frontend/src/components/AssetDetailModal.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, X, Edit2, MapPin, User, Hash } from 'lucide-react';
 import { assetsAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
@@ -7,6 +8,7 @@ import ChainOfCustodyTimeline from './ChainOfCustodyTimeline';
 import { formatMoney, formatDate, prettyType } from '../utils/transactionFormat';
 
 const AssetDetailModal = ({ asset: initial, onClose }) => {
+  const { t } = useTranslation();
   const { setEditingAsset } = useUI();
   const [asset, setAsset] = useState(initial);
   const [tab, setTab] = useState('details');
@@ -35,8 +37,8 @@ const AssetDetailModal = ({ asset: initial, onClose }) => {
         </div>
 
         <div className="border-b border-gray-200 dark:border-gray-700 flex">
-          {['details', 'custody'].map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === t ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{t === 'custody' ? 'Chain of Custody' : t}</button>
+          {['details', 'custody'].map(tabId => (
+            <button key={tabId} onClick={() => setTab(tabId)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === tabId ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tabId === 'custody' ? t('assetDetailModal.chainOfCustodyTab') : t('propertyDetailModal.tab_details')}</button>
           ))}
         </div>
 
@@ -44,22 +46,22 @@ const AssetDetailModal = ({ asset: initial, onClose }) => {
           {tab === 'details' && (
             <div className="space-y-4 text-sm">
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 flex items-center">
-                <User className="w-4 h-4 mr-2" />Current holder: <strong className="ml-1">{asset.current_holder ? asset.current_holder.label : 'None'}</strong>
-                {asset.holder_since ? <span className="ml-1">(since {formatDate(asset.holder_since)})</span> : null}
+                <User className="w-4 h-4 mr-2" />{t('assetDetailModal.currentHolder')} <strong className="ml-1">{asset.current_holder ? asset.current_holder.label : t('assetDetailModal.noneValue')}</strong>
+                {asset.holder_since ? <span className="ml-1">{t('propertyDetailModal.sinceDate', { date: formatDate(asset.holder_since) })}</span> : null}
               </div>
               {asset.identifier && <div className="flex items-center text-gray-700 dark:text-gray-300"><Hash className="w-4 h-4 mr-2 text-gray-400" />{asset.identifier}</div>}
-              {asset.estimated_value != null && <div className="text-gray-700 dark:text-gray-300">Estimated value: {formatMoney(asset.estimated_value, asset.currency)}</div>}
+              {asset.estimated_value != null && <div className="text-gray-700 dark:text-gray-300">{t('assetDetailModal.estimatedValue', { value: formatMoney(asset.estimated_value, asset.currency) })}</div>}
               <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><MapPin className="w-3 h-3 mr-1" />Resolved location ({prettyType(asset.location_mode)})</div>
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><MapPin className="w-3 h-3 mr-1" />{t('assetDetailModal.resolvedLocation', { mode: prettyType(asset.location_mode) })}</div>
                 {loc && loc.latitude != null ? (
-                  <div className="text-gray-800 dark:text-gray-200">{loc.label || 'Located'} · {Number(loc.latitude).toFixed(4)}, {Number(loc.longitude).toFixed(4)} <span className="text-xs text-gray-500">({loc.source})</span></div>
-                ) : <div className="text-gray-500 dark:text-gray-400">Location unknown</div>}
+                  <div className="text-gray-800 dark:text-gray-200">{loc.label || t('assetDetailModal.located')} · {Number(loc.latitude).toFixed(4)}, {Number(loc.longitude).toFixed(4)} <span className="text-xs text-gray-500">({loc.source})</span></div>
+                ) : <div className="text-gray-500 dark:text-gray-400">{t('assetDetailModal.locationUnknown')}</div>}
               </div>
-              {asset.description && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">Description</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{asset.description}</p></div>}
-              {asset.notes && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">Notes</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{asset.notes}</p></div>}
+              {asset.description && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">{t('propertyDetailModal.descriptionLabel')}</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{asset.description}</p></div>}
+              {asset.notes && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">{t('propertyDetailModal.notesLabel')}</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{asset.notes}</p></div>}
             </div>
           )}
-          {tab === 'custody' && <ChainOfCustodyTimeline chain={asset.chain_of_custody || []} emptyText="No custody movements recorded." />}
+          {tab === 'custody' && <ChainOfCustodyTimeline chain={asset.chain_of_custody || []} emptyText={t('assetDetailModal.noCustodyMovements')} />}
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 // File: frontend/src/components/TransactionDetailModal.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Receipt, X, Edit2, ArrowRight, MapPin, Calendar, FileText } from 'lucide-react';
 import { transactionsAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
@@ -13,6 +14,7 @@ const Field = ({ label, children }) => (
 );
 
 const TransactionDetailModal = ({ transaction: initial, onClose }) => {
+  const { t: translate } = useTranslation();
   const { setEditingTransaction } = useUI();
   const [t, setT] = useState(initial);
 
@@ -45,11 +47,11 @@ const TransactionDetailModal = ({ transaction: initial, onClose }) => {
             <span className="font-semibold">{partyText(t.resolved_to)}</span>
           </div>
           <div>
-            <Field label="Date"><span className="inline-flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" />{formatDate(t.occurred_on)}</span></Field>
-            <Field label="Value">{formatMoney(t.value, t.currency)}</Field>
-            <Field label="Subject">{subjectText(t.resolved_subject)}{t.resolved_subject?.type && t.resolved_subject.type !== 'item' ? ` (${t.resolved_subject.type})` : ''}</Field>
-            {t.item_category && <Field label="Item category">{prettyType(t.item_category)}</Field>}
-            <Field label="Location">
+            <Field label={translate('transactionDetailModal.dateLabel')}><span className="inline-flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" />{formatDate(t.occurred_on)}</span></Field>
+            <Field label={translate('transactionTable.columnValue')}>{formatMoney(t.value, t.currency)}</Field>
+            <Field label={translate('transactionTable.columnSubject')}>{subjectText(t.resolved_subject)}{t.resolved_subject?.type && t.resolved_subject.type !== 'item' ? ` (${t.resolved_subject.type})` : ''}</Field>
+            {t.item_category && <Field label={translate('transactionDetailModal.itemCategoryLabel')}>{prettyType(t.item_category)}</Field>}
+            <Field label={translate('transactionDetailModal.locationLabel')}>
               {loc && loc.type !== 'none' ? (
                 <span className="inline-flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />{loc.label || prettyType(loc.type)}</span>
               ) : '—'}
@@ -57,7 +59,7 @@ const TransactionDetailModal = ({ transaction: initial, onClose }) => {
           </div>
           {t.notes && (
             <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><FileText className="w-3 h-3 mr-1" />Notes</div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><FileText className="w-3 h-3 mr-1" />{translate('propertyDetailModal.notesLabel')}</div>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{t.notes}</p>
             </div>
           )}

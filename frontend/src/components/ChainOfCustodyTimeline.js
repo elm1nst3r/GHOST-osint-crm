@@ -1,13 +1,15 @@
 // File: frontend/src/components/ChainOfCustodyTimeline.js
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 import { formatDate, formatMoney, partyText, prettyType, typeBadgeClass } from '../utils/transactionFormat';
 
 // Renders an ordered chain-of-custody / ownership timeline.
 // `chain` items: { transaction_id, occurred_on, transaction_type, from, to, value, currency }
-const ChainOfCustodyTimeline = ({ chain = [], emptyText = 'No custody history yet.' }) => {
+const ChainOfCustodyTimeline = ({ chain = [], emptyText }) => {
+  const { t } = useTranslation();
   if (!chain.length) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">{emptyText}</p>;
+    return <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">{emptyText ?? t('chainOfCustody.noHistory')}</p>;
   }
   return (
     <ol className="relative border-l border-gray-200 dark:border-gray-700 ml-3">

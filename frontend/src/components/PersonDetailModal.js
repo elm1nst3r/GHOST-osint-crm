@@ -1,5 +1,6 @@
 // File: frontend/src/components/PersonDetailModal.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Briefcase, Tag, Network, FileText, Trash2 } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
@@ -11,6 +12,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const PersonDetailModal = () => {
+  const { t } = useTranslation();
   const { people, customFields } = useData();
   const { selectedPersonForDetail, setSelectedPersonForDetail, setEditingPerson } = useUI();
   // Resolve full record (callers may pass a partial { id }).
@@ -31,7 +33,7 @@ const PersonDetailModal = () => {
   }, [person?.id]);
 
   const handleDeleteLocation = async (index) => {
-    if (!window.confirm('Remove this location?')) return;
+    if (!window.confirm(t('personDetailModal.confirmRemoveLocation'))) return;
     try {
       const res = await fetch(`/api/people/${person.id}/locations/${index}`, {
         method: 'DELETE',
@@ -40,10 +42,10 @@ const PersonDetailModal = () => {
       if (res.ok) {
         setLocations(prev => prev.filter((_, i) => i !== index));
       } else {
-        alert('Failed to delete location');
+        alert(t('personDetailModal.errorDeleteLocation'));
       }
     } catch {
-      alert('Failed to delete location');
+      alert(t('personDetailModal.errorDeleteLocation'));
     }
   };
   // Removed: const [riskSummary, setRiskSummary] = useState(null);
@@ -145,15 +147,15 @@ const PersonDetailModal = () => {
                   )}
                 </h2>
                 {person.aliases && person.aliases.length > 0 && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">AKA: {person.aliases.join(', ')}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
                 )}
               </div>
             </div>
             <div className="flex space-x-2">
-              <button 
-                onClick={() => setShowReportGenerator(true)} 
+              <button
+                onClick={() => setShowReportGenerator(true)}
                 className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-accent-success hover:bg-green-600 dark:bg-green-500 hover:text-white transition-all duration-300"
-                title="Generate Report"
+                title={t('personDetailModal.generateReportTitle')}
               >
                 <FileText className="w-5 h-5" />
               </button>
@@ -180,12 +182,12 @@ const PersonDetailModal = () => {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-6 py-3 font-medium text-sm border-b-2 capitalize transition-all duration-300 ${
-                    activeTab === tab 
-                      ? 'border-accent-primary text-blue-600 dark:text-blue-400 bg-gradient-to-t from-white/5 to-transparent' 
+                    activeTab === tab
+                      ? 'border-accent-primary text-blue-600 dark:text-blue-400 bg-gradient-to-t from-white/5 to-transparent'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  {tab}
+                  {t(`personDetailModal.tab_${tab}`)}
                   {tab === 'relationships' && connectedPeople.length > 0 && (
                     <span className="ml-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400">
                       {connectedPeople.length}
@@ -206,20 +208,20 @@ const PersonDetailModal = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                         <User className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-                        Basic Information
+                        {t('personDetailModal.basicInformation')}
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
                         <div className="flex justify-between">
-                          <span className="font-medium text-gray-600 dark:text-gray-400">First Name:</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.first_name || 'N/A'}</span>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.firstNameLabel')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.first_name || t('personDetailModal.notAvailable')}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="font-medium text-gray-600 dark:text-gray-400">Last Name:</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.last_name || 'N/A'}</span>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.lastNameLabel')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.last_name || t('personDetailModal.notAvailable')}</span>
                         </div>
                         {person.date_of_birth && (
                           <div className="flex justify-between">
-                            <span className="font-medium text-gray-600 dark:text-gray-400">Date of Birth:</span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.dateOfBirthLabel')}</span>
                             <span className="font-semibold text-gray-900 dark:text-gray-100">{new Date(person.date_of_birth).toLocaleDateString()}</span>
                           </div>
                         )}
@@ -229,47 +231,47 @@ const PersonDetailModal = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                         <Tag className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-                        Classification
+                        {t('personDetailModal.classification')}
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
                         <div className="flex justify-between">
-                          <span className="font-medium text-gray-600 dark:text-gray-400">Category:</span>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.categoryLabel')}</span>
                           <span className="px-3 py-1 bg-blue-600 text-white dark:bg-blue-500 rounded-lg text-sm font-medium">
-                            {person.category || 'N/A'}
+                            {person.category || t('personDetailModal.notAvailable')}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="font-medium text-gray-600 dark:text-gray-400">Status:</span>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.statusLabel')}</span>
                           <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
                             person.status === 'Open' ? 'bg-green-600 dark:bg-green-500 text-white' :
                             person.status === 'Being Investigated' ? 'bg-gradient-warning text-white' :
                             person.status === 'Closed' ? 'glass text-gray-800 dark:text-slate-200' :
                             'bg-blue-600 text-white dark:bg-blue-500'
                           }`}>
-                            {person.status || 'N/A'}
+                            {person.status || t('personDetailModal.notAvailable')}
                           </span>
                         </div>
                         {person.crm_status && (
                           <div className="flex justify-between">
-                            <span className="font-medium text-gray-600 dark:text-gray-400">CRM Status:</span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.crmStatusLabel')}</span>
                             <span className="font-semibold text-gray-900 dark:text-gray-100">{person.crm_status}</span>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Case and Additional Info */}
                   <div className="space-y-4">
                     {person.case_name && (
                       <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                           <Briefcase className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-                          Case Information
+                          {t('personDetailModal.caseInformation')}
                         </h3>
                         <div className="glass rounded-lg-lg p-4">
                           <div className="flex justify-between">
-                            <span className="font-medium text-gray-600 dark:text-gray-400">Case Name:</span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.caseNameLabel')}</span>
                             <span className="text-blue-600 dark:text-blue-400 font-semibold">{person.case_name}</span>
                           </div>
                         </div>
@@ -279,18 +281,18 @@ const PersonDetailModal = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                         <Network className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-                        Connection Summary
+                        {t('personDetailModal.connectionSummary')}
                       </h3>
                       <div className="glass rounded-lg-lg p-4">
                         <div className="text-center">
                           <div className="text-3xl font-bold bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">{connectedPeople.length}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Connections</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('personDetailModal.totalConnections')}</div>
                         </div>
                         {connectedPeople.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                             <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">Outgoing: <span className="text-blue-600 dark:text-blue-400">{connectedPeople.filter(c => c.direction === 'outgoing').length}</span></div>
-                              <div className="font-medium text-gray-900 dark:text-gray-100">Incoming: <span className="text-accent-secondary">{connectedPeople.filter(c => c.direction === 'incoming').length}</span></div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.outgoingLabel')} <span className="text-blue-600 dark:text-blue-400">{connectedPeople.filter(c => c.direction === 'outgoing').length}</span></div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.incomingLabel')} <span className="text-accent-secondary">{connectedPeople.filter(c => c.direction === 'incoming').length}</span></div>
                             </div>
                           </div>
                         )}
@@ -302,17 +304,17 @@ const PersonDetailModal = () => {
                 {/* Notes */}
                 {person.notes && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Notes</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('propertyDetailModal.notesLabel')}</h3>
                     <div className="glass rounded-lg-lg p-4">
                       <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{person.notes}</p>
                     </div>
                   </div>
                 )}
-                
+
                 {/* OSINT Data */}
                 {person.osint_data && person.osint_data.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">OSINT Data</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.osintData')}</h3>
                     <div className="space-y-2">
                       {person.osint_data.map((osint, index) => (
                         <div key={index} className="flex items-center space-x-3 p-3 glass rounded-lg hover:bg-gray-100 dark:bg-gray-700 transition-all duration-300">
@@ -332,7 +334,7 @@ const PersonDetailModal = () => {
                 {/* Custom Fields */}
                 {person.custom_fields && Object.keys(person.custom_fields).length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Custom Fields</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.customFields')}</h3>
                     <div className="space-y-2">
                       {Object.entries(person.custom_fields).map(([key, value]) => {
                         const fieldDef = customFields.find(f => f.field_name === key);
@@ -363,7 +365,7 @@ const PersonDetailModal = () => {
               <div className="p-6">
                 {locations.length > 0 ? (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Locations</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.locationsTitle')}</h3>
                     <div className="space-y-3">
                       {locations.map((location, index) => (
                         <div key={index} className="p-4 glass rounded-lg">
@@ -386,7 +388,7 @@ const PersonDetailModal = () => {
                             <button
                               onClick={() => handleDeleteLocation(index)}
                               className="ml-3 p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150 flex-shrink-0"
-                              title="Remove location"
+                              title={t('personDetailModal.removeLocationTitle')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -397,7 +399,7 @@ const PersonDetailModal = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    No location data available
+                    {t('personDetailModal.noLocationData')}
                   </div>
                 )}
               </div>
@@ -415,21 +417,21 @@ const PersonDetailModal = () => {
             {activeTab === 'transactions' && (
               <div className="p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Received</h3>
-                  <TransactionTable transactions={personTransactions.filter(t => t.direction === 'received')} emptyText="Nothing received." />
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.receivedTitle')}</h3>
+                  <TransactionTable transactions={personTransactions.filter(txn => txn.direction === 'received')} emptyText={t('personDetailModal.nothingReceived')} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Given</h3>
-                  <TransactionTable transactions={personTransactions.filter(t => t.direction === 'given')} emptyText="Nothing given." />
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.givenTitle')}</h3>
+                  <TransactionTable transactions={personTransactions.filter(txn => txn.direction === 'given')} emptyText={t('personDetailModal.nothingGiven')} />
                 </div>
               </div>
             )}
 
             {activeTab === 'assets' && (
               <div className="p-6">
-                <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Assets Currently Held</h3>
+                <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.assetsCurrentlyHeld')}</h3>
                 {personAssets.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No assets currently held.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">{t('personDetailModal.noAssetsHeld')}</p>
                 ) : (
                   <div className="space-y-2">
                     {personAssets.map(a => (

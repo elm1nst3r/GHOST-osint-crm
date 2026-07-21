@@ -1,5 +1,6 @@
 // File: frontend/src/components/PropertyDetailModal.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Landmark, X, Edit2, MapPin, User, FileText } from 'lucide-react';
 import { propertiesAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
@@ -9,6 +10,7 @@ import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
 
 const PropertyDetailModal = ({ property: initial, onClose }) => {
+  const { t } = useTranslation();
   const { setEditingProperty } = useUI();
   const [property, setProperty] = useState(initial);
   const [tab, setTab] = useState('details');
@@ -35,15 +37,15 @@ const PropertyDetailModal = ({ property: initial, onClose }) => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title="Ledger report"><FileText className="w-5 h-5" /></button>
+              <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title={t('businessDetailModal.ledgerReportTitle')}><FileText className="w-5 h-5" /></button>
               <button onClick={() => { onClose(); setEditingProperty(property); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
               <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
           </div>
 
           <div className="border-b border-gray-200 dark:border-gray-700 flex">
-            {tabs.map(t => (
-              <button key={t} onClick={() => setTab(t)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === t ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{t}</button>
+            {tabs.map(tabId => (
+              <button key={tabId} onClick={() => setTab(tabId)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === tabId ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{t(`propertyDetailModal.tab_${tabId}`)}</button>
             ))}
           </div>
 
@@ -54,19 +56,19 @@ const PropertyDetailModal = ({ property: initial, onClose }) => {
                   <div className="flex items-start text-gray-700 dark:text-gray-300"><MapPin className="w-4 h-4 mr-2 mt-0.5 text-gray-400" /><span>{[property.address, property.city, property.state, property.country, property.postal_code].filter(Boolean).join(', ')}</span></div>
                 )}
                 {property.owner_name && property.owner_name.trim() && (
-                  <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 mr-2 text-gray-400" />Quick owner: {property.owner_name}</div>
+                  <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 mr-2 text-gray-400" />{t('propertyDetailModal.quickOwner', { name: property.owner_name })}</div>
                 )}
                 {property.derived_current_owner && (
                   <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
-                    Derived current owner: <strong>{property.derived_current_owner.label}</strong>{property.derived_owner_since ? ` (since ${new Date(property.derived_owner_since).toLocaleDateString()})` : ''}
+                    {t('propertyDetailModal.derivedCurrentOwner')} <strong>{property.derived_current_owner.label}</strong>{property.derived_owner_since ? ` ${t('propertyDetailModal.sinceDate', { date: new Date(property.derived_owner_since).toLocaleDateString() })}` : ''}
                   </div>
                 )}
-                {property.description && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">Description</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{property.description}</p></div>}
-                {property.notes && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">Notes</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{property.notes}</p></div>}
+                {property.description && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">{t('propertyDetailModal.descriptionLabel')}</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{property.description}</p></div>}
+                {property.notes && <div><h4 className="font-semibold text-gray-900 dark:text-white mb-1">{t('propertyDetailModal.notesLabel')}</h4><p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{property.notes}</p></div>}
               </div>
             )}
-            {tab === 'custody' && <ChainOfCustodyTimeline chain={property.chain_of_custody || []} emptyText="No ownership history yet." />}
-            {tab === 'activity' && <TransactionTable transactions={property.venue_transactions || []} emptyText="No events recorded at this property." />}
+            {tab === 'custody' && <ChainOfCustodyTimeline chain={property.chain_of_custody || []} emptyText={t('propertyDetailModal.noOwnershipHistory')} />}
+            {tab === 'activity' && <TransactionTable transactions={property.venue_transactions || []} emptyText={t('propertyDetailModal.noEventsRecorded')} />}
             {tab === 'ledger' && <EntityLedger entityType="properties" entityId={property.id} />}
           </div>
         </div>

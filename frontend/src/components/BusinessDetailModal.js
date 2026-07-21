@@ -1,5 +1,6 @@
 // File: frontend/src/components/BusinessDetailModal.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Building2, X, Edit2, Users, Calendar, FileText, MapPin } from 'lucide-react';
 import { transactionsAPI, ledgerAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
@@ -9,6 +10,7 @@ import ReportGenerator from './ReportGenerator';
 import { formatDate } from '../utils/transactionFormat';
 
 const BusinessDetailModal = ({ business, onClose }) => {
+  const { t } = useTranslation();
   const { setEditingBusiness, setSelectedPersonForDetail } = useUI();
   const [tab, setTab] = useState('venue');
   const [txns, setTxns] = useState([]);
@@ -35,15 +37,15 @@ const BusinessDetailModal = ({ business, onClose }) => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title="Ledger report"><FileText className="w-5 h-5" /></button>
+              <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title={t('businessDetailModal.ledgerReportTitle')}><FileText className="w-5 h-5" /></button>
               <button onClick={() => { onClose(); setEditingBusiness(business); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
               <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
           </div>
 
           <div className="border-b border-gray-200 dark:border-gray-700 flex">
-            {tabs.map(t => (
-              <button key={t} onClick={() => setTab(t)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === t ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{t === 'venue' ? 'Venue Activity' : t}</button>
+            {tabs.map(tabId => (
+              <button key={tabId} onClick={() => setTab(tabId)} className={`px-5 py-3 text-sm font-medium capitalize border-b-2 ${tab === tabId ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tabId === 'venue' ? t('businessDetailModal.venueActivityTab') : t(`businessDetailModal.tab_${tabId}`)}</button>
             ))}
           </div>
 
@@ -53,40 +55,40 @@ const BusinessDetailModal = ({ business, onClose }) => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="p-3 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
-                      <div className="text-xs text-cyan-700 dark:text-cyan-400 flex items-center"><Users className="w-3 h-3 mr-1" />Distinct people</div>
+                      <div className="text-xs text-cyan-700 dark:text-cyan-400 flex items-center"><Users className="w-3 h-3 mr-1" />{t('businessDetailModal.distinctPeople')}</div>
                       <div className="text-2xl font-bold text-cyan-700 dark:text-cyan-300">{venue.distinct_people}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Events</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('businessDetailModal.events')}</div>
                       <div className="text-2xl font-bold text-gray-900 dark:text-white">{venue.event_count}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />First</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />{t('businessDetailModal.first')}</div>
                       <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(venue.first_event)}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />Last</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />{t('businessDetailModal.last')}</div>
                       <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(venue.last_event)}</div>
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" />Associated people (ranked)</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" />{t('businessDetailModal.associatedPeopleRanked')}</h4>
                     {venue.people && venue.people.length ? (
                       <div className="space-y-2">
                         {venue.people.map(p => (
                           <button key={p.id} onClick={() => { onClose(); setSelectedPersonForDetail({ id: p.id }); }}
                             className="w-full flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-left">
                             <span className="text-gray-800 dark:text-gray-200">{p.label}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{p.event_count} event{p.event_count !== 1 ? 's' : ''}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{t('businessDetailModal.eventCount', { count: p.event_count })}</span>
                           </button>
                         ))}
                       </div>
-                    ) : <p className="text-sm text-gray-500 dark:text-gray-400">No venue activity recorded.</p>}
+                    ) : <p className="text-sm text-gray-500 dark:text-gray-400">{t('businessDetailModal.noVenueActivity')}</p>}
                   </div>
                 </div>
-              ) : <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">Loading venue activity…</p>
+              ) : <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">{t('businessDetailModal.loadingVenueActivity')}</p>
             )}
-            {tab === 'transactions' && <TransactionTable transactions={txns} showRole emptyText="No transactions involving this business." />}
+            {tab === 'transactions' && <TransactionTable transactions={txns} showRole emptyText={t('businessDetailModal.noTransactions')} />}
             {tab === 'ledger' && <EntityLedger entityType="businesses" entityId={business.id} />}
           </div>
         </div>

@@ -1,26 +1,28 @@
 // File: frontend/src/components/TransactionTable.js
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 import { formatDate, formatMoney, partyText, subjectText, prettyType, typeBadgeClass } from '../utils/transactionFormat';
 import { useUI } from '../contexts/UIContext';
 
 // Compact table for an array of decorated transactions (resolved_* fields present).
-const TransactionTable = ({ transactions = [], emptyText = 'No transactions.', showRole = false }) => {
+const TransactionTable = ({ transactions = [], emptyText, showRole = false }) => {
+  const { t } = useTranslation();
   const { setSelectedTransactionForDetail } = useUI();
   if (!transactions.length) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">{emptyText}</p>;
+    return <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">{emptyText ?? t('transactionTable.noTransactions')}</p>;
   }
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-            <th className="py-2 pr-3 font-medium">Date</th>
-            <th className="py-2 pr-3 font-medium">Type</th>
-            {showRole && <th className="py-2 pr-3 font-medium">Role</th>}
-            <th className="py-2 pr-3 font-medium">From → To</th>
-            <th className="py-2 pr-3 font-medium">Subject</th>
-            <th className="py-2 pr-3 font-medium text-right">Value</th>
+            <th className="py-2 pr-3 font-medium">{t('transactionTable.columnDate')}</th>
+            <th className="py-2 pr-3 font-medium">{t('transactionTable.columnType')}</th>
+            {showRole && <th className="py-2 pr-3 font-medium">{t('transactionTable.columnRole')}</th>}
+            <th className="py-2 pr-3 font-medium">{t('transactionTable.columnFromTo')}</th>
+            <th className="py-2 pr-3 font-medium">{t('transactionTable.columnSubject')}</th>
+            <th className="py-2 pr-3 font-medium text-right">{t('transactionTable.columnValue')}</th>
           </tr>
         </thead>
         <tbody>
