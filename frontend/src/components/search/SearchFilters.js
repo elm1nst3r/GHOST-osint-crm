@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, X, ChevronDown, ChevronUp, Calendar, MapPin,
   Tag, Network, Database,
@@ -14,6 +15,7 @@ const SearchFilters = ({
   cases, people, customFields, modelOptions,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const getCrmStatuses = () => modelOptions.filter(opt => opt.model_type === 'crm_status' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
   const getConnectionTypes = () => modelOptions.filter(opt => opt.model_type === 'connection_type' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
   const getLocationTypes = () => modelOptions.filter(opt => opt.model_type === 'location_type' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
@@ -24,7 +26,7 @@ const SearchFilters = ({
     <div className="flex items-center justify-between">
       <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center">
         <Search className="w-5 h-5 mr-2" />
-        Advanced Search
+        {t('searchFilters.advancedSearch')}
       </h2>
       <button onClick={onClose} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
         <X className="w-5 h-5" />
@@ -41,29 +43,29 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <Search className="w-4 h-4 mr-2" />
-          Basic Search
+          {t('searchFilters.basicSearch')}
         </span>
         {expandedSections.basic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.basic && (
         <div className="px-4 pb-4 space-y-3">
           <input
             type="text"
-            placeholder="Search text..."
+            placeholder={t('searchFilters.searchTextPlaceholder')}
             value={searchParams.searchText}
             onChange={(e) => setSearchParams({ ...searchParams, searchText: e.target.value })}
             className="w-full px-3 py-2 border rounded-md"
           />
-          
+
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Search in:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.searchInLabel')}</label>
             <div className="space-y-2">
               {[
-                { value: 'name', label: 'Names' },
-                { value: 'aliases', label: 'Aliases' },
-                { value: 'notes', label: 'Notes' },
-                { value: 'osint', label: 'OSINT Data' }
+                { value: 'name', label: t('searchFilters.searchInNames') },
+                { value: 'aliases', label: t('searchFilters.searchInAliases') },
+                { value: 'notes', label: t('propertyDetailModal.notesLabel') },
+                { value: 'osint', label: t('personDetailModal.osintData') }
               ].map(option => (
                 <label key={option.value} className="flex items-center space-x-2">
                   <input
@@ -101,15 +103,15 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <Tag className="w-4 h-4 mr-2" />
-          Categories & Status
+          {t('searchFilters.categoriesAndStatus')}
         </span>
         {expandedSections.categories ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.categories && (
         <div className="px-4 pb-4 space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Categories:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.categoriesLabel')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {PERSON_CATEGORIES.map(cat => (
                 <label key={cat.value} className="flex items-center space-x-2">
@@ -138,7 +140,7 @@ const SearchFilters = ({
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Status:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('personDetailModal.statusLabel')}</label>
             <div className="space-y-1">
               {PERSON_STATUSES.map(status => (
                 <label key={status.value} className="flex items-center space-x-2">
@@ -167,7 +169,7 @@ const SearchFilters = ({
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">CRM Status:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.crmStatusLabel')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {getCrmStatuses().map(status => (
                 <label key={status.id} className="flex items-center space-x-2">
@@ -196,7 +198,7 @@ const SearchFilters = ({
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Cases:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.casesLabel')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {cases.map(caseItem => (
                 <label key={caseItem.id} className="flex items-center space-x-2">
@@ -235,30 +237,30 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <Calendar className="w-4 h-4 mr-2" />
-          Date Filters
+          {t('searchFilters.dateFiltersTitle')}
         </span>
         {expandedSections.dates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.dates && (
         <div className="px-4 pb-4 space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Filter by:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.filterByLabel')}</label>
             <select
               value={searchParams.dateFilter}
               onChange={(e) => setSearchParams({ ...searchParams, dateFilter: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="all">All Dates</option>
-              <option value="created">Created Date</option>
-              <option value="updated">Updated Date</option>
+              <option value="all">{t('searchFilters.allDates')}</option>
+              <option value="created">{t('searchResults.sortCreatedDate')}</option>
+              <option value="updated">{t('searchResults.sortUpdatedDate')}</option>
             </select>
           </div>
-          
+
           {searchParams.dateFilter !== 'all' && (
             <>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">From:</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.fromLabel')}</label>
                 <input
                   type="date"
                   value={searchParams.dateFrom}
@@ -266,9 +268,9 @@ const SearchFilters = ({
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 />
               </div>
-              
+
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">To:</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.toLabel')}</label>
                 <input
                   type="date"
                   value={searchParams.dateTo}
@@ -281,7 +283,7 @@ const SearchFilters = ({
         </div>
       )}
     </div>
-    
+
     {/* Location Filters */}
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
       <button
@@ -290,32 +292,32 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <MapPin className="w-4 h-4 mr-2" />
-          Location Filters
+          {t('searchFilters.locationFiltersTitle')}
         </span>
         {expandedSections.locations ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.locations && (
         <div className="px-4 pb-4 space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Location contains:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.locationContainsLabel')}</label>
             <input
               type="text"
-              placeholder="City, state, address..."
+              placeholder={t('searchFilters.locationContainsPlaceholder')}
               value={searchParams.locationSearch}
               onChange={(e) => setSearchParams({ ...searchParams, locationSearch: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
-          
+
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Location Type:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.locationTypeLabel')}</label>
             <select
               value={searchParams.locationType}
               onChange={(e) => setSearchParams({ ...searchParams, locationType: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="">All Types</option>
+              <option value="">{t('searchFilters.allTypes')}</option>
               {getLocationTypes().map(type => (
                 <option key={type.id} value={type.option_value}>
                   {type.option_label}
@@ -335,32 +337,32 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <Network className="w-4 h-4 mr-2" />
-          Connection Filters
+          {t('searchFilters.connectionFiltersTitle')}
         </span>
         {expandedSections.connections ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.connections && (
         <div className="px-4 pb-4 space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Connected to:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.connectedToLabel')}</label>
             <input
               type="text"
-              placeholder="Person name..."
+              placeholder={t('searchFilters.personNamePlaceholder')}
               value={searchParams.connectedTo}
               onChange={(e) => setSearchParams({ ...searchParams, connectedTo: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
-          
+
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Connection Type:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.connectionTypeLabel')}</label>
             <select
               value={searchParams.connectionType}
               onChange={(e) => setSearchParams({ ...searchParams, connectionType: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="">All Types</option>
+              <option value="">{t('searchFilters.allTypes')}</option>
               {getConnectionTypes().map(type => (
                 <option key={type.id} value={type.option_value}>
                   {type.option_label}
@@ -371,7 +373,7 @@ const SearchFilters = ({
           
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Min connections:</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.minConnectionsLabel')}</label>
               <input
                 type="number"
                 value={searchParams.minConnections}
@@ -382,7 +384,7 @@ const SearchFilters = ({
             </div>
             
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">Max connections:</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.maxConnectionsLabel')}</label>
               <input
                 type="number"
                 value={searchParams.maxConnections}
@@ -404,15 +406,15 @@ const SearchFilters = ({
       >
         <span className="font-medium flex items-center">
           <Database className="w-4 h-4 mr-2" />
-          OSINT Data
+          {t('personDetailModal.osintData')}
         </span>
         {expandedSections.osint ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {expandedSections.osint && (
         <div className="px-4 pb-4 space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">OSINT Types:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.osintTypesLabel')}</label>
             <div className="space-y-1">
               {OSINT_DATA_TYPES.map(type => (
                 <label key={type.value} className="flex items-center space-x-2">
@@ -441,10 +443,10 @@ const SearchFilters = ({
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">OSINT Value contains:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.osintValueContainsLabel')}</label>
             <input
               type="text"
-              placeholder="Email, phone, username..."
+              placeholder={t('searchFilters.osintValuePlaceholder')}
               value={searchParams.osintValue}
               onChange={(e) => setSearchParams({ ...searchParams, osintValue: e.target.value })}
               className="w-full px-3 py-2 border rounded-md text-sm"
@@ -463,7 +465,7 @@ const SearchFilters = ({
         >
           <span className="font-medium flex items-center">
             <Tag className="w-4 h-4 mr-2" />
-            Custom Fields
+            {t('personDetailModal.customFields')}
           </span>
           {expandedSections.custom ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -487,7 +489,7 @@ const SearchFilters = ({
                     })}
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
-                    <option value="">All</option>
+                    <option value="">{t('settings.auditLogs.allOption')}</option>
                     {field.options?.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
@@ -523,21 +525,21 @@ const SearchFilters = ({
         {loading ? (
           <>
             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            Searching...
+            {t('searchFilters.searchingEllipsis')}
           </>
         ) : (
           <>
             <Search className="w-4 h-4 mr-2" />
-            Search
+            {t('searchFilters.searchButton')}
           </>
         )}
       </button>
-      
+
       <button
         onClick={resetFilters}
         className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200"
       >
-        Reset Filters
+        {t('searchFilters.resetFiltersButton')}
       </button>
     </div>
   </div>
