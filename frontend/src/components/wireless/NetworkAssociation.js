@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Save, X } from 'lucide-react';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100';
 
 const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
+  const { t } = useTranslation();
   const [associating, setAssociating] = useState(false);
   const [associationData, setAssociationData] = useState({
     person_id: network.person_id || '',
@@ -24,19 +26,19 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
 
   const personName = (id) => {
     const p = people.find(p => p.id === id);
-    return p ? `${p.first_name} ${p.last_name}` : 'Unknown';
+    return p ? `${p.first_name} ${p.last_name}` : t('wirelessNetworks.unknown');
   };
 
   return (
     <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Person Association</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('networkAssociation.personAssociation')}</h3>
         {!associating && !network.person_id && (
           <button
             onClick={() => setAssociating(true)}
             className="flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
           >
-            <User className="w-4 h-4" /><span>Associate Person</span>
+            <User className="w-4 h-4" /><span>{t('networkAssociation.associatePerson')}</span>
           </button>
         )}
       </div>
@@ -47,7 +49,7 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
             <div className="flex-1">
               <p className="text-sm font-medium text-purple-900 dark:text-purple-200">{personName(network.person_id)}</p>
               {network.association_confidence && (
-                <p className="text-xs text-purple-700 dark:text-purple-300 mt-1 capitalize">{network.association_confidence} confidence</p>
+                <p className="text-xs text-purple-700 dark:text-purple-300 mt-1 capitalize">{t('wirelessNetworkMap.confidenceSuffix', { level: network.association_confidence })}</p>
               )}
               {network.association_note && (
                 <p className="text-sm text-purple-800 dark:text-purple-200 mt-2 italic">"{network.association_note}"</p>
@@ -65,36 +67,36 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
       ) : associating ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Person</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('addLocationModal.selectPerson')}</label>
             <select name="person_id" value={associationData.person_id} onChange={handleChange} className={inputClass}>
-              <option value="">-- Select Person --</option>
+              <option value="">{t('networkAssociation.selectPersonPlaceholder')}</option>
               {people.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confidence Level</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('networkAssociation.confidenceLevel')}</label>
             <select name="association_confidence" value={associationData.association_confidence} onChange={handleChange} className={inputClass}>
-              <option value="investigating">Investigating</option>
-              <option value="possible">Possible</option>
-              <option value="probable">Probable</option>
-              <option value="confirmed">Confirmed</option>
+              <option value="investigating">{t('networkAssociation.confidenceInvestigating')}</option>
+              <option value="possible">{t('networkAssociation.confidencePossible')}</option>
+              <option value="probable">{t('networkAssociation.confidenceProbable')}</option>
+              <option value="confirmed">{t('networkAssociation.confidenceConfirmed')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Association Note</label>
-            <textarea name="association_note" value={associationData.association_note} onChange={handleChange} rows={3} placeholder="Why this network is associated with this person..." className={inputClass} />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('networkAssociation.associationNote')}</label>
+            <textarea name="association_note" value={associationData.association_note} onChange={handleChange} rows={3} placeholder={t('networkAssociation.associationNotePlaceholder')} className={inputClass} />
           </div>
           <div className="flex items-center justify-end space-x-3 pt-4">
             <button onClick={() => setAssociating(false)} disabled={saving} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button onClick={handleSave} disabled={saving || !associationData.person_id} className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50">
-              <Save className="w-4 h-4" /><span>{saving ? 'Saving...' : 'Save Association'}</span>
+              <Save className="w-4 h-4" /><span>{saving ? t('common.savingDots') : t('networkAssociation.saveAssociation')}</span>
             </button>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-gray-600 dark:text-gray-400">No person associated with this network</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{t('networkAssociation.noPersonAssociated')}</p>
       )}
     </div>
   );

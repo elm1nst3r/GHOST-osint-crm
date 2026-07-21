@@ -1,9 +1,11 @@
 // File: frontend/src/components/ImportKML.js
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Upload, FileText, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { wirelessNetworksAPI } from '../utils/api';
 
 const ImportKML = ({ onClose, onImportComplete }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -39,13 +41,13 @@ const ImportKML = ({ onClose, onImportComplete }) => {
   const handleFileSelect = async (selectedFile) => {
     // Validate file type
     if (!selectedFile.name.toLowerCase().endsWith('.kml')) {
-      setError('Please select a KML file (.kml)');
+      setError(t('importKmlModal.errorSelectKmlFile'));
       return;
     }
 
     // Validate file size (max 10MB)
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError('File size exceeds 10MB limit');
+      setError(t('importKmlModal.errorFileSizeExceeds'));
       return;
     }
 
@@ -67,7 +69,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
       // Check for parsing errors
       const parseError = xmlDoc.querySelector('parsererror');
       if (parseError) {
-        throw new Error('Invalid KML file format');
+        throw new Error(t('importKmlModal.errorInvalidKmlFormat'));
       }
 
       // Count placemarks (wireless networks)
@@ -134,7 +136,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
       setShowPreview(true);
     } catch (err) {
       console.error('Error generating preview:', err);
-      setError('Failed to parse KML file: ' + err.message);
+      setError(t('importKmlModal.errorParseKmlFile', { message: err.message }));
       setFile(null);
     }
   };
@@ -158,7 +160,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
   // Confirm and import KML file
   const handleConfirmImport = async () => {
     if (!file) {
-      setError('Please select a file first');
+      setError(t('importKmlModal.errorSelectFileFirst'));
       return;
     }
 
@@ -176,7 +178,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
       }, 2000);
     } catch (err) {
       console.error('Import error:', err);
-      setError(err.message || 'Failed to import KML file');
+      setError(err.message || t('importKmlModal.errorImportKmlFile'));
     } finally {
       setImporting(false);
     }
@@ -207,10 +209,10 @@ const ImportKML = ({ onClose, onImportComplete }) => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Import WiGLE KML File
+                {t('importKmlModal.title')}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                Upload your WiGLE wardriving export
+                {t('importKmlModal.subtitle')}
               </p>
             </div>
           </div>
@@ -259,10 +261,10 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                     </div>
                     <div>
                       <p className="text-base font-medium text-gray-900 dark:text-gray-100">
-                        Drop KML file here or click to browse
+                        {t('importKmlModal.dropHere')}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Maximum file size: 10MB
+                        {t('importKmlModal.maxFileSize')}
                       </p>
                     </div>
                   </div>
@@ -286,7 +288,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                         }}
                         className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                       >
-                        Choose different file
+                        {t('importKmlModal.chooseDifferentFile')}
                       </button>
                     </div>
                   </div>
@@ -300,10 +302,10 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                     <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Analyzing file...
+                        {t('importKmlModal.analyzingFile')}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Generating preview of networks to import
+                        {t('importKmlModal.generatingPreview')}
                       </p>
                     </div>
                   </div>
@@ -319,7 +321,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-red-900 dark:text-red-200">
-                    Import Error
+                    {t('importKmlModal.importErrorTitle')}
                   </p>
                   <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                     {error}
@@ -336,10 +338,10 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                 <Loader className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Importing wireless networks...
+                    {t('importKmlModal.importingNetworks')}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Parsing KML file and saving network data to database
+                    {t('importKmlModal.parsingKmlSaving')}
                   </p>
                 </div>
               </div>
@@ -356,7 +358,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      Import Successful!
+                      {t('importKmlModal.importSuccessful')}
                     </p>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                       {importResult.message}
@@ -368,13 +370,13 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               {/* Import Statistics */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-white dark:bg-slate-700/50 rounded-lg-lg border border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Networks Imported</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('importKmlModal.networksImported')}</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                     {importResult.imported || 0}
                   </p>
                 </div>
                 <div className="p-4 bg-white dark:bg-slate-700/50 rounded-lg-lg border border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Errors</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('importKmlModal.errors')}</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                     {importResult.errors || 0}
                   </p>
@@ -385,7 +387,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               {importResult.errorDetails && importResult.errorDetails.length > 0 && (
                 <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg-lg border border-yellow-200 dark:border-yellow-800">
                   <p className="text-sm font-medium text-yellow-900 dark:text-yellow-200 mb-2">
-                    Error Details:
+                    {t('importKmlModal.errorDetailsLabel')}
                   </p>
                   <ul className="text-sm text-yellow-800 dark:text-yellow-300 space-y-1">
                     {importResult.errorDetails.slice(0, 5).map((err, idx) => (
@@ -393,7 +395,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                     ))}
                     {importResult.errorDetails.length > 5 && (
                       <li className="text-yellow-700 dark:text-yellow-400 italic">
-                        ... and {importResult.errorDetails.length - 5} more
+                        {t('importKmlModal.andNMore', { count: importResult.errorDetails.length - 5 })}
                       </li>
                     )}
                   </ul>
@@ -401,7 +403,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               )}
 
               <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                Closing in 2 seconds...
+                {t('importKmlModal.closingIn2Seconds')}
               </p>
             </div>
           )}
@@ -417,7 +419,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                        hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg-lg
                        transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         )}
@@ -431,10 +433,10 @@ const ImportKML = ({ onClose, onImportComplete }) => {
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Import Preview
+                  {t('importKmlModal.previewTitle')}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                  Review networks before importing
+                  {t('importKmlModal.previewSubtitle')}
                 </p>
               </div>
               <button
@@ -451,13 +453,13 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    File Name
+                    {t('importKmlModal.fileNameLabel')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-gray-100">{preview.fileName}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    File Size
+                    {t('importKmlModal.fileSizeLabel')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-gray-100">{preview.fileSize}</p>
                 </div>
@@ -466,23 +468,23 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               {/* Network Statistics */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                  Networks to Import
+                  {t('importKmlModal.networksToImport')}
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Total Networks</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('wirelessNetworks.totalNetworks')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.totalNetworks}</span>
                   </div>
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Unique SSIDs</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('wirelessNetworks.uniqueSsids')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.uniqueSSIDs}</span>
                   </div>
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Unique BSSIDs</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('importKmlModal.uniqueBssids')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.uniqueBSSIDs}</span>
                   </div>
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">WiFi Networks</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('importKmlModal.wifiNetworks')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.wifiCount}</span>
                   </div>
                   {preview.bluetoothCount > 0 && (
@@ -493,16 +495,16 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                   )}
                   {preview.cellCount > 0 && (
                     <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Cell Towers</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{t('importKmlModal.cellTowers')}</span>
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.cellCount}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Encrypted</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('wirelessNetworks.encrypted')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.encryptedCount}</span>
                   </div>
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Open Networks</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('importKmlModal.openNetworks')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.openCount}</span>
                   </div>
                 </div>
@@ -513,10 +515,9 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                 <div className="flex items-start space-x-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-blue-900 dark:text-blue-200 font-medium">Note</p>
+                    <p className="text-sm text-blue-900 dark:text-blue-200 font-medium">{t('importKmlModal.noteLabel')}</p>
                     <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
-                      Duplicate networks will be updated if newer signal data is available.
-                      Networks with the same BSSID, location, and scan date will be merged.
+                      {t('importKmlModal.duplicateNetworksWarning')}
                     </p>
                   </div>
                 </div>
@@ -530,7 +531,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
                          hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleConfirmImport}
@@ -539,7 +540,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                          flex items-center space-x-2"
               >
                 <Upload className="w-4 h-4" />
-                <span>Confirm Import</span>
+                <span>{t('settings.importExport.confirmImport')}</span>
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 // File: frontend/src/components/WirelessNetworks.js
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Wifi, Upload, Map as MapIcon, List, Search,
   Trash2, User, Signal,
@@ -12,6 +13,7 @@ import ImportKML from './ImportKML';
 import AddNetworkForm from './AddNetworkForm';
 
 const WirelessNetworks = () => {
+  const { t } = useTranslation();
   const [networks, setNetworks] = useState([]);
   const [people, setPeople] = useState([]);
   const [stats, setStats] = useState(null);
@@ -49,7 +51,7 @@ const WirelessNetworks = () => {
       setImportSources(sources);
     } catch (error) {
       console.error('Error fetching networks:', error);
-      alert('Failed to fetch wireless networks');
+      alert(t('wirelessNetworks.errorFetchNetworks'));
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ const WirelessNetworks = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this network?')) return;
+    if (!window.confirm(t('wirelessNetworks.confirmDeleteNetwork'))) return;
 
     try {
       await wirelessNetworksAPI.delete(id);
@@ -82,17 +84,17 @@ const WirelessNetworks = () => {
       fetchStats();
     } catch (error) {
       console.error('Error deleting network:', error);
-      alert('Failed to delete network');
+      alert(t('wirelessNetworks.errorDeleteNetwork'));
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedNetworks.length === 0) {
-      alert('Please select networks to delete');
+      alert(t('wirelessNetworks.selectNetworksToDelete'));
       return;
     }
 
-    if (!window.confirm(`Delete ${selectedNetworks.length} selected networks?`)) return;
+    if (!window.confirm(t('wirelessNetworks.confirmBulkDelete', { count: selectedNetworks.length }))) return;
 
     try {
       await wirelessNetworksAPI.bulkDelete(selectedNetworks);
@@ -101,7 +103,7 @@ const WirelessNetworks = () => {
       fetchStats();
     } catch (error) {
       console.error('Error bulk deleting:', error);
-      alert('Failed to delete networks');
+      alert(t('wirelessNetworks.errorBulkDelete'));
     }
   };
 
@@ -156,11 +158,11 @@ const WirelessNetworks = () => {
   };
 
   const getSignalStrength = (signal) => {
-    if (!signal) return 'Unknown';
-    if (signal >= -50) return 'Excellent';
-    if (signal >= -60) return 'Good';
-    if (signal >= -70) return 'Fair';
-    return 'Weak';
+    if (!signal) return t('wirelessNetworks.unknown');
+    if (signal >= -50) return t('wirelessNetworks.signalExcellent');
+    if (signal >= -60) return t('wirelessNetworks.signalGood');
+    if (signal >= -70) return t('wirelessNetworks.signalFair');
+    return t('wirelessNetworks.signalWeak');
   };
 
   const getSignalColor = (signal) => {
@@ -177,10 +179,10 @@ const WirelessNetworks = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-            Wireless Networks
+            {t('wirelessNetworks.title')}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            WiGLE Wardriving Data & Network Intelligence
+            {t('wirelessNetworks.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -189,14 +191,14 @@ const WirelessNetworks = () => {
             className="px-4 py-2 bg-green-600 text-white dark:bg-green-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Network
+            {t('wirelessNetworks.addNetwork')}
           </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Import KML
+            {t('wirelessNetworks.importKml')}
           </button>
           <button
             onClick={fetchNetworks}
@@ -213,7 +215,7 @@ const WirelessNetworks = () => {
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Networks</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('wirelessNetworks.totalNetworks')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total || 0}</p>
               </div>
               <Wifi className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -223,7 +225,7 @@ const WirelessNetworks = () => {
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Unique SSIDs</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('wirelessNetworks.uniqueSsids')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.unique_ssids || 0}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -233,7 +235,7 @@ const WirelessNetworks = () => {
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Associated</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('wirelessNetworks.associated')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.associated_count || 0}</p>
               </div>
               <User className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -243,7 +245,7 @@ const WirelessNetworks = () => {
           <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Encrypted</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('wirelessNetworks.encrypted')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.encrypted_count || 0}</p>
               </div>
               <Lock className="w-8 h-8 text-purple-600 dark:text-purple-400" />
@@ -261,7 +263,7 @@ const WirelessNetworks = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by SSID or BSSID..."
+                placeholder={t('wirelessNetworks.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
@@ -273,11 +275,11 @@ const WirelessNetworks = () => {
               onChange={(e) => setFilters({ ...filters, network_type: e.target.value })}
               className="px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
             >
-              <option value="">All Types</option>
-              <option value="WIFI">WiFi</option>
-              <option value="BLUETOOTH_CLASSIC">Bluetooth Classic</option>
-              <option value="BLUETOOTH_LE">Bluetooth LE</option>
-              <option value="CELL">Cell Tower</option>
+              <option value="">{t('wirelessNetworks.allTypes')}</option>
+              <option value="WIFI">{t('wirelessNetworks.typeWifi')}</option>
+              <option value="BLUETOOTH_CLASSIC">{t('wirelessNetworks.typeBluetoothClassic')}</option>
+              <option value="BLUETOOTH_LE">{t('wirelessNetworks.typeBluetoothLe')}</option>
+              <option value="CELL">{t('wirelessNetworks.typeCellTower')}</option>
             </select>
 
             <select
@@ -285,13 +287,13 @@ const WirelessNetworks = () => {
               onChange={(e) => setFilters({ ...filters, encryption: e.target.value })}
               className="px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
             >
-              <option value="">All Encryption</option>
+              <option value="">{t('wirelessNetworks.allEncryption')}</option>
               <option value="WPA3">WPA3</option>
               <option value="WPA2">WPA2</option>
               <option value="WPA">WPA</option>
               <option value="WEP">WEP</option>
-              <option value="Open">Open</option>
-              <option value="Unknown">Unknown</option>
+              <option value="Open">{t('wirelessNetworks.encryptionOpen')}</option>
+              <option value="Unknown">{t('wirelessNetworks.unknown')}</option>
             </select>
           </div>
 
@@ -299,19 +301,19 @@ const WirelessNetworks = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex gap-2 items-center">
               <label className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                Signal (dBm):
+                {t('wirelessNetworks.signalDbmLabel')}
               </label>
               <input
                 type="number"
-                placeholder="Min"
+                placeholder={t('wirelessNetworks.minPlaceholder')}
                 value={filters.signal_min}
                 onChange={(e) => setFilters({ ...filters, signal_min: e.target.value })}
                 className="w-24 px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
               />
-              <span className="text-gray-600 dark:text-gray-400">to</span>
+              <span className="text-gray-600 dark:text-gray-400">{t('wirelessNetworks.to')}</span>
               <input
                 type="number"
-                placeholder="Max"
+                placeholder={t('wirelessNetworks.maxPlaceholder')}
                 value={filters.signal_max}
                 onChange={(e) => setFilters({ ...filters, signal_max: e.target.value })}
                 className="w-24 px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
@@ -323,7 +325,7 @@ const WirelessNetworks = () => {
               onChange={(e) => setFilters({ ...filters, person_id: e.target.value })}
               className="flex-1 px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
             >
-              <option value="">All People</option>
+              <option value="">{t('wirelessNetworks.allPeople')}</option>
               {people.map(person => (
                 <option key={person.id} value={person.id}>
                   {person.first_name} {person.last_name}
@@ -336,7 +338,7 @@ const WirelessNetworks = () => {
               onChange={(e) => setFilters({ ...filters, import_source: e.target.value })}
               className="flex-1 px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
             >
-              <option value="">All KML Files</option>
+              <option value="">{t('wirelessNetworks.allKmlFiles')}</option>
               {importSources.map((source, idx) => (
                 <option key={idx} value={source}>
                   {source}
@@ -373,14 +375,14 @@ const WirelessNetworks = () => {
         {selectedNetworks.length > 0 && (
           <div className="mt-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <span className="text-sm text-blue-800 dark:text-blue-300">
-              {selectedNetworks.length} network(s) selected
+              {t('wirelessNetworks.networksSelected', { count: selectedNetworks.length })}
             </span>
             <button
               onClick={handleBulkDelete}
               className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm flex items-center"
             >
               <Trash2 className="w-4 h-4 mr-1" />
-              Delete Selected
+              {t('wirelessNetworks.deleteSelected')}
             </button>
           </div>
         )}
@@ -390,7 +392,7 @@ const WirelessNetworks = () => {
       {loading ? (
         <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-12 text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading networks...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('wirelessNetworks.loadingNetworks')}</p>
         </div>
       ) : viewMode === 'map' ? (
         <WirelessNetworkMap
@@ -402,9 +404,9 @@ const WirelessNetworks = () => {
           {filteredNetworks.length === 0 ? (
             <div className="p-12 text-center">
               <Wifi className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 font-medium">No wireless networks found</p>
+              <p className="text-gray-600 dark:text-gray-400 font-medium">{t('wirelessNetworks.noNetworksFound')}</p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                Import a WiGLE KML file to get started
+                {t('wirelessNetworks.importToGetStarted')}
               </p>
             </div>
           ) : (
@@ -420,13 +422,13 @@ const WirelessNetworks = () => {
                         className="rounded"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">SSID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">BSSID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">Encryption</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">Signal</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">Person</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSsid')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnBssid')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnType')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnEncryption')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSignal')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnPerson')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -447,7 +449,7 @@ const WirelessNetworks = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center">
                           {getNetworkTypeIcon(network.network_type)}
-                          <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">{network.ssid || 'Hidden'}</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">{network.ssid || t('wirelessNetworks.hiddenSsid')}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 font-mono">{network.bssid}</td>
@@ -455,7 +457,7 @@ const WirelessNetworks = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center">
                           {getEncryptionIcon(network.encryption)}
-                          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{network.encryption || 'Unknown'}</span>
+                          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{network.encryption || t('wirelessNetworks.unknown')}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -463,7 +465,7 @@ const WirelessNetworks = () => {
                           <div className="flex items-center">
                             <Signal className={`w-4 h-4 mr-1 ${getSignalColor(network.signal_strength)}`} />
                             <span className={`text-sm ${getSignalColor(network.signal_strength)}`}>
-                              {network.signal_strength} dBm ({getSignalStrength(network.signal_strength)})
+                              {t('wirelessNetworks.signalDbm', { value: network.signal_strength, strength: getSignalStrength(network.signal_strength) })}
                             </span>
                           </div>
                         )}
@@ -472,7 +474,7 @@ const WirelessNetworks = () => {
                         {network.person_id && (
                           <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
                             <User className="w-3 h-3 mr-1" />
-                            Associated
+                            {t('wirelessNetworks.associated')}
                           </span>
                         )}
                       </td>

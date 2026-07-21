@@ -1,5 +1,6 @@
 // File: frontend/src/components/WirelessNetworkMap.js
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
@@ -148,6 +149,7 @@ const ZoomTracker = ({ setZoom }) => {
 };
 
 const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
+  const { t } = useTranslation();
   const [zoom, setZoom] = useState(13);
 
   // Calculate map center
@@ -166,12 +168,12 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
   // Find person name by ID
   const getPersonName = (personId) => {
     const person = people.find(p => p.id === personId);
-    return person ? `${person.first_name} ${person.last_name}` : 'Unknown';
+    return person ? `${person.first_name} ${person.last_name}` : t('wirelessNetworkMap.unknown');
   };
 
   // Format date
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return t('wirelessNetworkMap.notAvailable');
     try {
       return new Date(dateString).toLocaleString();
     } catch {
@@ -184,9 +186,9 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
       <div className="h-96 bg-gray-100 dark:bg-slate-800 rounded-lg-lg flex items-center justify-center">
         <div className="text-center">
           <Wifi className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-gray-400">No networks to display on map</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.noNetworksToDisplay')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-            Import a KML file to see wireless networks
+            {t('wirelessNetworkMap.importKmlToSeeNetworks')}
           </p>
         </div>
       </div>
@@ -246,7 +248,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                   <div className="space-y-2">
                     {/* Encryption */}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Encryption:</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.encryptionLabel')}</span>
                       <div className="flex items-center space-x-1">
                         {network.encryption === 'WPA2' || network.encryption === 'WPA3' ? (
                           <Lock className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -258,7 +260,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                             ? 'text-green-600 dark:text-green-400'
                             : 'text-red-600 dark:text-red-400'
                         }`}>
-                          {network.encryption || 'Unknown'}
+                          {network.encryption || t('wirelessNetworkMap.unknown')}
                         </span>
                       </div>
                     </div>
@@ -266,10 +268,10 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                     {/* Signal Strength */}
                     {network.signal_strength && (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Signal:</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.signalLabel')}</span>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                            {network.signal_strength} dBm
+                            {t('wirelessNetworkMap.signalDbmValue', { value: network.signal_strength })}
                           </span>
                           <SignalIndicator strength={network.signal_strength} />
                         </div>
@@ -278,7 +280,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
 
                     {/* Network Type */}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Type:</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.typeLabel')}</span>
                       <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
                         {network.network_type?.replace(/_/g, ' ') || 'WIFI'}
                       </span>
@@ -288,10 +290,10 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                     {(network.frequency || network.channel) && (
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-600 dark:text-gray-400">
-                          {network.frequency ? 'Frequency:' : 'Channel:'}
+                          {network.frequency ? t('wirelessNetworkMap.frequencyLabel') : t('wirelessNetworkMap.channelLabel')}
                         </span>
                         <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                          {network.frequency || `Ch ${network.channel}`}
+                          {network.frequency || t('wirelessNetworkMap.channelValue', { channel: network.channel })}
                         </span>
                       </div>
                     )}
@@ -299,7 +301,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                     {/* Scan Date */}
                     {network.scan_date && (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Scanned:</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.scannedLabel')}</span>
                         <span className="text-xs text-gray-900 dark:text-gray-100">
                           {formatDate(network.scan_date)}
                         </span>
@@ -309,9 +311,9 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                     {/* Accuracy */}
                     {network.accuracy && (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Accuracy:</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{t('wirelessNetworkMap.accuracyLabel')}</span>
                         <span className="text-xs text-gray-900 dark:text-gray-100">
-                          ±{network.accuracy}m
+                          {t('wirelessNetworkMap.accuracyValue', { value: network.accuracy })}
                         </span>
                       </div>
                     )}
@@ -323,11 +325,11 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                           <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 mt-1.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                              Associated: {getPersonName(network.person_id)}
+                              {t('wirelessNetworkMap.associatedLabel', { name: getPersonName(network.person_id) })}
                             </p>
                             {network.association_confidence && (
                               <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5 capitalize">
-                                {network.association_confidence} confidence
+                                {t('wirelessNetworkMap.confidenceSuffix', { level: network.association_confidence })}
                               </p>
                             )}
                             {network.association_note && (
@@ -356,7 +358,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
                         className="w-full px-3 py-1.5 text-xs font-medium text-white bg-gradient-primary
                                  rounded hover:shadow-lg transition-all"
                       >
-                        View Details
+                        {t('peopleList.viewDetails')}
                       </button>
                     </div>
                   )}
@@ -369,7 +371,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
 
       {/* Map Legend */}
       <div className="absolute bottom-4 left-4 bg-white dark:bg-slate-800 rounded-lg-lg shadow-lg p-3 z-[1000] border border-gray-200 dark:border-gray-700">
-        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">Network Types</p>
+        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('wirelessNetworkMap.networkTypesLegendTitle')}</p>
         <div className="space-y-1.5">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-green-600" />
@@ -385,7 +387,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-red-600" />
-            <span className="text-xs text-gray-700 dark:text-gray-300">Open</span>
+            <span className="text-xs text-gray-700 dark:text-gray-300">{t('wirelessNetworks.encryptionOpen')}</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-blue-600" />
@@ -393,7 +395,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-purple-600" />
-            <span className="text-xs text-gray-700 dark:text-gray-300">Associated</span>
+            <span className="text-xs text-gray-700 dark:text-gray-300">{t('wirelessNetworks.associated')}</span>
           </div>
         </div>
       </div>

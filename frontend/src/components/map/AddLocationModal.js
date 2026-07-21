@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
 const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
+  const { t } = useTranslation();
   const [locationData, setLocationData] = useState({ address: '', personId: null });
   const [suggestions, setSuggestions] = useState([]);
   const suggestTimer = useRef(null);
@@ -24,7 +26,7 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
 
   const handleAdd = async () => {
     if (!locationData.address.trim() || !locationData.personId) {
-      alert('Please enter an address and select a person');
+      alert(t('addLocationModal.errorEnterAddressAndPerson'));
       return;
     }
     try {
@@ -39,15 +41,15 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
       const geoResult = await geoRes.json();
 
       if (!geoResult.success) {
-        let msg = geoResult.message || 'Could not geocode this address.';
+        let msg = geoResult.message || t('addLocationModal.errorGeocodingFailed');
         if (geoResult.best_match) {
-          msg += `\n\nDid you mean: "${geoResult.best_match.displayName}"?\nIf so, try a more complete address.`;
+          msg += t('addLocationModal.didYouMean', { name: geoResult.best_match.displayName });
         } else if (geoResult.reason === 'not_found') {
-          msg += '\n\nTips:\n• Add a city and country (e.g. "10 Downing St, London, UK")\n• Check for spelling mistakes\n• Try a postcode or zip code instead';
+          msg += t('addLocationModal.tipsNotFound');
         } else if (geoResult.reason === 'timeout') {
-          msg += '\n\nThe geocoding service did not respond. Check your internet connection and try again.';
+          msg += t('addLocationModal.tipsTimeout');
         } else if (geoResult.reason === 'rate_limited') {
-          msg += '\n\nThe geocoding provider is rate limiting requests. Wait a few seconds and try again.';
+          msg += t('addLocationModal.tipsRateLimited');
         }
         alert(msg);
         return;
@@ -75,32 +77,32 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
       });
 
       if (saveRes.ok) {
-        alert(`Location added successfully!\nAddress: ${locationData.address}\nCoordinates: ${geoResult.result.lat}, ${geoResult.result.lng}\nConfidence: ${geoResult.result.confidence}%`);
+        alert(t('addLocationModal.locationAddedSuccess', { address: locationData.address, lat: geoResult.result.lat, lng: geoResult.result.lng, confidence: geoResult.result.confidence }));
         onSuccess();
         onClose();
       } else {
-        alert("Location geocoded but failed to save. Please try adding it manually from the person's profile.");
+        alert(t('addLocationModal.geocodedButFailedToSave'));
       }
     } catch (err) {
       console.error('Error adding location:', err);
-      alert('Failed to add location');
+      alert(t('addLocationModal.errorAddLocation'));
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded-lg p-6 w-96">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Add New Location</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t('globalMap.addNewLocationTitle')}</h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Person</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('addLocationModal.selectPerson')}</label>
             <select
               value={locationData.personId || ''}
               onChange={e => setLocationData(prev => ({ ...prev, personId: parseInt(e.target.value) || null }))}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500"
             >
-              <option value="">-- Select a person --</option>
+              <option value="">{t('addLocationModal.selectPersonPlaceholder')}</option>
               {allPeople.map(p => (
                 <option key={p.id} value={p.id}>
                   {p.first_name} {p.last_name} {p.case_name ? `(${p.case_name})` : ''}
@@ -110,7 +112,7 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('addLocationModal.address')}</label>
             <input
               type="text"
               value={locationData.address}
@@ -118,7 +120,7 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
                 setLocationData(prev => ({ ...prev, address: e.target.value }));
                 getSuggestions(e.target.value);
               }}
-              placeholder="Enter address to geocode..."
+              placeholder={t('addLocationModal.addressPlaceholder')}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-600 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 transition-all"
             />
             {suggestions.length > 0 && (
@@ -131,7 +133,7 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
                   >
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{s.display_name}</div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
-                      <span>Confidence: {s.confidence}%</span>
+                      <span>{t('addLocationModal.confidencePercent', { pct: s.confidence })}</span>
                       <span>{s.lat.toFixed(4)}, {s.lng.toFixed(4)}</span>
                     </div>
                   </button>
@@ -145,14 +147,14 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
               onClick={() => { onClose(); setSuggestions([]); }}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleAdd}
               disabled={!locationData.address.trim() || !locationData.personId}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add Location
+              {t('addLocationModal.addLocation')}
             </button>
           </div>
         </div>

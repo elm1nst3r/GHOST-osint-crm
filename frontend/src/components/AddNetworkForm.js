@@ -1,9 +1,11 @@
 // File: frontend/src/components/AddNetworkForm.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Wifi, MapPin, Lock, Plus } from 'lucide-react';
 import { wirelessNetworksAPI, peopleAPI, businessesAPI } from '../utils/api';
 
 const AddNetworkForm = ({ onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,13 +60,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
     // Validation
     if (!formData.ssid) {
-      alert('SSID is required');
+      alert(t('addNetworkForm.errorSsidRequired'));
       return;
     }
 
     // If location is provided, both lat and long must be present
     if ((formData.latitude && !formData.longitude) || (!formData.latitude && formData.longitude)) {
-      alert('Both latitude and longitude must be provided if specifying location');
+      alert(t('addNetworkForm.errorLatLongBothRequired'));
       return;
     }
 
@@ -82,12 +84,12 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
       };
 
       await wirelessNetworksAPI.create(payload);
-      alert('Network added successfully!');
+      alert(t('addNetworkForm.successNetworkAdded'));
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error adding network:', error);
-      alert('Failed to add network: ' + (error.response?.data?.error || error.message));
+      alert(t('addNetworkForm.errorAddNetwork', { message: error.response?.data?.error || error.message }));
     } finally {
       setLoading(false);
     }
@@ -100,7 +102,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <Wifi className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Add Network Manually</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('addNetworkForm.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -116,13 +118,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <Wifi className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-              Network Identification
+              {t('addNetworkForm.networkIdentification')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  SSID (Network Name) <span className="text-red-500">*</span>
+                  {t('addNetworkForm.ssidLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -136,14 +138,14 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  BSSID (MAC Address)
+                  {t('addNetworkForm.bssidLabel')}
                 </label>
                 <input
                   type="text"
                   name="bssid"
                   value={formData.bssid}
                   onChange={handleInputChange}
-                  placeholder="00:11:22:33:44:55"
+                  placeholder={t('addNetworkForm.bssidPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 font-mono"
                 />
               </div>
@@ -154,13 +156,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <MapPin className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-              Location
+              {t('businessForm.location')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Latitude
+                  {t('addNetworkForm.latitude')}
                 </label>
                 <input
                   type="number"
@@ -168,14 +170,14 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   value={formData.latitude}
                   onChange={handleInputChange}
                   step="any"
-                  placeholder="40.7128"
+                  placeholder={t('addNetworkForm.latitudePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Longitude
+                  {t('addNetworkForm.longitude')}
                 </label>
                 <input
                   type="number"
@@ -183,7 +185,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   value={formData.longitude}
                   onChange={handleInputChange}
                   step="any"
-                  placeholder="-74.0060"
+                  placeholder={t('addNetworkForm.longitudePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -191,14 +193,14 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Area Name / Address
+                {t('addNetworkForm.areaNameAddressLabel')}
               </label>
               <input
                 type="text"
                 name="area_name"
                 value={formData.area_name}
                 onChange={handleInputChange}
-                placeholder="e.g., Target's Home, Coffee Shop Downtown"
+                placeholder={t('addNetworkForm.areaNameAddressPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
@@ -208,13 +210,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <Lock className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-              Security
+              {t('addNetworkForm.security')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Encryption / Security Protocol
+                  {t('addNetworkForm.encryptionProtocolLabel')}
                 </label>
                 <select
                   name="encryption"
@@ -226,21 +228,21 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   <option value="WPA2">WPA2</option>
                   <option value="WPA">WPA</option>
                   <option value="WEP">WEP</option>
-                  <option value="Open">Open (No Security)</option>
-                  <option value="Unknown">Unknown</option>
+                  <option value="Open">{t('addNetworkForm.encryptionOpenNoSecurity')}</option>
+                  <option value="Unknown">{t('wirelessNetworks.unknown')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password (if known)
+                  {t('addNetworkForm.passwordLabel')}
                 </label>
                 <input
                   type="text"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  placeholder="Network password"
+                  placeholder={t('addNetworkForm.passwordPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -249,12 +251,12 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
           {/* Technical Details */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Technical Details</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('addNetworkForm.technicalDetails')}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Network Type
+                  {t('addNetworkForm.networkTypeLabel')}
                 </label>
                 <select
                   name="network_type"
@@ -262,37 +264,37 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 >
-                  <option value="WIFI">WiFi</option>
-                  <option value="BLUETOOTH_CLASSIC">Bluetooth Classic</option>
-                  <option value="BLUETOOTH_LE">Bluetooth LE</option>
-                  <option value="CELL">Cell Tower</option>
+                  <option value="WIFI">{t('wirelessNetworks.typeWifi')}</option>
+                  <option value="BLUETOOTH_CLASSIC">{t('wirelessNetworks.typeBluetoothClassic')}</option>
+                  <option value="BLUETOOTH_LE">{t('wirelessNetworks.typeBluetoothLe')}</option>
+                  <option value="CELL">{t('wirelessNetworks.typeCellTower')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Signal Strength (dBm)
+                  {t('networkInfoSection.signalStrengthDbmLabel')}
                 </label>
                 <input
                   type="number"
                   name="signal_strength"
                   value={formData.signal_strength}
                   onChange={handleInputChange}
-                  placeholder="-65"
+                  placeholder={t('networkInfoSection.signalPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Channel
+                  {t('networkInfoSection.channelLabel')}
                 </label>
                 <input
                   type="number"
                   name="channel"
                   value={formData.channel}
                   onChange={handleInputChange}
-                  placeholder="6"
+                  placeholder={t('networkInfoSection.channelPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -301,7 +303,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Frequency
+                  {t('networkInfoSection.frequencyLabel')}
                 </label>
                 <select
                   name="frequency"
@@ -309,16 +311,16 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 >
-                  <option value="">Unknown</option>
-                  <option value="2.4GHz">2.4 GHz (WiFi 4, 5, 6, 7)</option>
-                  <option value="5GHz">5 GHz (WiFi 5, 6, 7)</option>
-                  <option value="6GHz">6 GHz (WiFi 6E, 7)</option>
+                  <option value="">{t('wirelessNetworks.unknown')}</option>
+                  <option value="2.4GHz">{t('addNetworkForm.freq24')}</option>
+                  <option value="5GHz">{t('addNetworkForm.freq5')}</option>
+                  <option value="6GHz">{t('addNetworkForm.freq6')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Scan Date/Time
+                  {t('addNetworkForm.scanDateTimeLabel')}
                 </label>
                 <input
                   type="datetime-local"
@@ -335,13 +337,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <Plus className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
-              Associations
+              {t('addNetworkForm.associationsTitle')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Associated People (hold Ctrl/Cmd to select multiple)
+                  {t('addNetworkForm.associatedPeopleLabel')}
                 </label>
                 <select
                   multiple
@@ -356,13 +358,13 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Selected: {formData.associated_person_ids.length} person(s)
+                  {t('addNetworkForm.selectedPersonsCount', { count: formData.associated_person_ids.length })}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Associated Businesses (hold Ctrl/Cmd to select multiple)
+                  {t('addNetworkForm.associatedBusinessesLabel')}
                 </label>
                 <select
                   multiple
@@ -377,7 +379,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Selected: {formData.associated_business_ids.length} business(es)
+                  {t('addNetworkForm.selectedBusinessesCount', { count: formData.associated_business_ids.length })}
                 </p>
               </div>
             </div>
@@ -386,14 +388,14 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
+              {t('addNetworkForm.notes')}
             </label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               rows="3"
-              placeholder="Additional notes about this network..."
+              placeholder={t('addNetworkForm.notesPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
@@ -405,7 +407,7 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-300"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -415,12 +417,12 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Adding...
+                  {t('addNetworkForm.adding')}
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Network
+                  {t('wirelessNetworks.addNetwork')}
                 </>
               )}
             </button>
