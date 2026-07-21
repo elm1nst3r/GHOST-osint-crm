@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, Download, Loader2, X } from 'lucide-react';
 import { peopleAPI, casesAPI, todosAPI, businessesAPI, locationsAPI, ledgerAPI } from '../utils/api';
 import { downloadMarkdown, downloadWord, downloadLedgerMarkdown, downloadLedgerWord } from '../utils/reportGenerators';
@@ -21,6 +22,7 @@ const DEFAULT_OPTIONS = {
 };
 
 const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, ledgerEntity = null, onClose }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reportOptions, setReportOptions] = useState(DEFAULT_OPTIONS);
@@ -43,7 +45,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       setLedger(data);
     } catch (error) {
       console.error('Error fetching ledger:', error);
-      alert('Failed to fetch ledger for report');
+      alert(t('reportGenerator.errorFetchLedger'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       });
     } catch (error) {
       console.error('Error fetching report data:', error);
-      alert('Failed to fetch data for report');
+      alert(t('reportGenerator.errorFetchData'));
     } finally {
       setLoading(false);
     }
@@ -100,7 +102,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       else downloadMarkdown(data, reportOptions);
     } catch (error) {
       console.error('Error generating Markdown report:', error);
-      alert('Failed to generate Markdown report: ' + error.message);
+      alert(t('reportGenerator.errorGenerateMarkdown', { message: error.message }));
     } finally {
       setGenerating(false);
     }
@@ -113,7 +115,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       else await downloadWord(data, reportOptions);
     } catch (error) {
       console.error('Error generating Word report:', error);
-      alert('Failed to generate Word report: ' + error.message);
+      alert(t('reportGenerator.errorGenerateWord', { message: error.message }));
     } finally {
       setGenerating(false);
     }
@@ -127,7 +129,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">{ledgerEntity ? 'Generate Entity Ledger Report' : 'Generate Investigation Report'}</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">{ledgerEntity ? t('reportGenerator.ledgerTitle') : t('reportGenerator.investigationTitle')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -141,7 +143,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         {loading ? (
           <div className="flex-1 flex items-center justify-center gap-2 text-gray-500 dark:text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span>Loading data…</span>
+            <span>{t('reportGenerator.loadingData')}</span>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6">
@@ -162,7 +164,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleDownloadMarkdown}
@@ -170,7 +172,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             className="px-4 py-2 text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download .md
+            {t('reportGenerator.downloadMd')}
           </button>
           <button
             onClick={handleDownloadWord}
@@ -178,7 +180,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download .docx
+            {t('reportGenerator.downloadDocx')}
           </button>
         </div>
 
