@@ -1431,7 +1431,8 @@
     "osintValuePlaceholder": "Email, phone, username...",
     "searchingEllipsis": "Searching...",
     "searchButton": "Search",
-    "resetFiltersButton": "Reset Filters"
+    "resetFiltersButton": "Reset Filters",
+    "errorSearchFailed": "Search failed. Please try again."
   },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",

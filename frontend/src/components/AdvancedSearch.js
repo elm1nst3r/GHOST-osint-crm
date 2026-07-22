@@ -1,11 +1,13 @@
 // File: frontend/src/components/AdvancedSearch.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
 import SearchFilters from './search/SearchFilters';
 import SearchResults from './search/SearchResults';
 
 const AdvancedSearch = ({ onSelectPerson, onClose }) => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useState({
     // Basic search
     searchText: '',
@@ -287,7 +289,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
       setTotalResults(filtered.length);
     } catch (error) {
       console.error('Error performing search:', error);
-      alert('Search failed. Please try again.');
+      alert(t('searchFilters.errorSearchFailed'));
     } finally {
       setLoading(false);
     }
