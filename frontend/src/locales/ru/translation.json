@@ -430,7 +430,7 @@
     "allStatuses": "All Statuses",
     "holderLabel": "Holder: {{name}}",
     "noHolder": "—",
-    "locatedFallback": "Located",
+    "locatedFallback": "Расположено",
     "noResultsFound": "No assets found.",
     "confirmDeleteAsset": "Delete this asset?",
     "errorDeleteAsset": "Failed to delete asset: {{message}}",
