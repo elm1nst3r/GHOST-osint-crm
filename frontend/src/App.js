@@ -1,5 +1,6 @@
 // File: frontend/src/App.js
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -48,24 +49,25 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const navigationItems = [
-  { id: 'dashboard',     label: 'Dashboard',         icon: Home },
-  { id: 'cases',         label: 'Cases',              icon: Folder },
-  { id: 'people',        label: 'People',             icon: Users },
-  { id: 'businesses',    label: 'Businesses',         icon: Building2 },
-  { id: 'properties',    label: 'Properties',         icon: Landmark },
-  { id: 'assets',        label: 'Assets',             icon: Package },
-  { id: 'transactions',  label: 'Transactions',       icon: Receipt },
-  { id: 'tools',         label: 'OSINT Tools',        icon: Wrench },
-  { id: 'relationships', label: 'Entity Network',     icon: Network },
-  { id: 'map',           label: 'Locations',          icon: Map },
-  { id: 'wireless',      label: 'Wireless Networks',  icon: Wifi },
-  { id: 'settings',      label: 'Settings',           icon: Settings },
+const navigationItemIds = [
+  { id: 'dashboard',     icon: Home },
+  { id: 'cases',         icon: Folder },
+  { id: 'people',        icon: Users },
+  { id: 'businesses',    icon: Building2 },
+  { id: 'properties',    icon: Landmark },
+  { id: 'assets',        icon: Package },
+  { id: 'transactions',  icon: Receipt },
+  { id: 'tools',         icon: Wrench },
+  { id: 'relationships', icon: Network },
+  { id: 'map',           icon: Map },
+  { id: 'wireless',      icon: Wifi },
+  { id: 'settings',      icon: Settings },
 ];
 
 // ── Inner component (has access to all context hooks) ───────────────────────
 
 const AppShell = () => {
+  const { t } = useTranslation();
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
   const {
@@ -95,6 +97,11 @@ const AppShell = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  const navigationItems = useMemo(() => navigationItemIds.map(item => ({
+    ...item,
+    label: t(`app.nav.${item.id}`),
+  })), [t]);
+
   // ── URL ↔ section sync (issue #52) ────────────────────────────────────────
   // The URL is the source of truth for which section is shown, so browser
   // back/forward and deep links work. activeSection stays in UIContext because
@@ -108,7 +115,7 @@ const AppShell = () => {
   // URL → state (also handles back/forward and initial deep links)
   useEffect(() => {
     const [, seg, id] = location.pathname.split('/');
-    const section = navigationItems.some(item => item.id === seg) ? seg : 'dashboard';
+    const section = navigationItemIds.some(item => item.id === seg) ? seg : 'dashboard';
     urlSection.current = section;
     setActiveSection(section);
 
@@ -154,7 +161,7 @@ const AppShell = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[100dvh] bg-slate-50 dark:bg-slate-900">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -177,7 +184,7 @@ const AppShell = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {appSettings.appLogo ? (
-                <img src={appSettings.appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
+                <img src={appSettings.appLogo} alt={t('app.logoAlt')} className="h-12 w-12 object-contain rounded-xl shadow-glow-sm" />
               ) : (
                 <div className="p-2 rounded-xl bg-gradient-primary shadow-glow-sm">
                   <Shield className="w-8 h-8 text-white" />
@@ -185,7 +192,7 @@ const AppShell = () => {
               )}
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{appSettings.appName}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">OSINT Investigation Suite</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('app.suiteSubtitle')}</p>
               </div>
             </div>
             <DarkModeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
@@ -219,7 +226,7 @@ const AppShell = () => {
             className="w-full text-left p-4 rounded-glass transition-[background-color,box-shadow] duration-150 flex items-center space-x-3 group relative overflow-hidden glass-button text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 active:scale-[0.97] mt-4 border-t border-white/20 pt-4"
           >
             <LogOut className="w-5 h-5 transition-colors duration-150" />
-            <span className="font-medium relative z-10">Logout</span>
+            <span className="font-medium relative z-10">{t('app.logout')}</span>
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{currentUser?.username}</span>
           </button>
         </nav>
@@ -230,7 +237,7 @@ const AppShell = () => {
             className="w-full p-4 glass-heavy text-slate-700 rounded-glass hover:shadow-glow-sm transition-[box-shadow] duration-150 flex items-center justify-center space-x-2 group active:scale-[0.97]"
           >
             <Search className="w-5 h-5 text-accent-primary group-hover:animate-pulse" />
-            <span className="font-medium">Advanced Search</span>
+            <span className="font-medium">{t('searchFilters.advancedSearch')}</span>
           </button>
         </div>
       </div>
@@ -257,8 +264,8 @@ const AppShell = () => {
               {activeSection === 'relationships' && (
                 <div className="h-full flex flex-col overflow-hidden">
                   <div className="glass border-b border-white/20 px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">Entity Relationship Network</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Visualize connections between people and businesses</p>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">{t('app.entityNetworkTitle')}</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">{t('app.entityNetworkSubtitle')}</p>
                   </div>
                   <div className="flex-1 min-h-0 relative">
                     <div className="absolute inset-0 overflow-hidden">

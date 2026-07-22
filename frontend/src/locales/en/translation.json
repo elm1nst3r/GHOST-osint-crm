@@ -1,4 +1,25 @@
 {
+  "app": {
+    "suiteSubtitle": "OSINT Investigation Suite",
+    "logoAlt": "Logo",
+    "logout": "Logout",
+    "entityNetworkTitle": "Entity Relationship Network",
+    "entityNetworkSubtitle": "Visualize connections between people and businesses",
+    "nav": {
+      "dashboard": "Dashboard",
+      "cases": "Cases",
+      "people": "People",
+      "businesses": "Businesses",
+      "properties": "Properties",
+      "assets": "Assets",
+      "transactions": "Transactions",
+      "tools": "OSINT Tools",
+      "relationships": "Entity Network",
+      "map": "Locations",
+      "wireless": "Wireless Networks",
+      "settings": "Settings"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "loadingEllipsis": "Loading…",
