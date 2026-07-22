@@ -121,7 +121,7 @@ const ToolsList = () => {
         </div>
         <button
           onClick={() => setShowAddToolForm(true)}
-          className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all duration-300 flex items-center group"
+          className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center group"
         >
           <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
           {t('toolsList.addTool')}

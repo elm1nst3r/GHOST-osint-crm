@@ -144,7 +144,7 @@ const PeopleList = () => {
     const connectionCount = getRelationshipCount(person.id);
     return (
       <div style={{ ...style, paddingBottom: '16px' }}>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150 group h-full">
+        <div className="glass-card p-5 hover:shadow-glass-lg transition-shadow duration-150 group h-full">
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center space-x-3">
               {person.profile_picture_url ? (
@@ -185,9 +185,9 @@ const PeopleList = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 dark:from-gray-100 dark:to-gray-300">{t('peopleList.title')}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('peopleList.title')}</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 flex items-center">
+            <Users className="w-5 h-5 mr-2 text-accent-primary" />
             {filteredPeople.length === people.length ? (
               <span className="font-medium">
                 {peopleMeta.total > people.length
@@ -201,11 +201,11 @@ const PeopleList = () => {
         </div>
         <div className="flex items-center space-x-3">
           {/* View Mode Toggle */}
-          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[var(--radius-control)] p-1">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-3 py-2 rounded flex items-center space-x-2 transition ${
-                viewMode === 'cards' ? 'bg-white dark:bg-blue-600 shadow-sm text-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              className={`px-3 py-1.5 rounded-md flex items-center space-x-2 transition-[background-color,color,box-shadow] duration-150 active:scale-[0.97] ${
+                viewMode === 'cards' ? 'bg-white dark:bg-slate-600 shadow-sm text-accent-primary dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
               title={t('peopleList.cardView')}
             >
@@ -214,8 +214,8 @@ const PeopleList = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-2 rounded flex items-center space-x-2 transition ${
-                viewMode === 'table' ? 'bg-white dark:bg-blue-600 shadow-sm text-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+              className={`px-3 py-1.5 rounded-md flex items-center space-x-2 transition-[background-color,color,box-shadow] duration-150 active:scale-[0.97] ${
+                viewMode === 'table' ? 'bg-white dark:bg-slate-600 shadow-sm text-accent-primary dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
               title={t('peopleList.tableView')}
             >
@@ -226,9 +226,9 @@ const PeopleList = () => {
 
           <button
             onClick={() => setShowAddPersonForm(true)}
-            className="px-6 py-3 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-[box-shadow] duration-150 flex items-center group active:scale-[0.97]"
+            className="btn btn-primary"
           >
-            <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+            <Plus className="w-4 h-4" />
             {t('peopleList.addPerson')}
           </button>
         </div>
@@ -239,20 +239,20 @@ const PeopleList = () => {
         <div className="flex space-x-4">
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
               <input
                 type="text"
                 placeholder={t('peopleList.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white dark:placeholder-gray-500"
+                className="input-base pl-9"
               />
             </div>
           </div>
           <select
             value={filterCase}
             onChange={(e) => setFilterCase(e.target.value)}
-            className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
+            className="input-base w-auto"
           >
             <option value="">{t('peopleList.allCases')}</option>
             {cases.map(caseItem => (
@@ -262,7 +262,7 @@ const PeopleList = () => {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
+            className="input-base w-auto"
           >
             <option value="">{t('peopleList.allCategories')}</option>
             {PERSON_CATEGORIES.map(cat => (
@@ -272,7 +272,7 @@ const PeopleList = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
+            className="input-base w-auto"
           >
             <option value="">{t('peopleList.allStatuses')}</option>
             {PERSON_STATUSES.map(status => (
@@ -282,7 +282,7 @@ const PeopleList = () => {
           <select
             value={filterLastModified}
             onChange={(e) => setFilterLastModified(e.target.value)}
-            className="px-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md dark:bg-slate-800 dark:text-white"
+            className="input-base w-auto"
           >
             <option value="">{t('peopleList.allTime')}</option>
             <option value="week">{t('peopleList.lastWeek')}</option>
@@ -324,7 +324,7 @@ const PeopleList = () => {
         /* CSS grid — used for smaller datasets */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPeople.map(person => (
-          <div key={person.id} className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg p-5 hover:shadow-md transition-shadow duration-150 group">
+          <div key={person.id} className="glass-card p-5 hover:shadow-glass-lg transition-shadow duration-150 group">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center space-x-3">
                 {person.profile_picture_url ? (
@@ -414,7 +414,7 @@ const PeopleList = () => {
 
           {filteredPeople.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <div className="bg-white dark:bg-slate-800 backdrop-blur-xl border border-gray-300 dark:border-slate-700 shadow-glass-lg rounded-lg p-8 max-w-md mx-auto">
+              <div className="glass-card p-8 max-w-md mx-auto">
                 <Users className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-slate-400 font-medium">{t('peopleList.noResultsFound')}</p>
                 <p className="text-gray-500 dark:text-slate-500 text-sm mt-2">{t('peopleList.adjustFilters')}</p>
@@ -435,7 +435,7 @@ const PeopleList = () => {
                   setLoadingMore(false);
                 }}
                 disabled={loadingMore}
-                className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:shadow-glow-sm transition-[box-shadow] duration-150 text-sm font-medium disabled:opacity-60 active:scale-[0.97]"
+                className="btn btn-primary"
               >
                 {loadingMore ? t('common.loadingEllipsis') : t('common.loadMoreRemaining', { count: peopleMeta.total - people.length })}
               </button>

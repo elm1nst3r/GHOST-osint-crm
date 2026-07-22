@@ -425,7 +425,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
           </button>
           <button
             onClick={mode === 'interactive' ? submitInteractiveRelationships : submitCSVRelationships}
-            className="px-6 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
+            className="px-6 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all flex items-center space-x-2"
           >
             <Check className="w-4 h-4" />
             <span>{t('bulkRelationshipTool.createRelationships')}</span>

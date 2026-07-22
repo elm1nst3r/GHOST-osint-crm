@@ -2,6 +2,7 @@
   "app": {
     "suiteSubtitle": "OSINT Investigation Suite",
     "logoAlt": "Logo",
+    "workspace": "Workspace",
     "logout": "Logout",
     "entityNetworkTitle": "Entity Relationship Network",
     "entityNetworkSubtitle": "Visualize connections between people and businesses",
@@ -50,6 +51,7 @@
     "pageTitle": "Settings",
     "tabs": {
       "general": "General",
+      "appearance": "Appearance",
       "profile": "My Profile",
       "dataModel": "Data Model",
       "importExport": "Import/Export",
@@ -1433,6 +1435,42 @@
     "searchButton": "Search",
     "resetFiltersButton": "Reset Filters",
     "errorSearchFailed": "Search failed. Please try again."
+  },
+  "appearanceTab": {
+    "title": "Appearance",
+    "subtitle": "Customize how the app looks. Changes apply immediately.",
+    "themeFieldTitle": "Theme",
+    "themeFieldDescription": "Follow your system setting or pick one explicitly.",
+    "themeModeAriaLabel": "Theme mode",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "accentFieldTitle": "Accent color",
+    "accentFieldDescription": "Used for buttons, links, active navigation and focus rings.",
+    "accentColorAriaLabel": "Accent color",
+    "accentNames": {
+      "blue": "Blue",
+      "violet": "Violet",
+      "teal": "Teal",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose"
+    },
+    "densityFieldTitle": "Density",
+    "densityFieldDescription": "Compact tightens spacing and type for data-heavy work.",
+    "densityAriaLabel": "Density",
+    "comfortable": "Comfortable",
+    "compact": "Compact",
+    "surfaceFieldTitle": "Surface style",
+    "surfaceFieldDescription": "Solid is clean and fast; Glass brings back translucent panels.",
+    "surfaceAriaLabel": "Surface style",
+    "solid": "Solid",
+    "glass": "Glass",
+    "preferencesStoredNote": "Preferences are stored in this browser."
+  },
+  "darkModeToggle": {
+    "switchToLight": "Switch to Light Mode",
+    "switchToDark": "Switch to Dark Mode"
   },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",

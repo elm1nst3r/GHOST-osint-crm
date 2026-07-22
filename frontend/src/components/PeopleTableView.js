@@ -302,14 +302,14 @@ const PeopleTableView = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowQuickAdd(!showQuickAdd)}
-              className="px-4 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
+              className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>{t('peopleTableView.quickAdd')}</span>
             </button>
             <button
               onClick={() => setShowBulkRelationships(true)}
-              className="px-4 py-2 bg-gradient-secondary text-white rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
+              className="px-4 py-2 bg-accent-secondary text-white rounded-lg hover:bg-cyan-700 transition-all flex items-center space-x-2"
             >
               <LinkIcon className="w-4 h-4" />
               <span>{t('peopleTableView.bulkRelationships')}</span>
@@ -458,7 +458,7 @@ const PeopleTableView = ({
               </button>
               <button
                 onClick={processBulkImport}
-                className="px-6 py-2 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-glow-md transition-all flex items-center space-x-2"
+                className="px-6 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all flex items-center space-x-2"
               >
                 <Upload className="w-4 h-4" />
                 <span>{t('peopleTableView.importNPeople', { count: bulkData.split('\n').length - 1 })}</span>
