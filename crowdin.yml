@@ -1,0 +1,3 @@
+files:
+  - source: /frontend/src/locales/en/translation.json
+    translation: /frontend/src/locales/%two_letters_code%/translation.json
