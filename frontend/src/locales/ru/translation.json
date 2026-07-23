@@ -36,7 +36,7 @@
     "close": "Закрыть",
     "selectPlaceholder": "— Выбрать—",
     "nonePlaceholder": "— Ничего —",
-    "autoGeocodedHint": "автогеокодирование если пусто",
+    "autoGeocodedHint": "авто геокодирование если пусто",
     "clear": "Очистить"
   },
   "login": {
