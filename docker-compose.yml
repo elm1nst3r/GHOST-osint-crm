@@ -41,6 +41,7 @@ services:
       DB_PORT: 5432
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      LOGIN_RATE_LIMIT_DISABLE: "true"
 
     volumes:
       - ./backend/public:/usr/src/app/public
