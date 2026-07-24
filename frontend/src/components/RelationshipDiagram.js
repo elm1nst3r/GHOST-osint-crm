@@ -155,6 +155,7 @@ const RelationshipDiagram = ({
     enemy: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5 5', label: t('relationshipDiagram.edgeStyles.enemy') },
     associate: { stroke: '#6b7280', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.associate') },
     employer: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5', label: t('relationshipDiagram.edgeStyles.employer') },
+    employee: { stroke: '#a78bfa', strokeWidth: 2, strokeDasharray: '5 5', label: t('relationshipDiagram.edgeStyles.employee') },
     suspect: { stroke: '#ef4444', strokeWidth: 3, label: t('relationshipDiagram.edgeStyles.suspect') },
     witness: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '3 3', label: t('relationshipDiagram.edgeStyles.witness') },
     victim: { stroke: '#ec4899', strokeWidth: 2, label: t('relationshipDiagram.edgeStyles.victim') },

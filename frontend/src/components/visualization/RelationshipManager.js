@@ -322,10 +322,55 @@ const RelationshipManager = ({
     }
   }, [people, fetchPeople, t]);
 
+  // Derive employer→employee edges by name-matching business.employees against
+  // people. There is no person_id on the employee schema (and no case column on
+  // businesses to scope by), so an exact, case-insensitive full-name match is
+  // the best link we have. Two distinct people who share a name would collide —
+  // acceptable until the employee schema carries a real person_id reference.
+  //
+  // The edge is drawn business → person and typed 'employee' (the target IS the
+  // employee), matching the 'owner' convention where the type names the target's
+  // role. This keeps the employer (business) as the edge source, so the
+  // hierarchical layout ranks it above its employees (employer at the top).
+  const enrichedBusinesses = useMemo(() => {
+    return businesses.map(business => {
+      const employees = business.businessData?.employees;
+      if (!Array.isArray(employees) || employees.length === 0) return business;
+
+      const seenPersonIds = new Set((business.connections || []).map(c => c.person_id));
+      const newConnections = [];
+
+      employees.forEach(employee => {
+        if (!employee.name) return;
+        const search = employee.name.trim().toLowerCase();
+        const match = people.find(p => {
+          const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim().toLowerCase();
+          return fullName === search;
+        });
+        if (!match || seenPersonIds.has(match.id)) return;
+
+        seenPersonIds.add(match.id);
+        newConnections.push({
+          person_id: match.id,
+          type: 'employee',
+          note: employee.role
+            ? t('obsidianGraph.employeeConnectionNote', { role: employee.role })
+            : t('obsidianGraph.employeeConnectionNoteNoRole')
+        });
+      });
+
+      if (newConnections.length === 0) return business;
+      return {
+        ...business,
+        connections: [...(business.connections || []), ...newConnections]
+      };
+    });
+  }, [businesses, people, t]);
+
   // Apply filters to people and businesses
   const applyFilters = useCallback(() => {
     // Combine people and businesses
-    let allEntities = [...people, ...businesses];
+    let allEntities = [...people, ...enrichedBusinesses];
     let filtered = allEntities;
     
     // Text search
@@ -440,7 +485,7 @@ const RelationshipManager = ({
     }
     
     return filtered;
-  }, [people, businesses, filters]);
+  }, [people, enrichedBusinesses, filters]);
 
   // Get filtered people — memoised so ObsidianGraph only redraws when data/filters
   // actually change, not on every parent re-render (which would reset the D3
@@ -474,7 +519,7 @@ const RelationshipManager = ({
   }, [personId, people, applyFilters]);
 
   // Get unique values for filters
-  const allEntities = [...people, ...businesses];
+  const allEntities = [...people, ...enrichedBusinesses];
   const uniqueCategories = [...new Set(allEntities.map(e => e.category).filter(Boolean))];
   const uniqueStatuses = [...new Set(allEntities.map(e => e.status).filter(Boolean))];
   const uniqueConnectionTypes = [...new Set(
@@ -894,10 +939,10 @@ const RelationshipManager = ({
               <div>{t('relationshipManager.totalBusinesses', { count: businesses.length })}</div>
               <div>{t('relationshipManager.filteredEntities', { count: filteredPeople.length })}</div>
               <div>
-                {t('relationshipManager.entitiesWithConnections', { count: [...people, ...businesses].filter(e => e.connections && e.connections.length > 0).length })}
+                {t('relationshipManager.entitiesWithConnections', { count: [...people, ...enrichedBusinesses].filter(e => e.connections && e.connections.length > 0).length })}
               </div>
               <div>
-                {t('relationshipManager.totalConnectionsDebug', { count: [...people, ...businesses].reduce((sum, e) => sum + (e.connections?.length || 0), 0) })}
+                {t('relationshipManager.totalConnectionsDebug', { count: [...people, ...enrichedBusinesses].reduce((sum, e) => sum + (e.connections?.length || 0), 0) })}
               </div>
               <div>{t('relationshipManager.activeFilters', { count: activeFilterCount })}</div>
             </div>

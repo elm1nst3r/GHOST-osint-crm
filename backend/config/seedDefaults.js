@@ -44,11 +44,12 @@ const defaultOptions = [
   { model_type: 'connection_type', option_value: 'friend', option_label: 'Friend', display_order: 2 },
   { model_type: 'connection_type', option_value: 'enemy', option_label: 'Enemy', display_order: 3 },
   { model_type: 'connection_type', option_value: 'associate', option_label: 'Associate', display_order: 4 },
-  { model_type: 'connection_type', option_value: 'employer', option_label: 'Employer/Employee', display_order: 5 },
-  { model_type: 'connection_type', option_value: 'suspect', option_label: 'Suspect Connection', display_order: 6 },
-  { model_type: 'connection_type', option_value: 'witness', option_label: 'Witness', display_order: 7 },
-  { model_type: 'connection_type', option_value: 'victim', option_label: 'Victim', display_order: 8 },
-  { model_type: 'connection_type', option_value: 'other', option_label: 'Other', display_order: 9 },
+  { model_type: 'connection_type', option_value: 'employer', option_label: 'Employer', display_order: 5 },
+  { model_type: 'connection_type', option_value: 'employee', option_label: 'Employee', display_order: 6 },
+  { model_type: 'connection_type', option_value: 'suspect', option_label: 'Suspect Connection', display_order: 7 },
+  { model_type: 'connection_type', option_value: 'witness', option_label: 'Witness', display_order: 8 },
+  { model_type: 'connection_type', option_value: 'victim', option_label: 'Victim', display_order: 9 },
+  { model_type: 'connection_type', option_value: 'other', option_label: 'Other', display_order: 10 },
 
   // Location Types
   { model_type: 'location_type', option_value: 'primary_residence', option_label: 'Primary Residence', display_order: 1 },
