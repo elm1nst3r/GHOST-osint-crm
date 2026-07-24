@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.9.1-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.10.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -456,6 +456,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.10.0 (July 2026)
+- 🌍 **Community translations** — the entire frontend now runs through react-i18next (~1,380 strings) with a Crowdin integration for community-contributed languages and a language picker in Settings (issue #59)
+- 🎨 **Appearance & theming** — new Appearance settings tab for theme mode, accent color, density and surface style, backed by a runtime design-token system; quieter, accent-driven visual language
+- 🕸️ **Entity Network: employer/employee edges** — a business's employees are matched to people by name and drawn as employer→employee edges, with the employer ranked at the top in hierarchical layout
+- 🐛 **Adding a holder to an asset works** — `initial_holder` was silently stripped by validation on create, and the holder picker was missing from the edit form (now "Transfer to New Holder")
+- 🐛 **Tools list refreshes after save** — a created/edited tool now appears without a reload; removed dead unthrottled geocoding code that bypassed the Nominatim queue
 
 ### Version 2.9.1 (July 2026)
 - 🐛 **Non-admin users can use the app again** — startup requests to admin-only endpoints no longer produce a false "System Offline"; custom-field definitions are readable by all authenticated users (issue #58)

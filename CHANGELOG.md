@@ -5,6 +5,50 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-07-24
+
+### 🌍 Added — Internationalization & community translations (issue #59)
+
+- The entire frontend now renders through **react-i18next**. Every UI string
+  lives in a translation catalog (`frontend/src/locales/en/translation.json`,
+  ~1,380 keys) instead of being hardcoded.
+- **Crowdin integration** (`crowdin.yml`) connects the source catalog to
+  community translators and mirrors per-language files back into the repo;
+  Settings → General has a language picker (`SUPPORTED_LANGUAGES` in
+  `i18n.js`). Wiring a newly translated language in is a one-line manual step.
+- Deliberately out of scope this pass: backend error messages, report/PDF
+  output content, MCP tool descriptions, and RTL language support.
+
+### 🎨 Added — Appearance & theming
+
+- New **Appearance settings tab**: theme mode (light / dark / system), accent
+  color, layout density, and surface style, backed by a runtime design-token
+  system and a `ThemeContext`.
+- Streamlined visual language throughout — quieter surfaces, removed gradient
+  glow effects, accent-driven controls.
+
+### 🕸️ Added — Employer/employee edges in the Entity Network
+
+- A business's employees are matched to existing people by exact,
+  case-insensitive full name and drawn as edges. The relationship is split into
+  two directed connection types (`employer` and `employee`); the derived edge
+  runs business → person so the employer is ranked at the top in hierarchical
+  layout. Deduplicates against an existing owner link.
+- A Knex migration relabels the old `Employer/Employee` option to `Employer`
+  and adds the `Employee` type on existing databases at startup.
+
+### 🐛 Fixed
+
+- **Adding a holder to an asset silently did nothing** — `initial_holder` was
+  stripped by the create schema's unknown-field validation before the route
+  could read it, and the holder picker was missing from the edit form
+  entirely. The schema now declares the field and the edit form offers
+  "Transfer to New Holder".
+- **Created/edited tools didn't appear until reload** — the tool form now
+  refetches on save (the same stale-list pattern fixed for businesses in
+  #55). Removed a dead, unthrottled geocoding service that bypassed the
+  Nominatim rate-limit queue added in 2.9.1 (#57).
+
 ## [2.9.1] - 2026-07-08
 
 ### 🐛 Fixed
