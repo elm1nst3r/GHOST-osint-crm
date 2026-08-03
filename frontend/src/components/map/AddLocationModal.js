@@ -77,7 +77,7 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
       });
 
       if (saveRes.ok) {
-        alert(t('addLocationModal.locationAddedSuccess', { address: locationData.address, lat: geoResult.result.lat, lng: geoResult.result.lng, confidence: geoResult.result.confidence }));
+        alert(t('addLocationModal.locationAddedSuccess', { address: locationData.address, lat: geoResult.result.lat, lon: geoResult.result.lng, confidence: geoResult.result.confidence }));
         onSuccess();
         onClose();
       } else {

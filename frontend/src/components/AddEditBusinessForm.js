@@ -285,7 +285,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 </div>
                 {formData.latitude && formData.longitude && (
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                    {t('businessForm.coordinates', { lat: formData.latitude.toFixed(6), lng: formData.longitude.toFixed(6) })}
+                    {t('businessForm.coordinates', { lat: formData.latitude.toFixed(6), lon: formData.longitude.toFixed(6) })}
                   </p>
                 )}
               </div>

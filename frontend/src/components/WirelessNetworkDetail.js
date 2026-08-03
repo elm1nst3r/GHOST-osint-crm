@@ -110,30 +110,33 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
         <div className="p-6 space-y-6">
           <NetworkInfoSection network={network} saving={saving} onSave={handleSaveNetwork} />
 
-          {/* Map preview */}
-          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('wirelessNetworkDetail.locationPreview')}</h3>
-            <div className="h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-              <MapContainer center={[network.latitude, network.longitude]} zoom={16} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
-                <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
-                <Marker position={[network.latitude, network.longitude]}>
-                  <Popup>
-                    <div className="p-2">
-                      <p className="font-semibold text-sm">{network.ssid}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{network.bssid}</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                        {network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
+          {/* Map preview — only when the network has coordinates (they're
+              optional on creation; dereferencing null here crashed the view) */}
+          {network.latitude != null && network.longitude != null && (
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('wirelessNetworkDetail.locationPreview')}</h3>
+              <div className="h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <MapContainer center={[network.latitude, network.longitude]} zoom={16} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+                  <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
+                  <Marker position={[network.latitude, network.longitude]}>
+                    <Popup>
+                      <div className="p-2">
+                        <p className="font-semibold text-sm">{network.ssid}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{network.bssid}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                          {network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                {t('wirelessNetworkDetail.coordinatesLabel', { lat: network.latitude.toFixed(6), lon: network.longitude.toFixed(6) })}
+                {network.accuracy && <span>{t('wirelessNetworkDetail.accuracySuffix', { value: network.accuracy })}</span>}
+              </p>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              {t('wirelessNetworkDetail.coordinatesLabel', { lat: network.latitude.toFixed(6), lng: network.longitude.toFixed(6) })}
-              {network.accuracy && <span>{t('wirelessNetworkDetail.accuracySuffix', { value: network.accuracy })}</span>}
-            </p>
-          </div>
+          )}
 
           <NetworkAssociation
             network={network}
