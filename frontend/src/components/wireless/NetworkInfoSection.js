@@ -163,7 +163,9 @@ const NetworkInfoSection = ({ network, saving, onSave }) => {
             <div>
               <p className="text-xs text-gray-600 dark:text-gray-400">{t('networkInfoSection.locationLabel')}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 font-mono">
-                {network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}
+                {network.latitude != null && network.longitude != null
+                  ? `${network.latitude.toFixed(6)}, ${network.longitude.toFixed(6)}`
+                  : '—'}
               </p>
               {network.accuracy && <p className="text-xs text-gray-500 dark:text-gray-400">{t('networkInfoSection.accuracyValue', { label: t('networkInfoSection.accuracyLabel'), value: network.accuracy })}</p>}
             </div>
