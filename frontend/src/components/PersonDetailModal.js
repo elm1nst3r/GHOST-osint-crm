@@ -10,6 +10,7 @@ import EntityLedger from './EntityLedger';
 import { transactionsAPI, assetsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { formatPersonName } from '../utils/personName';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
@@ -50,9 +51,7 @@ const PersonDetailModal = () => {
   };
   // Removed: const [riskSummary, setRiskSummary] = useState(null);
 
-  const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
-  };
+  const getFullName = (person) => formatPersonName(person);
 
   const getAge = (dateOfBirth) => {
     if (!dateOfBirth) return null;
@@ -152,12 +151,15 @@ const PersonDetailModal = () => {
               </div>
             </div>
             <div className="flex space-x-2">
+              {/* Labelled, not icon-only: reporters kept concluding person
+                  reports didn't exist because this was a bare icon (#63). */}
               <button
                 onClick={() => setShowReportGenerator(true)}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-accent-success hover:bg-green-600 dark:bg-green-500 hover:text-white transition-all duration-300"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-accent-success hover:bg-green-600 dark:bg-green-500 hover:text-white transition-all duration-300 flex items-center gap-2 text-sm font-medium"
                 title={t('personDetailModal.generateReportTitle')}
               >
                 <FileText className="w-5 h-5" />
+                <span>{t('personDetailModal.generateReportTitle')}</span>
               </button>
               <button 
                 onClick={() => onEdit(person)} 

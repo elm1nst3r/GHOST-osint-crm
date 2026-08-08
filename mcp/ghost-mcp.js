@@ -188,15 +188,19 @@ async function findDuplicatePeople(args) {
   // endpoints return { data, meta }. Handle both.
   const json = await res.json();
   const people = Array.isArray(json) ? json : json.data || [];
+  // Include the patronymic: two people sharing a given and family name but
+  // differing in patronymic are different people, so ignoring it here would
+  // block legitimate creates as false-positive duplicates (issue #61).
+  const joinName = (...parts) => parts.filter(Boolean).join(' ').trim().toLowerCase();
   const names = new Set(
-    [`${args.firstName} ${args.lastName || ''}`.trim(), ...(args.aliases || [])]
-      .map((s) => s.toLowerCase())
+    [joinName(args.firstName, args.patronymic, args.lastName), ...(args.aliases || [])]
+      .map((s) => String(s).toLowerCase())
   );
   return people.filter((p) => {
-    const full = `${p.first_name} ${p.last_name || ''}`.trim().toLowerCase();
+    const full = joinName(p.first_name, p.patronymic, p.last_name);
     const aliases = (p.aliases || []).map((a) => a.toLowerCase());
     return [...names].some((n) => n === full || aliases.includes(n));
-  }).map((p) => ({ id: p.id, first_name: p.first_name, last_name: p.last_name }));
+  }).map((p) => ({ id: p.id, first_name: p.first_name, patronymic: p.patronymic, last_name: p.last_name }));
 }
 
 async function findDuplicateBusinesses(args) {

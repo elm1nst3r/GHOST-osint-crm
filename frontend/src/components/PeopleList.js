@@ -9,6 +9,7 @@ import { optionLabel, translateOptions } from '../utils/optionLabels';
 import PeopleTableView from './PeopleTableView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { formatPersonName } from '../utils/personName';
 
 // Threshold above which the card list switches to react-window virtualization
 const VIRTUAL_THRESHOLD = 150;
@@ -55,7 +56,7 @@ const PeopleList = () => {
   };
 
   const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
+    return formatPersonName(person);
   };
 
   const getAge = (dateOfBirth) => {

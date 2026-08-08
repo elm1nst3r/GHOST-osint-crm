@@ -69,6 +69,7 @@ const personLocationSchema = z.object({
 
 const personBaseFields = {
   lastName: optStr(255),
+  patronymic: optStr(255),
   date_of_birth: dateString,
   dateOfBirth: dateString,
   category: optStr(1000),

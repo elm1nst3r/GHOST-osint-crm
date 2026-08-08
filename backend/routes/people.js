@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const [dataResult, countResult] = await Promise.all([
       pool.query(
-        `SELECT *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name
+        `SELECT *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name
          FROM people ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
         [limit, offset]
       ),
@@ -40,7 +40,7 @@ router.get('/', requireAuth, async (req, res) => {
 // POST / — create person
 router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => {
   const {
-    firstName, lastName, aliases, dateOfBirth, category, status, crmStatus,
+    firstName, lastName, patronymic, aliases, dateOfBirth, category, status, crmStatus,
     caseName, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
@@ -94,14 +94,15 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
   }
 
   const query = `
-    INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status, crm_status, case_name, profile_picture_url, notes, osint_data, attachments, connections, locations, custom_fields)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-    RETURNING *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name;
+    INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status, crm_status, case_name, profile_picture_url, notes, osint_data, attachments, connections, locations, custom_fields)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    RETURNING *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name;
   `;
 
   const values = [
     firstName,
     lastName || null,
+    patronymic || null,
     aliases || [],
     dateOfBirth || null,
     category || null,
@@ -138,7 +139,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
     const personId = req.params.id;
     const result = await pool.query(
-      `SELECT *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name
+      `SELECT *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name
        FROM people WHERE id = $1`,
       [personId]
     );
@@ -158,7 +159,7 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), async (req, res) => {
   const personId = req.params.id;
   const {
-    firstName, lastName, aliases, dateOfBirth, category, status, crmStatus,
+    firstName, lastName, patronymic, aliases, dateOfBirth, category, status, crmStatus,
     caseName, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
@@ -219,16 +220,17 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
 
     const query = `
       UPDATE people
-      SET first_name = $1, last_name = $2, aliases = $3, date_of_birth = $4, category = $5,
-          status = $6, crm_status = $7, case_name = $8, profile_picture_url = $9, notes = $10,
-          osint_data = $11, attachments = $12, connections = $13, locations = $14, custom_fields = $15
-      WHERE id = $16
-      RETURNING *, CONCAT(first_name, ' ', COALESCE(last_name, '')) as full_name;
+      SET first_name = $1, last_name = $2, patronymic = $3, aliases = $4, date_of_birth = $5, category = $6,
+          status = $7, crm_status = $8, case_name = $9, profile_picture_url = $10, notes = $11,
+          osint_data = $12, attachments = $13, connections = $14, locations = $15, custom_fields = $16
+      WHERE id = $17
+      RETURNING *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name;
     `;
 
     const values = [
       firstName,
       lastName || null,
+      patronymic || null,
       aliases || [],
       dateOfBirth || null,
       category || null,
@@ -252,6 +254,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const changes = {};
     if (oldPerson.first_name !== firstName) changes.first_name = { oldValue: oldPerson.first_name, newValue: firstName };
     if (oldPerson.last_name !== lastName) changes.last_name = { oldValue: oldPerson.last_name, newValue: lastName };
+    if (oldPerson.patronymic !== (patronymic || null)) changes.patronymic = { oldValue: oldPerson.patronymic, newValue: patronymic || null };
     if (oldPerson.category !== category) changes.category = { oldValue: oldPerson.category, newValue: category };
     if (oldPerson.status !== status) changes.status = { oldValue: oldPerson.status, newValue: status };
     if (oldPerson.case_name !== caseName) changes.case_name = { oldValue: oldPerson.case_name, newValue: caseName };

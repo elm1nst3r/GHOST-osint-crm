@@ -12,6 +12,7 @@ import { peopleAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
 import { optionLabel, translateOptions } from '../utils/optionLabels';
 import BulkRelationshipTool from './BulkRelationshipTool';
+import { formatPersonName } from '../utils/personName';
 
 const PeopleTableView = ({
   people,
@@ -38,9 +39,7 @@ const PeopleTableView = ({
   const [showBulkRelationships, setShowBulkRelationships] = useState(false);
   const fileInputRef = useRef(null);
 
-  const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
-  };
+  const getFullName = (person) => formatPersonName(person);
 
   const getRelationshipCount = (personId) => {
     const person = people.find(p => p.id === personId);

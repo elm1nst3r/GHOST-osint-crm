@@ -13,7 +13,7 @@ import ConnectionsSection from './person-form/ConnectionsSection';
 import CustomFieldsSection from './person-form/CustomFieldsSection';
 
 const EMPTY_FORM = {
-  firstName: '', lastName: '', aliases: [], dateOfBirth: '', category: '',
+  firstName: '', lastName: '', patronymic: '', aliases: [], dateOfBirth: '', category: '',
   status: '', crmStatus: '', caseName: '', profilePictureUrl: '', notes: '',
   osintData: [], attachments: [], connections: [], locations: [], custom_fields: {},
 };
@@ -70,6 +70,7 @@ const AddEditPersonForm = () => {
       setFormData({
         firstName: person.first_name || '',
         lastName: person.last_name || '',
+        patronymic: person.patronymic || '',
         aliases: person.aliases || [],
         dateOfBirth: person.date_of_birth ? person.date_of_birth.split('T')[0] : '',
         category: person.category || '',
@@ -148,10 +149,14 @@ const AddEditPersonForm = () => {
           )}
 
           {/* Name */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.firstNameRequired')}</label>
               <input type="text" value={formData.firstName} onChange={e => set('firstName', e.target.value)} className={inputClass} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.patronymic')}</label>
+              <input type="text" value={formData.patronymic} onChange={e => set('patronymic', e.target.value)} className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.lastName')}</label>

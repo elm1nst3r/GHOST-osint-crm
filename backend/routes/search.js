@@ -17,11 +17,12 @@ router.get('/', requireAuth, async (req, res) => {
     const searchTerm = `%${q.toLowerCase()}%`;
 
     const peopleQuery = `
-      SELECT id, first_name, last_name, category, case_name
+      SELECT id, first_name, last_name, patronymic, category, case_name
       FROM people
       WHERE LOWER(first_name) LIKE $1
          OR LOWER(last_name) LIKE $1
-         OR LOWER(CONCAT(first_name, ' ', last_name)) LIKE $1
+         OR LOWER(patronymic) LIKE $1
+         OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $1
          OR EXISTS (SELECT 1 FROM unnest(aliases) AS alias WHERE LOWER(alias) LIKE $1)
          OR LOWER(case_name) LIKE $1
       LIMIT 10
@@ -63,7 +64,7 @@ router.get('/advanced', requireAuth, async (req, res) => {
       const searchFields = req.query['searchIn[]'] || ['name'];
 
       if (searchFields.includes('name')) {
-        searchConditions.push(`(LOWER(first_name) LIKE $${++paramCount} OR LOWER(last_name) LIKE $${paramCount} OR LOWER(CONCAT(first_name, ' ', last_name)) LIKE $${paramCount})`);
+        searchConditions.push(`(LOWER(first_name) LIKE $${++paramCount} OR LOWER(last_name) LIKE $${paramCount} OR LOWER(patronymic) LIKE $${paramCount} OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $${paramCount})`);
         queryParams.push(`%${req.query.searchText.toLowerCase()}%`);
       }
 

@@ -14,6 +14,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Link, UserPlus, Bug, Building2, Landmark, Network } from 'lucide-react';
 import { transactionsAPI } from '../utils/api';
+import { formatPersonName } from '../utils/personName';
 
 // Debug component to show data structure
 const DebugPanel = ({ people, nodes, edges, show }) => {
@@ -181,10 +182,10 @@ const RelationshipDiagram = ({
   }, []);
 
   // Helper function to get full name
-  const getFullName = useCallback((person) => {
-    if (!person) return t('relationshipDiagram.unknown');
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim() || t('relationshipDiagram.unknown');
-  }, [t]);
+  const getFullName = useCallback(
+    (person) => formatPersonName(person, t('relationshipDiagram.unknown')),
+    [t]
+  );
 
   // Layout algorithms
   const applyLayout = useCallback((nodes, edges, type) => {

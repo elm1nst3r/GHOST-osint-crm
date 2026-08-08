@@ -11,6 +11,7 @@ import { casesAPI, peopleAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { formatPersonName } from '../utils/personName';
 
 const CaseManagement = () => {
   const { t } = useTranslation();
@@ -165,9 +166,7 @@ const CaseManagement = () => {
     }));
   };
 
-  const getFullName = (person) => {
-    return `${person.first_name || ''} ${person.last_name || ''}`.trim();
-  };
+  const getFullName = (person) => formatPersonName(person);
 
   const getAge = (dateOfBirth) => {
     if (!dateOfBirth) return null;
