@@ -5,6 +5,68 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-08-08
+
+### 🐛 Fixed — Data Model options never reached the person dropdowns (issue #67)
+
+- Person **categories and statuses rendered from a hardcoded list**, not from
+  `model_options`. The person form fetched model options but only picked
+  connection, location, CRM and OSINT types — so an option added under
+  Settings → Data Model genuinely never appeared anywhere. Now read from the
+  database in the person form, both people list filters, and Advanced Search,
+  with the static list kept as a fallback so a type with no rows can't produce
+  an empty dropdown.
+- Status badge colours are preserved when options load from the database
+  (`mergeOptionMeta`), and the seeded **"Related to Person of Interest"**
+  category — which was missing from the hardcoded list entirely — now shows up.
+
+### 🐛 Fixed — "Export All Data" was incomplete (issue #74)
+
+- The export omitted **assets, transactions, properties and wireless
+  networks**, making the file unusable for backup, migration or disaster
+  recovery. Export is now version 1.3 and covers them; import restores them,
+  remapping owner and party references onto the newly-inserted ids the same
+  way people and businesses already were.
+- Import also gained `patronymic` and `owner_business_id` — the latter
+  resolved in a second pass, since a business may be owned by one imported
+  later in the file.
+
+### 🌍 Added — Report output is translatable (issue #63)
+
+- The generated `.md` and `.docx` reports and the entity ledger were the last
+  content still hardcoded in English. All headings, table columns, stat
+  labels, task states and summary sentences now come from the translation
+  catalog (127 new keys). Dates in reports follow the report's language
+  instead of being pinned to US English.
+
+### 👤 Changed — Name order follows the language (issue #61)
+
+- Russian, Ukrainian, Belarusian, Bulgarian and Kazakh conventionally lead
+  with the family name (*Фамилия Имя Отчество*). Person names now display —
+  and the person form lays its fields out — in the order the active language
+  expects. Display convention only; stored data is unchanged.
+
+### 🕸️ Added — Conflict-of-interest groundwork (issue #65)
+
+Built from a contributor's real use case: tracking board members of councils
+against the private interests of those same people.
+
+- **Board members are distinct from employees.** Employee entries can be
+  marked as a decision maker and draw as a separate governance relationship.
+- **Employee entries link to a real person record** via a picker, instead of
+  being matched by name. Name matching remains only as a fallback for existing
+  entries — it collides between people who share a name, which is exactly the
+  false positive a conflict view must not invent.
+- **Ownership chains** — a business can be owned by another business, so
+  holding and shell structures are representable instead of collapsing to a
+  single hop.
+- **Transaction tags** — free-form labels with a filter built from the tags in
+  use, usable from the MCP tools for automated passes over a tagged subset.
+  Adds an *Endorsement / Promotion* transaction type.
+- **Relationship layers** — the entity network's three edge toggles become six
+  named layers (governance, employment, financial, social, investigative,
+  other), each independently toggleable with a solo button.
+
 ## [2.11.0] - 2026-08-08
 
 ### 🌍 Added — Data-model and enum labels are translatable (issue #67)

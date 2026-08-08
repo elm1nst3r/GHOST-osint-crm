@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.11.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.12.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -456,6 +456,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.12.0 (August 2026)
+- 🐛 **Data Model options now reach the person dropdowns** — categories and statuses rendered from a hardcoded list rather than from Settings → Data Model, so options you added never appeared anywhere (issue #67)
+- 🐛 **"Export All Data" is complete** — assets, transactions, properties and wireless networks were missing from the export, making it unusable for backup or migration; import restores them with references intact (issue #74)
+- 🌍 **Reports are translatable** — the generated .md/.docx reports and entity ledger were the last content hardcoded in English; 127 new strings, and report dates follow the report's language (issue #63)
+- 👤 **Name order follows the language** — Russian and neighbouring conventions lead with the family name (issue #61)
+- 🕸️ **Conflict-of-interest groundwork** — board members distinct from employees, employee entries linked to real person records, business-to-business ownership chains, taggable transactions, and six toggleable relationship layers in the entity network (issue #65)
 
 ### Version 2.11.0 (August 2026)
 - 🌍 **Data-model labels translate** — the option labels behind every dropdown (categories, statuses, connection/location/transaction/asset types) now render in the selected language; they were previously stuck in English because they are seeded into the database rather than living in the translation catalog. Labels you rename or create yourself are left exactly as you wrote them (issue #67)
