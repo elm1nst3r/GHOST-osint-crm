@@ -95,12 +95,18 @@ const DataModelTab = () => {
       <CustomFieldManager customFields={customFields} fetchCustomFields={fetchCustomFields} />
 
       <div className="pt-6 border-t">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-1">
           <h3 className="text-lg font-semibold">{t('settings.dataModel.predefinedOptions')}</h3>
           <button onClick={() => setShowAddOptionForm(!showAddOptionForm)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center">
             <Plus className="w-4 h-4 mr-1" />{t('settings.dataModel.addOption')}
           </button>
         </div>
+        {/* Labels are shown here exactly as stored, never translated — this is
+            the screen where you edit the stored value, so translating it would
+            mean editing one string while looking at another. Everywhere else in
+            the app these labels go through utils/optionLabels.js and appear in
+            the active language. */}
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('settings.dataModel.storedLabelsHint')}</p>
 
         {showAddOptionForm && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-900 rounded-lg">

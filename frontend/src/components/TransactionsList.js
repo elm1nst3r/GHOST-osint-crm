@@ -7,6 +7,7 @@ import { transactionsAPI, modelOptionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { formatDate, formatMoney, partyText, subjectText, prettyType, typeBadgeClass } from '../utils/transactionFormat';
+import { optionLabel } from '../utils/optionLabels';
 
 const VIRTUAL_THRESHOLD = 150;
 const ROW_HEIGHT = 64;
@@ -91,7 +92,7 @@ const TransactionsList = () => {
         </div>
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{translate('transactionsList.allTypes')}</option>
-          {typeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+          {typeOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(translate, 'transaction_type', o.option_value, o.option_label)}</option>)}
         </select>
       </div>
 

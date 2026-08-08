@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { peopleAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
+import { optionLabel, translateOptions } from '../utils/optionLabels';
 import BulkRelationshipTool from './BulkRelationshipTool';
 
 const PeopleTableView = ({
@@ -19,6 +20,8 @@ const PeopleTableView = ({
   setSelectedPersonForDetail
 }) => {
   const { t } = useTranslation();
+  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
+  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -380,7 +383,7 @@ const PeopleTableView = ({
               onChange={(e) => setQuickAddData({ ...quickAddData, category: e.target.value })}
               className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              {PERSON_CATEGORIES.map(cat => (
+              {personCategories.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
               ))}
             </select>
@@ -389,7 +392,7 @@ const PeopleTableView = ({
               onChange={(e) => setQuickAddData({ ...quickAddData, status: e.target.value })}
               className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              {PERSON_STATUSES.map(stat => (
+              {personStatuses.map(stat => (
                 <option key={stat.value} value={stat.value}>{stat.label}</option>
               ))}
             </select>
@@ -539,13 +542,13 @@ const PeopleTableView = ({
                         onChange={(e) => setEditData({ ...editData, category: e.target.value })}
                         className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-sm"
                       >
-                        {PERSON_CATEGORIES.map(cat => (
+                        {personCategories.map(cat => (
                           <option key={cat.value} value={cat.value}>{cat.label}</option>
                         ))}
                       </select>
                     ) : (
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(person.category)}`}>
-                        {person.category}
+                        {optionLabel(t, 'person_category', person.category)}
                       </span>
                     )}
                   </td>
@@ -558,13 +561,13 @@ const PeopleTableView = ({
                         onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                         className="px-2 py-1 border border-gray-300 dark:border-slate-600 rounded text-sm"
                       >
-                        {PERSON_STATUSES.map(stat => (
+                        {personStatuses.map(stat => (
                           <option key={stat.value} value={stat.value}>{stat.label}</option>
                         ))}
                       </select>
                     ) : (
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(person.status)}`}>
-                        {person.status}
+                        {optionLabel(t, 'person_status', person.status)}
                       </span>
                     )}
                   </td>

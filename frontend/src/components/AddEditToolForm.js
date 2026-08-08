@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { X, Globe, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_CATEGORIES, TOOL_STATUSES } from '../utils/constants';
+import { translateOptions } from '../utils/optionLabels';
 
 const AddEditToolForm = ({ tool, onSave, onCancel }) => {
   const { t } = useTranslation();
+  const toolCategories = translateOptions(t, 'tool_category', TOOL_CATEGORIES);
+  const toolStatuses = translateOptions(t, 'tool_status', TOOL_STATUSES);
   const [formData, setFormData] = useState({
     name: '',
     link: '',
@@ -208,7 +211,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                 className="input-base"
               >
                 <option value="">{t('toolForm.selectCategory')}</option>
-                {TOOL_CATEGORIES.map(cat => (
+                {toolCategories.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
@@ -222,7 +225,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                 className="input-base"
               >
                 <option value="">{t('toolForm.selectStatus')}</option>
-                {TOOL_STATUSES.map(status => (
+                {toolStatuses.map(status => (
                   <option key={status.value} value={status.value}>{status.label}</option>
                 ))}
               </select>

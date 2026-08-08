@@ -1,9 +1,10 @@
 // File: frontend/src/components/AddEditPersonForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, AlertCircle } from 'lucide-react';
 import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, CRM_STATUSES, updateDynamicConstants } from '../utils/constants';
+import { translateOptions } from '../utils/optionLabels';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import LocationsSection from './person-form/LocationsSection';
@@ -31,6 +32,12 @@ const AddEditPersonForm = () => {
   const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
   const [crmStatuses, setCrmStatuses] = useState(CRM_STATUSES);
   const [osintDataTypes, setOsintDataTypes] = useState(OSINT_DATA_TYPES);
+  const personCategories = useMemo(() => translateOptions(t, 'person_category', PERSON_CATEGORIES), [t]);
+  const personStatuses = useMemo(() => translateOptions(t, 'person_status', PERSON_STATUSES), [t]);
+  const tCrmStatuses = useMemo(() => translateOptions(t, 'crm_status', crmStatuses), [t, crmStatuses]);
+  const tLocationTypes = useMemo(() => translateOptions(t, 'location_type', locationTypes), [t, locationTypes]);
+  const tOsintDataTypes = useMemo(() => translateOptions(t, 'osint_data_type', osintDataTypes), [t, osintDataTypes]);
+  const tConnectionTypes = useMemo(() => translateOptions(t, 'connection_type', connectionTypes), [t, connectionTypes]);
   const [existingCases, setExistingCases] = useState([]);
   const [caseExists, setCaseExists] = useState(false);
   const [optionsLoadError, setOptionsLoadError] = useState(false);
@@ -162,7 +169,7 @@ const AddEditPersonForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.category')}</label>
               <select value={formData.category} onChange={e => set('category', e.target.value)} className={inputClass}>
                 <option value="">{t('personForm.selectCategory')}</option>
-                {PERSON_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {personCategories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
           </div>
@@ -173,14 +180,14 @@ const AddEditPersonForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.status')}</label>
               <select value={formData.status} onChange={e => set('status', e.target.value)} className={inputClass}>
                 <option value="">{t('personForm.selectStatus')}</option>
-                {PERSON_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {personStatuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.crmStatus')}</label>
               <select value={formData.crmStatus} onChange={e => set('crmStatus', e.target.value)} className={inputClass}>
                 <option value="">{t('personForm.selectCrmStatus')}</option>
-                {crmStatuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {tCrmStatuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>
@@ -258,19 +265,19 @@ const AddEditPersonForm = () => {
 
           <LocationsSection
             locations={formData.locations}
-            locationTypes={locationTypes}
+            locationTypes={tLocationTypes}
             onChange={val => set('locations', val)}
           />
 
           <OsintSection
             osintData={formData.osintData}
-            osintDataTypes={osintDataTypes}
+            osintDataTypes={tOsintDataTypes}
             onChange={val => set('osintData', val)}
           />
 
           <ConnectionsSection
             connections={formData.connections}
-            connectionTypes={connectionTypes}
+            connectionTypes={tConnectionTypes}
             people={people}
             currentPersonId={person?.id}
             onChange={val => set('connections', val)}

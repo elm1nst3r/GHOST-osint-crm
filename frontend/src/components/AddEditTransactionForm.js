@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Receipt } from 'lucide-react';
 import { transactionsAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
@@ -162,7 +163,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
             <div><label className={labelClass}>{t('transactionForm.typeRequired')}</label>
               <select className={inputClass} value={transaction_type} onChange={e => setType(e.target.value)}>
                 <option value="">{t('common.selectPlaceholder')}</option>
-                {typeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+                {typeOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'transaction_type', o.option_value, o.option_label)}</option>)}
               </select>
             </div>
             <div><label className={labelClass}>{t('transactionForm.date')}</label><input type="date" className={inputClass} value={occurredOn} onChange={e => setOccurredOn(e.target.value)} /></div>
@@ -187,7 +188,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
                 <input className={inputClass} value={itemLabel} onChange={e => setItemLabel(e.target.value)} placeholder={t('transactionForm.itemLabelPlaceholder')} />
                 <select className={inputClass} value={itemCategory} onChange={e => setItemCategory(e.target.value)}>
                   <option value="">{t('transactionForm.categoryPlaceholder')}</option>
-                  {itemCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+                  {itemCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'transaction_item_category', o.option_value, o.option_label)}</option>)}
                 </select>
               </div>
             )}

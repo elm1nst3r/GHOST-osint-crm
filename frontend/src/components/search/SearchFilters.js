@@ -6,6 +6,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES } from '../../utils/constants';
+import { translateOptions } from '../../utils/optionLabels';
 
 const SearchFilters = ({
   searchParams, setSearchParams,
@@ -16,9 +17,18 @@ const SearchFilters = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const getCrmStatuses = () => modelOptions.filter(opt => opt.model_type === 'crm_status' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
-  const getConnectionTypes = () => modelOptions.filter(opt => opt.model_type === 'connection_type' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
-  const getLocationTypes = () => modelOptions.filter(opt => opt.model_type === 'location_type' && opt.is_active).map(opt => ({ value: opt.option_value, label: opt.option_label }));
+  // These return normalised { value, label } entries (id and the raw row are
+  // preserved). Read `.value`/`.label` off them — the call sites below used to
+  // read `.option_value`/`.option_label`, which these getters never produced,
+  // so the CRM-status, location-type and connection-type filters rendered blank
+  // labels and filtered on `undefined`.
+  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
+  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
+  const osintDataTypes = translateOptions(t, 'osint_data_type', OSINT_DATA_TYPES);
+  const byType = (modelType) => translateOptions(t, modelType, modelOptions.filter(opt => opt.model_type === modelType && opt.is_active));
+  const getCrmStatuses = () => byType('crm_status');
+  const getConnectionTypes = () => byType('connection_type');
+  const getLocationTypes = () => byType('location_type');
 
   return (
 <div className="w-96 border-r bg-gray-50 dark:bg-slate-900 overflow-y-auto">
@@ -113,7 +123,7 @@ const SearchFilters = ({
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.categoriesLabel')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
-              {PERSON_CATEGORIES.map(cat => (
+              {personCategories.map(cat => (
                 <label key={cat.value} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -142,7 +152,7 @@ const SearchFilters = ({
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('personDetailModal.statusLabel')}</label>
             <div className="space-y-1">
-              {PERSON_STATUSES.map(status => (
+              {personStatuses.map(status => (
                 <label key={status.value} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -175,23 +185,23 @@ const SearchFilters = ({
                 <label key={status.id} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={searchParams.crmStatuses.includes(status.option_value)}
+                    checked={searchParams.crmStatuses.includes(status.value)}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSearchParams({
                           ...searchParams,
-                          crmStatuses: [...searchParams.crmStatuses, status.option_value]
+                          crmStatuses: [...searchParams.crmStatuses, status.value]
                         });
                       } else {
                         setSearchParams({
                           ...searchParams,
-                          crmStatuses: searchParams.crmStatuses.filter(v => v !== status.option_value)
+                          crmStatuses: searchParams.crmStatuses.filter(v => v !== status.value)
                         });
                       }
                     }}
                     className="h-4 w-4 text-blue-600 rounded"
                   />
-                  <span className="text-sm">{status.option_label}</span>
+                  <span className="text-sm">{status.label}</span>
                 </label>
               ))}
             </div>
@@ -319,8 +329,8 @@ const SearchFilters = ({
             >
               <option value="">{t('searchFilters.allTypes')}</option>
               {getLocationTypes().map(type => (
-                <option key={type.id} value={type.option_value}>
-                  {type.option_label}
+                <option key={type.id} value={type.value}>
+                  {type.label}
                 </option>
               ))}
             </select>
@@ -364,8 +374,8 @@ const SearchFilters = ({
             >
               <option value="">{t('searchFilters.allTypes')}</option>
               {getConnectionTypes().map(type => (
-                <option key={type.id} value={type.option_value}>
-                  {type.option_label}
+                <option key={type.id} value={type.value}>
+                  {type.label}
                 </option>
               ))}
             </select>
@@ -416,7 +426,7 @@ const SearchFilters = ({
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.osintTypesLabel')}</label>
             <div className="space-y-1">
-              {OSINT_DATA_TYPES.map(type => (
+              {osintDataTypes.map(type => (
                 <label key={type.value} className="flex items-center space-x-2">
                   <input
                     type="checkbox"

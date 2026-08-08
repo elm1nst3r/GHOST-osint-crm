@@ -1,6 +1,7 @@
 // File: frontend/src/components/CaseManagement.js
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { optionLabel } from '../utils/optionLabels';
 import {
   Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search,
   Edit2, Trash2, User,
@@ -515,7 +516,7 @@ const CaseManagement = () => {
                               )}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {person.category} • {person.status}
+                              {optionLabel(t, 'person_category', person.category)} • {optionLabel(t, 'person_status', person.status)}
                             </p>
                           </div>
                         </div>
@@ -572,7 +573,7 @@ const CaseManagement = () => {
                     />
                     <div className="flex-1">
                       <p className="font-medium">{getFullName(person)}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{person.category}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{optionLabel(t, 'person_category', person.category)}</p>
                     </div>
                   </label>
                 ))}

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Package } from 'lucide-react';
 import { assetsAPI, modelOptionsAPI, casesAPI, transactionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
@@ -138,12 +139,12 @@ const AddEditAssetForm = ({ asset, onClose }) => {
             <div><label className={labelClass}>{t('assetForm.category')}</label>
               <select className={inputClass} value={form.category} onChange={e => update('category', e.target.value)}>
                 <option value="">{t('common.selectPlaceholder')}</option>
-                {categoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+                {categoryOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_category', o.option_value, o.option_label)}</option>)}
               </select>
             </div>
             <div><label className={labelClass}>{t('assetForm.status')}</label>
               <select className={inputClass} value={form.status} onChange={e => update('status', e.target.value)}>
-                {statusOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+                {statusOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_status', o.option_value, o.option_label)}</option>)}
               </select>
             </div>
             <div><label className={labelClass}>{t('assetForm.identifierLabel')}</label><input className={inputClass} value={form.identifier} onChange={e => update('identifier', e.target.value)} /></div>

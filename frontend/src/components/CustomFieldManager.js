@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { customFieldsAPI } from '../utils/api';
 import { CUSTOM_FIELD_TYPES } from '../utils/constants';
+import { translateOptions } from '../utils/optionLabels';
 
 const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
   const { t } = useTranslation();
+  const customFieldTypes = translateOptions(t, 'custom_field_type', CUSTOM_FIELD_TYPES);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [formData, setFormData] = useState({
@@ -137,7 +139,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                 onChange={(e) => setFormData({ ...formData, field_type: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md text-sm"
               >
-                {CUSTOM_FIELD_TYPES.map(type => (
+                {customFieldTypes.map(type => (
                   <option key={type.value} value={type.value}>{type.label}</option>
                 ))}
               </select>

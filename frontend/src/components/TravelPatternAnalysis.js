@@ -9,10 +9,13 @@ import {
 } from 'lucide-react';
 import { travelHistoryAPI } from '../utils/api';
 import { TRAVEL_PURPOSES, TRANSPORTATION_MODES } from '../utils/constants';
+import { optionLabel, translateOptions } from '../utils/optionLabels';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 
 const TravelPatternAnalysis = ({ personId, personName }) => {
   const { t } = useTranslation();
+  const travelPurposes = translateOptions(t, 'travel_purpose', TRAVEL_PURPOSES);
+  const transportationModes = translateOptions(t, 'transportation_mode', TRANSPORTATION_MODES);
   const [travelData, setTravelData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -270,7 +273,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                   className="w-full px-3 py-2 border rounded-md"
                 >
                   <option value="">{t('travelPatternAnalysis.selectPurposePlaceholder')}</option>
-                  {TRAVEL_PURPOSES.map(purpose => (
+                  {travelPurposes.map(purpose => (
                     <option key={purpose.value} value={purpose.value}>
                       {purpose.label}
                     </option>
@@ -369,7 +372,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 className="w-full px-3 py-2 border rounded-md"
               >
                 <option value="">{t('travelPatternAnalysis.selectTransportationPlaceholder')}</option>
-                {TRANSPORTATION_MODES.map(mode => (
+                {transportationModes.map(mode => (
                   <option key={mode.value} value={mode.value}>
                     {mode.label}
                   </option>
@@ -441,7 +444,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                         </span>
                         {travel.purpose && (
                           <span className="px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs">
-                            {TRAVEL_PURPOSES.find(p => p.value === travel.purpose)?.label || travel.purpose}
+                            {optionLabel(t, 'travel_purpose', travel.purpose)}
                           </span>
                         )}
                       </div>
@@ -519,7 +522,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                       </p>
                       {travel.purpose && (
                         <p className="text-xs mt-1">
-                          {t('travelPatternAnalysis.purposeInline', { purpose: TRAVEL_PURPOSES.find(p => p.value === travel.purpose)?.label })}
+                          {t('travelPatternAnalysis.purposeInline', { purpose: optionLabel(t, 'travel_purpose', travel.purpose) })}
                         </p>
                       )}
                     </div>
@@ -640,7 +643,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             {travelData.travelByPurpose?.length > 0 ? (
               <div className="space-y-2">
                 {travelData.travelByPurpose.map((purpose, index) => {
-                  const purposeLabel = TRAVEL_PURPOSES.find(p => p.value === purpose.purpose)?.label || purpose.purpose || t('relationshipDiagram.unknown');
+                  const purposeLabel = optionLabel(t, 'travel_purpose', purpose.purpose) || t('relationshipDiagram.unknown');
                   const percentage = Math.round((purpose.count / travelData.statistics.total_trips) * 100);
 
                   return (

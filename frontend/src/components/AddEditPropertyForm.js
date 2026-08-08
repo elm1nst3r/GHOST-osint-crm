@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Landmark } from 'lucide-react';
 import { propertiesAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
@@ -84,7 +85,7 @@ const AddEditPropertyForm = ({ property, onClose }) => {
               <label className={labelClass}>{t('propertyForm.propertyType')}</label>
               <select className={inputClass} value={form.property_type} onChange={e => update('property_type', e.target.value)}>
                 <option value="">{t('common.selectPlaceholder')}</option>
-                {typeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+                {typeOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'property_type', o.option_value, o.option_label)}</option>)}
               </select>
             </div>
             <div>

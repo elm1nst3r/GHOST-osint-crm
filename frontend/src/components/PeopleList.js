@@ -5,6 +5,7 @@ import { FixedSizeList } from 'react-window';
 import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Users, Grid3x3, Table } from 'lucide-react';
 import { peopleAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
+import { optionLabel, translateOptions } from '../utils/optionLabels';
 import PeopleTableView from './PeopleTableView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
@@ -15,6 +16,8 @@ const CARD_ITEM_HEIGHT = 230; // px — card height + gap
 
 const PeopleList = () => {
   const { t } = useTranslation();
+  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
+  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
   const { people, fetchPeople, peopleMeta, loadMorePeople } = useData();
   const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -169,12 +172,12 @@ const PeopleList = () => {
             </div>
           </div>
           <div className="space-y-2 mt-3">
-            {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 mr-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.category}</span></div>}
+            {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 mr-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{optionLabel(t, 'person_category', person.category)}</span></div>}
             {person.case_name && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-2 text-accent-tertiary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span></div>}
             <div className="flex items-center text-sm"><Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: connectionCount })}</span></div>
             <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">{t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}</span></div>
           </div>
-          {person.status && <div className="mt-3"><span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>{person.status}</span></div>}
+          {person.status && <div className="mt-3"><span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>{optionLabel(t, 'person_status', person.status)}</span></div>}
         </div>
       </div>
     );
@@ -265,7 +268,7 @@ const PeopleList = () => {
             className="input-base w-auto"
           >
             <option value="">{t('peopleList.allCategories')}</option>
-            {PERSON_CATEGORIES.map(cat => (
+            {personCategories.map(cat => (
               <option key={cat.value} value={cat.value}>{cat.label}</option>
             ))}
           </select>
@@ -275,7 +278,7 @@ const PeopleList = () => {
             className="input-base w-auto"
           >
             <option value="">{t('peopleList.allStatuses')}</option>
-            {PERSON_STATUSES.map(status => (
+            {personStatuses.map(status => (
               <option key={status.value} value={status.value}>{status.label}</option>
             ))}
           </select>
@@ -381,7 +384,7 @@ const PeopleList = () => {
               {person.category && (
                 <div className="flex items-center text-sm">
                   <Tag className="w-4 h-4 mr-2 text-accent-secondary" />
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">{person.category}</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">{optionLabel(t, 'person_category', person.category)}</span>
                 </div>
               )}
               {person.case_name && (
@@ -405,7 +408,7 @@ const PeopleList = () => {
             {person.status && (
               <div className="mt-4">
                 <span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>
-                  {person.status}
+                  {optionLabel(t, 'person_status', person.status)}
                 </span>
               </div>
             )}

@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
 import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
+import { optionLabel } from '../utils/optionLabels';
 import { locationColors, buildIconCache, colorForCustomType } from './map/mapUtils';
 import AddLocationModal from './map/AddLocationModal';
 import MapLegend from './map/MapLegend';
@@ -418,14 +419,14 @@ const GlobalMap = () => {
             <select value={filterAssetCategory} onChange={e => setFilterAssetCategory(e.target.value)}
               className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded dark:bg-slate-800 dark:text-gray-100">
               <option value="">{t('globalMap.allAssetCategories')}</option>
-              {assetCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+              {assetCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_category', o.option_value, o.option_label)}</option>)}
             </select>
           )}
           {showTransactions && (
             <select value={filterTxType} onChange={e => setFilterTxType(e.target.value)}
               className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded dark:bg-slate-800 dark:text-gray-100">
               <option value="">{t('globalMap.allTransactionTypes')}</option>
-              {txTypeOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+              {txTypeOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'transaction_type', o.option_value, o.option_label)}</option>)}
             </select>
           )}
         </div>

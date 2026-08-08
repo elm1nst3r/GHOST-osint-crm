@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { optionLabel } from '../../utils/optionLabels';
 import { Search, Download, SortAsc, SortDesc, Network, Tag, Briefcase, MapPin, FileText, Database } from 'lucide-react';
 
 const SearchResults = ({
@@ -133,7 +134,7 @@ const SearchResults = ({
                     {person.category && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                         <Tag className="w-3 h-3 mr-1" />
-                        {person.category}
+                        {optionLabel(t, 'person_category', person.category)}
                       </span>
                     )}
                     
@@ -143,7 +144,7 @@ const SearchResults = ({
                         person.status === 'Being Investigated' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
-                        {person.status}
+                        {optionLabel(t, 'person_status', person.status)}
                       </span>
                     )}
                     

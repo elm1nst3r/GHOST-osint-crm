@@ -6,6 +6,7 @@ import { Package, Search, Plus, Edit2, Trash2, Eye, MapPin, User, Hash } from 'l
 import { assetsAPI, modelOptionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { optionLabel } from '../utils/optionLabels';
 
 const VIRTUAL_THRESHOLD = 150;
 const ITEM_HEIGHT = 160;
@@ -106,11 +107,11 @@ const AssetsList = () => {
         </div>
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{t('assetsList.allCategories')}</option>
-          {categoryOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+          {categoryOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_category', o.option_value, o.option_label)}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{t('assetsList.allStatuses')}</option>
-          {statusOptions.map(o => <option key={o.id} value={o.option_value}>{o.option_label}</option>)}
+          {statusOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_status', o.option_value, o.option_label)}</option>)}
         </select>
       </div>
 

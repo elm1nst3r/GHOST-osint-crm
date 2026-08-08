@@ -4,11 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_STATUSES, TOOL_CATEGORIES } from '../utils/constants';
+import { translateOptions } from '../utils/optionLabels';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const ToolsList = () => {
   const { t } = useTranslation();
+  const toolCategories = translateOptions(t, 'tool_category', TOOL_CATEGORIES);
+  const toolStatuses = translateOptions(t, 'tool_status', TOOL_STATUSES);
   const { tools, fetchTools } = useData();
   const { setShowAddToolForm, setEditingTool } = useUI();
   const [toolSearchTerm, setToolSearchTerm] = useState('');
@@ -165,7 +168,7 @@ const ToolsList = () => {
                   className="w-full px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary transition-all duration-300 dark:text-gray-100 dark:bg-slate-800"
                 >
                   <option value="">{t('toolsList.allCategories')}</option>
-                  {TOOL_CATEGORIES.map(cat => (
+                  {toolCategories.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
                 </select>
@@ -179,7 +182,7 @@ const ToolsList = () => {
                   className="w-full px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary transition-all duration-300 dark:text-gray-100 dark:bg-slate-800"
                 >
                   <option value="">{t('toolsList.allStatuses')}</option>
-                  {TOOL_STATUSES.map(status => (
+                  {toolStatuses.map(status => (
                     <option key={status.value} value={status.value}>{status.label}</option>
                   ))}
                 </select>
