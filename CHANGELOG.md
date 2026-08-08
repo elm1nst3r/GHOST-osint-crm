@@ -5,6 +5,74 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-08-08
+
+### 🌍 Added — Data-model and enum labels are translatable (issue #67)
+
+- The option labels behind every dropdown — person categories and statuses,
+  CRM statuses, connection and location types, transaction/asset/property
+  types, OSINT data types — now render in the selected language. They had been
+  stuck in English regardless: the shipped defaults are seeded into Postgres at
+  boot (`backend/config/seedDefaults.js`) and rendered straight off the row, so
+  they never passed through `t()` and never reached the translation catalog.
+  128 new keys across 17 namespaces, wired into 18 components.
+- Translation happens at render time and never touches stored values, so
+  `person.category` still holds `'Suspect'` in every language — no migration,
+  no risk to existing records.
+- **Options you rename keep your wording**, and options you create yourself are
+  left exactly as typed — only untouched built-in labels are translated.
+  Settings → Data Model deliberately still shows raw stored labels, since
+  that's where the stored value is edited.
+
+### 👤 Added — Patronymic on people (issue #61)
+
+- People have a proper `patronymic` field, shown between the given and family
+  name (*Иван Петрович Сидоров*) across the person view, lists, case view,
+  relationship diagram and reports, and searchable both on its own and as part
+  of the full name. Optional, so existing records are unaffected.
+- Full-name construction moved to `CONCAT_WS`, which also fixes a latent
+  trailing space for people with no surname.
+
+### 📄 Added — Person reports actually scope to the person (issue #63)
+
+- A report generated from a person now covers *that person* — profile,
+  connections, locations, OSINT data — and opens on the Person Profile type.
+  Previously the selected person was used only for the report title while the
+  body listed everyone in their case, making the output indistinguishable from
+  a case report. The button on the person view is now labelled rather than a
+  bare icon.
+- The **.docx export had no connections section at all**, so connections were
+  silently dropped from every Word report. Added, along with date of birth and
+  aliases in Word person profiles.
+
+### 📱 Added — Responsive layout, stages 1–2 (issue #64)
+
+- **The sidebar is now an off-canvas drawer** below tablet width, behind a top
+  bar, dismissed by tapping outside, Escape, the close button, or picking a
+  section. Its widths had been written desktop-first, which under Tailwind's
+  mobile-first breakpoints meant the sidebar was at its *widest* on the
+  narrowest screen — 288px of navigation on a 375px phone.
+- 50 fixed multi-column grids stack on phones; dialogs cap at 90% viewport
+  height and scroll; page headers, list filter rows and the person form's
+  repeat-entry rows wrap instead of forcing the page to scroll sideways.
+- Desktop is unchanged by design: each existing grid value is pinned at a
+  breakpoint, so the rendered CSS at and above it is identical.
+- Still to come: data tables and virtualised lists (stage 3), map and
+  relationship graph touch handling (stage 4).
+
+### 🐛 Fixed
+
+- **Advanced Search filters rendered blank and filtered on nothing** — the
+  CRM-status, location-type and connection-type filters read `option_value` /
+  `option_label` off getters that only ever returned `{ value, label }`. Broken
+  in English too, unrelated to translation.
+- **Restored four Russian coordinate strings** that a Crowdin sync reverted to
+  English: the `lng`→`lon` placeholder rename that fixed #69 invalidated their
+  translations upstream.
+- **MCP duplicate detection accounts for the patronymic**, so two people
+  differing only in patronymic are no longer flagged as duplicates of each
+  other.
+
 ## [2.10.0] - 2026-07-24
 
 ### 🌍 Added — Internationalization & community translations (issue #59)

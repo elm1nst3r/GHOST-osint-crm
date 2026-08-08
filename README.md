@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.10.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.11.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -456,6 +456,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.11.0 (August 2026)
+- 🌍 **Data-model labels translate** — the option labels behind every dropdown (categories, statuses, connection/location/transaction/asset types) now render in the selected language; they were previously stuck in English because they are seeded into the database rather than living in the translation catalog. Labels you rename or create yourself are left exactly as you wrote them (issue #67)
+- 👤 **Patronymic field on people** — a proper name part shown between given and family name and searchable on its own, for Russian and other conventions that use one (issue #61)
+- 📄 **Person reports scope to the person** — a report generated from someone now covers that person rather than everyone in their case, and opens on the Person Profile type; the Word export also gained its missing connections section (issue #63)
+- 📱 **Mobile: navigation and forms** — the sidebar becomes an off-canvas drawer on phones, forms stack, and dialogs stay on screen; tables, map and relationship graph are still desktop-oriented (issue #64, stages 1–2)
+- 🐛 **Advanced Search filters fixed** — the CRM-status, location-type and connection-type filters rendered blank labels and filtered on `undefined`
 
 ### Version 2.10.0 (July 2026)
 - 🌍 **Community translations** — the entire frontend now runs through react-i18next (~1,380 strings) with a Crowdin integration for community-contributed languages and a language picker in Settings (issue #59)
