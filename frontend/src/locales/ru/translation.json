@@ -19,7 +19,9 @@
       "map": "Позиционирование",
       "wireless": "Беспроводные сети",
       "settings": "Настройки"
-    }
+    },
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation"
   },
   "common": {
     "loading": "Загрузка...",
@@ -68,7 +70,8 @@
         "other": "Other",
         "suspect": "Suspect Connection",
         "victim": "Victim",
-        "witness": "Witness"
+        "witness": "Witness",
+        "board_member": "Board Member / Decision Maker"
       },
       "crm_status": {
         "active": "Active",
@@ -178,7 +181,8 @@
         "sale": "Sale",
         "seized": "Seized",
         "transfer": "Transfer",
-        "visit": "Visit / Attendance"
+        "visit": "Visit / Attendance",
+        "endorsement": "Endorsement / Promotion"
       },
       "transportation_mode": {
         "airplane": "Airplane",
@@ -613,7 +617,8 @@
     "noResultsFound": "Нет найденных транзакций",
     "confirmDeleteTransaction": "Удалить эту транзакцию?",
     "errorDeleteTransaction": "Ошибка при удалении: {{message}}",
-    "showingOfTotal": "Показаны {{count}} из {{total}}"
+    "showingOfTotal": "Показаны {{count}} из {{total}}",
+    "allTags": "All tags"
   },
   "personForm": {
     "editTitle": "Редактировать личность",
@@ -682,7 +687,7 @@
     "address": "Адрес",
     "streetAddressPlaceholder": "Адрес улицы",
     "getCoordinates": "Получить координаты",
-    "coordinates": "Координаты: {{lat}}, {{lon}}",
+    "coordinates": "Coordinates: {{lat}}, {{lon}}",
     "cityPlaceholder": "Город",
     "stateProvincePlaceholder": "Штат/регион",
     "countryPlaceholder": "Страна",
@@ -734,7 +739,16 @@
       "entertainment": "Развлечения",
       "hospitality": "Гостиничный",
       "other": "Прочее"
-    }
+    },
+    "ownerBusiness": "Owned by (business)",
+    "noOwnerBusinessSelected": "No owning business",
+    "ownerBusinessHint": "For holding companies and ownership chains — the entity that owns this one.",
+    "linkPersonPlaceholder": "Link to an existing person (optional)",
+    "linkPersonHint": "Linking to a person record makes the network edge exact. Without it the name is matched, which can collide between people sharing a name.",
+    "isDecisionMaker": "Board member / decision maker",
+    "decisionMakerBadge": "Decision maker",
+    "unlinkedPersonBadge": "Name only",
+    "unlinkedPersonHint": "Not linked to a person record — matched by name, which may be ambiguous."
   },
   "propertyForm": {
     "editTitle": "Редактировать недвижимость",
@@ -834,7 +848,10 @@
     "notes": "Заметки",
     "errorTypeRequired": "Требуется тип транзакции",
     "errorPartyRequired": "Требуется хотя бы одна сторона (отправитель или получатель)",
-    "errorSaveTransaction": "Не удалось сохранить транзакцию"
+    "errorSaveTransaction": "Не удалось сохранить транзакцию",
+    "tags": "Tags",
+    "tagsPlaceholder": "city-council-conflict-of-interest, follow-up",
+    "tagsHint": "Comma separated. Your own labels — use them to filter this list or to point an automated pass at a subset."
   },
   "toolForm": {
     "editTitle": "Редактировать инструмент",
@@ -927,7 +944,7 @@
     "tipsNotFound": "\n\nСоветы:\n• Добавить город и страну (например, \"10 Downing St, London, UK\")\n• Проверка на наличие ошибок написания\n• Попробуйте индекс или zip вместо этого",
     "tipsTimeout": "\n\nСлужба геокодирования не отвечает. Проверьте подключение к Интернету и повторите попытку.",
     "tipsRateLimited": "\n\nПровайдер геокодирования ограничивает количество запросов. Подождите несколько секунд и повторите попытку.",
-    "locationAddedSuccess": "Локация успешно добавлена!\nАдрес: {{address}}\nКоординаты: {{lat}}, {{lon}}\nТочность: {{confidence}}%",
+    "locationAddedSuccess": "Location added successfully!\nAddress: {{address}}\nCoordinates: {{lat}}, {{lon}}\nConfidence: {{confidence}}%",
     "geocodedButFailedToSave": "Геокодирование не удалось. Попробуйте добавить локацию в ручную из профиля личности.",
     "errorAddLocation": "Не удалось добавить локацию",
     "selectPerson": "Выбрать личность",
@@ -1013,7 +1030,7 @@
     "errorRemoveAssociation": "Не удалось удалить связь",
     "confirmDeleteNetwork": "Удалить сеть \"{{ssid}}?",
     "locationPreview": "Предпросмотр местоположения",
-    "coordinatesLabel": "Координаты: {{lat}}, {{lon}}",
+    "coordinatesLabel": "Coordinates: {{lat}}, {{lon}}",
     "accuracySuffix": " • Точность: ±{{value}}м",
     "deleteNetwork": "Удалить сеть"
   },
@@ -1282,7 +1299,8 @@
       "owner": "Владелец",
       "transaction": "Транзакция",
       "other": "Другое"
-    }
+    },
+    "boardMemberConnectionNote": "Board member"
   },
   "relationshipManager": {
     "errorLabel": "Ошибка: {{message}}",
@@ -1335,7 +1353,17 @@
     "connectionCreatedSuccess": "Связь успешно создана!",
     "errorCreateConnection": "Не удалось создать связь: {{message}}",
     "connectionDeletedSuccess": "Связь успешно удалена!",
-    "errorDeleteConnection": "Не удалось удалить связь: {{message}}"
+    "errorDeleteConnection": "Не удалось удалить связь: {{message}}",
+    "edgeLayer": {
+      "governance": "Governance",
+      "employment": "Employment",
+      "financial": "Financial",
+      "social": "Social",
+      "investigative": "Investigative",
+      "other": "Other"
+    },
+    "soloLayerShort": "S",
+    "soloLayerTitle": "Show only this layer"
   },
   "transactionTable": {
     "noTransactions": "Нет транзакций.",
@@ -1525,7 +1553,7 @@
     "countryLabel": "Страна *",
     "streetAddressLabel": "Уличный  адрес",
     "getCoordinatesTitle": "Получить координаты",
-    "coordinatesLabel": "Координаты: {{lat}}, {{lon}}",
+    "coordinatesLabel": "Coordinates: {{lat}}, {{lon}}",
     "arrivalDateLabel": "Дата прибытия *",
     "departureDateLabel": "Дата выезда",
     "transportationModeLabel": "Вид транспортировки",
