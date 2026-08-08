@@ -1171,13 +1171,22 @@
       "executiveSummary": "Executive Summary",
       "peopleProfiles": "People Profiles",
       "connectionsNetwork": "Connections Network",
-      "timeline": "Timeline",
       "locations": "Locations",
       "osintData": "OSINT Data",
       "tasksTodos": "Tasks / Todos",
-      "auditTrail": "Audit Trail",
-      "chartsAnalytics": "Charts & Analytics"
-    }
+      "chartsAnalytics": "Charts & Analytics",
+      "businesses": "Businesses"
+    },
+    "reportTypeHint": "Sets the sections below. Adjust any of them afterwards.",
+    "scopeLabel": "Report scope",
+    "scopeAll": "All data",
+    "scopeCase": "A single case",
+    "scopePerson": "A single person",
+    "scopeSelectCase": "Select a case…",
+    "scopeSelectPerson": "Select a person…",
+    "scopeLockedSelection": "Scoped to the entities you selected.",
+    "personProfileNeedsPerson": "Select a person, or this will cover the whole dataset.",
+    "resetToType": "Reset to type defaults"
   },
   "reportPreview": {
     "title": "Report Preview",
@@ -1196,7 +1205,6 @@
     "locationData": "Location Data",
     "osintIntelligence": "OSINT Intelligence",
     "investigationTasks": "Investigation Tasks",
-    "activityTimeline": "Activity Timeline",
     "statisticalAnalysis": "Statistical Analysis",
     "reportInformation": "Report Information",
     "twoFormatsStrong": "Two formats available:",
@@ -1863,6 +1871,7 @@
     "counterpartyLabel": "Counterparty",
     "subjectLabel": "Subject",
     "directionLabel": "Direction",
-    "endOfLedgerReport": "End of Ledger Report"
+    "endOfLedgerReport": "End of Ledger Report",
+    "osintIntelligence": "OSINT INTELLIGENCE"
   }
 }
