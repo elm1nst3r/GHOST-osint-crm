@@ -39,6 +39,172 @@
     "autoGeocodedHint": "авто геокодирование если пусто",
     "clear": "Очистить"
   },
+  "dataModel": {
+    "optionLabels": {
+      "asset_category": {
+        "document": "Document",
+        "electronics": "Electronics",
+        "jewellery": "Jewellery",
+        "laptop": "Laptop / Device",
+        "other": "Other",
+        "tracking_device": "Tracking Device",
+        "vehicle": "Vehicle",
+        "watch": "Watch"
+      },
+      "asset_status": {
+        "active": "Active",
+        "destroyed": "Destroyed",
+        "disposed": "Disposed",
+        "lost": "Lost",
+        "seized": "Seized"
+      },
+      "connection_type": {
+        "associate": "Associate",
+        "employee": "Employee",
+        "employer": "Employer",
+        "enemy": "Enemy",
+        "family": "Family",
+        "friend": "Friend",
+        "other": "Other",
+        "suspect": "Suspect Connection",
+        "victim": "Victim",
+        "witness": "Witness"
+      },
+      "crm_status": {
+        "active": "Active",
+        "archived": "Archived",
+        "attempted_engage": "Attempted to Engage",
+        "awaiting_response": "Awaiting Response",
+        "engaged": "Engaged",
+        "follow_up": "Follow Up",
+        "new_lead": "New Lead",
+        "qualified": "Qualified"
+      },
+      "custom_field_type": {
+        "date": "Date",
+        "select": "Dropdown",
+        "text": "Text",
+        "textarea": "Textarea"
+      },
+      "location_type": {
+        "family_residence": "Family Residence",
+        "favorite_hotel": "Favorite Hotel",
+        "holiday_home": "Holiday Home",
+        "other": "Other",
+        "primary_residence": "Primary Residence",
+        "work": "Work",
+        "yacht_location": "Yacht Location"
+      },
+      "osint_data_type": {
+        "document_id": "Document ID",
+        "email": "Email",
+        "financial": "Financial",
+        "ip_address": "IP Address",
+        "other": "Other",
+        "phone": "Phone",
+        "social_media": "Social Media",
+        "username": "Username",
+        "vehicle": "Vehicle",
+        "website": "Website"
+      },
+      "person_category": {
+        "client": "Client",
+        "other": "Other",
+        "person_of_interest": "Person of Interest",
+        "related_to_person_of_interest": "Related to Person of Interest",
+        "suspect": "Suspect",
+        "victim": "Victim",
+        "witness": "Witness"
+      },
+      "person_status": {
+        "being_investigated": "Being Investigated",
+        "closed": "Closed",
+        "on_hold": "On Hold",
+        "open": "Open"
+      },
+      "property_type": {
+        "commercial": "Commercial",
+        "development_site": "Development Site",
+        "land": "Land",
+        "other": "Other",
+        "parcel": "Parcel / Lot",
+        "rental": "Rental Property",
+        "residential": "Residential"
+      },
+      "task_status": {
+        "attention": "Attention / Issue",
+        "cancelled": "Cancelled",
+        "done": "Done",
+        "in_progress": "In Progress",
+        "on_hold": "On Hold",
+        "open": "Open"
+      },
+      "tool_category": {
+        "data_analysis": "Data Analysis",
+        "documentation": "Documentation",
+        "geolocation": "Geolocation",
+        "other": "Other",
+        "people_search": "People Search",
+        "search_engines": "Search Engines",
+        "social_media": "Social Media"
+      },
+      "tool_status": {
+        "active": "Active",
+        "deprecated": "Deprecated",
+        "offline": "Offline",
+        "testing": "Testing"
+      },
+      "transaction_item_category": {
+        "business_interest": "Business Interest",
+        "cash_donation": "Cash / Donation",
+        "hospitality": "Hospitality / Meal",
+        "other": "Other",
+        "physical_good": "Physical Good",
+        "real_estate": "Real Estate",
+        "tickets_event": "Tickets / Event",
+        "travel": "Travel"
+      },
+      "transaction_type": {
+        "acquisition": "Acquisition",
+        "assignment": "Assignment",
+        "benefit": "Benefit / Hospitality",
+        "donation": "Donation",
+        "gift": "Gift",
+        "loan": "Loan / Borrowed",
+        "lost": "Lost",
+        "other": "Other",
+        "purchase": "Purchase",
+        "return": "Returned",
+        "sale": "Sale",
+        "seized": "Seized",
+        "transfer": "Transfer",
+        "visit": "Visit / Attendance"
+      },
+      "transportation_mode": {
+        "airplane": "Airplane",
+        "bus": "Bus",
+        "car": "Car",
+        "helicopter": "Helicopter",
+        "other": "Other",
+        "private_jet": "Private Jet",
+        "ship": "Ship/Cruise",
+        "train": "Train",
+        "unknown": "Unknown"
+      },
+      "travel_purpose": {
+        "business": "Business",
+        "conference": "Conference",
+        "education": "Education",
+        "family_visit": "Family Visit",
+        "medical": "Medical",
+        "other": "Other",
+        "relocation": "Relocation",
+        "transit": "Transit",
+        "unknown": "Unknown",
+        "vacation": "Vacation"
+      }
+    }
+  },
   "login": {
     "subtitle": "Войдите в ваш аккаунт",
     "username": "Логин",
@@ -206,7 +372,8 @@
       "errorAddOption": "Ошибка добавления опции: {{message}}",
       "errorUpdateOption": "Не удалось обновить опцию",
       "errorDeleteOption": "Ошибка при удалении опции",
-      "confirmDeleteOption": "Удалить эту опцию? Это действие не может быть отменено."
+      "confirmDeleteOption": "Удалить эту опцию? Это действие не может быть отменено.",
+      "storedLabelsHint": "Shown in the language they are stored in. Built-in options appear translated elsewhere in the app; options you add or rename appear exactly as you type them."
     },
     "importExport": {
       "dataExport": "Экспорт данных",
@@ -496,7 +663,8 @@
     "customFields": {
       "label": "Пользовательские поля",
       "selectFieldValue": "Выбрать {{fieldLabel}}"
-    }
+    },
+    "patronymic": "Patronymic"
   },
   "businessForm": {
     "editTitle": "Редактировать организацию",
@@ -514,7 +682,7 @@
     "address": "Адрес",
     "streetAddressPlaceholder": "Адрес улицы",
     "getCoordinates": "Получить координаты",
-    "coordinates": "Координаты: {{lat}}, {{lon}}",
+    "coordinates": "Coordinates: {{lat}}, {{lon}}",
     "cityPlaceholder": "Город",
     "stateProvincePlaceholder": "Штат/регион",
     "countryPlaceholder": "Страна",
@@ -759,7 +927,7 @@
     "tipsNotFound": "\n\nСоветы:\n• Добавить город и страну (например, \"10 Downing St, London, UK\")\n• Проверка на наличие ошибок написания\n• Попробуйте индекс или zip вместо этого",
     "tipsTimeout": "\n\nСлужба геокодирования не отвечает. Проверьте подключение к Интернету и повторите попытку.",
     "tipsRateLimited": "\n\nПровайдер геокодирования ограничивает количество запросов. Подождите несколько секунд и повторите попытку.",
-    "locationAddedSuccess": "Локация успешно добавлена!\nАдрес: {{address}}\nКоординаты: {{lat}}, {{lon}}\nТочность: {{confidence}}%",
+    "locationAddedSuccess": "Location added successfully!\nAddress: {{address}}\nCoordinates: {{lat}}, {{lon}}\nConfidence: {{confidence}}%",
     "geocodedButFailedToSave": "Геокодирование не удалось. Попробуйте добавить локацию в ручную из профиля личности.",
     "errorAddLocation": "Не удалось добавить локацию",
     "selectPerson": "Выбрать личность",
@@ -845,7 +1013,7 @@
     "errorRemoveAssociation": "Не удалось удалить связь",
     "confirmDeleteNetwork": "Удалить сеть \"{{ssid}}?",
     "locationPreview": "Предпросмотр местоположения",
-    "coordinatesLabel": "Координаты: {{lat}}, {{lon}}",
+    "coordinatesLabel": "Coordinates: {{lat}}, {{lon}}",
     "accuracySuffix": " • Точность: ±{{value}}м",
     "deleteNetwork": "Удалить сеть"
   },
@@ -1357,7 +1525,7 @@
     "countryLabel": "Страна *",
     "streetAddressLabel": "Уличный  адрес",
     "getCoordinatesTitle": "Получить координаты",
-    "coordinatesLabel": "Координаты: {{lat}}, {{lon}}",
+    "coordinatesLabel": "Coordinates: {{lat}}, {{lon}}",
     "arrivalDateLabel": "Дата прибытия *",
     "departureDateLabel": "Дата выезда",
     "transportationModeLabel": "Вид транспортировки",
