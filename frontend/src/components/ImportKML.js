@@ -368,7 +368,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
               </div>
 
               {/* Import Statistics */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 bg-white dark:bg-slate-700/50 rounded-lg-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400">{t('importKmlModal.networksImported')}</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
@@ -450,7 +450,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
             {/* Preview Content */}
             <div className="p-6 space-y-6">
               {/* File Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('importKmlModal.fileNameLabel')}
@@ -470,7 +470,7 @@ const ImportKML = ({ onClose, onImportComplete }) => {
                 <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                   {t('importKmlModal.networksToImport')}
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 px-3 py-2 rounded-lg">
                     <span className="text-sm text-gray-700 dark:text-gray-300">{t('wirelessNetworks.totalNetworks')}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preview.totalNetworks}</span>

@@ -149,7 +149,7 @@ const AddEditPersonForm = () => {
           )}
 
           {/* Name */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.firstNameRequired')}</label>
               <input type="text" value={formData.firstName} onChange={e => set('firstName', e.target.value)} className={inputClass} required />
@@ -165,7 +165,7 @@ const AddEditPersonForm = () => {
           </div>
 
           {/* DOB + Category */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.dateOfBirth')}</label>
               <input type="date" value={formData.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} className={inputClass} />
@@ -180,7 +180,7 @@ const AddEditPersonForm = () => {
           </div>
 
           {/* Status + CRM Status */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.status')}</label>
               <select value={formData.status} onChange={e => set('status', e.target.value)} className={inputClass}>
@@ -198,7 +198,7 @@ const AddEditPersonForm = () => {
           </div>
 
           {/* Case + Profile pic */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.caseName')}</label>
               <div className="relative">
@@ -245,7 +245,7 @@ const AddEditPersonForm = () => {
           {/* Aliases */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.aliases')}</label>
-            <div className="flex space-x-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               <input
                 type="text"
                 value={newAlias}

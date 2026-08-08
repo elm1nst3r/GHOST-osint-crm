@@ -1,11 +1,11 @@
 // File: frontend/src/App.js
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -102,6 +102,10 @@ const AppShell = () => {
   // The URL is the source of truth for which section is shown, so browser
   // back/forward and deep links work. activeSection stays in UIContext because
   // many components read/set it; the two effects below keep them consistent.
+  // Mobile nav drawer. Desktop (md+) ignores this entirely: the sidebar is
+  // statically positioned there, so this only governs the off-canvas panel.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const lastDeepLink = useRef(null);
@@ -114,6 +118,7 @@ const AppShell = () => {
     const section = navigationItemIds.some(item => item.id === seg) ? seg : 'dashboard';
     urlSection.current = section;
     setActiveSection(section);
+    setMobileNavOpen(false);
 
     // Deep links: /people/:id and /businesses/:id open the detail modal
     const deepLink = id && /^\d+$/.test(id) ? `${seg}/${id}` : null;
@@ -148,6 +153,14 @@ const AppShell = () => {
     if (authenticated) refreshAll();
   }, [authenticated, refreshAll]);
 
+  // Escape closes the mobile drawer
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const onKeyDown = (e) => { if (e.key === 'Escape') setMobileNavOpen(false); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileNavOpen]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[100dvh] bg-slate-50 dark:bg-slate-900">
@@ -162,11 +175,48 @@ const AppShell = () => {
 
   return (
     <div className="flex min-h-[100dvh] bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
-      {/* Sidebar */}
-      <div className="relative w-72 lg:w-72 md:w-64 sm:w-56 glass-card m-4 flex-shrink-0 flex flex-col">
+
+      {/* Mobile top bar — the only chrome visible below md, since the sidebar
+          is off-canvas there. */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-4 glass-card rounded-none border-x-0 border-t-0">
+        <button
+          onClick={() => setMobileNavOpen(true)}
+          className="p-2 -ml-2 rounded-[var(--radius-control)] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label={t('app.openNavigation')}
+          aria-expanded={mobileNavOpen}
+        >
+          <Menu style={{ width: 22, height: 22 }} />
+        </button>
+        <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+          {appSettings.appName}
+        </span>
+      </div>
+
+      {/* Scrim — closes the drawer on tap. Below md only. */}
+      {mobileNavOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-slate-900/50"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar. Below md it's an off-canvas drawer; at md+ it's the static
+          column it has always been. The widths used to be written
+          desktop-first (`w-72 lg:w-72 md:w-64 sm:w-56`), which in Tailwind's
+          mobile-first system meant the sidebar was at its WIDEST on the
+          narrowest screen — 288px of nav on a 375px phone (issue #64). */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] rounded-none border-y-0 border-l-0
+          flex flex-col glass-card flex-shrink-0
+          transform transition-transform duration-200 ease-out
+          ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:static md:translate-x-0 md:max-w-none md:m-4 md:w-64 lg:w-72
+          md:rounded-[var(--radius-card)] md:border`}
+      >
         <div className="p-5 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 min-w-0">
               {appSettings.appLogo ? (
                 <img src={appSettings.appLogo} alt={t('app.logoAlt')} className="h-10 w-10 object-contain rounded-lg" />
               ) : (
@@ -175,11 +225,20 @@ const AppShell = () => {
                 </div>
               )}
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{appSettings.appName}</h2>
+                <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight break-words">{appSettings.appName}</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('app.suiteSubtitle')}</p>
               </div>
             </div>
-            <DarkModeToggle />
+            <div className="flex items-center gap-1">
+              <DarkModeToggle />
+              <button
+                onClick={() => setMobileNavOpen(false)}
+                className="md:hidden p-2 rounded-[var(--radius-control)] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label={t('app.closeNavigation')}
+              >
+                <X style={{ width: 18, height: 18 }} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -193,7 +252,7 @@ const AppShell = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => { setActiveSection(item.id); setMobileNavOpen(false); }}
                 className={`nav-item ${
                   isActive
                     ? 'bg-accent-primary/10 text-accent-primary'
@@ -220,7 +279,7 @@ const AppShell = () => {
 
         <div className="p-3 border-t border-slate-200 dark:border-slate-800">
           <button
-            onClick={() => setShowAdvancedSearch(true)}
+            onClick={() => { setShowAdvancedSearch(true); setMobileNavOpen(false); }}
             className="btn btn-secondary w-full"
           >
             <Search className="w-4 h-4 text-accent-primary" />
@@ -230,9 +289,9 @@ const AppShell = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 relative flex flex-col m-4 ml-0">
+      <div className="flex-1 min-w-0 relative flex flex-col m-4 mt-[4.5rem] md:mt-4 md:ml-0">
         <div className="flex-1 glass-card overflow-hidden">
-          <div className="h-full p-6 overflow-auto">
+          <div className="h-full p-4 md:p-6 overflow-auto">
             <div className="max-w-full mx-auto h-full">
               <ErrorBoundary resetKey={activeSection}>
 

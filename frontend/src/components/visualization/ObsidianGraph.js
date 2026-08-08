@@ -672,7 +672,7 @@ const ObsidianGraph = ({
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-gray-800 bg-opacity-90 text-white rounded-lg shadow-lg p-3 z-10 max-w-xs">
         <h4 className="font-bold text-sm mb-2">{t('relationshipDiagram.connectionTypesTitle')}</h4>
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
           {Object.entries(theme.edge).map(([type, color]) => (
             <div key={type} className="flex items-center space-x-2">
               <div className="w-6 h-0.5" style={{ backgroundColor: color }}></div>

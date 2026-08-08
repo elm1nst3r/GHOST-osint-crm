@@ -19,7 +19,7 @@ const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.osint.label')}</label>
 
       <div className="space-y-2 mb-2">
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={newItem.type}
             onChange={e => setNewItem({ ...newItem, type: e.target.value })}

@@ -172,7 +172,7 @@ const UserManagement = () => {
 
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingUser ? t('settings.users.editUser') : t('settings.users.addNewUser')}
             </h2>
@@ -230,7 +230,7 @@ const UserManagement = () => {
                   placeholder={editingUser ? t('settings.users.confirmPasswordPlaceholderEdit') : t('settings.users.confirmPasswordPlaceholderNew')}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('settings.users.firstNameLabel')}

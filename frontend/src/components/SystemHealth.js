@@ -122,7 +122,7 @@ const SystemHealth = () => {
   if (!health) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="hidden md:block fixed bottom-4 right-4 z-50">
       <div className={`glass rounded-lg shadow-lg transition-all duration-300 ${expanded ? 'w-72' : 'w-auto'}`}>
         <div
           className="p-3 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
@@ -210,7 +210,7 @@ const SystemHealth = () => {
               {/* Data Counts */}
               <div className="space-y-2">
                 <div className="font-medium">{t('systemHealth.dataSummary')}</div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded">
                     <div className="flex items-center space-x-1">
                       <Users className="w-3 h-3 text-blue-500" />

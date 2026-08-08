@@ -114,11 +114,11 @@ const ImportExportTab = () => {
 
       {/* Import Preview Modal */}
       {showImportPreview && importPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{t('settings.importExport.importPreview')}</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[[t('settings.importExport.fileName'), importPreview.fileName], [t('settings.importExport.fileSize'), importPreview.fileSize], [t('settings.importExport.version'), importPreview.version], [t('settings.importExport.exportDate'), importPreview.exportDate ? new Date(importPreview.exportDate).toLocaleString() : t('settings.importExport.notAvailable')]].map(([label, value]) => (
                   <div key={label}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
@@ -128,7 +128,7 @@ const ImportExportTab = () => {
               </div>
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('settings.importExport.recordsToImport')}</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Object.entries(importPreview.counts).map(([key, count]) => (
                     <div key={key} className="flex justify-between items-center bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded">
                       <span className="text-sm text-gray-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>

@@ -186,7 +186,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
           {/* Basic Information */}
           <div>
             <h3 className="text-lg font-semibold mb-3">{t('businessForm.basicInformation')}</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('businessForm.businessNameRequired')}</label>
                 <input
@@ -290,7 +290,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
                   type="text"
                   value={formData.city}
@@ -307,7 +307,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
                   type="text"
                   value={formData.country}
@@ -329,7 +329,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
           {/* Contact Information */}
           <div>
             <h3 className="text-lg font-semibold mb-3">{t('businessForm.contactInformation')}</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
@@ -368,7 +368,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
           {/* Registration Details */}
           <div>
             <h3 className="text-lg font-semibold mb-3">{t('businessForm.registrationDetails')}</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input
                 type="text"
                 value={formData.registration_number}
@@ -404,7 +404,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
 
             {showEmployeeForm && (
               <div className="mb-3 p-3 glass rounded-lg border border-gray-300 dark:border-gray-600">
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
                   <input
                     type="text"
                     value={newEmployee.name}
@@ -427,7 +427,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                     className="px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary text-sm"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                   <input
                     type="email"
                     value={newEmployee.email}

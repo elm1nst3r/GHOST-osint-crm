@@ -381,7 +381,7 @@ const SearchFilters = ({
             </select>
           </div>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('searchFilters.minConnectionsLabel')}</label>
               <input

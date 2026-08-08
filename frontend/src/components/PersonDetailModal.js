@@ -204,7 +204,7 @@ const PersonDetailModal = () => {
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
             {activeTab === 'details' && (
               <div className="p-6">
-                <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   {/* Basic Information */}
                   <div className="space-y-4">
                     <div>
@@ -292,7 +292,7 @@ const PersonDetailModal = () => {
                         </div>
                         {connectedPeople.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                               <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.outgoingLabel')} <span className="text-blue-600 dark:text-blue-400">{connectedPeople.filter(c => c.direction === 'outgoing').length}</span></div>
                               <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.incomingLabel')} <span className="text-accent-secondary">{connectedPeople.filter(c => c.direction === 'incoming').length}</span></div>
                             </div>

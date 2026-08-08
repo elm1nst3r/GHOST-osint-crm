@@ -155,7 +155,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
             {ledgerEntity ? (
               <LedgerReportPanel ledger={ledger} />
             ) : (
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ReportOptions reportOptions={reportOptions} onChange={setReportOptions} />
                 <ReportPreview data={data} reportOptions={reportOptions} />
               </div>

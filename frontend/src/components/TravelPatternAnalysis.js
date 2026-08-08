@@ -253,7 +253,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             {editingTravel ? t('travelPatternAnalysis.editTravelRecord') : t('travelPatternAnalysis.addTravelRecord')}
           </h4>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('travelPatternAnalysis.locationNameLabel')}</label>
                 <input
@@ -282,7 +282,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('travelPatternAnalysis.cityLabel')}</label>
                 <input
@@ -341,7 +341,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('travelPatternAnalysis.arrivalDateLabel')}</label>
                 <input

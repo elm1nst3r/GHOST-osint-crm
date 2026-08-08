@@ -715,7 +715,7 @@ const RelationshipDiagram = ({
       {/* Connection Modal */}
       {connectionModal && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-96">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{t('relationshipDiagram.createConnectionTitle')}</h3>
 
             <div className="mb-4">

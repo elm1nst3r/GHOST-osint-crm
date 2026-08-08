@@ -187,7 +187,7 @@ const PeopleList = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('peopleList.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 flex items-center">
@@ -240,7 +240,7 @@ const PeopleList = () => {
 
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-4">
           <div className="flex-1 max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />

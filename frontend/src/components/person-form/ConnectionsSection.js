@@ -28,7 +28,7 @@ const ConnectionsSection = ({ connections, connectionTypes, people, currentPerso
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.connections.label')}</label>
 
       <div className="space-y-2 mb-2">
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <select ref={selectRef} className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600">
             <option value="">{t('personForm.connections.selectPerson')}</option>
             {people.filter(p => !currentPersonId || p.id !== currentPersonId).map(p => (

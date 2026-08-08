@@ -91,7 +91,7 @@ const NetworkInfoSection = ({ network, saving, onSave }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('networkInfoSection.signalStrengthDbmLabel')}</label>
             <input type="number" name="signal_strength" value={formData.signal_strength} onChange={handleChange} placeholder={t('networkInfoSection.signalPlaceholder')} className={inputClass} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('networkInfoSection.frequencyLabel')}</label>
               <input type="text" name="frequency" value={formData.frequency} onChange={handleChange} placeholder={t('networkInfoSection.frequencyPlaceholder')} className={inputClass} />
@@ -123,7 +123,7 @@ const NetworkInfoSection = ({ network, saving, onSave }) => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center space-x-2">
             {network.encryption === 'WPA2' || network.encryption === 'WPA3'
               ? <Lock className="w-4 h-4 text-green-600 dark:text-green-400" />

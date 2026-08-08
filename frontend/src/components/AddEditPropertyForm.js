@@ -76,7 +76,7 @@ const AddEditPropertyForm = ({ property, onClose }) => {
         </div>
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4">
           {error && <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">{error}</div>}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className={labelClass}>{t('propertyForm.nameRequired')}</label>
               <input className={inputClass} value={form.name} onChange={e => update('name', e.target.value)} />

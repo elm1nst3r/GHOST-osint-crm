@@ -95,7 +95,7 @@ const DataModelTab = () => {
       <CustomFieldManager customFields={customFields} fetchCustomFields={fetchCustomFields} />
 
       <div className="pt-6 border-t">
-        <div className="flex justify-between items-center mb-1">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-1">
           <h3 className="text-lg font-semibold">{t('settings.dataModel.predefinedOptions')}</h3>
           <button onClick={() => setShowAddOptionForm(!showAddOptionForm)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center">
             <Plus className="w-4 h-4 mr-1" />{t('settings.dataModel.addOption')}
@@ -111,7 +111,7 @@ const DataModelTab = () => {
         {showAddOptionForm && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-900 rounded-lg">
             <h4 className="font-medium mb-3">{t('settings.dataModel.addNewOption')}</h4>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('settings.dataModel.category')}</label>
                 <select value={selectedModelType} onChange={(e) => setSelectedModelType(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm">
@@ -123,7 +123,7 @@ const DataModelTab = () => {
                 <input type="number" value={optionForm.display_order} onChange={(e) => setOptionForm({ ...optionForm, display_order: parseInt(e.target.value) || 999 })} className="w-full px-3 py-2 border rounded-md text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('settings.dataModel.internalValueRequired')}</label>
                 <input type="text" value={optionForm.option_value} onChange={(e) => setOptionForm({ ...optionForm, option_value: e.target.value })} className="w-full px-3 py-2 border rounded-md text-sm" placeholder={t('settings.dataModel.internalValuePlaceholder')} />
@@ -188,8 +188,8 @@ const DataModelTab = () => {
 
       {/* Edit Option Modal */}
       {editingOption && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-96">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{t('settings.dataModel.editOption')}</h3>
             <div className="space-y-3">
               <div>

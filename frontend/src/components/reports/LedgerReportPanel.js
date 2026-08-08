@@ -13,7 +13,7 @@ const LedgerReportPanel = ({ ledger }) => {
       <h3 className="text-lg font-bold mb-1">{t('ledgerReportPanel.title')}</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-3">{entity.label} ({entity.type})</p>
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
         <div className="p-2 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
           <div className="text-xs text-green-700 dark:text-green-400">{t('ledgerReportPanel.inLabel')}</div>
           <div className="font-bold text-green-700 dark:text-green-300">{summary.value_in != null ? formatMoney(summary.value_in) : t('ledgerReportPanel.mixed')}</div>

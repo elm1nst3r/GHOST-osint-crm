@@ -90,8 +90,8 @@ const AddLocationModal = ({ allPeople, onSuccess, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded-lg p-6 w-96">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded-lg p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t('globalMap.addNewLocationTitle')}</h3>
 
         <div className="space-y-4">

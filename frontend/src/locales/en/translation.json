@@ -19,7 +19,9 @@
       "map": "Locations",
       "wireless": "Wireless Networks",
       "settings": "Settings"
-    }
+    },
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation"
   },
   "common": {
     "loading": "Loading...",

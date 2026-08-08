@@ -159,7 +159,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4">
           {error && <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">{error}</div>}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className={labelClass}>{t('transactionForm.typeRequired')}</label>
               <select className={inputClass} value={transaction_type} onChange={e => setType(e.target.value)}>
                 <option value="">{t('common.selectPlaceholder')}</option>
@@ -169,7 +169,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
             <div><label className={labelClass}>{t('transactionForm.date')}</label><input type="date" className={inputClass} value={occurredOn} onChange={e => setOccurredOn(e.target.value)} /></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PartyPicker title={t('transactionForm.fromTitle')} kind={fromKind} setKind={setFromKind} id={fromId} setId={setFromId} external={fromExternal} setExternal={setFromExternal} people={people} businesses={businesses} />
             <PartyPicker title={t('transactionForm.toTitle')} kind={toKind} setKind={setToKind} id={toId} setId={setToId} external={toExternal} setExternal={setToExternal} people={people} businesses={businesses} />
           </div>
@@ -184,7 +184,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
               <option value="property">{t('transactionForm.subjectProperty')}</option>
             </select>
             {subjectKind === 'item' && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input className={inputClass} value={itemLabel} onChange={e => setItemLabel(e.target.value)} placeholder={t('transactionForm.itemLabelPlaceholder')} />
                 <select className={inputClass} value={itemCategory} onChange={e => setItemCategory(e.target.value)}>
                   <option value="">{t('transactionForm.categoryPlaceholder')}</option>
@@ -212,7 +212,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className={labelClass}>{t('transactionForm.value')}</label><input className={inputClass} value={value} onChange={e => setValue(e.target.value)} placeholder={t('transactionForm.valuePlaceholder')} /></div>
             <div><label className={labelClass}>{t('transactionForm.currency')}</label><input className={inputClass} value={currency} onChange={e => setCurrency(e.target.value)} placeholder={t('transactionForm.currencyPlaceholder')} /></div>
           </div>
@@ -239,7 +239,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
               </select>
             )}
             {locationKind === 'place' && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input className={inputClass} value={place.location_name} onChange={e => setPlace({ ...place, location_name: e.target.value })} placeholder={t('transactionForm.placeNamePlaceholder')} />
                 <input className={inputClass} value={place.address} onChange={e => setPlace({ ...place, address: e.target.value })} placeholder={t('transactionForm.addressPlaceholder')} />
                 <input className={inputClass} value={place.city} onChange={e => setPlace({ ...place, city: e.target.value })} placeholder={t('transactionForm.cityPlaceholder')} />
@@ -248,7 +248,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className={labelClass}>{t('transactionForm.case')}</label>
               <select className={inputClass} value={caseId} onChange={e => setCaseId(e.target.value)}>
                 <option value="">{t('common.nonePlaceholder')}</option>

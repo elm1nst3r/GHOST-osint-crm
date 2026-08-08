@@ -134,7 +134,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
         </div>
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4">
           {error && <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">{error}</div>}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="col-span-2"><label className={labelClass}>{t('assetForm.nameRequired')}</label><input className={inputClass} value={form.name} onChange={e => update('name', e.target.value)} /></div>
             <div><label className={labelClass}>{t('assetForm.category')}</label>
               <select className={inputClass} value={form.category} onChange={e => update('category', e.target.value)}>
@@ -148,7 +148,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
               </select>
             </div>
             <div><label className={labelClass}>{t('assetForm.identifierLabel')}</label><input className={inputClass} value={form.identifier} onChange={e => update('identifier', e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div><label className={labelClass}>{t('assetForm.estValue')}</label><input className={inputClass} value={form.estimated_value} onChange={e => update('estimated_value', e.target.value)} /></div>
               <div><label className={labelClass}>{t('assetForm.currency')}</label><input className={inputClass} value={form.currency} onChange={e => update('currency', e.target.value)} placeholder={t('assetForm.currencyPlaceholder')} /></div>
             </div>
@@ -163,7 +163,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
               </select>
             </div>
             {form.location_mode === 'fixed_known' && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><label className={labelClass}>{t('assetForm.person')}</label>
                   <select className={inputClass} value={form.location_person_id} onChange={e => { update('location_person_id', e.target.value); update('location_ref', ''); }}>
                     <option value="">{t('common.selectPlaceholder')}</option>
@@ -179,7 +179,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
               </div>
             )}
             {form.location_mode === 'fixed_custom' && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="col-span-2"><label className={labelClass}>{t('assetForm.address')}</label><input className={inputClass} value={form.address} onChange={e => update('address', e.target.value)} /></div>
                 <div><label className={labelClass}>{t('assetForm.city')}</label><input className={inputClass} value={form.city} onChange={e => update('city', e.target.value)} /></div>
                 <div><label className={labelClass}>{t('assetForm.country')}</label><input className={inputClass} value={form.country} onChange={e => update('country', e.target.value)} /></div>
@@ -196,7 +196,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
                   ? t('assetForm.transferToNewHolder')
                   : t('assetForm.initialHolder')}
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <select className={inputClass} value={holderKind} onChange={e => { setHolderKind(e.target.value); setHolderId(''); }}>
                   <option value="none">{t('common.nonePlaceholder')}</option>
                   <option value="person">{t('assetForm.holderKindPerson')}</option>
@@ -220,7 +220,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
               {holderKind !== 'none' && <div><label className={labelClass}>{isEdit ? t('assetForm.transferredOn') : t('assetForm.acquiredOn')}</label><input type="date" className={inputClass} value={holderDate} onChange={e => setHolderDate(e.target.value)} /></div>}
             </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className={labelClass}>{t('assetForm.case')}</label>
               <select className={inputClass} value={form.case_id} onChange={e => update('case_id', e.target.value)}>
                 <option value="">{t('common.nonePlaceholder')}</option>

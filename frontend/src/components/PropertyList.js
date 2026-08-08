@@ -91,7 +91,7 @@ const PropertyList = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('propertyList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
@@ -108,7 +108,7 @@ const PropertyList = () => {
         </button>
       </div>
 
-      <div className="mb-6 flex space-x-4">
+      <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 max-w-md relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
           <input type="text" placeholder={t('propertyList.searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}

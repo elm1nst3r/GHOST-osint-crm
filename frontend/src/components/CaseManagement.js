@@ -204,7 +204,7 @@ const CaseManagement = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('caseManagement.title')}</h1>
         <button
           onClick={() => setShowNewCaseForm(true)}
@@ -548,8 +548,8 @@ const CaseManagement = () => {
 
       {/* Add People Modal */}
       {showAddPeopleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">{t('caseManagement.addPeopleToCase', { caseName: showAddPeopleModal })}</h3>
             </div>

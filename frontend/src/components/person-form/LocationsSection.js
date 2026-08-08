@@ -33,7 +33,7 @@ const LocationsSection = ({ locations, locationTypes, onChange }) => {
       </label>
 
       <div className="space-y-3 mb-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-lg">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <select
             value={newLocation.type}
             onChange={e => setNewLocation({ ...newLocation, type: e.target.value })}
@@ -43,12 +43,12 @@ const LocationsSection = ({ locations, locationTypes, onChange }) => {
           </select>
           {field('address', t('personForm.locations.streetAddress'))}
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {field('city', t('personForm.locations.city'))}
           {field('state', t('personForm.locations.stateProvince'))}
           {field('country', t('personForm.locations.country'))}
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {field('postal_code', t('personForm.locations.postalCode'))}
           {field('notes', t('personForm.notesOptionalPlaceholder'))}
         </div>

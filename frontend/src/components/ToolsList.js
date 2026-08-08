@@ -135,7 +135,7 @@ const ToolsList = () => {
       <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-6">
         <div className="flex flex-col space-y-4">
           {/* Search Bar */}
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
               <input
