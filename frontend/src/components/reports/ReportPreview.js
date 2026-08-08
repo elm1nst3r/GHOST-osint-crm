@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
-import { getFullName, resolveOptions } from '../../utils/reportGenerators';
+import { getFullName, resolveOptions, subjectsOf } from '../../utils/reportGenerators';
 
 const StatRow = ({ label, value }) => (
   <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-slate-700 last:border-0">
@@ -21,7 +21,10 @@ const ReportPreview = ({ data, reportOptions }) => {
   const { t } = useTranslation();
   const opts = resolveOptions(reportOptions);
   const { people, selectedCase, selectedPerson } = data;
-  const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+  // Mirror what the generators will actually emit, so the preview counts match
+  // the downloaded file for a person-profile report.
+  const subjects = subjectsOf(people, opts, selectedPerson);
+  const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
 
   const scopeLabel = selectedCase
     ? t('reportPreview.caseScopeLabel', { name: selectedCase.case_name })
@@ -36,7 +39,7 @@ const ReportPreview = ({ data, reportOptions }) => {
       {/* Stats */}
       <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 mb-5">
         <StatRow label={t('reportPreview.reportScope')} value={scopeLabel} />
-        <StatRow label={t('reportPreview.peopleIncluded')} value={people.length} />
+        <StatRow label={t('reportPreview.peopleIncluded')} value={subjects.length} />
         <StatRow label={t('reportPreview.totalConnections')} value={totalConnections} />
         <StatRow label={t('reportPreview.exportFormats')} value={t('reportPreview.exportFormatsValue')} />
       </div>
@@ -47,7 +50,7 @@ const ReportPreview = ({ data, reportOptions }) => {
         <div className="space-y-1.5">
           <SectionEntry label={t('reportPreview.coverPage')} />
           {opts.includeSummary    && <SectionEntry label={t('reportOptions.sections.executiveSummary')} />}
-          {opts.includePeople     && <SectionEntry label={t('reportPreview.peopleProfilesCount', { count: people.length })} />}
+          {opts.includePeople     && <SectionEntry label={t('reportPreview.peopleProfilesCount', { count: subjects.length })} />}
           {opts.includeConnections && <SectionEntry label={t('reportPreview.connectionsAnalysis')} />}
           {opts.includeLocations  && <SectionEntry label={t('reportPreview.locationData')} />}
           {opts.includeOsintData  && <SectionEntry label={t('reportPreview.osintIntelligence')} />}

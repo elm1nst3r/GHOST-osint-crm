@@ -8,7 +8,7 @@ jest.mock('docx', () => ({
   AlignmentType: { CENTER: 'center' },
 }));
 
-import { getFullName, formatDate, formatDateTime, generateMarkdown } from './reportGenerators';
+import { getFullName, formatDate, formatDateTime, generateMarkdown, subjectsOf } from './reportGenerators';
 
 // ── getFullName ────────────────────────────────────────────────────────────
 
@@ -187,5 +187,59 @@ describe('generateMarkdown', () => {
     expect(md).toContain('## INVESTIGATION TASKS');
     expect(md).toContain('Open: 1');
     expect(md).toContain('Completed: 1');
+  });
+});
+
+// ── subjectsOf / person-profile scoping (issue #63) ─────────────────────────
+
+describe('subjectsOf', () => {
+  const alice = { id: 1, first_name: 'Alice', last_name: 'Smith', connections: [] };
+  const bob = { id: 2, first_name: 'Bob', last_name: 'Jones', connections: [] };
+  const roster = [alice, bob];
+
+  test('narrows to the selected person for a person-profile report', () => {
+    expect(subjectsOf(roster, { reportType: 'person-profile' }, alice)).toEqual([alice]);
+  });
+
+  test('returns the whole roster for other report types', () => {
+    expect(subjectsOf(roster, { reportType: 'comprehensive' }, alice)).toEqual(roster);
+  });
+
+  test('returns the whole roster when there is no selected person', () => {
+    expect(subjectsOf(roster, { reportType: 'person-profile' }, null)).toEqual(roster);
+  });
+});
+
+describe('generateMarkdown — person-profile scoping', () => {
+  const alice = {
+    id: 1, first_name: 'Alice', last_name: 'Smith', category: 'POI', status: 'Active',
+    case_name: 'Case A', connections: [{ person_id: 2, type: 'associate', note: 'met 2019' }],
+  };
+  const bob = {
+    id: 2, first_name: 'Bob', last_name: 'Jones', category: 'Witness', status: 'Open',
+    case_name: 'Case A', connections: [],
+  };
+  const data = { ...BASE_DATA, people: [alice, bob], selectedPerson: alice };
+  const options = { ...BASE_OPTIONS, reportType: 'person-profile' };
+
+  test('profiles only the subject, not everyone in their case', () => {
+    const md = generateMarkdown(data, options);
+    expect(md).toContain('Alice Smith');
+    expect(md).not.toContain('#### 2. Bob Jones');
+  });
+
+  test('still resolves connection targets against the full roster', () => {
+    const md = generateMarkdown(data, options);
+    expect(md).toContain('| Alice Smith | Bob Jones | associate | met 2019 |');
+  });
+
+  test('counts only the subject in summary statistics', () => {
+    expect(generateMarkdown(data, options)).toContain('| People | 1 |');
+  });
+
+  test('a comprehensive report over the same data still covers everyone', () => {
+    const md = generateMarkdown(data, { ...BASE_OPTIONS, reportType: 'comprehensive' });
+    expect(md).toContain('#### 2. Bob Jones');
+    expect(md).toContain('| People | 2 |');
   });
 });

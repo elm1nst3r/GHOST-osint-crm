@@ -1,10 +1,18 @@
 import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import { formatPersonName } from './personName';
 
 // Shared helpers
 
-export const getFullName = (person) =>
-  `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Unknown';
+export const getFullName = (person) => formatPersonName(person, 'Unknown');
+
+// A person-profile report is about one subject, but the surrounding roster is
+// still needed to resolve connection targets by id — so narrow the *subjects*
+// rather than the people array itself (issue #63).
+export const subjectsOf = (people, options, selectedPerson) =>
+  options.reportType === 'person-profile' && selectedPerson
+    ? people.filter(p => p.id === selectedPerson.id)
+    : people;
 
 export const formatDate = (date) => {
   if (!date) return 'N/A';
@@ -59,7 +67,8 @@ export const resolveOptions = (options) => {
 export const generateMarkdown = (data, options) => {
   options = resolveOptions(options);
   const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
-  const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+  const subjects = subjectsOf(people, options, selectedPerson);
+  const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
     : selectedPerson ? getFullName(selectedPerson) : 'General Report';
 
@@ -75,7 +84,7 @@ export const generateMarkdown = (data, options) => {
   const activeTasks = todos.filter(t => t.status !== 'done').length;
   md += `## SUMMARY STATISTICS\n\n`;
   md += `| Metric | Count |\n|--------|-------|\n`;
-  md += `| People | ${people.length} |\n`;
+  md += `| People | ${subjects.length} |\n`;
   md += `| Businesses | ${businesses.length} |\n`;
   md += `| Locations | ${locations.length} |\n`;
   md += `| Connections | ${totalConnections} |\n`;
@@ -89,11 +98,11 @@ export const generateMarkdown = (data, options) => {
       md += `**Status:** ${selectedCase.status || 'Active'}  \n\n`;
       md += `The case involves ${people.length} individuals with ${totalConnections} documented connections.\n\n`;
     } else {
-      md += `This comprehensive report includes ${people.length} individuals and ${totalConnections} documented relationships.\n\n`;
+      md += `This comprehensive report includes ${subjects.length} individuals and ${totalConnections} documented relationships.\n\n`;
     }
     md += `### Key Insights\n\n`;
     if (people.length > 0) {
-      const categories = [...new Set(people.map(p => p.category).filter(Boolean))];
+      const categories = [...new Set(subjects.map(p => p.category).filter(Boolean))];
       md += `- **${categories.length}** different person categories tracked\n`;
     }
     if (totalConnections > 0) {
@@ -106,15 +115,15 @@ export const generateMarkdown = (data, options) => {
   }
 
   // People profiles
-  if (options.includePeople && people.length > 0) {
+  if (options.includePeople && subjects.length > 0) {
     md += `## PEOPLE PROFILES\n\n### Overview\n\n`;
     md += `| Name | Category | Status | Connections | Case |\n`;
     md += `|------|----------|--------|-------------|------|\n`;
-    people.forEach(p => {
+    subjects.forEach(p => {
       md += `| ${getFullName(p)} | ${p.category || 'N/A'} | ${p.status || 'N/A'} | ${p.connections?.length || 0} | ${p.case_name || 'N/A'} |\n`;
     });
     md += `\n### Detailed Profiles\n\n`;
-    people.forEach((p, i) => {
+    subjects.forEach((p, i) => {
       md += `#### ${i + 1}. ${getFullName(p)}\n\n`;
       md += `**Basic Information:**\n`;
       md += `- **Category:** ${p.category || 'N/A'}\n`;
@@ -151,7 +160,7 @@ export const generateMarkdown = (data, options) => {
     md += `**Total Documented Connections:** ${totalConnections}\n\n`;
     md += `### Connection Details\n\n`;
     md += `| From | To | Relationship | Notes |\n|------|----|--------------|----- |\n`;
-    people.forEach(p => {
+    subjects.forEach(p => {
       p.connections?.forEach(conn => {
         const target = people.find(t => t.id === conn.person_id);
         if (target) {
@@ -268,7 +277,8 @@ const blank = () => p('');
 export const downloadWord = async (data, options) => {
   options = resolveOptions(options);
   const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
-  const totalConnections = people.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+  const subjects = subjectsOf(people, options, selectedPerson);
+  const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
     : selectedPerson ? getFullName(selectedPerson) : 'General Report';
 
@@ -294,22 +304,41 @@ export const downloadWord = async (data, options) => {
       children.push(p(`Status: ${selectedCase.status || 'Active'}`));
       children.push(p(`The case involves ${people.length} individuals with ${totalConnections} documented connections.`));
     } else {
-      children.push(p(`This comprehensive report includes ${people.length} individuals and ${totalConnections} documented relationships.`));
+      children.push(p(`This comprehensive report includes ${subjects.length} individuals and ${totalConnections} documented relationships.`));
     }
     children.push(blank());
   }
 
-  if (options.includePeople && people.length > 0) {
+  if (options.includePeople && subjects.length > 0) {
     children.push(p('People Profiles', HeadingLevel.HEADING_1));
-    people.forEach((person, i) => {
+    subjects.forEach((person, i) => {
       children.push(p(`${i + 1}. ${getFullName(person)}`, HeadingLevel.HEADING_2));
       children.push(p(`Category: ${person.category || 'N/A'}`));
       children.push(p(`Status: ${person.status || 'N/A'}`));
       children.push(p(`Case: ${person.case_name || 'N/A'}`));
+      if (person.date_of_birth) children.push(p(`Date of Birth: ${formatDate(person.date_of_birth)}`));
+      if (person.aliases?.length > 0) children.push(p(`Known Aliases: ${person.aliases.join(', ')}`));
       children.push(p(`Connections: ${person.connections?.length || 0}`));
       if (person.notes) children.push(p(`Notes: ${person.notes}`));
       children.push(blank());
     });
+  }
+
+  // The .docx export had no connections section at all, so `includeConnections`
+  // was silently ignored here — and person-profile turns it on by default.
+  if (options.includeConnections && totalConnections > 0) {
+    children.push(p('Connections Analysis', HeadingLevel.HEADING_1));
+    children.push(p(`Total Documented Connections: ${totalConnections}`));
+    children.push(blank());
+    subjects.forEach(person => {
+      person.connections?.forEach(conn => {
+        const target = people.find(t => t.id === conn.person_id);
+        if (!target) return;
+        const note = conn.note ? ` — ${conn.note}` : '';
+        children.push(p(`${getFullName(person)} → ${getFullName(target)} (${conn.type || 'Unknown'})${note}`));
+      });
+    });
+    children.push(blank());
   }
 
   if (options.includeBusinesses !== false && businesses.length > 0) {

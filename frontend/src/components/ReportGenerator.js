@@ -25,7 +25,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [reportOptions, setReportOptions] = useState(DEFAULT_OPTIONS);
+  // Opened from a person, start on the person-profile type — otherwise the
+  // default 'comprehensive' produced a whole-case report with that person's
+  // name on the front, which read as "there is no person report" (issue #63).
+  const [reportOptions, setReportOptions] = useState(
+    personId ? { ...DEFAULT_OPTIONS, reportType: 'person-profile' } : DEFAULT_OPTIONS
+  );
   const [ledger, setLedger] = useState(null);
   const [data, setData] = useState({
     cases: [], people: [], businesses: [], locations: [], todos: [],
