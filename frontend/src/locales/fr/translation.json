@@ -663,7 +663,8 @@
     "customFields": {
       "label": "Custom Fields",
       "selectFieldValue": "Select {{fieldLabel}}"
-    }
+    },
+    "patronymic": "Patronymic"
   },
   "businessForm": {
     "editTitle": "Edit Business",
