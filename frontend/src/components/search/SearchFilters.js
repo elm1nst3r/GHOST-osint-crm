@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES } from '../../utils/constants';
 import { translateOptions } from '../../utils/optionLabels';
+import { mergeOptionMeta } from '../../utils/useModelOptions';
 
 const SearchFilters = ({
   searchParams, setSearchParams,
@@ -22,9 +23,18 @@ const SearchFilters = ({
   // read `.option_value`/`.option_label`, which these getters never produced,
   // so the CRM-status, location-type and connection-type filters rendered blank
   // labels and filtered on `undefined`.
-  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
-  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
-  const osintDataTypes = translateOptions(t, 'osint_data_type', OSINT_DATA_TYPES);
+  // Configurable in Settings → Data Model; fall back to the constants when the
+  // type has no rows so the filters never come up empty (issue #67).
+  const fromModel = (modelType, fallback) => {
+    const rows = modelOptions
+      .filter(o => o.model_type === modelType && o.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(o => ({ value: o.option_value, label: o.option_label }));
+    return rows.length ? mergeOptionMeta(rows, fallback) : fallback;
+  };
+  const personCategories = translateOptions(t, 'person_category', fromModel('person_category', PERSON_CATEGORIES));
+  const personStatuses = translateOptions(t, 'person_status', fromModel('person_status', PERSON_STATUSES));
+  const osintDataTypes = translateOptions(t, 'osint_data_type', fromModel('osint_data_type', OSINT_DATA_TYPES));
   const byType = (modelType) => translateOptions(t, modelType, modelOptions.filter(opt => opt.model_type === modelType && opt.is_active));
   const getCrmStatuses = () => byType('crm_status');
   const getConnectionTypes = () => byType('connection_type');

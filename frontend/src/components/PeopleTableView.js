@@ -11,6 +11,7 @@ import {
 import { peopleAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
 import { optionLabel, translateOptions } from '../utils/optionLabels';
+import { useModelOptions } from '../utils/useModelOptions';
 import BulkRelationshipTool from './BulkRelationshipTool';
 import { formatPersonName } from '../utils/personName';
 
@@ -21,8 +22,11 @@ const PeopleTableView = ({
   setSelectedPersonForDetail
 }) => {
   const { t } = useTranslation();
-  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
-  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
+  // From Settings → Data Model, falling back to the constants (issue #67)
+  const categoryOptions = useModelOptions('person_category', PERSON_CATEGORIES);
+  const statusOptions = useModelOptions('person_status', PERSON_STATUSES);
+  const personCategories = translateOptions(t, 'person_category', categoryOptions);
+  const personStatuses = translateOptions(t, 'person_status', statusOptions);
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -275,7 +279,7 @@ const PeopleTableView = ({
   };
 
   const getStatusColor = (status) => {
-    const statusConfig = PERSON_STATUSES.find(s => s.value === status);
+    const statusConfig = statusOptions.find(s => s.value === status);
     const colorMap = {
       green: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
       yellow: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',

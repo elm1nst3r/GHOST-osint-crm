@@ -6,6 +6,7 @@ import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock,
 import { peopleAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES } from '../utils/constants';
 import { optionLabel, translateOptions } from '../utils/optionLabels';
+import { useModelOptions } from '../utils/useModelOptions';
 import PeopleTableView from './PeopleTableView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
@@ -17,8 +18,11 @@ const CARD_ITEM_HEIGHT = 230; // px — card height + gap
 
 const PeopleList = () => {
   const { t } = useTranslation();
-  const personCategories = translateOptions(t, 'person_category', PERSON_CATEGORIES);
-  const personStatuses = translateOptions(t, 'person_status', PERSON_STATUSES);
+  // From Settings → Data Model, falling back to the constants (issue #67)
+  const categoryOptions = useModelOptions('person_category', PERSON_CATEGORIES);
+  const statusOptions = useModelOptions('person_status', PERSON_STATUSES);
+  const personCategories = translateOptions(t, 'person_category', categoryOptions);
+  const personStatuses = translateOptions(t, 'person_status', statusOptions);
   const { people, fetchPeople, peopleMeta, loadMorePeople } = useData();
   const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -132,7 +136,7 @@ const PeopleList = () => {
   };
 
   const getStatusColor = (status) => {
-    const statusConfig = PERSON_STATUSES.find(s => s.value === status);
+    const statusConfig = statusOptions.find(s => s.value === status);
     const colorMap = {
       green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',

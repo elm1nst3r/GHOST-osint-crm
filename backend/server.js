@@ -251,7 +251,13 @@ app.post('/api/upload/logo', requireAdmin, logoUpload.single('appLogo'), (req, r
 // Export/Import endpoints
 app.get('/api/export', requireAdmin, async (req, res) => {
   try {
-    const [people, tools, todos, customFields, modelOptions, cases, travelHistory, businesses] = await Promise.all([
+    // "Export All Data" has to mean all of it — assets, transactions,
+    // properties and wireless networks were silently absent, which made the
+    // file unusable for backup or migration (issue #74).
+    const [
+      people, tools, todos, customFields, modelOptions, cases, travelHistory,
+      businesses, properties, assets, transactions, wirelessNetworks,
+    ] = await Promise.all([
       pool.query('SELECT * FROM people'),
       pool.query('SELECT * FROM tools'),
       pool.query('SELECT * FROM todos'),
@@ -259,15 +265,23 @@ app.get('/api/export', requireAdmin, async (req, res) => {
       pool.query('SELECT * FROM model_options'),
       pool.query('SELECT * FROM cases'),
       pool.query('SELECT * FROM travel_history'),
-      pool.query('SELECT * FROM businesses')
+      pool.query('SELECT * FROM businesses'),
+      pool.query('SELECT * FROM properties'),
+      pool.query('SELECT * FROM assets'),
+      pool.query('SELECT * FROM transactions'),
+      pool.query('SELECT * FROM wireless_networks'),
     ]);
 
     const exportData = {
-      version: '1.2',
+      version: '1.3',
       exportDate: new Date().toISOString(),
       data: {
         people: people.rows,
         businesses: businesses.rows,
+        properties: properties.rows,
+        assets: assets.rows,
+        transactions: transactions.rows,
+        wirelessNetworks: wirelessNetworks.rows,
         tools: tools.rows,
         todos: todos.rows,
         customFields: customFields.rows,
@@ -394,13 +408,13 @@ app.post('/api/import', requireAdmin, async (req, res) => {
 
         try {
           const result = await client.query(
-            `INSERT INTO people (first_name, last_name, aliases, date_of_birth, category, status,
+            `INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status,
                                  crm_status, case_name, profile_picture_url, notes, osint_data,
                                  attachments, connections, locations, custom_fields)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb)
              RETURNING id`,
-            [person.first_name, person.last_name, person.aliases, person.date_of_birth,
-             person.category, person.status, person.crm_status, person.case_name,
+            [person.first_name, person.last_name, person.patronymic || null, person.aliases,
+             person.date_of_birth, person.category, person.status, person.crm_status, person.case_name,
              person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON,
              connectionsJSON, locationsJSON, customFieldsJSON]
           );
@@ -478,6 +492,126 @@ app.post('/api/import', requireAdmin, async (req, res) => {
 
         if (business.id && result.rows[0]) {
           businessIdMapping[business.id] = result.rows[0].id;
+        }
+      }
+    }
+
+    // ── Entities absent from the old export/import entirely (issue #74) ──────
+    // Imported after people and businesses so their owner/party references can
+    // be remapped onto the newly-inserted ids. Cases are matched by name, since
+    // case_id is not stable across installs.
+    const caseIdByName = {};
+    {
+      const rows = await client.query('SELECT id, case_name FROM cases');
+      rows.rows.forEach(r => { caseIdByName[r.case_name] = r.id; });
+    }
+    const remapCase = (row) => {
+      if (row.case_name && caseIdByName[row.case_name]) return caseIdByName[row.case_name];
+      return null;
+    };
+
+    const propertyIdMapping = {};
+    if (importData.data.properties) {
+      for (const prop of importData.data.properties) {
+        await tryInsert(`property:${prop.name}`, async () => {
+          const result = await client.query(
+            `INSERT INTO properties (name, property_type, description, address, city, state, country,
+                                     postal_code, latitude, longitude, owner_person_id, case_id, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+            [prop.name, prop.property_type, prop.description, prop.address, prop.city, prop.state,
+             prop.country, prop.postal_code, prop.latitude, prop.longitude,
+             prop.owner_person_id ? (personIdMapping[prop.owner_person_id] || null) : null,
+             remapCase(prop), prop.notes]
+          );
+          if (prop.id && result.rows[0]) propertyIdMapping[prop.id] = result.rows[0].id;
+        });
+      }
+    }
+
+    const assetIdMapping = {};
+    if (importData.data.assets) {
+      for (const asset of importData.data.assets) {
+        await tryInsert(`asset:${asset.name}`, async () => {
+          const result = await client.query(
+            `INSERT INTO assets (name, category, identifier, description, notes, estimated_value,
+                                 currency, status, location_mode, location_person_id, location_ref,
+                                 location_name, address, city, state, country, postal_code,
+                                 latitude, longitude, case_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+             RETURNING id`,
+            [asset.name, asset.category, asset.identifier, asset.description, asset.notes,
+             asset.estimated_value, asset.currency, asset.status, asset.location_mode,
+             asset.location_person_id ? (personIdMapping[asset.location_person_id] || null) : null,
+             asset.location_ref, asset.location_name, asset.address, asset.city, asset.state,
+             asset.country, asset.postal_code, asset.latitude, asset.longitude, remapCase(asset)]
+          );
+          if (asset.id && result.rows[0]) assetIdMapping[asset.id] = result.rows[0].id;
+        });
+      }
+    }
+
+    if (importData.data.transactions) {
+      for (const tx of importData.data.transactions) {
+        await tryInsert(`transaction:${tx.item_label || tx.transaction_type}`, () => client.query(
+          `INSERT INTO transactions (transaction_type, item_label, item_category, subject_asset_id,
+                                     subject_business_id, subject_property_id, from_person_id,
+                                     from_business_id, from_external, to_person_id, to_business_id,
+                                     to_external, value, currency, occurred_on, location_business_id,
+                                     location_property_id, location_name, address, city, state,
+                                     country, postal_code, latitude, longitude, case_id, notes, tags)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+                   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
+          [tx.transaction_type, tx.item_label, tx.item_category,
+           tx.subject_asset_id ? (assetIdMapping[tx.subject_asset_id] || null) : null,
+           tx.subject_business_id ? (businessIdMapping[tx.subject_business_id] || null) : null,
+           tx.subject_property_id ? (propertyIdMapping[tx.subject_property_id] || null) : null,
+           tx.from_person_id ? (personIdMapping[tx.from_person_id] || null) : null,
+           tx.from_business_id ? (businessIdMapping[tx.from_business_id] || null) : null,
+           tx.from_external,
+           tx.to_person_id ? (personIdMapping[tx.to_person_id] || null) : null,
+           tx.to_business_id ? (businessIdMapping[tx.to_business_id] || null) : null,
+           tx.to_external, tx.value, tx.currency, tx.occurred_on,
+           tx.location_business_id ? (businessIdMapping[tx.location_business_id] || null) : null,
+           tx.location_property_id ? (propertyIdMapping[tx.location_property_id] || null) : null,
+           tx.location_name, tx.address, tx.city, tx.state, tx.country, tx.postal_code,
+           tx.latitude, tx.longitude, remapCase(tx), tx.notes, tx.tags || []]
+        ));
+      }
+    }
+
+    if (importData.data.wirelessNetworks) {
+      for (const net of importData.data.wirelessNetworks) {
+        await tryInsert(`wirelessNetwork:${net.ssid || net.bssid}`, () => client.query(
+          `INSERT INTO wireless_networks (ssid, bssid, latitude, longitude, accuracy, encryption,
+                                          signal_strength, frequency, channel, network_type,
+                                          confidence_level, first_seen, last_seen, scan_date,
+                                          person_id, association_note, association_confidence,
+                                          import_source, notes, tags, area_name, password,
+                                          associated_person_ids, associated_business_ids)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+                   $19, $20, $21, $22, $23, $24)`,
+          [net.ssid, net.bssid, net.latitude, net.longitude, net.accuracy, net.encryption,
+           net.signal_strength, net.frequency, net.channel, net.network_type, net.confidence_level,
+           net.first_seen, net.last_seen, net.scan_date,
+           net.person_id ? (personIdMapping[net.person_id] || null) : null,
+           net.association_note, net.association_confidence, net.import_source, net.notes,
+           net.tags || [], net.area_name, net.password,
+           (net.associated_person_ids || []).map(id => personIdMapping[id] || id),
+           (net.associated_business_ids || []).map(id => businessIdMapping[id] || id)]
+        ));
+      }
+    }
+
+    // owner_business_id is a self-reference, so it can only be resolved once
+    // every business exists (issue #65).
+    if (importData.data.businesses) {
+      for (const business of importData.data.businesses) {
+        const newId = businessIdMapping[business.id];
+        const newOwnerId = business.owner_business_id ? businessIdMapping[business.owner_business_id] : null;
+        if (newId && newOwnerId) {
+          await tryInsert(`businessOwner:${business.name}`, () => client.query(
+            'UPDATE businesses SET owner_business_id = $1 WHERE id = $2', [newOwnerId, newId]
+          ));
         }
       }
     }

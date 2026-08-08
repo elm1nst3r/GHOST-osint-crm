@@ -5,6 +5,8 @@ import { X, AlertCircle } from 'lucide-react';
 import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES, CONNECTION_TYPES, LOCATION_TYPES, CRM_STATUSES, updateDynamicConstants } from '../utils/constants';
 import { translateOptions } from '../utils/optionLabels';
+import { mergeOptionMeta } from '../utils/useModelOptions';
+import { personNameOrder } from '../utils/personName';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import LocationsSection from './person-form/LocationsSection';
@@ -19,7 +21,7 @@ const EMPTY_FORM = {
 };
 
 const AddEditPersonForm = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { people, customFields, fetchPeople } = useData();
   const { editingPerson, setEditingPerson, setShowAddPersonForm } = useUI();
   const person = editingPerson;
@@ -32,8 +34,13 @@ const AddEditPersonForm = () => {
   const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
   const [crmStatuses, setCrmStatuses] = useState(CRM_STATUSES);
   const [osintDataTypes, setOsintDataTypes] = useState(OSINT_DATA_TYPES);
-  const personCategories = useMemo(() => translateOptions(t, 'person_category', PERSON_CATEGORIES), [t]);
-  const personStatuses = useMemo(() => translateOptions(t, 'person_status', PERSON_STATUSES), [t]);
+  // Categories and statuses are configurable in Settings → Data Model too;
+  // rendering them from the constants meant admin-added options never showed
+  // up here at all (issue #67).
+  const [categories, setCategories] = useState(PERSON_CATEGORIES);
+  const [statuses, setStatuses] = useState(PERSON_STATUSES);
+  const personCategories = useMemo(() => translateOptions(t, 'person_category', categories), [t, categories]);
+  const personStatuses = useMemo(() => translateOptions(t, 'person_status', statuses), [t, statuses]);
   const tCrmStatuses = useMemo(() => translateOptions(t, 'crm_status', crmStatuses), [t, crmStatuses]);
   const tLocationTypes = useMemo(() => translateOptions(t, 'location_type', locationTypes), [t, locationTypes]);
   const tOsintDataTypes = useMemo(() => translateOptions(t, 'osint_data_type', osintDataTypes), [t, osintDataTypes]);
@@ -55,6 +62,8 @@ const AddEditPersonForm = () => {
         const loc  = pick('location_type');  if (loc.length)  setLocationTypes(loc);
         const crm  = pick('crm_status');     if (crm.length)  setCrmStatuses(crm);
         const osint = pick('osint_data_type'); if (osint.length) setOsintDataTypes(osint);
+        const cat = pick('person_category'); if (cat.length) setCategories(mergeOptionMeta(cat, PERSON_CATEGORIES));
+        const stat = pick('person_status');  if (stat.length) setStatuses(mergeOptionMeta(stat, PERSON_STATUSES));
       } catch { setOptionsLoadError(true); }
     };
     const loadCases = async () => {
@@ -149,19 +158,31 @@ const AddEditPersonForm = () => {
           )}
 
           {/* Name */}
+          {/* Field order follows the naming convention of the active language —
+              Russian and neighbours lead with the family name (issue #61). */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.firstNameRequired')}</label>
-              <input type="text" value={formData.firstName} onChange={e => set('firstName', e.target.value)} className={inputClass} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.patronymic')}</label>
-              <input type="text" value={formData.patronymic} onChange={e => set('patronymic', e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.lastName')}</label>
-              <input type="text" value={formData.lastName} onChange={e => set('lastName', e.target.value)} className={inputClass} />
-            </div>
+            {personNameOrder(i18n.language).map(field => (
+              <div key={field}>
+                {field === 'first_name' && (
+                  <>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.firstNameRequired')}</label>
+                    <input type="text" value={formData.firstName} onChange={e => set('firstName', e.target.value)} className={inputClass} required />
+                  </>
+                )}
+                {field === 'patronymic' && (
+                  <>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.patronymic')}</label>
+                    <input type="text" value={formData.patronymic} onChange={e => set('patronymic', e.target.value)} className={inputClass} />
+                  </>
+                )}
+                {field === 'last_name' && (
+                  <>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('personForm.lastName')}</label>
+                    <input type="text" value={formData.lastName} onChange={e => set('lastName', e.target.value)} className={inputClass} />
+                  </>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* DOB + Category */}
