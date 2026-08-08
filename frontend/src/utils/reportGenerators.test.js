@@ -8,7 +8,22 @@ jest.mock('docx', () => ({
   AlignmentType: { CENTER: 'center' },
 }));
 
+import i18n from 'i18next';
+import en from '../locales/en/translation.json';
+import ru from '../locales/ru/translation.json';
 import { getFullName, formatDate, formatDateTime, generateMarkdown, subjectsOf } from './reportGenerators';
+
+// Report output is generated through i18n now (issue #63), so the suite runs
+// against the real catalog rather than hardcoded expectations.
+beforeAll(() =>
+  i18n.init({
+    resources: { en: { translation: en }, ru: { translation: ru } },
+    lng: 'en',
+    fallbackLng: 'en',
+    interpolation: { escapeValue: false },
+  })
+);
+afterEach(() => i18n.changeLanguage('en'));
 
 // ── getFullName ────────────────────────────────────────────────────────────
 
@@ -241,5 +256,40 @@ describe('generateMarkdown — person-profile scoping', () => {
     const md = generateMarkdown(data, { ...BASE_OPTIONS, reportType: 'comprehensive' });
     expect(md).toContain('#### 2. Bob Jones');
     expect(md).toContain('| People | 2 |');
+  });
+});
+
+// ── Localised output (issue #63) ───────────────────────────────────────────
+
+describe('report language', () => {
+  const data = {
+    ...BASE_DATA,
+    people: [{ id: 1, first_name: 'Иван', last_name: 'Сидоров', category: 'Suspect', connections: [] }],
+  };
+
+  test('headings come from the catalog, not hardcoded English', () => {
+    const md = generateMarkdown(data, BASE_OPTIONS);
+    expect(md).toContain(`# ${en.report.investigationReport}`);
+    expect(md).toContain(`## ${en.report.summaryStatistics}`);
+    expect(md).toContain(en.report.confidentialityNotice);
+  });
+
+  test('switching language changes the generated report', async () => {
+    const before = generateMarkdown(data, BASE_OPTIONS);
+    await i18n.changeLanguage('ru');
+    const after = generateMarkdown(data, BASE_OPTIONS);
+    expect(after).not.toBe(before);
+    // The Russian catalog may be partially translated; whatever it does have
+    // for the report title must be what the report actually uses.
+    expect(after).toContain(`# ${i18n.t('report.investigationReport')}`);
+  });
+
+  test('interpolated counts survive translation', () => {
+    const md = generateMarkdown(
+      { ...data, selectedCase: { case_name: 'Operation X', status: 'Active' } },
+      { ...BASE_OPTIONS, reportType: 'comprehensive' }
+    );
+    expect(md).toContain('Operation X');
+    expect(md).not.toContain('{{');
   });
 });
