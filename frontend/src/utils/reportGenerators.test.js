@@ -11,7 +11,10 @@ jest.mock('docx', () => ({
 import i18n from 'i18next';
 import en from '../locales/en/translation.json';
 import ru from '../locales/ru/translation.json';
-import { getFullName, formatDate, formatDateTime, generateMarkdown, subjectsOf } from './reportGenerators';
+import {
+  getFullName, formatDate, formatDateTime, generateMarkdown, subjectsOf,
+  REPORT_TYPE_PRESETS, REPORT_SECTIONS, matchesPreset, resolveOptions,
+} from './reportGenerators';
 
 // Report output is generated through i18n now (issue #63), so the suite runs
 // against the real catalog rather than hardcoded expectations.
@@ -291,5 +294,72 @@ describe('report language', () => {
     );
     expect(md).toContain('Operation X');
     expect(md).not.toContain('{{');
+  });
+});
+
+// ── Section selection is honoured verbatim (issue #77) ─────────────────────
+
+describe('report sections are what the user selected', () => {
+  const data = {
+    ...BASE_DATA,
+    people: [{
+      id: 1, first_name: 'Alice', last_name: 'Smith', category: 'POI', connections: [],
+      osint_data: [{ type: 'Email', value: 'a@example.com', note: 'from breach dump' }],
+    }],
+    businesses: [{ id: 9, name: 'Acme Ltd', industry: 'Logistics' }],
+    todos: [{ id: 1, text: 'Task one', status: 'open', created_at: '2026-01-01' }],
+  };
+
+  test('options are no longer rewritten behind the caller\'s back', () => {
+    const opts = { reportType: 'summary', includePeople: true };
+    expect(resolveOptions(opts)).toEqual(opts);
+  });
+
+  test('unticking a section removes it, even for a non-comprehensive type', () => {
+    // Previously the type overrode the checkboxes, so this had no effect at all.
+    const withPeople = generateMarkdown(data, { ...REPORT_TYPE_PRESETS.summary, reportType: 'summary', includePeople: true });
+    const withoutPeople = generateMarkdown(data, { ...REPORT_TYPE_PRESETS.summary, reportType: 'summary', includePeople: false });
+    expect(withPeople).toContain(en.report.peopleProfiles);
+    expect(withoutPeople).not.toContain(en.report.peopleProfiles);
+  });
+
+  test('ticking a section adds it, even when the type preset excludes it', () => {
+    const md = generateMarkdown(data, { ...REPORT_TYPE_PRESETS.summary, reportType: 'summary', includeTodos: false, includeCharts: false, includeSummary: false, includeOsintData: true });
+    expect(md).toContain(en.report.osintIntelligence);
+  });
+
+  test('OSINT data actually reaches the report', () => {
+    const md = generateMarkdown(data, { reportType: 'comprehensive', includeOsintData: true });
+    expect(md).toContain(en.report.osintIntelligence);
+    expect(md).toContain('a@example.com');
+    expect(md).toContain('from breach dump');
+  });
+
+  test('OSINT section is omitted when unticked', () => {
+    const md = generateMarkdown(data, { reportType: 'comprehensive', includeOsintData: false });
+    expect(md).not.toContain(en.report.osintIntelligence);
+  });
+
+  test('businesses can be turned off', () => {
+    expect(generateMarkdown(data, { reportType: 'comprehensive', includeBusinesses: true })).toContain('Acme Ltd');
+    expect(generateMarkdown(data, { reportType: 'comprehensive', includeBusinesses: false })).not.toContain('Acme Ltd');
+  });
+});
+
+describe('report type presets', () => {
+  test('every preset covers every section the UI offers', () => {
+    Object.values(REPORT_TYPE_PRESETS).forEach((preset) => {
+      REPORT_SECTIONS.forEach((key) => expect(preset).toHaveProperty(key));
+    });
+  });
+
+  test('matchesPreset detects a customised selection', () => {
+    const clean = { reportType: 'summary', ...REPORT_TYPE_PRESETS.summary };
+    expect(matchesPreset(clean)).toBe(true);
+    expect(matchesPreset({ ...clean, includePeople: !clean.includePeople })).toBe(false);
+  });
+
+  test('an unknown report type is never reported as customised', () => {
+    expect(matchesPreset({ reportType: 'something-else' })).toBe(true);
   });
 });

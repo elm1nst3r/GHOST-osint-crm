@@ -37,41 +37,74 @@ export const formatDateTime = (date) => {
   });
 };
 
-// ── Report type → effective options ───────────────────────────────────────
+// ── Report type → section presets ─────────────────────────────────────────
+//
+// A report type is a PRESET, not a lock. It used to override the section
+// checkboxes at generation time, so for every type except Comprehensive the
+// checkboxes were live-looking controls that changed nothing — and the preview,
+// which resolved the same overrides, ignored them too. That's issue #77.
+//
+// Now the type seeds the checkboxes when it's chosen and the user can adjust
+// from there, so what's ticked is exactly what gets generated.
 
-const REPORT_TYPE_OVERRIDES = {
-  // Executive Summary: high-level only — no detailed profiles or connections
-  summary: {
+export const REPORT_SECTIONS = [
+  'includeSummary',
+  'includePeople',
+  'includeBusinesses',
+  'includeConnections',
+  'includeLocations',
+  'includeOsintData',
+  'includeTodos',
+  'includeCharts',
+];
+
+export const REPORT_TYPE_PRESETS = {
+  // Everything the generators can produce.
+  comprehensive: {
     includeSummary: true,
-    includePeople: false,
-    includeConnections: false,
-    includeLocations: false,
-    includeOsintData: false,
-    includeBusinesses: false,
-    includeTodos: true,
-    includeAuditLog: false,
-    includeCharts: true,
-  },
-  // Person Profile: deep dive on one person — skip broad overviews and tasks
-  'person-profile': {
-    includeSummary: false,
     includePeople: true,
+    includeBusinesses: true,
     includeConnections: true,
     includeLocations: true,
     includeOsintData: true,
+    includeTodos: true,
+    includeCharts: true,
+  },
+  // High-level only — no detailed profiles or connections.
+  summary: {
+    includeSummary: true,
+    includePeople: false,
+    includeBusinesses: false,
+    includeConnections: false,
+    includeLocations: false,
+    includeOsintData: false,
+    includeTodos: true,
+    includeCharts: true,
+  },
+  // Deep dive on one person — skip broad overviews and tasks.
+  'person-profile': {
+    includeSummary: false,
+    includePeople: true,
     includeBusinesses: true,
+    includeConnections: true,
+    includeLocations: true,
+    includeOsintData: true,
     includeTodos: false,
-    includeAuditLog: false,
     includeCharts: false,
   },
-  // Comprehensive: respect user-selected checkboxes as-is
-  comprehensive: null,
 };
 
-export const resolveOptions = (options) => {
-  const overrides = REPORT_TYPE_OVERRIDES[options.reportType];
-  return overrides ? { ...options, ...overrides } : options;
+// Does the current selection still match its type's preset? Drives the
+// "Custom" indicator, so it's clear the type is a starting point.
+export const matchesPreset = (options) => {
+  const preset = REPORT_TYPE_PRESETS[options.reportType];
+  if (!preset) return true;
+  return REPORT_SECTIONS.every((key) => !!options[key] === !!preset[key]);
 };
+
+// Kept as a passthrough: the options a caller holds are now the options that
+// get generated, with nothing rewritten behind their back.
+export const resolveOptions = (options) => options;
 
 // ── Markdown generator ──────────────────────────────────────────────────────
 
@@ -145,6 +178,24 @@ export const generateMarkdown = (data, options) => {
       md += `- **${t('colConnections')}:** ${p.connections?.length || 0}\n\n`;
       if (p.notes) md += `**${t('notesLabel')}:**\n> ${p.notes}\n\n`;
     });
+  }
+
+  // OSINT data. The checkbox for this existed from the start but no generator
+  // ever read it, so OSINT findings — the thing the tool is for — were absent
+  // from every report ever produced (issues #63, #77).
+  if (options.includeOsintData) {
+    const withOsint = subjects.filter(p => Array.isArray(p.osint_data) && p.osint_data.length > 0);
+    if (withOsint.length > 0) {
+      md += `## ${t('osintIntelligence')}\n\n`;
+      withOsint.forEach(p => {
+        md += `### ${getFullName(p)}\n\n`;
+        md += `| ${t('colType')} | ${t('colValue')} | ${t('colNotes')} |\n|------|-------|-------|\n`;
+        p.osint_data.forEach(item => {
+          md += `| ${item.type || t('unknown')} | ${item.value || ''} | ${item.note || item.notes || ''} |\n`;
+        });
+        md += `\n`;
+      });
+    }
   }
 
   // Business profiles
@@ -350,6 +401,21 @@ export const downloadWord = async (data, options) => {
       });
     });
     children.push(blank());
+  }
+
+  if (options.includeOsintData) {
+    const withOsint = subjects.filter(x => Array.isArray(x.osint_data) && x.osint_data.length > 0);
+    if (withOsint.length > 0) {
+      children.push(p(t('osintIntelligence'), HeadingLevel.HEADING_1));
+      withOsint.forEach(person => {
+        children.push(p(getFullName(person), HeadingLevel.HEADING_2));
+        person.osint_data.forEach(item => {
+          const note = item.note || item.notes;
+          children.push(p(`${item.type || t('unknown')}: ${item.value || ''}${note ? ` — ${note}` : ''}`));
+        });
+        children.push(blank());
+      });
+    }
   }
 
   if (options.includeBusinesses !== false && businesses.length > 0) {

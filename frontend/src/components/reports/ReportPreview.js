@@ -49,14 +49,14 @@ const ReportPreview = ({ data, reportOptions }) => {
         <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('reportPreview.reportStructure')}</p>
         <div className="space-y-1.5">
           <SectionEntry label={t('reportPreview.coverPage')} />
-          {opts.includeSummary    && <SectionEntry label={t('reportOptions.sections.executiveSummary')} />}
-          {opts.includePeople     && <SectionEntry label={t('reportPreview.peopleProfilesCount', { count: subjects.length })} />}
+          {opts.includeSummary     && <SectionEntry label={t('reportOptions.sections.executiveSummary')} />}
+          {opts.includePeople      && <SectionEntry label={t('reportPreview.peopleProfilesCount', { count: subjects.length })} />}
+          {opts.includeOsintData   && <SectionEntry label={t('reportPreview.osintIntelligence')} />}
+          {opts.includeBusinesses  && <SectionEntry label={t('reportOptions.sections.businesses')} />}
           {opts.includeConnections && <SectionEntry label={t('reportPreview.connectionsAnalysis')} />}
-          {opts.includeLocations  && <SectionEntry label={t('reportPreview.locationData')} />}
-          {opts.includeOsintData  && <SectionEntry label={t('reportPreview.osintIntelligence')} />}
-          {opts.includeTodos      && <SectionEntry label={t('reportPreview.investigationTasks')} />}
-          {opts.includeAuditLog   && <SectionEntry label={t('reportPreview.activityTimeline')} />}
-          {opts.includeCharts     && <SectionEntry label={t('reportPreview.statisticalAnalysis')} />}
+          {opts.includeLocations   && <SectionEntry label={t('reportPreview.locationData')} />}
+          {opts.includeTodos       && <SectionEntry label={t('reportPreview.investigationTasks')} />}
+          {opts.includeCharts      && <SectionEntry label={t('reportPreview.statisticalAnalysis')} />}
           <SectionEntry label={t('reportPreview.reportInformation')} />
         </div>
       </div>
