@@ -14,9 +14,11 @@ router.get('/', requireAuth, async (req, res) => {
     const result = await pool.query(`
       SELECT
         b.*,
-        CONCAT(p.first_name, ' ', COALESCE(p.last_name, '')) as owner_name
+        CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as owner_name,
+        ob.name as owner_business_name
       FROM businesses b
       LEFT JOIN people p ON b.owner_person_id = p.id
+      LEFT JOIN businesses ob ON b.owner_business_id = ob.id
       ORDER BY b.created_at DESC
     `);
     res.json(result.rows);
@@ -32,9 +34,11 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     const result = await pool.query(`
       SELECT
         b.*,
-        CONCAT(p.first_name, ' ', COALESCE(p.last_name, '')) as owner_name
+        CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as owner_name,
+        ob.name as owner_business_name
       FROM businesses b
       LEFT JOIN people p ON b.owner_person_id = p.id
+      LEFT JOIN businesses ob ON b.owner_business_id = ob.id
       WHERE b.id = $1
     `, [req.params.id]);
     if (result.rows.length === 0) {
@@ -52,7 +56,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
   try {
     const {
       name, type, industry, address, city, state, country, postal_code,
-      latitude, longitude, phone, email, website, owner_person_id,
+      latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
       registration_number, registration_date, status, employees, notes
     } = req.body;
 
@@ -79,9 +83,9 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
     const query = `
       INSERT INTO businesses (
         name, type, industry, address, city, state, country, postal_code,
-        latitude, longitude, phone, email, website, owner_person_id,
+        latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
         registration_number, registration_date, status, employees, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `;
 
@@ -100,6 +104,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       email || null,
       website || null,
       owner_person_id || null,
+      owner_business_id || null,
       registration_number || null,
       registration_date || null,
       status || 'active',
@@ -129,9 +134,18 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
 
     const {
       name, type, industry, address, city, state, country, postal_code,
-      latitude, longitude, phone, email, website, owner_person_id,
+      latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
       registration_number, registration_date, status, employees, notes
     } = req.body;
+
+    // A business owning itself would draw a self-loop in the entity network and
+    // makes no sense as an ownership chain.
+    if (owner_business_id != null && Number(owner_business_id) === Number(businessId)) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        fields: { owner_business_id: ['A business cannot own itself'] },
+      });
+    }
 
     // Get old business for audit
     const oldResult = await pool.query('SELECT * FROM businesses WHERE id = $1', [businessId]);
@@ -165,9 +179,10 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       SET name = $1, type = $2, industry = $3, address = $4, city = $5, state = $6,
           country = $7, postal_code = $8, latitude = $9, longitude = $10,
           phone = $11, email = $12, website = $13, owner_person_id = $14,
-          registration_number = $15, registration_date = $16, status = $17,
-          employees = $18, notes = $19, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $20
+          owner_business_id = $15,
+          registration_number = $16, registration_date = $17, status = $18,
+          employees = $19, notes = $20, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $21
       RETURNING *
     `;
 
@@ -175,6 +190,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       name, type || null, industry || null, address || null, city || null, state || null,
       country || null, postal_code || null, finalLatitude, finalLongitude,
       phone || null, email || null, website || null, owner_person_id || null,
+      owner_business_id || null,
       registration_number || null, registration_date || null, status || 'active',
       JSON.stringify(employees || []), notes || null, businessId
     ];

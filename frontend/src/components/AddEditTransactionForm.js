@@ -94,6 +94,10 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
 
   const [caseId, setCaseId] = useState(transaction?.case_id || '');
   const [notes, setNotes] = useState(transaction?.notes || '');
+  // Investigator-defined labels, comma separated in the UI, text[] on the wire
+  // (issue #65 — zbyte64 wants to tag e.g. 'city-council-conflict-of-interest'
+  // and then filter, or point an MCP/LLM pass at just those).
+  const [tagsText, setTagsText] = useState((transaction?.tags || []).join(', '));
 
   useEffect(() => {
     modelOptionsAPI.getAll().then(d => {
@@ -134,6 +138,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
       postal_code: locationKind === 'place' ? place.postal_code || null : null,
       case_id: caseId || null,
       notes: notes || null,
+      tags: tagsText.split(',').map(tg => tg.trim()).filter(Boolean),
     };
     setSaving(true);
     setError('');
@@ -256,6 +261,11 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
               </select>
             </div>
             <div className="col-span-2"><label className={labelClass}>{t('transactionForm.notes')}</label><textarea className={inputClass} rows={2} value={notes} onChange={e => setNotes(e.target.value)} /></div>
+            <div className="col-span-2">
+              <label className={labelClass}>{t('transactionForm.tags')}</label>
+              <input className={inputClass} value={tagsText} onChange={e => setTagsText(e.target.value)} placeholder={t('transactionForm.tagsPlaceholder')} />
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('transactionForm.tagsHint')}</p>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-3 pt-2">

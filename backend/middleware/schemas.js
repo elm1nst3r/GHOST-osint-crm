@@ -113,6 +113,15 @@ const PersonUpdateSchema = z
 
 const employeeSchema = z.object({
   name: z.string(),
+  // Real reference to a person record. Entries created before this existed —
+  // and any typed in free-hand — carry only a name, so the graph still falls
+  // back to name matching when it's absent (issue #65).
+  person_id: optId(),
+  // zbyte64's ask: separate decision makers from employees. Deliberately a
+  // boolean, not a role enum — "those role labels are largely superficial,
+  // they describe expected rituals, but not the dynamic of collective
+  // decision making". The specific title stays in the free-text role field.
+  is_decision_maker: z.union([z.boolean(), z.null().transform(() => false)]).optional(),
   role: optStr(500),
   department: optStr(500),
   email: optStr(500),
@@ -143,6 +152,9 @@ const businessBaseFields = {
   latitude: optNum(z.number().min(-90).max(90)),
   longitude: optNum(z.number().min(-180).max(180)),
   owner_person_id: optId(),
+  // A business can be owned by another business, so ownership chains (holding
+  // companies, shells) are representable rather than collapsing to one hop.
+  owner_business_id: optId(),
   employees: optArray(employeeSchema),
 };
 
@@ -330,6 +342,9 @@ const TransactionCreateSchema = z.object({
   value: optNum(z.number().nonnegative()),
   currency: optStr(10),
   notes: optStr(1000),
+  // Investigator-defined labels (e.g. 'city-council-conflict-of-interest') for
+  // filtering and for driving an MCP/LLM pass over a subset (issue #65).
+  tags: optArray(z.string().max(100)),
   item_label: optStr(1000),
   item_category: optStr(1000),
   from_person_id: optId(),

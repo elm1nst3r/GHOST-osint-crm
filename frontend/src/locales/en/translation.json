@@ -70,7 +70,8 @@
         "other": "Other",
         "suspect": "Suspect Connection",
         "victim": "Victim",
-        "witness": "Witness"
+        "witness": "Witness",
+        "board_member": "Board Member / Decision Maker"
       },
       "crm_status": {
         "active": "Active",
@@ -180,7 +181,8 @@
         "sale": "Sale",
         "seized": "Seized",
         "transfer": "Transfer",
-        "visit": "Visit / Attendance"
+        "visit": "Visit / Attendance",
+        "endorsement": "Endorsement / Promotion"
       },
       "transportation_mode": {
         "airplane": "Airplane",
@@ -615,7 +617,8 @@
     "noResultsFound": "No transactions found.",
     "confirmDeleteTransaction": "Delete this transaction?",
     "errorDeleteTransaction": "Failed to delete: {{message}}",
-    "showingOfTotal": "Showing {{count}} of {{total}}"
+    "showingOfTotal": "Showing {{count}} of {{total}}",
+    "allTags": "All tags"
   },
   "personForm": {
     "editTitle": "Edit Person",
@@ -736,7 +739,16 @@
       "entertainment": "Entertainment",
       "hospitality": "Hospitality",
       "other": "Other"
-    }
+    },
+    "ownerBusiness": "Owned by (business)",
+    "noOwnerBusinessSelected": "No owning business",
+    "ownerBusinessHint": "For holding companies and ownership chains — the entity that owns this one.",
+    "linkPersonPlaceholder": "Link to an existing person (optional)",
+    "linkPersonHint": "Linking to a person record makes the network edge exact. Without it the name is matched, which can collide between people sharing a name.",
+    "isDecisionMaker": "Board member / decision maker",
+    "decisionMakerBadge": "Decision maker",
+    "unlinkedPersonBadge": "Name only",
+    "unlinkedPersonHint": "Not linked to a person record — matched by name, which may be ambiguous."
   },
   "propertyForm": {
     "editTitle": "Edit Property",
@@ -836,7 +848,10 @@
     "notes": "Notes",
     "errorTypeRequired": "Transaction type is required",
     "errorPartyRequired": "At least one party (giver or receiver) is required",
-    "errorSaveTransaction": "Failed to save transaction"
+    "errorSaveTransaction": "Failed to save transaction",
+    "tags": "Tags",
+    "tagsPlaceholder": "city-council-conflict-of-interest, follow-up",
+    "tagsHint": "Comma separated. Your own labels — use them to filter this list or to point an automated pass at a subset."
   },
   "toolForm": {
     "editTitle": "Edit Tool",
@@ -1284,7 +1299,8 @@
       "owner": "Owner",
       "transaction": "Transaction",
       "other": "Other"
-    }
+    },
+    "boardMemberConnectionNote": "Board member"
   },
   "relationshipManager": {
     "errorLabel": "Error: {{message}}",
@@ -1337,7 +1353,17 @@
     "connectionCreatedSuccess": "Connection created successfully!",
     "errorCreateConnection": "Failed to create connection: {{message}}",
     "connectionDeletedSuccess": "Connection deleted successfully!",
-    "errorDeleteConnection": "Failed to delete connection: {{message}}"
+    "errorDeleteConnection": "Failed to delete connection: {{message}}",
+    "edgeLayer": {
+      "governance": "Governance",
+      "employment": "Employment",
+      "financial": "Financial",
+      "social": "Social",
+      "investigative": "Investigative",
+      "other": "Other"
+    },
+    "soloLayerShort": "S",
+    "soloLayerTitle": "Show only this layer"
   },
   "transactionTable": {
     "noTransactions": "No transactions.",

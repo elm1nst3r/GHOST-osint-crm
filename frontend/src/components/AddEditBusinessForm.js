@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, MapPin, Building2, User, Users, Phone, Mail, Globe } from 'lucide-react';
 import { businessAPI, peopleAPI } from '../utils/api';
+import { formatPersonName } from '../utils/personName';
 
 const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
   const { t } = useTranslation();
   const [people, setPeople] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -22,6 +24,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
     email: '',
     website: '',
     owner_person_id: null,
+    owner_business_id: null,
     registration_number: '',
     registration_date: '',
     status: 'active',
@@ -29,11 +32,12 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
     notes: ''
   });
   
-  const [newEmployee, setNewEmployee] = useState({ name: '', role: '', department: '', email: '', notes: '' });
+  const [newEmployee, setNewEmployee] = useState({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   useEffect(() => {
     fetchPeople();
+    fetchBusinesses();
     if (business) {
       setFormData({
         name: business.name || '',
@@ -52,6 +56,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         email: business.email || '',
         website: business.website || '',
         owner_person_id: business.owner_person_id,
+        owner_business_id: business.owner_business_id ?? null,
         registration_number: business.registration_number || '',
         registration_date: business.registration_date ? business.registration_date.split('T')[0] : '',
         status: business.status || 'active',
@@ -67,6 +72,16 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
       setPeople(peopleList);
     } catch (error) {
       console.error('Error fetching people:', error);
+    }
+  };
+
+  // Candidates for the owning-business picker (ownership chains, issue #65)
+  const fetchBusinesses = async () => {
+    try {
+      const list = await businessAPI.getAll();
+      setBusinesses(Array.isArray(list) ? list : list?.data ?? []);
+    } catch (error) {
+      console.error('Error fetching businesses:', error);
     }
   };
 
@@ -93,7 +108,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         ...formData,
         employees: [...formData.employees, { ...newEmployee, id: Date.now() }]
       });
-      setNewEmployee({ name: '', role: '', department: '', email: '', notes: '' });
+      setNewEmployee({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
       setShowEmployeeForm(false);
     }
   };
@@ -242,6 +257,21 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 </select>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('businessForm.ownerBusiness')}</label>
+                <select
+                  value={formData.owner_business_id || ''}
+                  onChange={(e) => setFormData({ ...formData, owner_business_id: e.target.value ? parseInt(e.target.value) : null })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">{t('businessForm.noOwnerBusinessSelected')}</option>
+                  {businesses.filter(b => b.id !== business?.id).map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('businessForm.ownerBusinessHint')}</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('businessForm.status')}</label>
                 <select
@@ -404,6 +434,36 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
 
             {showEmployeeForm && (
               <div className="mb-3 p-3 glass rounded-lg border border-gray-300 dark:border-gray-600">
+                <div className="mb-2">
+                  <select
+                    value={newEmployee.person_id || ''}
+                    onChange={(e) => {
+                      const id = e.target.value ? parseInt(e.target.value) : null;
+                      const match = id ? people.find(p => p.id === id) : null;
+                      setNewEmployee({
+                        ...newEmployee,
+                        person_id: id,
+                        name: match ? formatPersonName(match) : newEmployee.name,
+                      });
+                    }}
+                    className="w-full px-3 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary text-sm"
+                  >
+                    <option value="">{t('businessForm.linkPersonPlaceholder')}</option>
+                    {people.map(p => (
+                      <option key={p.id} value={p.id}>{formatPersonName(p)}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('businessForm.linkPersonHint')}</p>
+                </div>
+                <label className="flex items-center gap-2 mb-2 text-sm text-gray-700 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={!!newEmployee.is_decision_maker}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, is_decision_maker: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <span>{t('businessForm.isDecisionMaker')}</span>
+                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
                   <input
                     type="text"
@@ -448,7 +508,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                     type="button"
                     onClick={() => {
                       setShowEmployeeForm(false);
-                      setNewEmployee({ name: '', role: '', department: '', email: '', notes: '' });
+                      setNewEmployee({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
                     }}
                     className="px-3 py-1 text-gray-700 dark:text-slate-300 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-200 text-sm transition-all"
                   >
@@ -473,6 +533,16 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="font-medium">{employee.name}</span>
+                        {employee.is_decision_maker && (
+                          <span className="px-2 py-0.5 text-xs rounded bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300">
+                            {t('businessForm.decisionMakerBadge')}
+                          </span>
+                        )}
+                        {!employee.person_id && (
+                          <span className="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300" title={t('businessForm.unlinkedPersonHint')}>
+                            {t('businessForm.unlinkedPersonBadge')}
+                          </span>
+                        )}
                         {employee.role && <span className="text-sm text-gray-600 dark:text-gray-400">{t('businessForm.employeeRoleSuffix', { role: employee.role })}</span>}
                         {employee.department && <span className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-400">{t('businessForm.employeeDepartmentSuffix', { department: employee.department })}</span>}
                       </div>

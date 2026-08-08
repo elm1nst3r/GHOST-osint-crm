@@ -19,6 +19,7 @@ const TransactionsList = () => {
   const { setShowAddTransactionForm, setEditingTransaction, setSelectedTransactionForDetail } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterTag, setFilterTag] = useState('');
   const [typeOptions, setTypeOptions] = useState([]);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -33,11 +34,16 @@ const TransactionsList = () => {
     catch (err) { alert(translate('transactionsList.errorDeleteTransaction', { message: err.message })); }
   };
 
+  // Every tag in use, so the filter offers the investigator's own vocabulary
+  // rather than making them remember it (issue #65).
+  const allTags = [...new Set(transactions.flatMap(t => t.tags || []))].sort();
+
   const filtered = transactions.filter(t => {
     const matchesType = filterType === '' || t.transaction_type === filterType;
-    const hay = [t.item_label, partyText(t.resolved_from), partyText(t.resolved_to), subjectText(t.resolved_subject)].join(' ').toLowerCase();
+    const matchesTag = filterTag === '' || (t.tags || []).includes(filterTag);
+    const hay = [t.item_label, partyText(t.resolved_from), partyText(t.resolved_to), subjectText(t.resolved_subject), ...(t.tags || [])].join(' ').toLowerCase();
     const matchesSearch = searchTerm === '' || hay.includes(searchTerm.toLowerCase());
-    return matchesType && matchesSearch;
+    return matchesType && matchesTag && matchesSearch;
   });
 
   const Row = ({ t }) => (
@@ -94,6 +100,12 @@ const TransactionsList = () => {
           <option value="">{translate('transactionsList.allTypes')}</option>
           {typeOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(translate, 'transaction_type', o.option_value, o.option_label)}</option>)}
         </select>
+        {allTags.length > 0 && (
+          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
+            <option value="">{translate('transactionsList.allTags')}</option>
+            {allTags.map(tg => <option key={tg} value={tg}>{tg}</option>)}
+          </select>
+        )}
       </div>
 
       {filtered.length === 0 ? (

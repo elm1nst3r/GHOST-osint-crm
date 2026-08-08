@@ -91,12 +91,18 @@ const TX_COLUMNS = [
   'from_person_id', 'from_business_id', 'from_external', 'to_person_id', 'to_business_id', 'to_external',
   'value', 'currency', 'occurred_on', 'location_business_id', 'location_property_id', 'location_name',
   'address', 'city', 'state', 'country', 'postal_code', 'latitude', 'longitude',
-  'geocode_confidence', 'geocode_provider', 'geocoded_at', 'case_id', 'notes',
+  'geocode_confidence', 'geocode_provider', 'geocoded_at', 'case_id', 'notes', 'tags',
 ];
 
 function buildValues(body, geo) {
   return TX_COLUMNS.map(col => {
     if (['latitude', 'longitude', 'geocode_confidence', 'geocode_provider', 'geocoded_at'].includes(col)) return geo[col];
+    // tags is text[] NOT NULL DEFAULT '{}' — null would violate the constraint,
+    // and trimming here keeps '  foo ' and 'foo' from becoming distinct tags.
+    if (col === 'tags') {
+      const raw = Array.isArray(body.tags) ? body.tags : [];
+      return [...new Set(raw.map(tg => String(tg).trim()).filter(Boolean))];
+    }
     const v = body[col];
     return v === undefined || v === '' ? null : v;
   });

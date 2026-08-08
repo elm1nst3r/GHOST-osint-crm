@@ -8,11 +8,13 @@ import {
   ZoomIn, ZoomOut, Maximize2, Users,
   Circle, X, Info, Link as LinkIcon
 } from 'lucide-react';
+import { DEFAULT_EDGE_LAYERS, isTypeVisible } from '../../utils/edgeLayers';
 
 const ObsidianGraph = ({
   people = [],
   selectedPersonId = null,
-  edgeClasses = { connections: true, ownership: true, transactions: false },
+  edgeLayers = DEFAULT_EDGE_LAYERS,
+  soloLayer = null,
   transactionEdges = [],
   onNodeClick = null,
   onUpdateConnection = null,
@@ -54,6 +56,8 @@ const ObsidianGraph = ({
       witness: '#f59e0b',
       victim: '#ec4899',
       owner: '#48bb78',
+      owns_business: '#38a169',
+      board_member: '#7c3aed',
       transaction: '#0891b2',
       other: '#6b7280'
     },
@@ -94,15 +98,20 @@ const ObsidianGraph = ({
           // Bad data (e.g. person_id: null from an old bug or an API write)
           // must be skipped, not crash the whole graph (issue #56)
           if (!conn || conn.person_id == null) return;
-          // Edge class toggles (issue #50)
-          if (conn.type === 'owner' ? !edgeClasses.ownership : !edgeClasses.connections) return;
+          // Relationship layers (issue #65, replacing the three edge classes
+          // from #50). A soloed layer hides everything else outright.
+          if (!isTypeVisible(conn.type || 'other', edgeLayers, soloLayer)) return;
           const targetId = String(conn.person_id);
 
           // Only add edge if target exists
           if (nodeMap.has(targetId)) {
+            // `_reverse` edges are stored on the child pointing at its parent
+            // (a business records who owns it), but hierarchical layout ranks
+            // the edge SOURCE as the parent — so flip them to keep the owner on
+            // top of the chain (issue #65).
             links.push({
-              source: sourceId,
-              target: targetId,
+              source: conn._reverse ? targetId : sourceId,
+              target: conn._reverse ? sourceId : targetId,
               type: conn.type || 'other',
               note: conn.note || '',
               strength: getConnectionStrength(conn.type)
@@ -113,7 +122,7 @@ const ObsidianGraph = ({
     });
 
     // Transaction-derived edges (issue #50), pre-aggregated per party pair
-    if (edgeClasses.transactions) {
+    if (isTypeVisible('transaction', edgeLayers, soloLayer)) {
       transactionEdges.forEach(edge => {
         if (nodeMap.has(String(edge.source)) && nodeMap.has(String(edge.target))) {
           links.push({
@@ -128,7 +137,7 @@ const ObsidianGraph = ({
     }
 
     return { nodes, links };
-  }, [people, edgeClasses, transactionEdges, t]);
+  }, [people, edgeLayers, soloLayer, transactionEdges, t]);
 
   // Get connection strength for force simulation
   const getConnectionStrength = (type) => {
@@ -139,6 +148,8 @@ const ObsidianGraph = ({
       associate: 1.0,
       employer: 1.3,
       employee: 1.3,
+      board_member: 1.4,
+      owns_business: 1.4,
       suspect: 1.4,
       witness: 1.1,
       victim: 1.0,

@@ -9,6 +9,8 @@ import {
   Briefcase, Tag, GitBranch, Sparkles
 } from 'lucide-react';
 import { casesAPI, businessesAPI, transactionsAPI } from '../../utils/api';
+import { DEFAULT_EDGE_LAYERS, EDGE_LAYERS } from '../../utils/edgeLayers';
+import { formatPersonName } from '../../utils/personName';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -30,7 +32,10 @@ const RelationshipManager = ({
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('obsidian'); // 'reactflow' or 'obsidian'
   // Edge classes shown in the Obsidian view (issue #50)
-  const [edgeClasses, setEdgeClasses] = useState({ connections: true, ownership: true, transactions: false });
+  const [edgeLayers, setEdgeLayers] = useState(DEFAULT_EDGE_LAYERS);
+  // Solo a single layer — "governance only" is one click rather than unticking
+  // everything else (issue #65).
+  const [soloLayer, setSoloLayer] = useState(null);
   const [txEdges, setTxEdges] = useState([]);
   
   // Filter states
@@ -123,9 +128,17 @@ const RelationshipManager = ({
         businessData: business, // Keep original business data
         // Ownership is the one person link the schema has today — draw it
         // so businesses aren't isolated islands in the graph (issue #50)
-        connections: business.owner_person_id != null
-          ? [{ person_id: business.owner_person_id, type: 'owner', note: 'Owner' }]
-          : [],
+        connections: [
+          ...(business.owner_person_id != null
+            ? [{ person_id: business.owner_person_id, type: 'owner', note: 'Owner' }]
+            : []),
+          // Ownership chains: a holding company or shell owning this entity.
+          // Drawn parent → child (owner as source) so hierarchical layout ranks
+          // the owner above what it owns (issue #65).
+          ...(business.owner_business_id != null
+            ? [{ person_id: `business-${business.owner_business_id}`, type: 'owns_business', note: 'Owned by', _reverse: true }]
+            : []),
+        ],
         status: business.status || 'Active',
         case_name: business.case_name
       }));
@@ -341,21 +354,31 @@ const RelationshipManager = ({
       const newConnections = [];
 
       employees.forEach(employee => {
-        if (!employee.name) return;
-        const search = employee.name.trim().toLowerCase();
-        const match = people.find(p => {
-          const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim().toLowerCase();
-          return fullName === search;
-        });
+        // Prefer the explicit reference. Name matching stays only as a fallback
+        // for entries created before employees carried a person_id — it can
+        // collide between two people who share a name, which is exactly the
+        // false positive a conflict-of-interest view must not invent.
+        let match = null;
+        if (employee.person_id != null) {
+          match = people.find(p => p.id === employee.person_id) || null;
+        } else if (employee.name) {
+          const search = employee.name.trim().toLowerCase();
+          match = people.find(p => formatPersonName(p).toLowerCase() === search) || null;
+        }
         if (!match || seenPersonIds.has(match.id)) return;
 
         seenPersonIds.add(match.id);
+        // Board members / decision makers are a governance tie, not employment:
+        // "It is enough for me to separate out decision makers from employees."
+        const type = employee.is_decision_maker ? 'board_member' : 'employee';
         newConnections.push({
           person_id: match.id,
-          type: 'employee',
+          type,
           note: employee.role
             ? t('obsidianGraph.employeeConnectionNote', { role: employee.role })
-            : t('obsidianGraph.employeeConnectionNoteNoRole')
+            : t(type === 'board_member'
+                ? 'obsidianGraph.boardMemberConnectionNote'
+                : 'obsidianGraph.employeeConnectionNoteNoRole')
         });
       });
 
@@ -619,22 +642,36 @@ const RelationshipManager = ({
 
           {/* Edge class toggles (issue #50) — Obsidian view only */}
           {viewMode === 'obsidian' && (
-            <div className="flex items-center space-x-3 px-2 py-1.5 bg-gray-100 dark:bg-slate-700 rounded-md text-xs">
-              {[
-                ['connections', t('relationshipManager.edgeClassPeople')],
-                ['ownership', t('relationshipManager.edgeClassOwnership')],
-                ['transactions', t('relationshipManager.edgeClassTransactions')],
-              ].map(([key, label]) => (
-                <label key={key} className="flex items-center space-x-1 cursor-pointer text-gray-700 dark:text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={edgeClasses[key]}
-                    onChange={(e) => setEdgeClasses({ ...edgeClasses, [key]: e.target.checked })}
-                    className="h-3 w-3 text-blue-600 rounded"
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5 bg-gray-100 dark:bg-slate-700 rounded-md text-xs">
+              {EDGE_LAYERS.map((layer) => {
+                const soloed = soloLayer === layer;
+                return (
+                  <span key={layer} className="flex items-center space-x-1">
+                    <label className={`flex items-center space-x-1 cursor-pointer ${soloLayer && !soloed ? 'opacity-40' : ''} text-gray-700 dark:text-slate-300`}>
+                      <input
+                        type="checkbox"
+                        checked={edgeLayers[layer] !== false}
+                        disabled={!!soloLayer}
+                        onChange={(e) => setEdgeLayers({ ...edgeLayers, [layer]: e.target.checked })}
+                        className="h-3 w-3 text-blue-600 rounded"
+                      />
+                      <span>{t(`relationshipManager.edgeLayer.${layer}`)}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setSoloLayer(soloed ? null : layer)}
+                      title={t('relationshipManager.soloLayerTitle')}
+                      className={`px-1 rounded border text-[10px] leading-4 ${
+                        soloed
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 dark:border-slate-500 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('relationshipManager.soloLayerShort')}
+                    </button>
+                  </span>
+                );
+              })}
             </div>
           )}
 
@@ -956,7 +993,8 @@ const RelationshipManager = ({
           <ObsidianGraph
             people={filteredPeople}
             selectedPersonId={personId}
-            edgeClasses={edgeClasses}
+            edgeLayers={edgeLayers}
+            soloLayer={soloLayer}
             transactionEdges={txEdges}
             onUpdateConnection={updateConnection}
             onDeleteConnection={deleteConnection}

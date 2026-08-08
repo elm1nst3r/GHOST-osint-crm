@@ -46,10 +46,11 @@ const defaultOptions = [
   { model_type: 'connection_type', option_value: 'associate', option_label: 'Associate', display_order: 4 },
   { model_type: 'connection_type', option_value: 'employer', option_label: 'Employer', display_order: 5 },
   { model_type: 'connection_type', option_value: 'employee', option_label: 'Employee', display_order: 6 },
-  { model_type: 'connection_type', option_value: 'suspect', option_label: 'Suspect Connection', display_order: 7 },
-  { model_type: 'connection_type', option_value: 'witness', option_label: 'Witness', display_order: 8 },
-  { model_type: 'connection_type', option_value: 'victim', option_label: 'Victim', display_order: 9 },
-  { model_type: 'connection_type', option_value: 'other', option_label: 'Other', display_order: 10 },
+  { model_type: 'connection_type', option_value: 'board_member', option_label: 'Board Member / Decision Maker', display_order: 7 },
+  { model_type: 'connection_type', option_value: 'suspect', option_label: 'Suspect Connection', display_order: 8 },
+  { model_type: 'connection_type', option_value: 'witness', option_label: 'Witness', display_order: 9 },
+  { model_type: 'connection_type', option_value: 'victim', option_label: 'Victim', display_order: 10 },
+  { model_type: 'connection_type', option_value: 'other', option_label: 'Other', display_order: 11 },
 
   // Location Types
   { model_type: 'location_type', option_value: 'primary_residence', option_label: 'Primary Residence', display_order: 1 },
@@ -73,7 +74,8 @@ const defaultOptions = [
   { model_type: 'transaction_type', option_value: 'lost',       option_label: 'Lost',                  display_order: 11 },
   { model_type: 'transaction_type', option_value: 'seized',     option_label: 'Seized',                display_order: 12 },
   { model_type: 'transaction_type', option_value: 'visit',      option_label: 'Visit / Attendance',    display_order: 13 },
-  { model_type: 'transaction_type', option_value: 'other',      option_label: 'Other',                 display_order: 14 },
+  { model_type: 'transaction_type', option_value: 'endorsement', option_label: 'Endorsement / Promotion', display_order: 14 },
+  { model_type: 'transaction_type', option_value: 'other',      option_label: 'Other',                 display_order: 15 },
 
   // Transaction item categories
   { model_type: 'transaction_item_category', option_value: 'cash_donation',    option_label: 'Cash / Donation',    display_order: 1 },
