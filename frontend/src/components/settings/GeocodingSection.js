@@ -17,8 +17,10 @@ import { geocodingSettingsAPI, updateSettingsAPI } from '../../utils/api';
 const GeocodingSection = () => {
   const { t } = useTranslation();
   const [provider, setProvider] = useState('nominatim');
-  const [hasKey, setHasKey] = useState(false);
-  const [keyInput, setKeyInput] = useState('');
+  // Provider capabilities come from the server registry, so a new provider
+  // appears here without a frontend change.
+  const [providers, setProviders] = useState([]);
+  const [keyInputs, setKeyInputs] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -27,7 +29,7 @@ const GeocodingSection = () => {
 
   useEffect(() => {
     Promise.all([
-      geocodingSettingsAPI.get().then((cfg) => { setProvider(cfg.provider); setHasKey(cfg.hasYandexApiKey); }),
+      geocodingSettingsAPI.get().then((cfg) => { setProvider(cfg.provider); setProviders(cfg.providers || []); }),
       updateSettingsAPI.get().then((cfg) => setUpdateCheck(cfg.updateCheckEnabled)).catch(() => {}),
     ])
       .catch(() => setError('load'))
@@ -38,14 +40,18 @@ const GeocodingSection = () => {
     setSaving(true);
     setError(null);
     try {
-      // Omit the key entirely unless one was typed, so saving the provider
-      // alone can't wipe a stored key.
+      // Only send keys that were actually typed, so saving the provider alone
+      // can't wipe a stored key.
+      const apiKeys = {};
+      Object.entries(keyInputs).forEach(([id, value]) => {
+        if (value && value.trim() !== '') apiKeys[id] = value.trim();
+      });
       const payload = { provider };
-      if (keyInput.trim() !== '') payload.yandexApiKey = keyInput.trim();
+      if (Object.keys(apiKeys).length > 0) payload.apiKeys = apiKeys;
       const result = await geocodingSettingsAPI.update(payload);
       setProvider(result.provider);
-      setHasKey(result.hasYandexApiKey);
-      setKeyInput('');
+      setProviders(result.providers || []);
+      setKeyInputs({});
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -55,11 +61,11 @@ const GeocodingSection = () => {
     }
   };
 
-  const clearKey = async () => {
+  const clearKey = async (id) => {
     setSaving(true);
     try {
-      const result = await geocodingSettingsAPI.update({ yandexApiKey: '' });
-      setHasKey(result.hasYandexApiKey);
+      const result = await geocodingSettingsAPI.update({ apiKeys: { [id]: '' } });
+      setProviders(result.providers || []);
     } catch (err) {
       setError(err.message || 'save');
     } finally {
@@ -69,7 +75,9 @@ const GeocodingSection = () => {
 
   if (loading) return null;
 
-  const yandexSelectedWithoutKey = provider === 'yandex' && !hasKey && keyInput.trim() === '';
+  const active = providers.find((p) => p.id === provider);
+  const needsKey = Boolean(active?.requiresKey);
+  const missingKey = needsKey && !active?.hasApiKey && !(keyInputs[provider] || '').trim();
 
   return (
     <>
@@ -90,29 +98,30 @@ const GeocodingSection = () => {
             onChange={(e) => setProvider(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
           >
-            <option value="nominatim">{t('settings.geocoding.providerNominatim')}</option>
-            <option value="yandex">{t('settings.geocoding.providerYandex')}</option>
+            {providers.map((p) => (
+              <option key={p.id} value={p.id}>{t(`settings.geocoding.provider_${p.id}`)}</option>
+            ))}
           </select>
         </div>
 
-        {provider === 'yandex' && (
+        {needsKey && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
-              {t('settings.geocoding.apiKeyLabel')}
+              {t('settings.geocoding.apiKeyLabelFor', { provider: t(`settings.geocoding.providerName_${provider}`) })}
             </label>
             <div className="flex gap-2">
               <input
                 type="password"
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                placeholder={hasKey ? t('settings.geocoding.apiKeyStoredPlaceholder') : t('settings.geocoding.apiKeyPlaceholder')}
+                value={keyInputs[provider] || ''}
+                onChange={(e) => setKeyInputs({ ...keyInputs, [provider]: e.target.value })}
+                placeholder={active?.hasApiKey ? t('settings.geocoding.apiKeyStoredPlaceholder') : t('settings.geocoding.apiKeyPlaceholder')}
                 autoComplete="off"
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
               />
-              {hasKey && (
+              {active?.hasApiKey && (
                 <button
                   type="button"
-                  onClick={clearKey}
+                  onClick={() => clearKey(provider)}
                   disabled={saving}
                   className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                 >
@@ -121,15 +130,17 @@ const GeocodingSection = () => {
               )}
             </div>
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-              {hasKey ? t('settings.geocoding.apiKeyStoredHint') : t('settings.geocoding.apiKeyHint')}
+              {active?.hasApiKey
+                ? t('settings.geocoding.apiKeyStoredHint')
+                : t(`settings.geocoding.apiKeyHint_${provider}`, { defaultValue: t('settings.geocoding.apiKeyHint') })}
             </p>
           </div>
         )}
 
-        {yandexSelectedWithoutKey && (
+        {missingKey && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 dark:text-amber-300">{t('settings.geocoding.noKeyWarning')}</p>
+            <p className="text-sm text-amber-800 dark:text-amber-300">{t('settings.geocoding.noKeyWarning', { provider: t(`settings.geocoding.providerName_${provider}`) })}</p>
           </div>
         )}
 

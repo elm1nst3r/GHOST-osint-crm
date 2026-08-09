@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
+const {
+  PROVIDERS, PROVIDER_IDS, DEFAULT_PROVIDER, isValidProvider, apiKeySettingKey,
+} = require('../services/geocodingProviders');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const {
@@ -109,23 +112,41 @@ router.put('/updates', requireAdmin, validate(SettingsUpdateCheckSchema), async 
   }
 });
 
-// ── Geocoding provider (issue #62) ───────────────────────────────────────────
+// ── Geocoding provider ───────────────────────────────────────────────────────
 // Admin-only, and only ever read by the Settings page — never during startup,
 // so it can't reproduce the "System Offline" 403 problem from issue #58.
 //
-// The API key is WRITE-ONLY. The response reports whether one is stored, never
+// API keys are WRITE-ONLY. The response reports whether one is stored, never
 // its value: an operator's paid API key should not be recoverable by anyone who
 // can open the settings screen or read a browser network log.
+//
+// The provider list comes from the registry, so adding a provider needs no
+// change here.
+const readGeocodingSettings = async () => {
+  const keyNames = PROVIDER_IDS.map(apiKeySettingKey);
+  const result = await pool.query(
+    `SELECT key, value FROM app_settings WHERE key = 'geocoding_provider' OR key = ANY($1)`,
+    [keyNames]
+  );
+  const map = Object.fromEntries(result.rows.map((r) => [r.key, r.value]));
+  const provider = isValidProvider(map.geocoding_provider) ? map.geocoding_provider : DEFAULT_PROVIDER;
+  return {
+    map,
+    payload: {
+      provider,
+      providers: PROVIDER_IDS.map((id) => ({
+        id,
+        requiresKey: PROVIDERS[id].requiresKey,
+        hasApiKey: Boolean(map[apiKeySettingKey(id)]),
+      })),
+    },
+  };
+};
+
 router.get('/geocoding', requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
-    );
-    const map = Object.fromEntries(result.rows.map((r) => [r.key, r.value]));
-    res.json({
-      provider: map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim',
-      hasYandexApiKey: Boolean(map.geocoding_yandex_api_key),
-    });
+    const { payload } = await readGeocodingSettings();
+    res.json(payload);
   } catch (err) {
     console.error('Error fetching geocoding settings:', err);
     res.status(500).json({ error: 'Failed to fetch geocoding settings' });
@@ -133,7 +154,7 @@ router.get('/geocoding', requireAdmin, async (req, res) => {
 });
 
 router.put('/geocoding', requireAdmin, validate(SettingsGeocodingUpdateSchema), async (req, res) => {
-  const { provider, yandexApiKey } = req.body;
+  const { provider, apiKeys } = req.body;
 
   try {
     const upsert = (key, value) => pool.query(
@@ -144,28 +165,25 @@ router.put('/geocoding', requireAdmin, validate(SettingsGeocodingUpdateSchema), 
 
     if (provider !== undefined) await upsert('geocoding_provider', provider);
 
-    // undefined = leave the stored key alone (the form doesn't echo it back).
-    // '' = explicitly clear it.
-    if (yandexApiKey !== undefined) {
-      const trimmed = String(yandexApiKey).trim();
-      if (trimmed === '') await pool.query(`DELETE FROM app_settings WHERE key = 'geocoding_yandex_api_key'`);
-      else await upsert('geocoding_yandex_api_key', trimmed);
+    // Per provider: absent = leave the stored key alone (the form never echoes
+    // a key back), '' = clear it.
+    for (const id of PROVIDER_IDS) {
+      const supplied = apiKeys?.[id];
+      if (supplied === undefined) continue;
+      const trimmed = String(supplied).trim();
+      if (trimmed === '') await pool.query('DELETE FROM app_settings WHERE key = $1', [apiKeySettingKey(id)]);
+      else await upsert(apiKeySettingKey(id), trimmed);
     }
 
     // Apply immediately rather than after the config cache expires.
     req.app.locals.improvedGeocodingService?.invalidateProviderConfig?.();
 
-    const check = await pool.query(
-      `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
-    );
-    const map = Object.fromEntries(check.rows.map((r) => [r.key, r.value]));
-    const activeProvider = map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim';
+    const { map, payload } = await readGeocodingSettings();
     res.json({
-      provider: activeProvider,
-      hasYandexApiKey: Boolean(map.geocoding_yandex_api_key),
-      // Selecting Yandex without a key falls back to Nominatim rather than
+      ...payload,
+      // A provider that needs a key but has none falls back rather than
       // failing every lookup — surface that so it isn't silent.
-      warning: activeProvider === 'yandex' && !map.geocoding_yandex_api_key
+      warning: PROVIDERS[payload.provider].requiresKey && !map[apiKeySettingKey(payload.provider)]
         ? 'no_api_key'
         : undefined,
     });

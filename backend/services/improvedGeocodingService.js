@@ -1,33 +1,33 @@
 // File: backend/services/improvedGeocodingService.js
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const {
+  PROVIDER_IDS, DEFAULT_PROVIDER, isValidProvider, getProvider, apiKeySettingKey,
+} = require('./geocodingProviders');
 
 class ImprovedGeocodingService {
   constructor(pool) {
     this.pool = pool;
-    // Nominatim's public API allows at most 1 request/second. All outbound
-    // Nominatim calls are serialized through this chain with enforced spacing;
-    // without it, autocomplete keystrokes and concurrent batch geocodes get
-    // the whole instance 429-blocked (issue #57).
-    this.nominatimChain = Promise.resolve();
-    this.lastNominatimAt = 0;
-    // Yandex has separate limits, so it must not share Nominatim's queue.
-    this.yandexChain = Promise.resolve();
-    this.lastYandexAt = 0;
-    // Provider config, refreshed from app_settings (issue #62)
-    this.providerConfig = { provider: 'nominatim', yandexApiKey: null };
+    // One request queue per provider. Each has its own rate limit, so they
+    // must not share a chain — Nominatim's public endpoint allows at most 1
+    // request/second and exceeding it blocks the whole instance (issue #57),
+    // while a paid provider shouldn't be throttled to that.
+    this.queues = {};
+    this.providerConfig = { provider: DEFAULT_PROVIDER, apiKeys: {} };
     this.initializeDatabase();
   }
 
-  // Serialize + space Nominatim requests (min 1.1s apart, queue-ordered)
-  throttledNominatimFetch(url, options) {
+  // Serialize + space this provider's requests, queue-ordered.
+  throttledFetch(providerId, url, options) {
+    const { minIntervalMs } = getProvider(providerId);
+    const queue = this.queues[providerId] || (this.queues[providerId] = { chain: Promise.resolve(), lastAt: 0 });
     const run = async () => {
-      const wait = this.lastNominatimAt + 1100 - Date.now();
+      const wait = queue.lastAt + minIntervalMs - Date.now();
       if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      this.lastNominatimAt = Date.now();
+      queue.lastAt = Date.now();
       return this.fetchWithTimeout(url, options);
     };
-    const request = this.nominatimChain.then(run, run);
-    this.nominatimChain = request.catch(() => {});
+    const request = queue.chain.then(run, run);
+    queue.chain = request.catch(() => {});
     return request;
   }
 
@@ -145,7 +145,7 @@ class ImprovedGeocodingService {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5&addressdetails=1`;
 
-      const response = await this.throttledNominatimFetch(url, {
+      const response = await this.throttledFetch('nominatim', url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
 
@@ -172,27 +172,57 @@ class ImprovedGeocodingService {
         return { failure: 'not_found', message: 'No results found for this address' };
       }
 
-      const best = data[0];
-      return {
-        lat: parseFloat(best.lat),
-        lng: parseFloat(best.lon),
-        confidence: this.calculateNominatimConfidence(best, address),
-        city: best.address?.city || best.address?.town || best.address?.village,
-        state: best.address?.state || best.address?.region,
-        country: best.address?.country_code?.toUpperCase(),
-        displayName: best.display_name,
-        provider: 'nominatim',
-        alternatives: data.slice(1, 4).map(alt => ({
-          lat: parseFloat(alt.lat),
-          lng: parseFloat(alt.lon),
-          display_name: alt.display_name
-        }))
-      };
+      return { ...this.parseNominatimShape(data, address), provider: 'nominatim' };
     } catch (error) {
       if (error.name === 'AbortError') {
         return { failure: 'timeout', message: 'Geocoding request timed out — check your connection or try a simpler address' };
       }
       return { failure: 'service_error', message: 'Geocoding service is unreachable' };
+    }
+  }
+
+  // ── LocationIQ ─────────────────────────────────────────────────────────
+  // Commercial geocoding built on the same OSM data as Nominatim but without
+  // its rate limits, and — unlike some commercial providers — with no
+  // restriction on which basemap the results are drawn on, which matters
+  // because GHOST renders on OpenStreetMap tiles.
+  //
+  // Its search response is Nominatim-shaped, so the parsing and confidence
+  // scoring are shared rather than duplicated.
+  async geocodeWithLocationIQ(address, apiKey) {
+    if (!apiKey) {
+      return { failure: 'service_error', message: 'LocationIQ is enabled but no API key is configured' };
+    }
+    try {
+      const url = `https://us1.locationiq.com/v1/search?key=${encodeURIComponent(apiKey)}`
+        + `&q=${encodeURIComponent(address)}&format=json&limit=5&addressdetails=1`;
+
+      const response = await this.throttledFetch('locationiq', url, {});
+
+      if (response.status === 401 || response.status === 403) {
+        return { failure: 'service_error', message: 'LocationIQ rejected the API key — check it in Settings' };
+      }
+      if (response.status === 429) {
+        return { failure: 'rate_limited', message: 'LocationIQ is rate limiting requests — wait a few seconds and try again' };
+      }
+      // LocationIQ signals "no match" with 404 rather than an empty array.
+      if (response.status === 404) {
+        return { failure: 'not_found', message: 'No results found for this address' };
+      }
+      if (!response.ok) {
+        return { failure: 'service_error', message: `LocationIQ returned ${response.status}` };
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        return { failure: 'not_found', message: 'No results found for this address' };
+      }
+      return { ...this.parseNominatimShape(data, address), provider: 'locationiq' };
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return { failure: 'timeout', message: 'Geocoding request timed out — check your connection or try a simpler address' };
+      }
+      return { failure: 'service_error', message: 'LocationIQ is unreachable' };
     }
   }
 
@@ -202,20 +232,6 @@ class ImprovedGeocodingService {
   // far better for those. Requires an operator-supplied API key, configured in
   // Settings — it is never enabled by default and never used without a key.
   //
-  // Yandex has its own rate limits, so it gets its own queue rather than
-  // inheriting Nominatim's 1 req/s chain.
-  throttledYandexFetch(url, options) {
-    const run = async () => {
-      const wait = this.lastYandexAt + 120 - Date.now();
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      this.lastYandexAt = Date.now();
-      return this.fetchWithTimeout(url, options);
-    };
-    const request = this.yandexChain.then(run, run);
-    this.yandexChain = request.catch(() => {});
-    return request;
-  }
-
   async geocodeWithYandex(address, apiKey) {
     if (!apiKey) {
       return { failure: 'service_error', message: 'Yandex geocoding is enabled but no API key is configured' };
@@ -224,7 +240,7 @@ class ImprovedGeocodingService {
       const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(apiKey)}`
         + `&geocode=${encodeURIComponent(address)}&format=json&results=5`;
 
-      const response = await this.throttledYandexFetch(url, {});
+      const response = await this.throttledFetch('yandex', url, {});
 
       if (response.status === 403 || response.status === 401) {
         return { failure: 'service_error', message: 'Yandex rejected the API key — check it in Settings' };
@@ -305,6 +321,25 @@ class ImprovedGeocodingService {
     }
   }
 
+  // Shared by Nominatim and LocationIQ — LocationIQ returns the same shape.
+  parseNominatimShape(data, address) {
+    const best = data[0];
+    return {
+      lat: parseFloat(best.lat),
+      lng: parseFloat(best.lon),
+      confidence: this.calculateNominatimConfidence(best, address),
+      city: best.address?.city || best.address?.town || best.address?.village,
+      state: best.address?.state || best.address?.region,
+      country: best.address?.country_code?.toUpperCase(),
+      displayName: best.display_name,
+      alternatives: data.slice(1, 4).map((alt) => ({
+        lat: parseFloat(alt.lat),
+        lng: parseFloat(alt.lon),
+        display_name: alt.display_name,
+      })),
+    };
+  }
+
   // Calculate confidence from Nominatim result
   calculateNominatimConfidence(result, originalAddress) {
     if (!result.display_name || !originalAddress) return 30;
@@ -331,19 +366,28 @@ class ImprovedGeocodingService {
     if (this.providerConfigAt && now - this.providerConfigAt < 5000) {
       return this.providerConfig;
     }
+    const keyNames = PROVIDER_IDS.map(apiKeySettingKey);
     try {
       const res = await this.pool.query(
-        `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
+        `SELECT key, value FROM app_settings WHERE key = 'geocoding_provider' OR key = ANY($1)`,
+        [keyNames]
       );
       const map = Object.fromEntries(res.rows.map((r) => [r.key, r.value]));
+      const apiKeys = {};
+      PROVIDER_IDS.forEach((id) => {
+        // Env vars remain a fallback so a deployment can supply keys without
+        // touching the database.
+        apiKeys[id] = map[apiKeySettingKey(id)] || process.env[`${id.toUpperCase()}_API_KEY`] || null;
+      });
+      const stored = map.geocoding_provider;
       this.providerConfig = {
-        provider: map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim',
-        yandexApiKey: map.geocoding_yandex_api_key || process.env.YANDEX_API_KEY || null,
+        provider: isValidProvider(stored) ? stored : DEFAULT_PROVIDER,
+        apiKeys,
       };
     } catch {
       // Table missing (pre-migration) or unreadable — fall back to the default
       // provider rather than failing every lookup.
-      this.providerConfig = { provider: 'nominatim', yandexApiKey: process.env.YANDEX_API_KEY || null };
+      this.providerConfig = { provider: DEFAULT_PROVIDER, apiKeys: {} };
     }
     this.providerConfigAt = now;
     return this.providerConfig;
@@ -354,15 +398,28 @@ class ImprovedGeocodingService {
     this.providerConfigAt = 0;
   }
 
-  // Dispatch to the configured provider. Yandex silently falls back to
-  // Nominatim if it's selected without a key, so a half-finished setup
-  // degrades instead of breaking every address lookup.
+  // Dispatch to the configured provider. A provider that needs a key but has
+  // none falls back to the default, so a half-finished setup degrades instead
+  // of breaking every address lookup.
   async geocodeWithProvider(address) {
-    const config = await this.getProviderConfig();
-    if (config.provider === 'yandex' && config.yandexApiKey) {
-      return this.geocodeWithYandex(address, config.yandexApiKey);
+    const { provider, apiKeys } = await this.getProviderConfig();
+    const spec = getProvider(provider);
+    const key = apiKeys[provider];
+    if (spec.requiresKey && !key) return this.geocodeWithNominatim(address);
+
+    switch (provider) {
+      case 'yandex':     return this.geocodeWithYandex(address, key);
+      case 'locationiq': return this.geocodeWithLocationIQ(address, key);
+      default:           return this.geocodeWithNominatim(address);
     }
-    return this.geocodeWithNominatim(address);
+  }
+
+  // Which provider will actually serve a request — used for cache keying, so a
+  // provider that has silently fallen back doesn't poison the other's cache.
+  async getEffectiveProvider() {
+    const { provider, apiKeys } = await this.getProviderConfig();
+    const spec = getProvider(provider);
+    return spec.requiresKey && !apiKeys[provider] ? DEFAULT_PROVIDER : provider;
   }
 
   async geocodeAddress(address, options = {}) {
@@ -375,7 +432,7 @@ class ImprovedGeocodingService {
 
     // Check cache first — per provider, or switching provider would keep
     // serving the old one's results (issue #62)
-    const { provider: activeProvider } = await this.getProviderConfig();
+    const activeProvider = await this.getEffectiveProvider();
     const cached = await this.getCachedCoordinates(normalizedAddress, activeProvider);
     if (cached && cached.confidence > minConfidence) {
       return cached;
@@ -515,8 +572,16 @@ class ImprovedGeocodingService {
   // Address suggestions for autocomplete
   async getSuggestions(query, limit = 5) {
     const config = await this.getProviderConfig();
-    if (config.provider === 'yandex' && config.yandexApiKey) {
-      const result = await this.geocodeWithYandex(query, config.yandexApiKey);
+    const provider = await this.getEffectiveProvider();
+    if (provider === 'locationiq') {
+      const result = await this.geocodeWithLocationIQ(query, config.apiKeys.locationiq);
+      if (result.failure) return [];
+      return [result, ...(result.alternatives || []).map((a) => ({
+        lat: a.lat, lng: a.lng, displayName: a.display_name, provider: 'locationiq',
+      }))].slice(0, limit);
+    }
+    if (provider === 'yandex') {
+      const result = await this.geocodeWithYandex(query, config.apiKeys.yandex);
       if (result.failure) return [];
       return [result, ...(result.alternatives || []).map((a) => ({
         lat: a.lat, lng: a.lng, displayName: a.display_name, provider: 'yandex',
@@ -530,7 +595,7 @@ class ImprovedGeocodingService {
 
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=1`;
-      const response = await this.throttledNominatimFetch(url, {
+      const response = await this.throttledFetch('nominatim', url, {
         headers: { 'User-Agent': 'GHOST-OSINT-CRM/2.4 (https://github.com/elm1nst3r/GHOST-osint-crm)' }
       });
       if (!response.ok) return [];

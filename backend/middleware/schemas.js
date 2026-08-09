@@ -169,11 +169,18 @@ const BusinessUpdateSchema = z.object({
 });
 
 // ── Settings: geocoding provider (issue #62) ─────────────────────────────────
-// yandexApiKey is deliberately three-state: absent means "leave the stored key
-// alone" (the form never echoes it back), '' means "clear it".
+// Each key is three-state: absent means "leave the stored key alone" (the form
+// never echoes a key back), '' means "clear it". The provider list comes from
+// the registry so adding a provider doesn't need a schema edit.
+const { PROVIDER_IDS } = require('../services/geocodingProviders');
+
+const apiKeyField = z.union([z.string().max(255), z.null().transform(() => '')]).optional();
+
 const SettingsGeocodingUpdateSchema = z.object({
-  provider: z.enum(['nominatim', 'yandex']).optional(),
-  yandexApiKey: z.union([z.string().max(255), z.null().transform(() => '')]).optional(),
+  provider: z.enum(PROVIDER_IDS).optional(),
+  apiKeys: z.object(
+    Object.fromEntries(PROVIDER_IDS.map((id) => [id, apiKeyField]))
+  ).partial().optional(),
 });
 
 const SettingsUpdateCheckSchema = z.object({
