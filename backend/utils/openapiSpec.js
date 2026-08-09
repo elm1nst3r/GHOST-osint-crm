@@ -183,6 +183,7 @@ const spec = {
       BusinessUpdate: toSchema(S.BusinessUpdateSchema),
       ToolCreate: toSchema(S.ToolCreateSchema),
       ToolUpdate: toSchema(S.ToolUpdateSchema),
+      ToolBulkImport: toSchema(S.ToolBulkImportSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       TodoCreate: toSchema(S.TodoCreateSchema),
@@ -280,6 +281,17 @@ const spec = {
 
     // ── Tools / Todos / Cases ──
     ...crudPaths('Tools', '/tools', 'ToolCreate', 'ToolUpdate', { getById: false }),
+    '/tools/bulk-import': {
+      post: op('Tools', 'Import many OSINT tools in one request', {
+        body: ref('ToolBulkImport'),
+        description:
+          'Duplicates are matched on name, case-insensitively. mode="skip" (the default) leaves existing tools '
+          + 'untouched; mode="update" overwrites only the fields each row supplies, so a partial row cannot blank '
+          + 'out a tool\'s other values. Rows are processed individually — one bad row does not abort the rest — '
+          + 'and the response reports created/updated/skipped counts plus per-row errors. Prefer this over calling '
+          + 'the single-tool create repeatedly: it is one request and is not subject to the per-request rate limit.',
+      }),
+    },
     ...crudPaths('Todos', '/todos', 'TodoCreate', 'TodoUpdate', { getById: false }),
     ...crudPaths('Cases', '/cases', 'CaseCreate', 'CaseUpdate', { getById: false }),
 
