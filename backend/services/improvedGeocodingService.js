@@ -189,6 +189,27 @@ class ImprovedGeocodingService {
   //
   // Its search response is Nominatim-shaped, so the parsing and confidence
   // scoring are shared rather than duplicated.
+  // Providers explain *why* they rejected a key — "Invalid key", "key not
+  // active", "wrong API type" all need different fixes from the operator. The
+  // first version of this swallowed that and substituted a generic message,
+  // which made a real report impossible to diagnose. Never include the URL:
+  // it carries the API key.
+  async providerErrorDetail(response) {
+    try {
+      const text = await response.text();
+      if (!text) return '';
+      try {
+        const body = JSON.parse(text);
+        const detail = body.message || body.error?.message || body.error || body.statusCode;
+        return detail ? String(detail).slice(0, 200) : '';
+      } catch {
+        return text.slice(0, 200);
+      }
+    } catch {
+      return '';
+    }
+  }
+
   async geocodeWithLocationIQ(address, apiKey) {
     if (!apiKey) {
       return { failure: 'service_error', message: 'LocationIQ is enabled but no API key is configured' };
@@ -200,7 +221,14 @@ class ImprovedGeocodingService {
       const response = await this.throttledFetch('locationiq', url, {});
 
       if (response.status === 401 || response.status === 403) {
-        return { failure: 'service_error', message: 'LocationIQ rejected the API key — check it in Settings' };
+        const detail = await this.providerErrorDetail(response);
+        console.error(`LocationIQ rejected the request (${response.status}): ${detail || 'no detail returned'}`);
+        return {
+          failure: 'service_error',
+          message: detail
+            ? `LocationIQ rejected the request: ${detail}. Check the key in Settings.`
+            : 'LocationIQ rejected the API key — check it in Settings.',
+        };
       }
       if (response.status === 429) {
         return { failure: 'rate_limited', message: 'LocationIQ is rate limiting requests — wait a few seconds and try again' };
@@ -243,13 +271,25 @@ class ImprovedGeocodingService {
       const response = await this.throttledFetch('yandex', url, {});
 
       if (response.status === 403 || response.status === 401) {
-        return { failure: 'service_error', message: 'Yandex rejected the API key — check it in Settings' };
+        const detail = await this.providerErrorDetail(response);
+        console.error(`Yandex geocoding rejected the request (${response.status}): ${detail || 'no detail returned'}`);
+        return {
+          failure: 'service_error',
+          message: detail
+            ? `Yandex rejected the request: ${detail}. Check the key in Settings — it must be a key for the Geocoder HTTP API, and it must be activated.`
+            : 'Yandex rejected the API key. Check that it is a key for the Geocoder HTTP API (not the JavaScript API) and that it has been activated.',
+        };
       }
       if (response.status === 429) {
         return { failure: 'rate_limited', message: 'Yandex is rate limiting requests — wait a few seconds and try again' };
       }
       if (!response.ok) {
-        return { failure: 'service_error', message: `Yandex geocoding returned ${response.status}` };
+        const detail = await this.providerErrorDetail(response);
+        console.error(`Yandex geocoding returned ${response.status}: ${detail || 'no detail returned'}`);
+        return {
+          failure: 'service_error',
+          message: detail ? `Yandex geocoding returned ${response.status}: ${detail}` : `Yandex geocoding returned ${response.status}`,
+        };
       }
 
       const data = await response.json();
