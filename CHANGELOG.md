@@ -5,6 +5,25 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.1] - 2026-08-09
+
+### 🐛 Fixed
+
+- **Geocoding errors now say what the provider actually reported.** Configuring
+  a Yandex or LocationIQ key and having it rejected produced a generic "check
+  it in Settings", when the provider had explained the reason — an invalid key,
+  an inactive key, and a key issued for a different API product each need a
+  different fix. The provider's own message is now shown in the app and written
+  to the backend log. API keys are never logged.
+- The fallback message also names the most common cause: a key issued for
+  Yandex's JavaScript API rather than the **Geocoder HTTP API**.
+
+### 🌍 Translations
+
+- **Russian is now complete** — every interface string, including the report
+  output and everything added in 2.11–2.14, courtesy of @hunterghoul1 via
+  Crowdin. German, Spanish, French and Chinese catalogs updated too.
+
 ## [2.14.0] - 2026-08-09
 
 ### 🧰 Added — Bulk import for OSINT tools

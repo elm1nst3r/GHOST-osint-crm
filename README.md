@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.14.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.14.1-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -170,7 +170,7 @@ schema step. Your data lives in a Docker volume and is not touched.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.14.0
+GHOST_VERSION=2.14.1
 ```
 
 Without it, the containers track the latest release.
@@ -489,6 +489,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.14.1 (August 2026)
+- 🐛 **Geocoding errors report what the provider actually said** — a rejected API key produced a generic message instead of the provider's own explanation, making a real setup problem impossible to diagnose
+- 🌍 **Russian translation is complete** — every interface string including report output, via Crowdin
 
 ### Version 2.14.0 (August 2026)
 - 🧰 **Bulk import for OSINT tools** — paste or upload a CSV/TSV/JSON tool list, with a preview showing what will be added, what already exists and which rows have problems; also available to the MCP tools
