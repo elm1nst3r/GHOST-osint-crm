@@ -281,8 +281,8 @@ const CaseManagement = () => {
           <div key={caseItem.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border">
             {/* Case Header */}
             <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center justify-between gap-y-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <button
                     onClick={() => toggleCase(caseItem.id)}
                     className="text-gray-500 dark:text-slate-400 hover:text-gray-700"
@@ -294,7 +294,7 @@ const CaseManagement = () => {
                     )}
                   </button>
                   <Folder className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">{caseItem.case_name}</h3>
+                  <h3 className="text-lg font-semibold break-words min-w-0">{caseItem.case_name}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
                     caseItem.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
                     caseItem.status === 'closed' ? 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200' :
@@ -303,7 +303,7 @@ const CaseManagement = () => {
                     {caseItem.status}
                   </span>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <button
                     onClick={() => {
                       setReportCaseId(caseItem.id);
@@ -326,7 +326,7 @@ const CaseManagement = () => {
               </div>
               
               {!expandedCases[caseItem.id] && (
-                <div className="mt-3 flex items-center space-x-6 text-sm">
+                <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span className="text-gray-600 dark:text-gray-400">{t('caseManagement.open', { count: caseItem.openCount })}</span>

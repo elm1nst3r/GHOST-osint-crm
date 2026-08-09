@@ -123,8 +123,8 @@ const PersonDetailModal = () => {
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+          <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start gap-3">
+            <div className="flex items-center space-x-4 min-w-0">
               {person.profile_picture_url ? (
                 <img 
                   src={person.profile_picture_url} 
@@ -137,7 +137,7 @@ const PersonDetailModal = () => {
                 </div>
               )}
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
                   {getFullName(person)}
                   {person.date_of_birth && (
                     <span className="text-gray-500 dark:text-slate-400 font-normal text-lg ml-2">
@@ -150,16 +150,18 @@ const PersonDetailModal = () => {
                 )}
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 shrink-0">
               {/* Labelled, not icon-only: reporters kept concluding person
                   reports didn't exist because this was a bare icon (#63). */}
               <button
                 onClick={() => setShowReportGenerator(true)}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-accent-success hover:bg-green-600 dark:bg-green-500 hover:text-white transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+                className="p-2 md:px-3 md:py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-accent-success hover:bg-green-600 dark:bg-green-500 hover:text-white transition-all duration-300 flex items-center gap-2 text-sm font-medium"
                 title={t('personDetailModal.generateReportTitle')}
               >
                 <FileText className="w-5 h-5" />
-                <span>{t('personDetailModal.generateReportTitle')}</span>
+                {/* Label only where there's room; on a phone it pushed the
+                    close button off the screen entirely (#64). */}
+                <span className="hidden md:inline">{t('personDetailModal.generateReportTitle')}</span>
               </button>
               <button 
                 onClick={() => onEdit(person)} 
@@ -177,13 +179,13 @@ const PersonDetailModal = () => {
           </div>
           
           {/* Tabs */}
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <div className="flex">
+          <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <div className="flex min-w-max">
             {['details', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger'].map((tab) => (
                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 font-medium text-sm border-b-2 capitalize transition-all duration-300 ${
+                  className={`px-4 md:px-6 py-3 font-medium text-sm border-b-2 capitalize whitespace-nowrap transition-all duration-300 ${
                     activeTab === tab
                       ? 'border-accent-primary text-blue-600 dark:text-blue-400 bg-gradient-to-t from-white/5 to-transparent'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -213,13 +215,21 @@ const PersonDetailModal = () => {
                         {t('personDetailModal.basicInformation')}
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-3">
                           <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.firstNameLabel')}</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.first_name || t('personDetailModal.notAvailable')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.first_name || t('personDetailModal.notAvailable')}</span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* Added with the field itself in #61 but missed here,
+                            so a patronymic could be entered and never shown. */}
+                        {person.patronymic && (
+                          <div className="flex justify-between gap-3">
+                            <span className="font-medium text-gray-600 dark:text-gray-400">{t('personForm.patronymic')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.patronymic}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-3">
                           <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.lastNameLabel')}</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{person.last_name || t('personDetailModal.notAvailable')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.last_name || t('personDetailModal.notAvailable')}</span>
                         </div>
                         {person.date_of_birth && (
                           <div className="flex justify-between">

@@ -162,15 +162,15 @@ const PeopleList = () => {
                   <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               )}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
                   {getFullName(person)}
                   {person.date_of_birth && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({getAge(person.date_of_birth)})</span>}
                 </h3>
                 {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>}
               </div>
             </div>
-            <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <div className="flex space-x-2 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
               <button onClick={() => setSelectedPersonForDetail(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150" title={t('peopleList.viewDetails')}><Eye className="w-4 h-4" /></button>
               <button onClick={() => setEditingPerson(person)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-600 hover:text-white transition-colors duration-150" title={t('common.edit')}><Edit2 className="w-4 h-4" /></button>
               <button onClick={() => handleDelete(person.id)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors duration-150" title={t('common.delete')}><Trash2 className="w-4 h-4" /></button>
@@ -360,7 +360,7 @@ const PeopleList = () => {
                   )}
                 </div>
               </div>
-              <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div className="flex space-x-2 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
                 <button
                   onClick={() => setSelectedPersonForDetail(person)}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors duration-150 active:scale-[0.97]"
