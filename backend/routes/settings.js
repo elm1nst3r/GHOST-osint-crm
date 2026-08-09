@@ -7,6 +7,7 @@ const {
   validate,
   SettingsCustomFieldCreateSchema,
   SettingsCustomFieldUpdateSchema,
+  SettingsGeocodingUpdateSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 } = require('../middleware/schemas');
@@ -74,6 +75,72 @@ router.delete('/custom-fields/:id', requireAdmin, validateIdParam, async (req, r
   } catch (err) {
     console.error('Error deleting custom field definition:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to delete custom field definition' });
+  }
+});
+
+// ── Geocoding provider (issue #62) ───────────────────────────────────────────
+// Admin-only, and only ever read by the Settings page — never during startup,
+// so it can't reproduce the "System Offline" 403 problem from issue #58.
+//
+// The API key is WRITE-ONLY. The response reports whether one is stored, never
+// its value: an operator's paid API key should not be recoverable by anyone who
+// can open the settings screen or read a browser network log.
+router.get('/geocoding', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
+    );
+    const map = Object.fromEntries(result.rows.map((r) => [r.key, r.value]));
+    res.json({
+      provider: map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim',
+      hasYandexApiKey: Boolean(map.geocoding_yandex_api_key),
+    });
+  } catch (err) {
+    console.error('Error fetching geocoding settings:', err);
+    res.status(500).json({ error: 'Failed to fetch geocoding settings' });
+  }
+});
+
+router.put('/geocoding', requireAdmin, validate(SettingsGeocodingUpdateSchema), async (req, res) => {
+  const { provider, yandexApiKey } = req.body;
+
+  try {
+    const upsert = (key, value) => pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [key, value]
+    );
+
+    if (provider !== undefined) await upsert('geocoding_provider', provider);
+
+    // undefined = leave the stored key alone (the form doesn't echo it back).
+    // '' = explicitly clear it.
+    if (yandexApiKey !== undefined) {
+      const trimmed = String(yandexApiKey).trim();
+      if (trimmed === '') await pool.query(`DELETE FROM app_settings WHERE key = 'geocoding_yandex_api_key'`);
+      else await upsert('geocoding_yandex_api_key', trimmed);
+    }
+
+    // Apply immediately rather than after the config cache expires.
+    req.app.locals.improvedGeocodingService?.invalidateProviderConfig?.();
+
+    const check = await pool.query(
+      `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
+    );
+    const map = Object.fromEntries(check.rows.map((r) => [r.key, r.value]));
+    const activeProvider = map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim';
+    res.json({
+      provider: activeProvider,
+      hasYandexApiKey: Boolean(map.geocoding_yandex_api_key),
+      // Selecting Yandex without a key falls back to Nominatim rather than
+      // failing every lookup — surface that so it isn't silent.
+      warning: activeProvider === 'yandex' && !map.geocoding_yandex_api_key
+        ? 'no_api_key'
+        : undefined,
+    });
+  } catch (err) {
+    console.error('Error saving geocoding settings:', err);
+    res.status(500).json({ error: 'Failed to save geocoding settings' });
   }
 });
 

@@ -50,7 +50,8 @@ const ROUTE_SCHEMAS = {
     S.SettingsCustomFieldCreateSchema,
     S.SettingsCustomFieldUpdateSchema,
     S.SettingsModelOptionCreateSchema,
-    S.SettingsModelOptionUpdateSchema
+    S.SettingsModelOptionUpdateSchema,
+    S.SettingsGeocodingUpdateSchema
   ),
 };
 

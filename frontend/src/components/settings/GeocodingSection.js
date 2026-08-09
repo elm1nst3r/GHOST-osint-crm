@@ -1,0 +1,157 @@
+// File: frontend/src/components/settings/GeocodingSection.js
+//
+// Choose which service turns addresses into coordinates (issue #62).
+//
+// Nominatim (OpenStreetMap) is the default and needs nothing. Yandex is opt-in
+// and needs an operator-supplied API key; it's offered because Nominatim
+// handles informal Russian address forms poorly.
+//
+// The key is write-only: the server never sends it back, so this form shows
+// only whether one is stored. Leaving the field blank keeps the existing key.
+
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { MapPin, Save, Check, AlertTriangle } from 'lucide-react';
+import { geocodingSettingsAPI } from '../../utils/api';
+
+const GeocodingSection = () => {
+  const { t } = useTranslation();
+  const [provider, setProvider] = useState('nominatim');
+  const [hasKey, setHasKey] = useState(false);
+  const [keyInput, setKeyInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    geocodingSettingsAPI.get()
+      .then((cfg) => { setProvider(cfg.provider); setHasKey(cfg.hasYandexApiKey); })
+      .catch(() => setError('load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // Omit the key entirely unless one was typed, so saving the provider
+      // alone can't wipe a stored key.
+      const payload = { provider };
+      if (keyInput.trim() !== '') payload.yandexApiKey = keyInput.trim();
+      const result = await geocodingSettingsAPI.update(payload);
+      setProvider(result.provider);
+      setHasKey(result.hasYandexApiKey);
+      setKeyInput('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err.message || 'save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearKey = async () => {
+    setSaving(true);
+    try {
+      const result = await geocodingSettingsAPI.update({ yandexApiKey: '' });
+      setHasKey(result.hasYandexApiKey);
+    } catch (err) {
+      setError(err.message || 'save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return null;
+
+  const yandexSelectedWithoutKey = provider === 'yandex' && !hasKey && keyInput.trim() === '';
+
+  return (
+    <div className="pt-6 border-t">
+      <h3 className="text-lg font-semibold mb-1 flex items-center">
+        <MapPin className="w-5 h-5 mr-2" />
+        {t('settings.geocoding.title')}
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('settings.geocoding.description')}</p>
+
+      <div className="max-w-xl space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+            {t('settings.geocoding.providerLabel')}
+          </label>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+          >
+            <option value="nominatim">{t('settings.geocoding.providerNominatim')}</option>
+            <option value="yandex">{t('settings.geocoding.providerYandex')}</option>
+          </select>
+        </div>
+
+        {provider === 'yandex' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+              {t('settings.geocoding.apiKeyLabel')}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder={hasKey ? t('settings.geocoding.apiKeyStoredPlaceholder') : t('settings.geocoding.apiKeyPlaceholder')}
+                autoComplete="off"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm"
+              />
+              {hasKey && (
+                <button
+                  type="button"
+                  onClick={clearKey}
+                  disabled={saving}
+                  className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  {t('settings.geocoding.clearKey')}
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              {hasKey ? t('settings.geocoding.apiKeyStoredHint') : t('settings.geocoding.apiKeyHint')}
+            </p>
+          </div>
+        )}
+
+        {yandexSelectedWithoutKey && (
+          <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">{t('settings.geocoding.noKeyWarning')}</p>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-600 dark:text-red-400">{t('settings.geocoding.saveFailed')}</p>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {t('common.save')}
+          </button>
+          {saved && (
+            <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              {t('settings.geocoding.saved')}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GeocodingSection;

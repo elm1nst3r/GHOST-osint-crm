@@ -10,6 +10,11 @@ class ImprovedGeocodingService {
     // the whole instance 429-blocked (issue #57).
     this.nominatimChain = Promise.resolve();
     this.lastNominatimAt = 0;
+    // Yandex has separate limits, so it must not share Nominatim's queue.
+    this.yandexChain = Promise.resolve();
+    this.lastYandexAt = 0;
+    // Provider config, refreshed from app_settings (issue #62)
+    this.providerConfig = { provider: 'nominatim', yandexApiKey: null };
     this.initializeDatabase();
   }
 
@@ -32,13 +37,13 @@ class ImprovedGeocodingService {
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS geocoding_cache (
           id SERIAL PRIMARY KEY,
-          address_hash VARCHAR(64) UNIQUE NOT NULL,
+          address_hash VARCHAR(64) NOT NULL,
           original_address TEXT NOT NULL,
           normalized_address TEXT NOT NULL,
           latitude DECIMAL(10, 8),
           longitude DECIMAL(11, 8),
           confidence_score INTEGER DEFAULT 0,
-          provider VARCHAR(50) DEFAULT 'nominatim',
+          provider VARCHAR(50) NOT NULL DEFAULT 'nominatim',
           country_code VARCHAR(2),
           city VARCHAR(100),
           state VARCHAR(100),
@@ -50,6 +55,7 @@ class ImprovedGeocodingService {
 
       // Create index for faster lookups
       await this.pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS geocoding_cache_hash_provider_key ON geocoding_cache(address_hash, provider);
         CREATE INDEX IF NOT EXISTS idx_geocoding_cache_hash ON geocoding_cache(address_hash);
         CREATE INDEX IF NOT EXISTS idx_geocoding_cache_address ON geocoding_cache(normalized_address);
       `);
@@ -78,12 +84,13 @@ class ImprovedGeocodingService {
   }
 
   // Check database cache first
-  async getCachedCoordinates(address) {
+  async getCachedCoordinates(address, provider) {
     const hash = this.createAddressHash(address);
     try {
       const result = await this.pool.query(
-        'SELECT latitude, longitude, confidence_score, city, state, country_code FROM geocoding_cache WHERE address_hash = $1',
-        [hash]
+        `SELECT latitude, longitude, confidence_score, city, state, country_code
+         FROM geocoding_cache WHERE address_hash = $1 AND provider = $2`,
+        [hash, provider]
       );
       
       if (result.rows.length > 0) {
@@ -114,16 +121,19 @@ class ImprovedGeocodingService {
         INSERT INTO geocoding_cache 
         (address_hash, original_address, normalized_address, latitude, longitude, confidence_score, city, state, country_code, provider)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (address_hash) 
-        DO UPDATE SET 
+        ON CONFLICT (address_hash, provider)
+        DO UPDATE SET
           latitude = EXCLUDED.latitude,
           longitude = EXCLUDED.longitude,
           confidence_score = EXCLUDED.confidence_score,
+          city = EXCLUDED.city,
+          state = EXCLUDED.state,
+          country_code = EXCLUDED.country_code,
           updated_at = CURRENT_TIMESTAMP
       `, [
         hash, address, normalized, result.lat, result.lng, 
         result.confidence || 50, result.city || null, result.state || null,
-        result.country || null, result.provider || 'photon'
+        result.country || null, result.provider || 'nominatim'
       ]);
     } catch (error) {
       console.error('Error caching coordinates:', error);
@@ -186,6 +196,115 @@ class ImprovedGeocodingService {
     }
   }
 
+  // ── Yandex Geocoder (issue #62) ────────────────────────────────────────
+  // Opt-in alternative provider. Nominatim's coverage of informal Russian
+  // address forms ("г. Котельники мкр. Южный д. 3Б") is poor, and Yandex is
+  // far better for those. Requires an operator-supplied API key, configured in
+  // Settings — it is never enabled by default and never used without a key.
+  //
+  // Yandex has its own rate limits, so it gets its own queue rather than
+  // inheriting Nominatim's 1 req/s chain.
+  throttledYandexFetch(url, options) {
+    const run = async () => {
+      const wait = this.lastYandexAt + 120 - Date.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      this.lastYandexAt = Date.now();
+      return this.fetchWithTimeout(url, options);
+    };
+    const request = this.yandexChain.then(run, run);
+    this.yandexChain = request.catch(() => {});
+    return request;
+  }
+
+  async geocodeWithYandex(address, apiKey) {
+    if (!apiKey) {
+      return { failure: 'service_error', message: 'Yandex geocoding is enabled but no API key is configured' };
+    }
+    try {
+      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(apiKey)}`
+        + `&geocode=${encodeURIComponent(address)}&format=json&results=5`;
+
+      const response = await this.throttledYandexFetch(url, {});
+
+      if (response.status === 403 || response.status === 401) {
+        return { failure: 'service_error', message: 'Yandex rejected the API key — check it in Settings' };
+      }
+      if (response.status === 429) {
+        return { failure: 'rate_limited', message: 'Yandex is rate limiting requests — wait a few seconds and try again' };
+      }
+      if (!response.ok) {
+        return { failure: 'service_error', message: `Yandex geocoding returned ${response.status}` };
+      }
+
+      const data = await response.json();
+      const members = data?.response?.GeoObjectCollection?.featureMember;
+      if (!Array.isArray(members) || members.length === 0) {
+        return { failure: 'not_found', message: 'No results found for this address' };
+      }
+
+      const parse = (member) => {
+        const obj = member?.GeoObject;
+        if (!obj) return null;
+        // Yandex returns "longitude latitude" — the opposite order to almost
+        // everything else. Getting this backwards puts every pin in the sea.
+        const [lonStr, latStr] = String(obj.Point?.pos || '').split(' ');
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lonStr);
+        if (!isFinite(lat) || !isFinite(lng)) return null;
+        const meta = obj.metaDataProperty?.GeocoderMetaData;
+        const components = meta?.Address?.Components || [];
+        const pick = (kind) => components.find((c) => c.kind === kind)?.name;
+        return {
+          lat,
+          lng,
+          precision: meta?.precision,
+          city: pick('locality'),
+          state: pick('province'),
+          country: meta?.Address?.country_code,
+          displayName: meta?.text || obj.name,
+        };
+      };
+
+      const parsed = members.map(parse).filter(Boolean);
+      if (parsed.length === 0) {
+        return { failure: 'not_found', message: 'No results found for this address' };
+      }
+
+      const best = parsed[0];
+      return {
+        lat: best.lat,
+        lng: best.lng,
+        confidence: this.calculateYandexConfidence(best.precision),
+        city: best.city,
+        state: best.state,
+        country: best.country ? String(best.country).toUpperCase() : undefined,
+        displayName: best.displayName,
+        provider: 'yandex',
+        alternatives: parsed.slice(1, 4).map((alt) => ({
+          lat: alt.lat, lng: alt.lng, display_name: alt.displayName,
+        })),
+      };
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return { failure: 'timeout', message: 'Geocoding request timed out — check your connection or try a simpler address' };
+      }
+      return { failure: 'service_error', message: 'Yandex geocoding service is unreachable' };
+    }
+  }
+
+  // Yandex reports match quality as a precision band rather than a score.
+  calculateYandexConfidence(precision) {
+    switch (precision) {
+      case 'exact':  return 95;  // exact house
+      case 'number': return 88;  // house number approximated
+      case 'near':   return 75;  // nearby house
+      case 'range':  return 70;  // within a house-number range
+      case 'street': return 60;  // street only
+      case 'other':  return 40;
+      default:       return 50;
+    }
+  }
+
   // Calculate confidence from Nominatim result
   calculateNominatimConfidence(result, originalAddress) {
     if (!result.display_name || !originalAddress) return 30;
@@ -204,6 +323,48 @@ class ImprovedGeocodingService {
 
 
   // Smart geocoding with failure reason propagation
+  // Operator config lives in app_settings so it survives a browser and is
+  // readable by the backend, which is what actually calls the provider.
+  // Cached for a few seconds so a batch geocode doesn't hammer the table.
+  async getProviderConfig() {
+    const now = Date.now();
+    if (this.providerConfigAt && now - this.providerConfigAt < 5000) {
+      return this.providerConfig;
+    }
+    try {
+      const res = await this.pool.query(
+        `SELECT key, value FROM app_settings WHERE key IN ('geocoding_provider', 'geocoding_yandex_api_key')`
+      );
+      const map = Object.fromEntries(res.rows.map((r) => [r.key, r.value]));
+      this.providerConfig = {
+        provider: map.geocoding_provider === 'yandex' ? 'yandex' : 'nominatim',
+        yandexApiKey: map.geocoding_yandex_api_key || process.env.YANDEX_API_KEY || null,
+      };
+    } catch {
+      // Table missing (pre-migration) or unreadable — fall back to the default
+      // provider rather than failing every lookup.
+      this.providerConfig = { provider: 'nominatim', yandexApiKey: process.env.YANDEX_API_KEY || null };
+    }
+    this.providerConfigAt = now;
+    return this.providerConfig;
+  }
+
+  // Force a refresh after Settings changes, so a new key takes effect at once.
+  invalidateProviderConfig() {
+    this.providerConfigAt = 0;
+  }
+
+  // Dispatch to the configured provider. Yandex silently falls back to
+  // Nominatim if it's selected without a key, so a half-finished setup
+  // degrades instead of breaking every address lookup.
+  async geocodeWithProvider(address) {
+    const config = await this.getProviderConfig();
+    if (config.provider === 'yandex' && config.yandexApiKey) {
+      return this.geocodeWithYandex(address, config.yandexApiKey);
+    }
+    return this.geocodeWithNominatim(address);
+  }
+
   async geocodeAddress(address, options = {}) {
     if (!address || address.trim() === '') {
       return { failure: 'empty', message: 'Address is empty' };
@@ -212,13 +373,15 @@ class ImprovedGeocodingService {
     const normalizedAddress = address.trim();
     const minConfidence = options.minConfidence || 30;
 
-    // Check cache first
-    const cached = await this.getCachedCoordinates(normalizedAddress);
+    // Check cache first — per provider, or switching provider would keep
+    // serving the old one's results (issue #62)
+    const { provider: activeProvider } = await this.getProviderConfig();
+    const cached = await this.getCachedCoordinates(normalizedAddress, activeProvider);
     if (cached && cached.confidence > minConfidence) {
       return cached;
     }
 
-    let result = await this.geocodeWithNominatim(normalizedAddress);
+    let result = await this.geocodeWithProvider(normalizedAddress);
 
     // If the service failed (timeout/error), return the failure immediately
     if (result && result.failure && result.failure !== 'not_found') {
@@ -229,7 +392,7 @@ class ImprovedGeocodingService {
     if (!result || result.failure === 'not_found') {
       const simplified = this.simplifyAddress(normalizedAddress);
       if (simplified !== normalizedAddress) {
-        const simplified_result = await this.geocodeWithNominatim(simplified);
+        const simplified_result = await this.geocodeWithProvider(simplified);
         if (simplified_result && !simplified_result.failure) {
           result = simplified_result;
         }
@@ -351,6 +514,18 @@ class ImprovedGeocodingService {
 
   // Address suggestions for autocomplete
   async getSuggestions(query, limit = 5) {
+    const config = await this.getProviderConfig();
+    if (config.provider === 'yandex' && config.yandexApiKey) {
+      const result = await this.geocodeWithYandex(query, config.yandexApiKey);
+      if (result.failure) return [];
+      return [result, ...(result.alternatives || []).map((a) => ({
+        lat: a.lat, lng: a.lng, displayName: a.display_name, provider: 'yandex',
+      }))].slice(0, limit);
+    }
+    return this.getSuggestionsFromNominatim(query, limit);
+  }
+
+  async getSuggestionsFromNominatim(query, limit = 5) {
     if (!query || query.length < 3) return [];
 
     try {

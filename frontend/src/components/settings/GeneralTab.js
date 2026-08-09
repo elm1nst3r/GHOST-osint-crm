@@ -4,6 +4,7 @@ import { Save, Upload, Shield } from 'lucide-react';
 import { uploadLogo } from '../../utils/api';
 import { useData } from '../../contexts/DataContext';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
+import GeocodingSection from './GeocodingSection';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
@@ -93,6 +94,7 @@ const GeneralTab = () => {
           <div><span className="font-medium">{t('settings.general.apiUrl')}</span> {process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}</div>
         </div>
       </div>
+      <GeocodingSection />
     </div>
   );
 };

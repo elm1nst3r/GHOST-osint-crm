@@ -180,6 +180,16 @@ export const customFieldsAPI = {
 };
 
 // Model Options API
+// Geocoding provider config (issue #62). The API key is write-only server
+// side — get() reports only whether one is stored, never its value.
+export const geocodingSettingsAPI = {
+  get: () => fetchAPI('/settings/geocoding'),
+  update: (payload) => fetchAPI('/settings/geocoding', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+};
+
 export const modelOptionsAPI = {
   getAll: () => fetchAPI('/settings/model-options'),
   

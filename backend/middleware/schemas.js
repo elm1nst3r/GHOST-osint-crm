@@ -168,6 +168,14 @@ const BusinessUpdateSchema = z.object({
   ...businessBaseFields,
 });
 
+// ── Settings: geocoding provider (issue #62) ─────────────────────────────────
+// yandexApiKey is deliberately three-state: absent means "leave the stored key
+// alone" (the form never echoes it back), '' means "clear it".
+const SettingsGeocodingUpdateSchema = z.object({
+  provider: z.enum(['nominatim', 'yandex']).optional(),
+  yandexApiKey: z.union([z.string().max(255), z.null().transform(() => '')]).optional(),
+});
+
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 const toolBaseFields = {
@@ -443,6 +451,7 @@ module.exports = {
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,
   SettingsCustomFieldUpdateSchema,
+  SettingsGeocodingUpdateSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 };
