@@ -39,7 +39,7 @@ const shape = (...schemas) =>
 const ROUTE_SCHEMAS = {
   'people.js': shape(S.PersonCreateSchema, S.PersonUpdateSchema),
   'businesses.js': shape(S.BusinessCreateSchema, S.BusinessUpdateSchema),
-  'tools.js': shape(S.ToolCreateSchema, S.ToolUpdateSchema),
+  'tools.js': shape(S.ToolCreateSchema, S.ToolUpdateSchema, S.ToolBulkImportSchema),
   'cases.js': shape(S.CaseCreateSchema, S.CaseUpdateSchema),
   'todos.js': shape(S.TodoCreateSchema, S.TodoUpdateSchema),
   'travelHistory.js': shape(S.TravelHistoryCreateSchema, S.TravelHistoryUpdateSchema),

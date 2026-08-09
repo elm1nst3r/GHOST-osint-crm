@@ -198,6 +198,28 @@ const toolBaseFields = {
   notes: optStr(1000),
 };
 
+// Bulk import. Rows are validated individually and reported per row rather
+// than rejecting the whole file for one bad URL — a 200-row tool list with one
+// typo should import 199 tools and tell you about the one.
+const ToolImportRowSchema = z.object({
+  name: z.string().min(1).max(255),
+  // Deliberately laxer than ToolCreateSchema: spreadsheets are full of bare
+  // domains like "shodan.io". Normalised to a URL by the route rather than
+  // rejected.
+  link: optStr(2000),
+  description: optStr(1000),
+  category: optStr(1000),
+  status: optStr(255),
+  tags: optArray(z.string()),
+  notes: optStr(1000),
+});
+
+const ToolBulkImportSchema = z.object({
+  tools: z.array(ToolImportRowSchema).min(1, 'No rows to import').max(2000),
+  // How to treat a row whose name already exists.
+  mode: z.enum(['skip', 'update']).default('skip'),
+});
+
 const ToolCreateSchema = z.object({
   name: z.string().min(1, 'Tool name is required').max(255),
   ...toolBaseFields,
@@ -446,6 +468,8 @@ module.exports = {
   PersonUpdateSchema,
   BusinessCreateSchema,
   BusinessUpdateSchema,
+  ToolBulkImportSchema,
+  ToolImportRowSchema,
   ToolCreateSchema,
   ToolUpdateSchema,
   CaseCreateSchema,

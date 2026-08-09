@@ -1737,7 +1737,8 @@
     "visitTool": "Visit Tool",
     "confirmDeleteTool": "Are you sure you want to delete this tool?",
     "errorDeleteTool": "Failed to delete tool",
-    "noToolsFound": "No tools found matching your search criteria."
+    "noToolsFound": "No tools found matching your search criteria.",
+    "importTools": "Import"
   },
   "personDetailModal": {
     "confirmRemoveLocation": "Remove this location?",
@@ -1912,5 +1913,39 @@
     "running": "You are running {{version}}.",
     "viewRelease": "View release notes",
     "dismiss": "Dismiss"
+  },
+  "toolImport": {
+    "title": "Import OSINT tools",
+    "description": "Paste or upload a list of tools as CSV, TSV or JSON. Nothing is saved until you review the preview.",
+    "chooseFile": "Choose a file",
+    "orPaste": "or paste below",
+    "placeholder": "name,url,category,tags\nShodan,https://shodan.io,Search Engines,recon;devices",
+    "columnsHint": "Recognised columns: name (required), url/link, description, category, status, tags, notes. Unrecognised columns are ignored. Tags can be separated by ; or ,",
+    "preview": "Preview",
+    "willBeCreated": "will be added",
+    "willBeSkipped": "already exist (skipped)",
+    "willBeUpdated": "already exist (will be updated)",
+    "problemRows": "rows with problems",
+    "updateExisting": "Update tools that already exist instead of skipping them",
+    "rowsSkipped": "These rows will not be imported",
+    "rowPrefix": "Row {{row}}: ",
+    "andMore": "…and {{count}} more",
+    "colName": "Name",
+    "colLink": "Link",
+    "colCategory": "Category",
+    "colStatus2": "Action",
+    "create": "Add",
+    "update": "Update",
+    "skip": "Skip",
+    "dupInFile": "Duplicate in file",
+    "previewTruncated": "…and {{count}} more rows",
+    "importCount": "Import {{count}} tools",
+    "importing": "Importing…",
+    "nothingToImport": "Nothing to import — every row was skipped.",
+    "importFailed": "The import failed. Please try again.",
+    "done": "Import complete",
+    "resultCreated": "Added: {{count}}",
+    "resultUpdated": "Updated: {{count}}",
+    "resultSkipped": "Skipped: {{count}}"
   }
 }

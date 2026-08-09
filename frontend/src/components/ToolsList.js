@@ -1,15 +1,17 @@
 // File: frontend/src/components/ToolsList.js
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Filter, SortAsc, SortDesc, BarChart3, ExternalLink, Tag, Upload } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { TOOL_STATUSES, TOOL_CATEGORIES } from '../utils/constants';
+import ImportToolsModal from './ImportToolsModal';
 import { translateOptions } from '../utils/optionLabels';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 
 const ToolsList = () => {
   const { t } = useTranslation();
+  const [showImport, setShowImport] = useState(false);
   const toolCategories = translateOptions(t, 'tool_category', TOOL_CATEGORIES);
   const toolStatuses = translateOptions(t, 'tool_status', TOOL_STATUSES);
   const { tools, fetchTools } = useData();
@@ -122,13 +124,22 @@ const ToolsList = () => {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddToolForm(true)}
-          className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center group"
-        >
-          <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-          {t('toolsList.addTool')}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowImport(true)}
+            className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            {t('toolsList.importTools')}
+          </button>
+          <button
+            onClick={() => setShowAddToolForm(true)}
+            className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center group"
+          >
+            <Plus className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+            {t('toolsList.addTool')}
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -298,6 +309,7 @@ const ToolsList = () => {
           </div>
         </div>
       )}
+      {showImport && <ImportToolsModal onClose={() => setShowImport(false)} />}
     </div>
   );
 };

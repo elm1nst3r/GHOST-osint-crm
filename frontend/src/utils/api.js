@@ -105,6 +105,12 @@ export const businessesAPI = {
 
 // Tools API
 export const toolsAPI = {
+  // Bulk import: one request rather than one per row, so a few hundred tools
+  // don't trip the rate limiter.
+  bulkImport: (payload) => fetchAPI('/tools/bulk-import', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
   getAll: () => fetchAPI('/tools'),
   
   create: (toolData) => fetchAPI('/tools', {
