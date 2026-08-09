@@ -288,10 +288,10 @@ const Dashboard = () => {
           </button>
         </div>
         <div className="h-96" style={{ minHeight: '384px' }}>
-          <RelationshipManager
-            showInModal={true}
-            onClose={() => {}}
-          />
+          {/* Embedded in the dashboard, not a modal — showInModal={true} hid the
+              fullscreen button and instead showed a Close button wired to a
+              no-op handler, so the only visible control did nothing (#79). */}
+          <RelationshipManager showInModal={false} />
         </div>
       </div>
 

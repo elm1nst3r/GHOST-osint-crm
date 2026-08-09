@@ -5,6 +5,7 @@ import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI } from '../utils/
 import ReportGenerator from './ReportGenerator';
 import SearchFilters from './search/SearchFilters';
 import SearchResults from './search/SearchResults';
+import { personSearchHaystack } from '../utils/personName';
 
 const AdvancedSearch = ({ onSelectPerson, onClose }) => {
   const { t } = useTranslation();
@@ -100,8 +101,9 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
         const searchLower = searchParams.searchText.toLowerCase();
         filtered = filtered.filter(person => {
           if (searchParams.searchIn.includes('name')) {
-            const fullName = `${person.first_name || ''} ${person.last_name || ''}`.toLowerCase();
-            if (fullName.includes(searchLower)) return true;
+            // Matches any name part and both orderings, so a person is findable
+            // by the name the app actually shows — patronymics included (#78).
+            if (personSearchHaystack(person).includes(searchLower)) return true;
           }
           
           if (searchParams.searchIn.includes('aliases') && person.aliases) {
@@ -197,8 +199,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             const connectedPerson = people.find(p => p.id === conn.person_id);
             if (!connectedPerson) return false;
             
-            const fullName = `${connectedPerson.first_name || ''} ${connectedPerson.last_name || ''}`.toLowerCase();
-            return fullName.includes(searchLower) &&
+            return personSearchHaystack(connectedPerson).includes(searchLower) &&
               (!searchParams.connectionType || conn.type === searchParams.connectionType);
           });
         });

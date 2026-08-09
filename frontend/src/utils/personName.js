@@ -33,6 +33,27 @@ export const personNameOrder = (language = i18n.language) =>
     ? ['last_name', 'first_name', 'patronymic']
     : ['first_name', 'patronymic', 'last_name'];
 
+// Everything a person could reasonably be searched by: each name part on its
+// own, plus both conventional orderings. Search has to match the name the user
+// can see, and which ordering that is depends on their language — someone
+// looking at "Иван Петрович Сидоров" must find them by typing exactly that
+// (issue #78). Distinct from formatPersonName, which picks ONE ordering.
+export const personSearchHaystack = (person) => {
+  if (!person) return '';
+  const clean = (v) => (v || '').trim();
+  const [first, patronymic, last] = [person.first_name, person.patronymic, person.last_name].map(clean);
+  const parts = [first, patronymic, last].filter(Boolean);
+  return [
+    ...parts,
+    parts.join(' '),
+    [last, first, patronymic].filter(Boolean).join(' '),
+    [first, last].filter(Boolean).join(' '),
+  ]
+    .filter(Boolean)   // a nameless person must yield '', not stray whitespace
+    .join(' ')
+    .toLowerCase();
+};
+
 export const formatPersonName = (person, fallback = '', language = i18n.language) => {
   if (!person) return fallback;
   return (

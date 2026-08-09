@@ -1,4 +1,4 @@
-import { formatPersonName, personNameOrder, isFamilyNameFirst } from './personName';
+import { formatPersonName, personNameOrder, isFamilyNameFirst, personSearchHaystack } from './personName';
 
 describe('name order by language', () => {
   test('English leads with the given name', () => {
@@ -57,5 +57,40 @@ describe('formatPersonName', () => {
 
   test('defaults the fallback to an empty string', () => {
     expect(formatPersonName({})).toBe('');
+  });
+});
+
+// ── Search matching (issue #78) ────────────────────────────────────────────
+
+describe('personSearchHaystack', () => {
+  const ivan = { first_name: 'Иван', patronymic: 'Петрович', last_name: 'Сидоров' };
+  const has = (person, term) => personSearchHaystack(person).includes(term.toLowerCase());
+
+  test('matches each name part on its own, including the patronymic', () => {
+    expect(has(ivan, 'Иван')).toBe(true);
+    expect(has(ivan, 'Сидоров')).toBe(true);
+    expect(has(ivan, 'Петрович')).toBe(true);
+  });
+
+  test('matches the full name in either conventional ordering', () => {
+    // Whichever way the UI displays it, typing what you see must find them.
+    expect(has(ivan, 'Иван Петрович Сидоров')).toBe(true);
+    expect(has(ivan, 'Сидоров Иван Петрович')).toBe(true);
+  });
+
+  test('still matches given + family without the patronymic', () => {
+    expect(has(ivan, 'Иван Сидоров')).toBe(true);
+  });
+
+  test('is case insensitive and does not match unrelated text', () => {
+    expect(has(ivan, 'иван петрович')).toBe(true);
+    expect(has(ivan, 'Кузнецова')).toBe(false);
+  });
+
+  test('handles people with no patronymic and missing parts', () => {
+    expect(has({ first_name: 'John', last_name: 'Doe' }, 'John Doe')).toBe(true);
+    expect(has({ first_name: 'Madonna' }, 'Madonna')).toBe(true);
+    expect(personSearchHaystack({})).toBe('');
+    expect(personSearchHaystack(null)).toBe('');
   });
 });

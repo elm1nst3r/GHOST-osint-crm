@@ -5,7 +5,7 @@ import RelationshipDiagram from '../RelationshipDiagram';
 import ObsidianGraph from './ObsidianGraph';
 import {
   AlertCircle, Loader2, Network,
-  Maximize2, RefreshCw, Bug, Filter, X, Search,
+  Maximize2, Minimize2, RefreshCw, Bug, Filter, X, Search,
   Briefcase, Tag, GitBranch, Sparkles
 } from 'lucide-react';
 import { casesAPI, businessesAPI, transactionsAPI } from '../../utils/api';
@@ -728,15 +728,17 @@ const RelationshipManager = ({
               className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
               title={fullScreen ? t('relationshipManager.exitFullscreen') : t('relationshipManager.enterFullscreen')}
             >
-              <Maximize2 className="w-4 h-4" />
+              {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
           )}
 
-          {(showInModal || fullScreen) && onClose && (
+          {(showInModal || fullScreen) && (
             <button
               onClick={() => {
-                setFullScreen(false);
-                if (showInModal || fullScreen) onClose();
+                // In fullscreen, Close means "leave fullscreen". In a modal it
+                // means "close the modal" — only then does onClose apply.
+                if (fullScreen) setFullScreen(false);
+                else if (showInModal && onClose) onClose();
               }}
               className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 text-gray-700 dark:text-slate-300"
             >
@@ -1011,6 +1013,7 @@ const RelationshipManager = ({
             onDeleteConnection={deleteConnection}
             showOsintData={showOsintData}
             layoutType={layoutType}
+            onLayoutTypeChange={setLayoutType}
           />
         )}
       </div>

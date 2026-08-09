@@ -146,7 +146,8 @@ const RelationshipDiagram = ({
   onUpdateConnection,
   onDeleteConnection,
   showOsintData = false,
-  layoutType = 'hierarchical'
+  layoutType = 'hierarchical',
+  onLayoutTypeChange = null
 }) => {
   const { t } = useTranslation();
   // Edge styles
@@ -629,8 +630,13 @@ const RelationshipDiagram = ({
           value={layoutType}
           onChange={(e) => {
             const newLayout = e.target.value;
-            const layoutedNodes = applyLayout(nodes, edges, newLayout);
-            setNodes(layoutedNodes);
+            if (onLayoutTypeChange) {
+              // Parent owns the layout: changing it re-runs the build effect,
+              // which lays the nodes out and keeps the selector in sync.
+              onLayoutTypeChange(newLayout);
+            } else {
+              setNodes(applyLayout(nodes, edges, newLayout));
+            }
           }}
           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md"
         >
