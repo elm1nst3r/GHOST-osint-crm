@@ -1306,7 +1306,9 @@
       "victim": "Victim",
       "owner": "Owner",
       "transaction": "Transaction",
-      "other": "Other"
+      "other": "Other",
+      "board_member": "Board Member",
+      "owns_business": "Owns Business"
     },
     "boardMemberConnectionNote": "Board member"
   },
