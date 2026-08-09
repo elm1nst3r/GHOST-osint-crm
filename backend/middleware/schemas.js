@@ -176,6 +176,10 @@ const SettingsGeocodingUpdateSchema = z.object({
   yandexApiKey: z.union([z.string().max(255), z.null().transform(() => '')]).optional(),
 });
 
+const SettingsUpdateCheckSchema = z.object({
+  updateCheckEnabled: z.boolean(),
+});
+
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 const toolBaseFields = {
@@ -452,6 +456,7 @@ module.exports = {
   SettingsCustomFieldCreateSchema,
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
+  SettingsUpdateCheckSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 };

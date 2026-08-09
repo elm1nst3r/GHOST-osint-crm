@@ -1,9 +1,20 @@
 # File: docker-compose.yml
 # This file defines how Docker should run your multi-container application.
+#
+# Images are published to GHCR on every release, so updating is:
+#
+#     docker compose pull && docker compose up -d
+#
+# — no local build, no toolchain, and it takes seconds. GHOST_VERSION pins a
+# specific release (e.g. GHOST_VERSION=2.12.1); the default tracks `latest`.
+#
+# The `build:` sections are kept so developers and anyone modifying the source
+# can still build locally with `docker compose up -d --build`.
 
 services:
   # Frontend Service (React App served by Nginx)
   frontend:
+    image: ghcr.io/elm1nst3r/ghost-osint-crm-frontend:${GHOST_VERSION:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -25,6 +36,7 @@ services:
 
   # Backend Service (Node.js/Express API)
   backend:
+    image: ghcr.io/elm1nst3r/ghost-osint-crm-backend:${GHOST_VERSION:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile

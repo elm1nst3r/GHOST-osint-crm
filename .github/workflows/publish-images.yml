@@ -1,0 +1,66 @@
+# Publishes container images to GHCR so updating doesn't require a local build.
+#
+# Before this, updating meant `git pull` followed by a full `docker compose up
+# -d --build` — minutes of compilation, a working toolchain, and a build that
+# can fail on a slow or rate-limited network. With published images an update
+# is `docker compose pull && docker compose up -d`, which takes seconds.
+#
+# Tagged releases get an exact version tag plus `latest`; pushes to main get
+# `edge` so the bleeding edge is available without pretending to be a release.
+
+name: Publish images
+
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Lowercased by the action — GHCR rejects uppercase repository names,
+          # and this repo's name contains capitals.
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/ghost-osint-crm-${{ matrix.component }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

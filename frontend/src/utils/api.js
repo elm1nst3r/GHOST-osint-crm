@@ -180,6 +180,20 @@ export const customFieldsAPI = {
 };
 
 // Model Options API
+// Running version + whether a newer release exists. The check runs on the
+// server; the browser never contacts GitHub.
+export const versionAPI = {
+  get: () => fetchAPI('/version'),
+};
+
+export const updateSettingsAPI = {
+  get: () => fetchAPI('/settings/updates'),
+  update: (payload) => fetchAPI('/settings/updates', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+};
+
 // Geocoding provider config (issue #62). The API key is write-only server
 // side — get() reports only whether one is stored, never its value.
 export const geocodingSettingsAPI = {

@@ -13,6 +13,7 @@ import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
+import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './components/Dashboard';
 import CaseManagement from './components/CaseManagement';
 import PeopleList from './components/PeopleList';
@@ -290,8 +291,11 @@ const AppShell = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-w-0 relative flex flex-col m-4 mt-[4.5rem] md:mt-4 md:ml-0">
-        <div className="flex-1 glass-card overflow-hidden">
-          <div className="h-full p-4 md:p-6 overflow-auto">
+        <div className="flex-1 glass-card overflow-hidden flex flex-col">
+          <UpdateBanner />
+          {/* flex-1 min-h-0 rather than h-full: the banner shares this column,
+              so a fixed full height would push the content past the card. */}
+          <div className="flex-1 min-h-0 p-4 md:p-6 overflow-auto">
             <div className="max-w-full mx-auto h-full">
               <ErrorBoundary resetKey={activeSection}>
 

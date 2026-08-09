@@ -11,8 +11,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Save, Check, AlertTriangle } from 'lucide-react';
-import { geocodingSettingsAPI } from '../../utils/api';
+import { MapPin, Save, Check, AlertTriangle, ArrowUpCircle } from 'lucide-react';
+import { geocodingSettingsAPI, updateSettingsAPI } from '../../utils/api';
 
 const GeocodingSection = () => {
   const { t } = useTranslation();
@@ -23,10 +23,13 @@ const GeocodingSection = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [updateCheck, setUpdateCheck] = useState(true);
 
   useEffect(() => {
-    geocodingSettingsAPI.get()
-      .then((cfg) => { setProvider(cfg.provider); setHasKey(cfg.hasYandexApiKey); })
+    Promise.all([
+      geocodingSettingsAPI.get().then((cfg) => { setProvider(cfg.provider); setHasKey(cfg.hasYandexApiKey); }),
+      updateSettingsAPI.get().then((cfg) => setUpdateCheck(cfg.updateCheckEnabled)).catch(() => {}),
+    ])
       .catch(() => setError('load'))
       .finally(() => setLoading(false));
   }, []);
@@ -69,7 +72,8 @@ const GeocodingSection = () => {
   const yandexSelectedWithoutKey = provider === 'yandex' && !hasKey && keyInput.trim() === '';
 
   return (
-    <div className="pt-6 border-t">
+    <>
+      <div className="pt-6 border-t">
       <h3 className="text-lg font-semibold mb-1 flex items-center">
         <MapPin className="w-5 h-5 mr-2" />
         {t('settings.geocoding.title')}
@@ -150,7 +154,41 @@ const GeocodingSection = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* Update check — on by default, fully switchable off for deployments
+          that must make no outbound connections. */}
+      <div className="pt-6 mt-6 border-t">
+        <h3 className="text-lg font-semibold mb-1 flex items-center">
+          <ArrowUpCircle className="w-5 h-5 mr-2" />
+          {t('settings.updates.title')}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('settings.updates.description')}</p>
+        <label className="flex items-start gap-3 cursor-pointer max-w-xl">
+          <input
+            type="checkbox"
+            checked={updateCheck}
+            onChange={async (e) => {
+              const next = e.target.checked;
+              setUpdateCheck(next);
+              try {
+                await updateSettingsAPI.update({ updateCheckEnabled: next });
+              } catch {
+                setUpdateCheck(!next); // roll back so the UI can't lie
+                setError('save');
+              }
+            }}
+            className="h-4 w-4 mt-0.5 text-blue-600 rounded border-gray-300 dark:border-slate-600"
+          />
+          <span>
+            <span className="text-sm text-gray-700 dark:text-slate-300">{t('settings.updates.enableLabel')}</span>
+            <span className="block text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+              {updateCheck ? t('settings.updates.enableHint') : t('settings.updates.disabledHint')}
+            </span>
+          </span>
+        </label>
+      </div>
+    </>
   );
 };
 

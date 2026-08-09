@@ -8,6 +8,7 @@ const {
   SettingsCustomFieldCreateSchema,
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
+  SettingsUpdateCheckSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 } = require('../middleware/schemas');
@@ -75,6 +76,36 @@ router.delete('/custom-fields/:id', requireAdmin, validateIdParam, async (req, r
   } catch (err) {
     console.error('Error deleting custom field definition:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to delete custom field definition' });
+  }
+});
+
+// ── Update check ─────────────────────────────────────────────────────────────
+// On by default so operators hear about fixes, but fully switchable off for
+// deployments that must make no outbound connections at all. When disabled the
+// server makes no request — it isn't just hidden in the UI.
+router.get('/updates', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT value FROM app_settings WHERE key = 'update_check_enabled'`);
+    const enabled = result.rows.length === 0 ? true : result.rows[0].value !== 'false';
+    res.json({ updateCheckEnabled: enabled });
+  } catch (err) {
+    console.error('Error fetching update settings:', err);
+    res.status(500).json({ error: 'Failed to fetch update settings' });
+  }
+});
+
+router.put('/updates', requireAdmin, validate(SettingsUpdateCheckSchema), async (req, res) => {
+  const { updateCheckEnabled } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ('update_check_enabled', $1, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [updateCheckEnabled ? 'true' : 'false']
+    );
+    res.json({ updateCheckEnabled: Boolean(updateCheckEnabled) });
+  } catch (err) {
+    console.error('Error saving update settings:', err);
+    res.status(500).json({ error: 'Failed to save update settings' });
   }
 });
 

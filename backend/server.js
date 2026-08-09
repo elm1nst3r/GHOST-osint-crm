@@ -126,6 +126,11 @@ initializeDatabase().then(() => {
   improvedGeocodingService = new ImprovedGeocodingService(pool);
   app.locals.improvedGeocodingService = improvedGeocodingService;
   console.log('Improved geocoding service initialized');
+
+  // Update availability check — reads the public releases API, downloads
+  // nothing, and can be disabled entirely in Settings.
+  const { UpdateCheckService } = require('./services/updateCheckService');
+  app.locals.updateCheckService = new UpdateCheckService(pool, APP_VERSION);
 }).catch((err) => {
   console.error('Error during database initialization:', err.stack);
   process.exit(1);
@@ -177,6 +182,10 @@ const geocodingRoutes = require('./routes/geocoding');
 const locationsRoutes = require('./routes/locations');
 const peopleRoutes = require('./routes/people');
 const searchRoutes = require('./routes/search');
+// Single source of truth for the running version — surfaced by /api/version
+// and used to decide whether a newer release exists.
+const APP_VERSION = require('./package.json').version;
+
 const settingsRoutes = require('./routes/settings');
 const todosRoutes = require('./routes/todos');
 const toolsRoutes = require('./routes/tools');
@@ -219,6 +228,17 @@ app.get('/api', (req, res) => {
 });
 
 // Health check endpoint for Docker healthcheck and monitoring
+app.get('/api/version', requireAuth, async (req, res) => {
+  const service = req.app.locals.updateCheckService;
+  if (!service) return res.json({ currentVersion: APP_VERSION, checkEnabled: false, updateAvailable: false });
+  try {
+    res.json(await service.getStatus({ force: req.query.force === '1' }));
+  } catch (err) {
+    console.error('Error checking for updates:', err.message);
+    res.json({ currentVersion: APP_VERSION, checkEnabled: true, updateAvailable: false, checkFailed: true });
+  }
+});
+
 app.get('/api/health', async (req, res) => {
   try {
     // Check database connectivity

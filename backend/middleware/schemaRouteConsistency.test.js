@@ -51,7 +51,8 @@ const ROUTE_SCHEMAS = {
     S.SettingsCustomFieldUpdateSchema,
     S.SettingsModelOptionCreateSchema,
     S.SettingsModelOptionUpdateSchema,
-    S.SettingsGeocodingUpdateSchema
+    S.SettingsGeocodingUpdateSchema,
+    S.SettingsUpdateCheckSchema
   ),
 };
 
