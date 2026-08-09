@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.12.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.13.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -127,9 +127,13 @@ cd GHOST-osint-crm
 # Generate .env with secure random credentials
 printf "DB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
 
-# Start all services
-docker compose up --build -d
+# Start all services (pulls prebuilt images — no local build needed)
+docker compose pull
+docker compose up -d
 ```
+
+> Building from source instead? Use `docker compose up --build -d`. That
+> compiles both images locally and takes considerably longer.
 
 **Create your first admin user:**
 ```bash
@@ -146,6 +150,35 @@ Password must be at least 12 characters. Common weak passwords are rejected.
 - Frontend: http://localhost:8080
 - Backend API: http://localhost:3001
 - Health Check: http://localhost:3001/api/health
+
+
+## 🔄 Updating
+
+GHOST tells you when a new version is released — the server checks the public
+release list and shows a banner. Nothing is downloaded or installed
+automatically; updating is always your decision.
+
+```bash
+git pull                      # picks up docker-compose.yml changes
+docker compose pull           # fetch the new images
+docker compose up -d          # restart onto them
+```
+
+Database migrations run automatically at startup, so there's no separate
+schema step. Your data lives in a Docker volume and is not touched.
+
+**Pin a specific version** by setting `GHOST_VERSION` in `.env`:
+
+```bash
+GHOST_VERSION=2.13.0
+```
+
+Without it, the containers track the latest release.
+
+**Turning off the update check.** It's on by default so you hear about fixes,
+but it can be switched off completely in **Settings → General → Updates**. When
+disabled, GHOST makes no outbound connection for it at all — relevant if you
+run an isolated or air-gapped instance.
 
 ## 📋 Prerequisites
 
@@ -456,6 +489,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.13.0 (August 2026)
+- 🔄 **Update notifications and prebuilt images** — GHOST tells you when a release is out (server-side check, on by default, fully switchable off), and images are published to GHCR so updating is `docker compose pull && docker compose up -d` instead of a local rebuild
+- 🗺️ **Yandex geocoding option** — selectable in Settings with your own API key, for the Russian addresses OpenStreetMap handles poorly; the address cache is now kept per provider (issue #62)
+- 🐛 **Report configuration actually works** — the section checkboxes did nothing for most report types, report scope wasn't selectable, and OSINT data never appeared in any report despite the switch being on (issue #77)
+- 🐛 **Mobile fixes from real-device testing** — case cards and person cards no longer overflow, and the person detail window can be closed again (issue #64)
+- 🐛 **Advanced Search finds people by patronymic** (issue #78), the layout selector updates correctly (issue #76), and the dashboard graph shows Fullscreen instead of a dead Close button (issue #79)
 
 ### Version 2.12.0 (August 2026)
 - 🐛 **Data Model options now reach the person dropdowns** — categories and statuses rendered from a hardcoded list rather than from Settings → Data Model, so options you added never appeared anywhere (issue #67)

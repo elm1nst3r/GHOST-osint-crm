@@ -5,6 +5,71 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-08-09
+
+### 🔄 Added — Update notifications and prebuilt images
+
+- GHOST now tells you when a new version is released. The **server** checks the
+  public release list (the browser never contacts GitHub), caches the result for
+  six hours, and shows a dismissible banner. Nothing is downloaded or installed
+  automatically — updating stays a deliberate operator action.
+- **On by default, switchable off** in Settings → General → Updates. When
+  disabled the server makes no outbound request at all, not merely a hidden
+  banner, for isolated deployments.
+- **Container images are published to GHCR on every release**, so updating is
+  `docker compose pull && docker compose up -d` — seconds, with no local build
+  and no build toolchain. `GHOST_VERSION` pins a release; the default tracks
+  latest. Building from source still works for development.
+
+### 🗺️ Added — Yandex as an optional geocoding provider (issue #62)
+
+- OpenStreetMap/Nominatim handles informal Russian address forms poorly, so
+  **Yandex Maps can be selected** in Settings → General → Geocoding with an
+  operator-supplied API key. Nominatim stays the default and needs no
+  configuration.
+- The API key is stored server-side and is **write-only** — the app reports
+  only that a key exists, never its value. Selecting Yandex without a key falls
+  back to Nominatim rather than failing every lookup, and says so.
+- The address cache is now kept **per provider**. Previously it was keyed on the
+  address alone, so switching provider kept serving the previous provider's
+  results — including the poor matches that prompted the switch.
+
+### 🐛 Fixed — Report configuration didn't describe the report (issue #77)
+
+- **The section checkboxes did nothing** for any report type except
+  Comprehensive: the type overrode them at generation time, and the preview
+  applied the same override. A report type is now a *preset* that fills in the
+  checkboxes, which you can then adjust — what's ticked is what's generated.
+- **Report scope is now selectable** (all data / one case / one person). It used
+  to be fixed by wherever the dialog was opened from, so from the dashboard it
+  was permanently "All data" and choosing Person Profile did nothing.
+- **OSINT data now actually appears in reports.** The switch existed from the
+  start but no generator ever read it, so OSINT findings were absent from every
+  report ever produced. Timeline and Audit Trail were likewise wired to nothing
+  and have been removed; Businesses gained the checkbox it never had.
+
+### 🐛 Fixed — Mobile problems found on a real device (issue #64)
+
+- Case cards no longer run off the side of the screen.
+- Person card action buttons no longer sit on top of the name with the delete
+  button clipped — they're always visible on touch screens.
+- **The person detail window can be closed again**: labelling the Generate
+  Report button in 2.12.0 pushed the close button off a phone screen. The seven
+  detail tabs now scroll rather than overflowing.
+- The relationship graph legend showed raw internal names for the two
+  relationship types added in 2.12.0; the person detail view never displayed the
+  patronymic.
+
+### 🐛 Fixed — Other
+
+- **Advanced Search could not find people by patronymic** (issue #78), or by the
+  full name as displayed. Search now matches any name part and both conventional
+  orderings.
+- **The relationship layout selector kept showing "Hierarchical"** after
+  switching layouts, making it impossible to switch back (issue #76).
+- **The dashboard relationship panel showed a Close button that did nothing**
+  instead of a Fullscreen button (issue #79).
+
 ## [2.12.0] - 2026-08-08
 
 ### 🐛 Fixed — Data Model options never reached the person dropdowns (issue #67)
