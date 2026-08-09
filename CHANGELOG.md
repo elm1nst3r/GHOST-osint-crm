@@ -5,6 +5,45 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.0] - 2026-08-09
+
+### 🧰 Added — Bulk import for OSINT tools
+
+- Tools could only be added one at a time, which is the wrong shape for the
+  problem: people keep tool lists in spreadsheets and shared repos. The Tools
+  page now has an **Import** button accepting pasted or uploaded **CSV, TSV or
+  JSON**.
+- Built for other people's files. `URL` / `Link` / `Website` and `Tool Name` /
+  `Name` are all recognised, unrecognised columns are ignored rather than
+  failing the file, bare domains like `shodan.io` are turned into URLs, and
+  tags split on `;`, `,` or `|`.
+- **Preview before anything is written**: how many will be added, how many
+  already exist, and which rows have problems — with row numbers matching your
+  spreadsheet. Existing tools are skipped by default, or can be updated.
+- Updating only overwrites the fields a row actually supplies, so importing a
+  partial file can't blank out the links, categories and tags of the tools it
+  touches.
+- Available to the **MCP tools** as `ghost_create_tools_bulk_import`, so an
+  assistant importing a tool list makes one request instead of one per row.
+
+### 🗺️ Added — LocationIQ geocoding provider
+
+- A third geocoding option alongside OpenStreetMap and Yandex, selectable in
+  Settings → General → Geocoding with your own API key. Commercial-grade
+  coverage, a free tier that needs no payment details, and no restriction on
+  which map the results are displayed on.
+- Geocoding providers now live in a registry, so each has its own request queue
+  and its own stored API key. Configuring or switching one no longer disturbs
+  another, and adding a further provider needs no changes to the API, the
+  validation schema or the settings screen.
+
+### 🐛 Fixed
+
+- **A Yandex API key configured in 2.13.0 is preserved on upgrade.** Keys are
+  now namespaced per provider; without the migration the key would have been
+  silently dropped, leaving Yandex selected but quietly falling back to
+  OpenStreetMap.
+
 ## [2.13.0] - 2026-08-09
 
 ### 🔄 Added — Update notifications and prebuilt images

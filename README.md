@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.13.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.14.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -170,7 +170,7 @@ schema step. Your data lives in a Docker volume and is not touched.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.13.0
+GHOST_VERSION=2.14.0
 ```
 
 Without it, the containers track the latest release.
@@ -489,6 +489,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.14.0 (August 2026)
+- 🧰 **Bulk import for OSINT tools** — paste or upload a CSV/TSV/JSON tool list, with a preview showing what will be added, what already exists and which rows have problems; also available to the MCP tools
+- 🗺️ **LocationIQ geocoding provider** — a third option alongside OpenStreetMap and Yandex, with a free tier that needs no payment details; providers now each keep their own API key and request queue
+- 🐛 **A Yandex API key set in 2.13.0 survives the upgrade** — keys are namespaced per provider, and the old one is migrated rather than dropped
 
 ### Version 2.13.0 (August 2026)
 - 🔄 **Update notifications and prebuilt images** — GHOST tells you when a release is out (server-side check, on by default, fully switchable off), and images are published to GHCR so updating is `docker compose pull && docker compose up -d` instead of a local rebuild
