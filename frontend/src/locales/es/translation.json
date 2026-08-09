@@ -407,6 +407,31 @@
       "recordsToImport": "Records to Import",
       "confirmMergeWarning": "This will merge the imported data with your existing records. Make sure you have a backup before proceeding.",
       "confirmImport": "Confirm Import"
+    },
+    "geocoding": {
+      "title": "Geocoding",
+      "description": "Which service turns addresses into map coordinates.",
+      "providerLabel": "Provider",
+      "providerNominatim": "OpenStreetMap / Nominatim (default, no key required)",
+      "providerYandex": "Yandex Maps (requires an API key)",
+      "apiKeyLabel": "Yandex API key",
+      "apiKeyPlaceholder": "Paste your Yandex Geocoder API key",
+      "apiKeyStoredPlaceholder": "A key is saved — leave blank to keep it",
+      "apiKeyHint": "Obtained from the Yandex Developer Cabinet. Stored on the server and never shown again once saved.",
+      "apiKeyStoredHint": "A key is saved. Enter a new one to replace it, or leave blank to keep it.",
+      "clearKey": "Remove key",
+      "noKeyWarning": "Yandex is selected but no API key is saved, so addresses will still be looked up via OpenStreetMap. Add a key to use Yandex.",
+      "saved": "Saved",
+      "saveFailed": "Could not save the geocoding settings."
+    },
+    "updates": {
+      "title": "Updates",
+      "description": "Check whether a newer version of GHOST has been released.",
+      "enableLabel": "Check for new versions",
+      "enableHint": "The server checks the public release list every few hours and shows a banner when an update exists. Nothing is downloaded or installed automatically.",
+      "disabledHint": "Update checking is off. GHOST will make no outbound connections for this.",
+      "saved": "Saved",
+      "saveFailed": "Could not save the update settings."
     }
   },
   "dashboard": {
@@ -1875,5 +1900,11 @@
     "directionLabel": "Direction",
     "endOfLedgerReport": "End of Ledger Report",
     "osintIntelligence": "OSINT INTELLIGENCE"
+  },
+  "updateBanner": {
+    "available": "Version {{version}} is available.",
+    "running": "You are running {{version}}.",
+    "viewRelease": "View release notes",
+    "dismiss": "Dismiss"
   }
 }
