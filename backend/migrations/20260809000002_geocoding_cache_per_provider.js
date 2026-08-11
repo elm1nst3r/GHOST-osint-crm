@@ -12,6 +12,11 @@
 // Uniqueness therefore has to be (address_hash, provider).
 
 exports.up = async function up(knex) {
+  // Fresh installs have no geocoding_cache yet — ImprovedGeocodingService
+  // creates it lazily in its final (address_hash, provider) shape, so there
+  // is nothing to migrate.
+  if (!(await knex.schema.hasTable('geocoding_cache'))) return;
+
   // Rows predating a provider column value are Nominatim results.
   await knex.raw(`UPDATE geocoding_cache SET provider = 'nominatim' WHERE provider IS NULL`);
   await knex.raw(`ALTER TABLE geocoding_cache ALTER COLUMN provider SET DEFAULT 'nominatim'`);
@@ -46,6 +51,7 @@ exports.up = async function up(knex) {
 };
 
 exports.down = async function down(knex) {
+  if (!(await knex.schema.hasTable('geocoding_cache'))) return;
   await knex.raw(`DROP INDEX IF EXISTS geocoding_cache_hash_provider_key`);
   // Collapse back to one row per address before restoring the old constraint.
   await knex.raw(`
