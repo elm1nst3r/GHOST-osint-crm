@@ -5,6 +5,24 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.2] - 2026-08-11
+
+### 🐛 Fixed
+
+- **Fresh installs of v2.13.0+ no longer crash-loop.** Migration
+  `20260809000002` (introduced with per-provider geocoding caches in #62) ran
+  an `UPDATE` against `geocoding_cache` before that table existed — it's
+  created lazily at runtime by the geocoding service, after migrations run.
+  On any virgin database this made `initializeDatabase()` fail and the
+  backend container restart-loop forever. Existing installs were unaffected
+  since the table already existed from prior runtime use, which is why this
+  went unnoticed until a brand-new install hit it. The migration is now a
+  no-op when the table isn't there yet. (#81, reported with root cause and a
+  verified patch by @JakeTheRabbit)
+- Added `.gitattributes` to force LF line endings on shell scripts, so
+  `docker-entrypoint.sh` doesn't get CRLF'd on a Windows checkout and fail to
+  exec in the alpine container.
+
 ## [2.14.1] - 2026-08-09
 
 ### 🐛 Fixed
