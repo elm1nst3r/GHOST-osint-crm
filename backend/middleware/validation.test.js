@@ -1,39 +1,8 @@
 const {
-  sanitizeString,
   isValidEmail,
   isValidUrl,
   isValidId,
 } = require('./validation');
-
-// ── sanitizeString ─────────────────────────────────────────────────────────
-
-describe('sanitizeString', () => {
-  test('trims whitespace', () => {
-    expect(sanitizeString('  hello  ')).toBe('hello');
-  });
-
-  test('strips <script> tags', () => {
-    expect(sanitizeString('<script>alert(1)</script>safe')).toBe('safe');
-  });
-
-  test('strips <iframe> tags', () => {
-    expect(sanitizeString('<iframe src="evil"></iframe>text')).toBe('text');
-  });
-
-  test('strips inline event handlers', () => {
-    const result = sanitizeString('<div onclick="evil()">text</div>');
-    expect(result).not.toContain('onclick');
-  });
-
-  test('passes through normal text unchanged', () => {
-    expect(sanitizeString('John Doe')).toBe('John Doe');
-  });
-
-  test('passes through non-string values unchanged', () => {
-    expect(sanitizeString(42)).toBe(42);
-    expect(sanitizeString(null)).toBe(null);
-  });
-});
 
 // ── isValidEmail ───────────────────────────────────────────────────────────
 

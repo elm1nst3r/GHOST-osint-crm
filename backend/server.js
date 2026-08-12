@@ -365,7 +365,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     try {
       await fn();
     } catch (err) {
-      console.warn(`Import warning [${label}]:`, err.message);
+      console.warn('Import warning:', label, err.message);
       importErrors.push({ record: label, error: err.message });
       // In strict mode, re-throw so the transaction rolls back
       if (strictMode) throw err;
@@ -442,7 +442,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
             personIdMapping[person.id] = result.rows[0].id;
           }
         } catch (err) {
-          console.warn(`Import warning [person:${person.first_name} ${person.last_name}]:`, err.message);
+          console.warn('Import warning: person', person.first_name, person.last_name, err.message);
           importErrors.push({ record: `person:${person.first_name} ${person.last_name}`, error: err.message });
         }
       }

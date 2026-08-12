@@ -1,16 +1,6 @@
 // File: backend/middleware/validation.js
 // Input validation utilities
 
-// Sanitize string input to prevent XSS
-function sanitizeString(str) {
-  if (typeof str !== 'string') return str;
-  return str
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .trim();
-}
-
 // Validate email format
 function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,7 +37,6 @@ function validateIdParam(req, res, next) {
 
 module.exports = {
   validateIdParam,
-  sanitizeString,
   isValidEmail,
   isValidUrl,
   isValidId

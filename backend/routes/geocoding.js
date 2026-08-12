@@ -7,7 +7,7 @@ const { geocodingLimiter } = require('../middleware/rateLimiters');
 // Single-address geocode
 router.get('/', requireAuth, async (req, res) => {
   const { q } = req.query;
-  if (!q || q.trim().length < 3) {
+  if (typeof q !== 'string' || q.trim().length < 3) {
     return res.status(400).json({ error: 'Query must be at least 3 characters' });
   }
   const improvedGeocodingService = req.app.locals.improvedGeocodingService;
@@ -29,7 +29,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/suggestions', requireAuth, geocodingLimiter, async (req, res) => {
   const { q, limit = 5 } = req.query;
 
-  if (!q || q.length < 3) {
+  if (typeof q !== 'string' || q.length < 3) {
     return res.json([]);
   }
 

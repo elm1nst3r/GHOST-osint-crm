@@ -4,9 +4,14 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { loginLimiter } = require('../middleware/rateLimiters');
+const { loginLimiter, apiLimiter } = require('../middleware/rateLimiters');
 const { validatePasswordStrength } = require('../utils/passwordPolicy');
 const { revokeSessionsForUser } = require('../utils/sessions');
+
+// /login carries its own stricter loginLimiter; everything else (in
+// particular /me, which lets a session re-check current_password before
+// changing it) still needs the general limiter so it can't be hammered.
+router.use(apiLimiter);
 
 // Login — regenerate session ID on successful auth to prevent session fixation
 router.post('/login', loginLimiter, async (req, res) => {

@@ -9,7 +9,7 @@ router.use(apiLimiter);
 // Universal search
 router.get('/', requireAuth, async (req, res) => {
   const { q } = req.query;
-  if (!q || q.length < 2) {
+  if (typeof q !== 'string' || q.length < 2) {
     return res.json({ people: [], tools: [] });
   }
 
@@ -59,23 +59,24 @@ router.get('/advanced', requireAuth, async (req, res) => {
     const queryParams = [];
     let paramCount = 0;
 
-    if (req.query.searchText) {
+    if (typeof req.query.searchText === 'string' && req.query.searchText) {
       const searchConditions = [];
       const searchFields = req.query['searchIn[]'] || ['name'];
+      const searchTextLower = req.query.searchText.toLowerCase();
 
       if (searchFields.includes('name')) {
         searchConditions.push(`(LOWER(first_name) LIKE $${++paramCount} OR LOWER(last_name) LIKE $${paramCount} OR LOWER(patronymic) LIKE $${paramCount} OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $${paramCount})`);
-        queryParams.push(`%${req.query.searchText.toLowerCase()}%`);
+        queryParams.push(`%${searchTextLower}%`);
       }
 
       if (searchFields.includes('aliases')) {
         searchConditions.push(`EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) LIKE $${++paramCount})`);
-        queryParams.push(`%${req.query.searchText.toLowerCase()}%`);
+        queryParams.push(`%${searchTextLower}%`);
       }
 
       if (searchFields.includes('notes')) {
         searchConditions.push(`LOWER(notes) LIKE $${++paramCount}`);
-        queryParams.push(`%${req.query.searchText.toLowerCase()}%`);
+        queryParams.push(`%${searchTextLower}%`);
       }
 
       if (searchConditions.length > 0) {
