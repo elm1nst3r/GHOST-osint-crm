@@ -41,7 +41,7 @@ const SearchFilters = ({
   const getLocationTypes = () => byType('location_type');
 
   return (
-<div className="w-96 border-r bg-gray-50 dark:bg-slate-900 overflow-y-auto">
+<div className="w-full md:w-96 md:border-r bg-gray-50 dark:bg-slate-900 overflow-y-auto flex-shrink-0 max-h-[50vh] md:max-h-none">
   <div className="p-6 border-b bg-white dark:bg-slate-800">
     <div className="flex items-center justify-between">
       <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center">

@@ -616,16 +616,22 @@ class ImprovedGeocodingService {
     if (provider === 'locationiq') {
       const result = await this.geocodeWithLocationIQ(query, config.apiKeys.locationiq);
       if (result.failure) return [];
-      return [result, ...(result.alternatives || []).map((a) => ({
-        lat: a.lat, lng: a.lng, displayName: a.display_name, provider: 'locationiq',
-      }))].slice(0, limit);
+      return [
+        { lat: result.lat, lng: result.lng, display_name: result.displayName, confidence: result.confidence, provider: 'locationiq' },
+        ...(result.alternatives || []).map((a) => ({
+          lat: a.lat, lng: a.lng, display_name: a.display_name, provider: 'locationiq',
+        })),
+      ].slice(0, limit);
     }
     if (provider === 'yandex') {
       const result = await this.geocodeWithYandex(query, config.apiKeys.yandex);
       if (result.failure) return [];
-      return [result, ...(result.alternatives || []).map((a) => ({
-        lat: a.lat, lng: a.lng, displayName: a.display_name, provider: 'yandex',
-      }))].slice(0, limit);
+      return [
+        { lat: result.lat, lng: result.lng, display_name: result.displayName, confidence: result.confidence, provider: 'yandex' },
+        ...(result.alternatives || []).map((a) => ({
+          lat: a.lat, lng: a.lng, display_name: a.display_name, provider: 'yandex',
+        })),
+      ].slice(0, limit);
     }
     return this.getSuggestionsFromNominatim(query, limit);
   }
