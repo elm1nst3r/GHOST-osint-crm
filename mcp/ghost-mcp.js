@@ -85,7 +85,7 @@ async function login() {
   if (!match) throw new Error('GHOST login returned no connect.sid cookie');
   sessionCookie = `connect.sid=${match[1]}`;
   saveCache({ cookie: sessionCookie });
-  console.error(`GHOST MCP: logged in as ${USERNAME}`);
+  console.error('GHOST MCP: logged in');
 }
 
 // Authenticated fetch with transparent re-login on 401.
