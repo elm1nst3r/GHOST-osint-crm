@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, TodoCreateSchema, TodoUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 
 router.use(apiLimiter);
@@ -31,6 +32,9 @@ router.post('/', requireAuth, validate(TodoCreateSchema), async (req, res) => {
   const values = [text, status || 'open', last_update_comment || null, project_id, case_id || null];
 
   try {
+    const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -47,6 +51,13 @@ router.put('/:id', requireAuth, validateIdParam, validate(TodoUpdateSchema), asy
   const values = [text, status, last_update_comment, case_id, todoId];
 
   try {
+    if (case_id != null) {
+      const existing = await pool.query('SELECT project_id FROM todos WHERE id = $1', [todoId]);
+      if (existing.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
+      const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
+      if (caseErr) return res.status(400).json({ error: caseErr });
+    }
+
     const result = await pool.query(query, values);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
     res.json(result.rows[0]);

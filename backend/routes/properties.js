@@ -7,6 +7,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, PropertyCreateSchema, PropertyUpdateSchema } = require('../middleware/schemas');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 const OWNERSHIP_TYPES = ['sale', 'purchase', 'transfer', 'acquisition'];
 
@@ -63,6 +64,9 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
       name, property_type, description, address, city, state, country, postal_code,
       latitude, longitude, owner_person_id, case_id, notes, project_id
     } = req.body;
+
+    const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     let geo = { latitude, longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
@@ -128,6 +132,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema),
       name, property_type, description, address, city, state, country, postal_code,
       latitude, longitude, owner_person_id, case_id, notes
     } = req.body;
+
+    const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     let geo = { latitude, longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {

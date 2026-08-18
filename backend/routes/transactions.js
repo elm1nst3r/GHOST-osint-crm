@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, TransactionCreateSchema, TransactionUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 router.use(apiLimiter);
 const {
@@ -115,6 +116,9 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
   if (err) return res.status(400).json({ error: err });
   normaliseSubject(req.body);
   try {
+    const caseErr = await checkCaseProjectConsistency(req.body.case_id, req.body.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
@@ -158,6 +162,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
   try {
     const existing = await pool.query('SELECT * FROM transactions WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+
+    const caseErr = await checkCaseProjectConsistency(req.body.case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;

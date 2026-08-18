@@ -7,6 +7,7 @@ const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../mid
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncBusinessRelationships } = require('./relationships');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 // Computed from the relationships table (issue #83) -- owner_person_id and
 // employees[] entries with a real person_id were migrated there. Outgoing
@@ -87,6 +88,9 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
       registration_number, registration_date, status, employees, notes, case_id, project_id
     } = req.body;
+
+    const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     // Geocode address if provided and coordinates not set
     let finalLatitude = latitude;
@@ -188,6 +192,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       return res.status(404).json({ error: 'Business not found' });
     }
     const oldBusiness = oldResult.rows[0];
+
+    const caseErr = await checkCaseProjectConsistency(case_id, oldBusiness.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     // Geocode address if changed and coordinates not manually set
     let finalLatitude = latitude;

@@ -7,6 +7,7 @@ const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 
 router.use(apiLimiter);
@@ -337,6 +338,9 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'project_id is required' });
     }
 
+    const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     // If location is provided, both lat and long must be present
     if ((latitude && !longitude) || (!latitude && longitude)) {
       return res.status(400).json({ error: 'Both latitude and longitude must be provided if specifying location' });
@@ -376,6 +380,11 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
       notes, tags, area_name, password, associated_person_ids, associated_business_ids,
       case_id
     } = req.body;
+
+    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+    const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     const result = await pool.query(
       `UPDATE wireless_networks SET

@@ -8,6 +8,7 @@ const { validate, PersonCreateSchema, PersonUpdateSchema } = require('../middlew
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncPersonConnections } = require('./relationships');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 // connections is now backed by the relationships table (issue #83), not the
 // stored JSONB column -- read it computed here so 11+ frontend consumers that
@@ -73,6 +74,9 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     caseName, case_id, project_id, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
+
+  const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+  if (caseErr) return res.status(400).json({ error: caseErr });
 
   // Geocode locations before saving using improved service if available.
   // Always merge results back into the original array so already-geocoded entries
@@ -212,6 +216,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
       [personId]
     );
     const oldConnections = oldConnectionsResult.rows.map((r) => r.c);
+
+    const caseErr = await checkCaseProjectConsistency(case_id, oldPerson.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     // Geocode any locations that don't have coordinates using improved service if available.
     // Always merge results back into the original array so already-geocoded entries

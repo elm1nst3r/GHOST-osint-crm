@@ -7,6 +7,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, AssetCreateSchema, AssetUpdateSchema } = require('../middleware/schemas');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 const LOCATION_MODES = ['with_holder', 'fixed_known', 'fixed_custom', 'unknown'];
 const num = (v) => (v == null ? null : parseFloat(v));
@@ -160,6 +161,9 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
   const b = req.body;
   const mode = b.location_mode || 'with_holder';
   try {
+    const caseErr = await checkCaseProjectConsistency(b.case_id, b.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
 
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
@@ -241,6 +245,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
   try {
     const existing = await pool.query('SELECT * FROM assets WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+
+    const caseErr = await checkCaseProjectConsistency(b.case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
