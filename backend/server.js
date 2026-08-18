@@ -332,6 +332,16 @@ app.post('/api/import', requireAdmin, async (req, res) => {
   // ?strict=1 — roll back on any record failure instead of best-effort partial import
   const strictMode = req.query.strict === '1';
 
+  // Every case-scoped table now has a NOT NULL project_id (issue #83), so
+  // imported data has to land somewhere explicit -- there's no reasonable
+  // default project to guess at import time.
+  const importProjectId = req.query.project_id ? parseInt(req.query.project_id, 10) : null;
+  if (!importProjectId) {
+    return res.status(400).json({ error: 'project_id is required (pass ?project_id=<id> — choose the project this import should land in)' });
+  }
+
+  const { syncPersonConnections } = require('./routes/relationships');
+
   const client = await pool.connect();
   
   // Helper function to ensure proper JSON formatting
@@ -384,11 +394,11 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     if (importData.data.cases) {
       for (const caseItem of importData.data.cases) {
         await tryInsert(`case:${caseItem.case_name}`, () => client.query(
-          `INSERT INTO cases (case_name, description, status)
-           VALUES ($1, $2, $3)
+          `INSERT INTO cases (case_name, description, status, project_id)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (case_name) DO UPDATE
            SET description = EXCLUDED.description, status = EXCLUDED.status`,
-          [caseItem.case_name, caseItem.description, caseItem.status]
+          [caseItem.case_name, caseItem.description, caseItem.status, importProjectId]
         ));
       }
     }
@@ -432,13 +442,13 @@ app.post('/api/import', requireAdmin, async (req, res) => {
           const result = await client.query(
             `INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status,
                                  crm_status, case_name, profile_picture_url, notes, osint_data,
-                                 attachments, connections, locations, custom_fields)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb)
+                                 attachments, connections, locations, custom_fields, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17)
              RETURNING id`,
             [person.first_name, person.last_name, person.patronymic || null, person.aliases,
              person.date_of_birth, person.category, person.status, person.crm_status, person.case_name,
              person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON,
-             connectionsJSON, locationsJSON, customFieldsJSON]
+             connectionsJSON, locationsJSON, customFieldsJSON, importProjectId]
           );
           if (person.id && result.rows[0]) {
             personIdMapping[person.id] = result.rows[0].id;
@@ -463,9 +473,9 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     if (importData.data.todos) {
       for (const todo of importData.data.todos) {
         await tryInsert(`todo:${todo.text?.slice(0, 30)}`, () => client.query(
-          `INSERT INTO todos (text, status, last_update_comment)
-           VALUES ($1, $2, $3)`,
-          [todo.text, todo.status, todo.last_update_comment]
+          `INSERT INTO todos (text, status, last_update_comment, project_id)
+           VALUES ($1, $2, $3, $4)`,
+          [todo.text, todo.status, todo.last_update_comment, importProjectId]
         ));
       }
     }
@@ -477,12 +487,12 @@ app.post('/api/import', requireAdmin, async (req, res) => {
           await tryInsert(`travel:person${travel.person_id}`, () => client.query(
             `INSERT INTO travel_history
              (person_id, location_type, location_name, address, city, state, country, postal_code,
-              latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+              latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
             [newPersonId, travel.location_type, travel.location_name, travel.address,
              travel.city, travel.state, travel.country, travel.postal_code,
              travel.latitude, travel.longitude, travel.arrival_date, travel.departure_date,
-             travel.purpose, travel.transportation_mode, travel.notes]
+             travel.purpose, travel.transportation_mode, travel.notes, importProjectId]
           ));
         } else {
           importErrors.push({ record: `travel:person${travel.person_id}`, error: 'Person not found in import' });
@@ -502,14 +512,14 @@ app.post('/api/import', requireAdmin, async (req, res) => {
         const result = await client.query(
           `INSERT INTO businesses (name, type, industry, address, city, state, country, postal_code,
                                    latitude, longitude, phone, email, website, owner_person_id,
-                                   registration_number, registration_date, status, employees, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19)
+                                   registration_number, registration_date, status, employees, notes, project_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19, $20)
            RETURNING id`,
           [business.name, business.type, business.industry, business.address, business.city,
            business.state, business.country, business.postal_code, business.latitude, business.longitude,
            business.phone, business.email, business.website, remappedOwnerId,
            business.registration_number, business.registration_date, business.status,
-           employeesJSON, business.notes]
+           employeesJSON, business.notes, importProjectId]
         );
 
         if (business.id && result.rows[0]) {
@@ -538,12 +548,12 @@ app.post('/api/import', requireAdmin, async (req, res) => {
         await tryInsert(`property:${prop.name}`, async () => {
           const result = await client.query(
             `INSERT INTO properties (name, property_type, description, address, city, state, country,
-                                     postal_code, latitude, longitude, owner_person_id, case_id, notes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+                                     postal_code, latitude, longitude, owner_person_id, case_id, notes, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
             [prop.name, prop.property_type, prop.description, prop.address, prop.city, prop.state,
              prop.country, prop.postal_code, prop.latitude, prop.longitude,
              prop.owner_person_id ? (personIdMapping[prop.owner_person_id] || null) : null,
-             remapCase(prop), prop.notes]
+             remapCase(prop), prop.notes, importProjectId]
           );
           if (prop.id && result.rows[0]) propertyIdMapping[prop.id] = result.rows[0].id;
         });
@@ -558,14 +568,14 @@ app.post('/api/import', requireAdmin, async (req, res) => {
             `INSERT INTO assets (name, category, identifier, description, notes, estimated_value,
                                  currency, status, location_mode, location_person_id, location_ref,
                                  location_name, address, city, state, country, postal_code,
-                                 latitude, longitude, case_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+                                 latitude, longitude, case_id, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
              RETURNING id`,
             [asset.name, asset.category, asset.identifier, asset.description, asset.notes,
              asset.estimated_value, asset.currency, asset.status, asset.location_mode,
              asset.location_person_id ? (personIdMapping[asset.location_person_id] || null) : null,
              asset.location_ref, asset.location_name, asset.address, asset.city, asset.state,
-             asset.country, asset.postal_code, asset.latitude, asset.longitude, remapCase(asset)]
+             asset.country, asset.postal_code, asset.latitude, asset.longitude, remapCase(asset), importProjectId]
           );
           if (asset.id && result.rows[0]) assetIdMapping[asset.id] = result.rows[0].id;
         });
@@ -580,9 +590,9 @@ app.post('/api/import', requireAdmin, async (req, res) => {
                                      from_business_id, from_external, to_person_id, to_business_id,
                                      to_external, value, currency, occurred_on, location_business_id,
                                      location_property_id, location_name, address, city, state,
-                                     country, postal_code, latitude, longitude, case_id, notes, tags)
+                                     country, postal_code, latitude, longitude, case_id, notes, tags, project_id)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-                   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
+                   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`,
           [tx.transaction_type, tx.item_label, tx.item_category,
            tx.subject_asset_id ? (assetIdMapping[tx.subject_asset_id] || null) : null,
            tx.subject_business_id ? (businessIdMapping[tx.subject_business_id] || null) : null,
@@ -596,7 +606,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
            tx.location_business_id ? (businessIdMapping[tx.location_business_id] || null) : null,
            tx.location_property_id ? (propertyIdMapping[tx.location_property_id] || null) : null,
            tx.location_name, tx.address, tx.city, tx.state, tx.country, tx.postal_code,
-           tx.latitude, tx.longitude, remapCase(tx), tx.notes, tx.tags || []]
+           tx.latitude, tx.longitude, remapCase(tx), tx.notes, tx.tags || [], importProjectId]
         ));
       }
     }
@@ -609,9 +619,9 @@ app.post('/api/import', requireAdmin, async (req, res) => {
                                           confidence_level, first_seen, last_seen, scan_date,
                                           person_id, association_note, association_confidence,
                                           import_source, notes, tags, area_name, password,
-                                          associated_person_ids, associated_business_ids)
+                                          associated_person_ids, associated_business_ids, project_id)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-                   $19, $20, $21, $22, $23, $24)`,
+                   $19, $20, $21, $22, $23, $24, $25)`,
           [net.ssid, net.bssid, net.latitude, net.longitude, net.accuracy, net.encryption,
            net.signal_strength, net.frequency, net.channel, net.network_type, net.confidence_level,
            net.first_seen, net.last_seen, net.scan_date,
@@ -619,7 +629,8 @@ app.post('/api/import', requireAdmin, async (req, res) => {
            net.association_note, net.association_confidence, net.import_source, net.notes,
            net.tags || [], net.area_name, net.password,
            (net.associated_person_ids || []).map(id => personIdMapping[id] || id),
-           (net.associated_business_ids || []).map(id => businessIdMapping[id] || id)]
+           (net.associated_business_ids || []).map(id => businessIdMapping[id] || id),
+           importProjectId]
         ));
       }
     }
@@ -638,28 +649,36 @@ app.post('/api/import', requireAdmin, async (req, res) => {
       }
     }
 
-    // Update connections with the new person IDs
+    await client.query('COMMIT');
+
+    // Remap connections onto the new person IDs and write them into
+    // relationships (issue #83 -- connections is a computed field over that
+    // table now, so writing the JSONB column here would be silently
+    // ignored on every subsequent read). Done after COMMIT: syncPersonConnections
+    // writes through the shared pool, not this transaction's client, so it
+    // needs the imported people to actually exist first.
     if (importData.data.people) {
       for (const person of importData.data.people) {
         if (person.connections && person.connections.length > 0) {
           const newPersonId = personIdMapping[person.id];
           if (newPersonId) {
-            // Update connections with new IDs
-            const updatedConnections = person.connections.map(conn => ({
-              ...conn,
-              person_id: personIdMapping[conn.person_id] || conn.person_id
-            }));
-            
-            await client.query(
-              `UPDATE people SET connections = $1::jsonb WHERE id = $2`,
-              [JSON.stringify(updatedConnections), newPersonId]
-            );
+            const remappedConnections = person.connections
+              .filter(conn => conn && conn.person_id != null)
+              .map(conn => ({
+                ...conn,
+                person_id: personIdMapping[conn.person_id] || conn.person_id,
+              }));
+            try {
+              await syncPersonConnections(newPersonId, importProjectId, null, remappedConnections);
+            } catch (err) {
+              console.warn('Import warning: connections for person', person.id, err.message);
+              importErrors.push({ record: `connections:person${person.id}`, error: err.message });
+            }
           }
         }
       }
     }
-    
-    await client.query('COMMIT');
+
     if (importErrors.length > 0) {
       // 207 Multi-Status: transaction committed but some records were skipped (issue #37)
       return res.status(207).json({

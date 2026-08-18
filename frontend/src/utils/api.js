@@ -294,7 +294,7 @@ export const exportAPI = {
 };
 
 export const importAPI = {
-  import: (data) => fetchAPI('/import', {
+  import: (data, projectId) => fetchAPI(`/import${buildQuery({ project_id: projectId })}`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),

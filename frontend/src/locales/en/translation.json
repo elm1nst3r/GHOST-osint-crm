@@ -398,6 +398,7 @@
       "errorInvalidFileFormat": "Invalid import file format",
       "errorReadFile": "Failed to read import file: {{message}}",
       "errorImportData": "Failed to import data: {{message}}",
+      "errorNoActiveProject": "Select a project before importing — imported data will be added to it.",
       "importPreview": "Import Preview",
       "fileName": "File Name",
       "fileSize": "File Size",

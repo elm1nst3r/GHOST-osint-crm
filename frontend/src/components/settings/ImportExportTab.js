@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { exportAPI, importAPI } from '../../utils/api';
+import { useProject } from '../../contexts/ProjectContext';
 
 const ImportExportTab = () => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -56,11 +58,15 @@ const ImportExportTab = () => {
 
   const handleConfirmImport = async () => {
     if (!importPreview) return;
+    if (!activeProjectId) {
+      alert(t('settings.importExport.errorNoActiveProject'));
+      return;
+    }
     try {
       setIsImporting(true);
       setImportSuccess(false);
       setShowImportPreview(false);
-      await importAPI.import(importPreview.rawData);
+      await importAPI.import(importPreview.rawData, activeProjectId);
       setImportSuccess(true);
       setImportPreview(null);
       setTimeout(() => window.location.reload(), 2000);
