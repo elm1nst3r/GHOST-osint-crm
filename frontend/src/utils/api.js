@@ -433,9 +433,10 @@ export const wirelessNetworksAPI = {
     body: JSON.stringify({ ids }),
   }),
 
-  importKML: async (file) => {
+  importKML: async (file, projectId) => {
     const formData = new FormData();
     formData.append('kmlFile', file);
+    if (projectId) formData.append('project_id', projectId);
 
     const response = await fetch(`${API_BASE_URL}/wireless-networks/import-kml`, {
       method: 'POST',

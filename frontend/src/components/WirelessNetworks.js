@@ -11,9 +11,11 @@ import WirelessNetworkMap from './WirelessNetworkMap';
 import WirelessNetworkDetail from './WirelessNetworkDetail';
 import ImportKML from './ImportKML';
 import AddNetworkForm from './AddNetworkForm';
+import { useProject } from '../contexts/ProjectContext';
 
 const WirelessNetworks = () => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [networks, setNetworks] = useState([]);
   const [people, setPeople] = useState([]);
   const [stats, setStats] = useState(null);
@@ -38,7 +40,8 @@ const WirelessNetworks = () => {
     fetchNetworks();
     fetchStats();
     fetchPeople();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, activeProjectId]);
 
   const fetchNetworks = async () => {
     try {
@@ -68,7 +71,7 @@ const WirelessNetworks = () => {
 
   const fetchPeople = async () => {
     try {
-      const { data: peopleList } = await peopleAPI.getAll();
+      const { data: peopleList } = await peopleAPI.getAll({ project_id: activeProjectId });
       setPeople(peopleList);
     } catch (error) {
       console.error('Error fetching people:', error);
