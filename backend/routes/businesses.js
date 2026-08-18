@@ -6,6 +6,25 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { syncBusinessRelationships } = require('./relationships');
+
+// Computed from the relationships table (issue #83) -- owner_person_id and
+// employees[] entries with a real person_id were migrated there. Outgoing
+// only (b as source): doesn't include the case where b is owned BY another
+// business (b as target of an 'owner' row) -- RelationshipManager.js still
+// does its own bidirectional enrichment client-side for the graph, this is
+// additive, not yet a replacement for that.
+const BUSINESS_CONNECTIONS_SUBQUERY = `
+  (SELECT COALESCE(
+     jsonb_agg(jsonb_build_object(
+       'person_id', CASE WHEN r.target_type = 'person' THEN r.target_id END,
+       'business_id', CASE WHEN r.target_type = 'business' THEN r.target_id END,
+       'type', r.relationship_type,
+       'note', r.note
+     ) ORDER BY r.id),
+     '[]'::jsonb
+   ) FROM relationships r WHERE r.source_type = 'business' AND r.source_id = b.id) AS connections
+`;
 
 router.use(apiLimiter);
 // GET / — list all businesses
@@ -21,7 +40,8 @@ router.get('/', requireAuth, async (req, res) => {
       SELECT
         b.*,
         CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as owner_name,
-        ob.name as owner_business_name
+        ob.name as owner_business_name,
+        ${BUSINESS_CONNECTIONS_SUBQUERY}
       FROM businesses b
       LEFT JOIN people p ON b.owner_person_id = p.id
       LEFT JOIN businesses ob ON b.owner_business_id = ob.id
@@ -42,7 +62,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
       SELECT
         b.*,
         CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as owner_name,
-        ob.name as owner_business_name
+        ob.name as owner_business_name,
+        ${BUSINESS_CONNECTIONS_SUBQUERY}
       FROM businesses b
       LEFT JOIN people p ON b.owner_person_id = p.id
       LEFT JOIN businesses ob ON b.owner_business_id = ob.id
@@ -123,6 +144,11 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
 
     const result = await pool.query(query, values);
     const newBusiness = result.rows[0];
+
+    await syncBusinessRelationships(newBusiness.id, newBusiness.project_id, newBusiness.case_id, {
+      ownerPersonId: owner_person_id,
+      employees,
+    });
 
     // Log audit
     await logAudit('business', newBusiness.id, 'create', {
@@ -206,6 +232,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
 
     const result = await pool.query(query, values);
     const updatedBusiness = result.rows[0];
+
+    await syncBusinessRelationships(updatedBusiness.id, updatedBusiness.project_id, updatedBusiness.case_id, {
+      ownerPersonId: owner_person_id,
+      employees,
+    });
 
     // Log audit changes
     const changes = {};

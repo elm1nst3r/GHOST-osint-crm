@@ -20,6 +20,81 @@ async function fetchEntityProject(entityType, entityId) {
   return rows[0]?.project_id ?? null;
 }
 
+// Converges a person's person->person relationship rows to match an incoming
+// `connections` array (issue #83's replacement for the old person.connections
+// JSONB write path). Full replace rather than a field-by-field diff: simpler,
+// and GET always recomputes `connections` from these rows anyway, so there's
+// no externally-visible identity to preserve across an edit.
+async function syncPersonConnections(personId, projectId, caseId, connections) {
+  const desired = (Array.isArray(connections) ? connections : [])
+    .filter((c) => c && c.person_id != null)
+    .map((c) => ({
+      target_id: parseInt(c.person_id, 10),
+      relationship_type: c.type || 'other',
+      note: c.note || null,
+    }));
+
+  await pool.query(
+    `DELETE FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
+    [personId]
+  );
+
+  for (const c of desired) {
+    await pool.query(
+      `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+       VALUES ($1, $2, 'person', $3, 'person', $4, $5, $6)`,
+      [projectId, caseId || null, personId, c.target_id, c.relationship_type, c.note]
+    );
+  }
+}
+
+// Same idea for a business's owner_person_id / employees (person_id-backed
+// only, matching the Phase 3 migration's rule) -- keeps relationships
+// current for businesses created/edited after that one-time migration, not
+// just the ones it covered historically.
+//
+// owner_business_id is deliberately NOT synced here. Phase 3's migration
+// stores that edge owner -> owned (source = the owning business, target =
+// this one), i.e. NOT rooted at this business, so it can't be converged by a
+// "delete everything sourced from me, reinsert" pass scoped to this business
+// -- doing so would either miss the direction or require reaching into the
+// other business's rows. Left as a known gap (the scalar owner_business_id
+// column stays authoritative either way); revisit if this needs to be live
+// rather than only correct as of the one-time migration.
+async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }) {
+  const desired = [];
+  if (ownerPersonId) desired.push({ target_type: 'person', target_id: parseInt(ownerPersonId, 10), relationship_type: 'owner', note: null });
+  for (const e of Array.isArray(employees) ? employees : []) {
+    if (e && e.person_id != null) {
+      desired.push({
+        target_type: 'person',
+        target_id: parseInt(e.person_id, 10),
+        relationship_type: e.is_decision_maker ? 'board_member' : 'employee',
+        note: e.role || null,
+      });
+    }
+  }
+
+  // Scoped to the relationship_types this function manages, not every row
+  // sourced from this business -- a relationship created directly through
+  // POST /relationships (any other type) must survive a businesses.js edit.
+  await pool.query(
+    `DELETE FROM relationships
+     WHERE source_type = 'business' AND source_id = $1
+       AND target_type = 'person' AND relationship_type IN ('owner', 'employee', 'board_member')`,
+    [businessId]
+  );
+
+  for (const d of desired) {
+    await pool.query(
+      `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+       VALUES ($1, $2, 'business', $3, $4, $5, $6, $7)`,
+      [projectId, caseId || null, businessId, d.target_type, d.target_id, d.relationship_type, d.note]
+    );
+  }
+}
+
+
 router.use(apiLimiter);
 
 // GET /?source_type=&source_id=&target_type=&target_id=&project_id=&case_id=
@@ -106,3 +181,5 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.syncPersonConnections = syncPersonConnections;
+module.exports.syncBusinessRelationships = syncBusinessRelationships;
