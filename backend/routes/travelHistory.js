@@ -39,14 +39,23 @@ router.post('/people/:id/travel-history', requireAuth, validateIdParam, validate
   const parsedDeparture = departure_date ? new Date(departure_date) : null;
 
   try {
+    // travel_history is always created as a sub-resource of a person (issue
+    // #83): it inherits project_id/case_id from the parent rather than
+    // taking them from the request body, same as locations.
+    const personResult = await pool.query('SELECT project_id, case_id FROM people WHERE id = $1', [personId]);
+    if (personResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const { project_id, case_id } = personResult.rows[0];
+
     const result = await pool.query(
       `INSERT INTO travel_history
        (person_id, location_type, location_name, address, city, state, country, postal_code,
-        latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        latitude, longitude, arrival_date, departure_date, purpose, transportation_mode, notes,
+        project_id, case_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING *`,
       [personId, location_type, location_name, address, city, state, country, postal_code,
-       latitude, longitude, parsedArrival, parsedDeparture, purpose, transportation_mode, notes]
+       latitude, longitude, parsedArrival, parsedDeparture, purpose, transportation_mode, notes,
+       project_id, case_id]
     );
 
     res.status(201).json(result.rows[0]);

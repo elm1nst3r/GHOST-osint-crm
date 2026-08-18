@@ -59,6 +59,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (q.location_business_id) add(`t.location_business_id = $${params.length + 1}`, parseInt(q.location_business_id, 10));
     if (q.location_property_id) add(`t.location_property_id = $${params.length + 1}`, parseInt(q.location_property_id, 10));
     if (q.case_id) add(`t.case_id = $${params.length + 1}`, parseInt(q.case_id, 10));
+    if (q.project_id) add(`t.project_id = $${params.length + 1}`, parseInt(q.project_id, 10));
     if (q.date_from) add(`t.occurred_on >= $${params.length + 1}`, q.date_from);
     if (q.date_to) add(`t.occurred_on <= $${params.length + 1}`, q.date_to);
     if (q.bbox) {
@@ -119,10 +120,16 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
       geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body);
     }
-    const placeholders = TX_COLUMNS.map((_, i) => `$${i + 1}`).join(', ');
+    // project_id is intentionally NOT in TX_COLUMNS: that array is shared with
+    // PUT's buildValues(), and PUT's schema omits project_id (immutable via the
+    // generic update route, issue #83) -- including it there would write
+    // `undefined` -> null on every update and wipe the column. Insert-only,
+    // appended as its own column.
+    const insertColumns = [...TX_COLUMNS, 'project_id'];
+    const placeholders = insertColumns.map((_, i) => `$${i + 1}`).join(', ');
     const result = await pool.query(
-      `INSERT INTO transactions (${TX_COLUMNS.join(', ')}) VALUES (${placeholders}) RETURNING id`,
-      buildValues(req.body, geo));
+      `INSERT INTO transactions (${insertColumns.join(', ')}) VALUES (${placeholders}) RETURNING id`,
+      [...buildValues(req.body, geo), req.body.project_id]);
     const full = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [result.rows[0].id]);
     res.status(201).json({ ...decorateTransaction(full.rows[0]), geocode_failure: geo.geocode_failure });
   } catch (e) {

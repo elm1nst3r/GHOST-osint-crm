@@ -22,6 +22,7 @@ router.get('/', requireAuth, async (req, res) => {
     const params = [];
     if (req.query.property_type) { params.push(req.query.property_type); where.push(`p.property_type = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`p.case_id = $${params.length}`); }
+    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`p.project_id = $${params.length}`); }
     if (req.query.owner_person_id) { params.push(parseInt(req.query.owner_person_id, 10)); where.push(`p.owner_person_id = $${params.length}`); }
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(p.name ILIKE $${params.length} OR p.address ILIKE $${params.length} OR p.city ILIKE $${params.length})`); }
     if (req.query.bbox) {
@@ -60,7 +61,7 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
   try {
     const {
       name, property_type, description, address, city, state, country, postal_code,
-      latitude, longitude, owner_person_id, case_id, notes
+      latitude, longitude, owner_person_id, case_id, notes, project_id
     } = req.body;
 
     let geo = { latitude, longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
@@ -72,12 +73,12 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
       `INSERT INTO properties
         (name, property_type, description, address, city, state, country, postal_code,
          latitude, longitude, geocode_confidence, geocode_provider, geocoded_at,
-         owner_person_id, case_id, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+         owner_person_id, case_id, notes, project_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
       [name.trim(), property_type || null, description || null, address || null, city || null,
        state || null, country || null, postal_code || null, geo.latitude, geo.longitude,
        geo.geocode_confidence, geo.geocode_provider, geo.geocoded_at,
-       owner_person_id || null, case_id || null, notes || null]
+       owner_person_id || null, case_id || null, notes || null, project_id]
     );
     res.status(201).json({ ...result.rows[0], geocode_failure: geo.geocode_failure });
   } catch (err) {

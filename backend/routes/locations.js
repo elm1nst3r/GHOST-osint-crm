@@ -14,12 +14,24 @@ router.get('/', requireAuth, async (req, res) => {
       offset = 0,
       bbox,
       confidence = 30,
-      includeUngeocoded = false
+      includeUngeocoded = false,
+      project_id,
+      case_id
     } = req.query;
 
     let where = `WHERE p.locations IS NOT NULL AND p.locations != '[]'::jsonb`;
     const params = [];
     let paramIndex = 1;
+
+    if (project_id) {
+      where += ` AND p.project_id = $${paramIndex++}`;
+      params.push(parseInt(project_id, 10));
+    }
+
+    if (case_id) {
+      where += ` AND p.case_id = $${paramIndex++}`;
+      params.push(parseInt(case_id, 10));
+    }
 
     if (bbox) {
       const [minLng, minLat, maxLng, maxLat] = bbox.split(',').map(Number);

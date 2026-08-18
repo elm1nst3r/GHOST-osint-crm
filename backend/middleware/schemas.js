@@ -89,7 +89,8 @@ const personBaseFields = {
   category: optStr(1000),
   status: optStr(1000),
   crmStatus: optStr(1000),
-  caseName: optStr(1000),
+  caseName: optStr(1000), // deprecated (issue #83) — case_id is now the real grouping, see CaseManagement.js
+  case_id: optId(),
   notes: optStr(1000),
   profilePictureUrl: optStr(2000),
   aliases: optArray(z.string()),
@@ -114,6 +115,10 @@ const personBaseFields = {
 
 const PersonCreateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(255),
+  // Required on create, immutable via the generic update route (issue #83) —
+  // moving a person between projects is a deliberate future action, not
+  // absorbed here.
+  project_id: reqId('project_id'),
   ...personBaseFields,
 });
 
@@ -170,10 +175,12 @@ const businessBaseFields = {
   // companies, shells) are representable rather than collapsing to one hop.
   owner_business_id: optId(),
   employees: optArray(employeeSchema),
+  case_id: optId(),
 };
 
 const BusinessCreateSchema = z.object({
   name: z.string().min(1, 'Business name is required').max(255),
+  project_id: reqId('project_id'),
   ...businessBaseFields,
 });
 
@@ -319,6 +326,8 @@ const TodoCreateSchema = z.object({
   text: z.string().min(1, 'Todo text is required').max(2000),
   status: z.enum(TODO_STATUSES).nullable().optional().default('open'),
   last_update_comment: optStr(1000),
+  project_id: reqId('project_id'),
+  case_id: optId(),
 });
 
 const TodoUpdateSchema = z
@@ -326,6 +335,7 @@ const TodoUpdateSchema = z
     text: z.string().min(1).max(2000).optional(),
     status: z.enum(TODO_STATUSES).nullable().optional(),
     last_update_comment: optStr(1000),
+    case_id: optId(),
   })
   .refine((data) => data.text !== undefined || data.status !== undefined, {
     message: 'text or status is required',
@@ -374,6 +384,7 @@ const propertyBaseFields = {
 
 const PropertyCreateSchema = z.object({
   name: z.string().min(1, 'Property name is required').max(255),
+  project_id: reqId('project_id'),
   ...propertyBaseFields,
 });
 
@@ -427,6 +438,7 @@ const initialHolderSchema = z
 const AssetCreateSchema = z.object({
   name: z.string().min(1, 'Asset name is required').max(255),
   initial_holder: initialHolderSchema,
+  project_id: reqId('project_id'),
   ...assetBaseFields,
 });
 
@@ -476,9 +488,12 @@ const TransactionCreateSchema = z.object({
   latitude: optNum(z.number().min(-90).max(90)),
   longitude: optNum(z.number().min(-180).max(180)),
   case_id: optId(),
+  project_id: reqId('project_id'),
 });
 
-const TransactionUpdateSchema = TransactionCreateSchema;
+// project_id is required on create, immutable via the generic update route
+// (issue #83) — everything else about a transaction stays freely editable.
+const TransactionUpdateSchema = TransactionCreateSchema.omit({ project_id: true });
 
 // ── Settings — Custom Fields ──────────────────────────────────────────────────
 // POST /custom-fields: field_name + field_label + field_type required

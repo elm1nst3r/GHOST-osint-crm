@@ -98,6 +98,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.category) { params.push(req.query.category); where.push(`a.category = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); where.push(`a.status = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`a.case_id = $${params.length}`); }
+    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`a.project_id = $${params.length}`); }
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(a.name ILIKE $${params.length} OR a.identifier ILIKE $${params.length})`); }
     if (req.query.holder_person_id) {
       params.push(parseInt(req.query.holder_person_id, 10));
@@ -176,13 +177,13 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
       `INSERT INTO assets
         (name, category, identifier, description, notes, estimated_value, currency, status,
          location_mode, location_person_id, location_ref, location_name, address, city, state, country, postal_code,
-         latitude, longitude, geocode_confidence, geocode_provider, geocoded_at, case_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
+         latitude, longitude, geocode_confidence, geocode_provider, geocoded_at, case_id, project_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) RETURNING *`,
       [b.name.trim(), b.category || null, b.identifier || null, b.description || null, b.notes || null,
        b.estimated_value != null ? b.estimated_value : null, b.currency || null, b.status || 'active',
        mode, b.location_person_id || null, b.location_ref != null ? String(b.location_ref) : null, b.location_name || null,
        b.address || null, b.city || null, b.state || null, b.country || null, b.postal_code || null,
-       geo.latitude, geo.longitude, geo.geocode_confidence, geo.geocode_provider, geo.geocoded_at, b.case_id || null]
+       geo.latitude, geo.longitude, geo.geocode_confidence, geo.geocode_provider, geo.geocoded_at, b.case_id || null, b.project_id]
     );
     const asset = result.rows[0];
 
@@ -191,9 +192,9 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
     if (ih && (ih.person_id || ih.business_id || ih.external)) {
       const occurred = ih.occurred_on || new Date().toISOString().slice(0, 10);
       await pool.query(
-        `INSERT INTO transactions (transaction_type, subject_asset_id, to_person_id, to_business_id, to_external, occurred_on, case_id)
-         VALUES ('acquisition', $1, $2, $3, $4, $5, $6)`,
-        [asset.id, ih.person_id || null, ih.business_id || null, ih.external || null, occurred, b.case_id || null]);
+        `INSERT INTO transactions (transaction_type, subject_asset_id, to_person_id, to_business_id, to_external, occurred_on, case_id, project_id)
+         VALUES ('acquisition', $1, $2, $3, $4, $5, $6, $7)`,
+        [asset.id, ih.person_id || null, ih.business_id || null, ih.external || null, occurred, b.case_id || null, b.project_id]);
     }
 
     res.status(201).json({ ...asset, geocode_failure: geo.geocode_failure });

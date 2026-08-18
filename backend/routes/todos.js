@@ -10,7 +10,13 @@ const { apiLimiter } = require('../middleware/rateLimiters');
 router.use(apiLimiter);
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM todos ORDER BY created_at DESC');
+    const where = [];
+    const params = [];
+    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`project_id = $${params.length}`); }
+    if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`case_id = $${params.length}`); }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const result = await pool.query(`SELECT * FROM todos ${whereClause} ORDER BY created_at DESC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching todos:', err.message);
@@ -19,10 +25,10 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, validate(TodoCreateSchema), async (req, res) => {
-  const { text, status, last_update_comment } = req.body;
+  const { text, status, last_update_comment, project_id, case_id } = req.body;
 
-  const query = `INSERT INTO todos (text, status, last_update_comment) VALUES ($1, $2, $3) RETURNING *;`;
-  const values = [text, status || 'open', last_update_comment || null];
+  const query = `INSERT INTO todos (text, status, last_update_comment, project_id, case_id) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+  const values = [text, status || 'open', last_update_comment || null, project_id, case_id || null];
 
   try {
     const result = await pool.query(query, values);
@@ -35,10 +41,10 @@ router.post('/', requireAuth, validate(TodoCreateSchema), async (req, res) => {
 
 router.put('/:id', requireAuth, validateIdParam, validate(TodoUpdateSchema), async (req, res) => {
   const todoId = req.params.id;
-  const { text, status, last_update_comment } = req.body;
+  const { text, status, last_update_comment, case_id } = req.body;
 
-  const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status), last_update_comment = $3 WHERE id = $4 RETURNING *;`;
-  const values = [text, status, last_update_comment, todoId];
+  const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status), last_update_comment = $3, case_id = COALESCE($4, case_id) WHERE id = $5 RETURNING *;`;
+  const values = [text, status, last_update_comment, case_id, todoId];
 
   try {
     const result = await pool.query(query, values);

@@ -11,6 +11,12 @@ router.use(apiLimiter);
 // GET / — list all businesses
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const where = [];
+    const params = [];
+    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`b.project_id = $${params.length}`); }
+    if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`b.case_id = $${params.length}`); }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
     const result = await pool.query(`
       SELECT
         b.*,
@@ -19,8 +25,9 @@ router.get('/', requireAuth, async (req, res) => {
       FROM businesses b
       LEFT JOIN people p ON b.owner_person_id = p.id
       LEFT JOIN businesses ob ON b.owner_business_id = ob.id
+      ${whereClause}
       ORDER BY b.created_at DESC
-    `);
+    `, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching businesses:', err);
@@ -57,7 +64,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
     const {
       name, type, industry, address, city, state, country, postal_code,
       latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
-      registration_number, registration_date, status, employees, notes
+      registration_number, registration_date, status, employees, notes, case_id, project_id
     } = req.body;
 
     // Geocode address if provided and coordinates not set
@@ -84,8 +91,8 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       INSERT INTO businesses (
         name, type, industry, address, city, state, country, postal_code,
         latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
-        registration_number, registration_date, status, employees, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        registration_number, registration_date, status, employees, notes, case_id, project_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *
     `;
 
@@ -109,7 +116,9 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       registration_date || null,
       status || 'active',
       JSON.stringify(employees || []),
-      notes || null
+      notes || null,
+      case_id || null,
+      project_id
     ];
 
     const result = await pool.query(query, values);
@@ -135,7 +144,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
     const {
       name, type, industry, address, city, state, country, postal_code,
       latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
-      registration_number, registration_date, status, employees, notes
+      registration_number, registration_date, status, employees, notes, case_id
     } = req.body;
 
     // A business owning itself would draw a self-loop in the entity network and
@@ -181,8 +190,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
           phone = $11, email = $12, website = $13, owner_person_id = $14,
           owner_business_id = $15,
           registration_number = $16, registration_date = $17, status = $18,
-          employees = $19, notes = $20, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $21
+          employees = $19, notes = $20, case_id = $21, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $22
       RETURNING *
     `;
 
@@ -192,7 +201,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       phone || null, email || null, website || null, owner_person_id || null,
       owner_business_id || null,
       registration_number || null, registration_date || null, status || 'active',
-      JSON.stringify(employees || []), notes || null, businessId
+      JSON.stringify(employees || []), notes || null, case_id || null, businessId
     ];
 
     const result = await pool.query(query, values);

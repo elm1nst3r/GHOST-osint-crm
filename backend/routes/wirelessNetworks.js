@@ -222,9 +222,9 @@ router.post('/import-kml', requireAuth, (req, res, next) => {
 // GET / — list wireless networks with filters
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { person_id, ssid, bssid, network_type, encryption, import_source, signal_min, signal_max } = req.query;
+    const { person_id, ssid, bssid, network_type, encryption, import_source, signal_min, signal_max, project_id, case_id } = req.query;
 
-    let query = 'SELECT id, ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength, frequency, channel, network_type, confidence_level, first_seen, last_seen, scan_date, person_id, association_note, association_confidence, import_source, notes, tags, area_name, associated_person_ids, associated_business_ids, created_at, updated_at FROM wireless_networks WHERE 1=1';
+    let query = 'SELECT id, ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength, frequency, channel, network_type, confidence_level, first_seen, last_seen, scan_date, person_id, association_note, association_confidence, import_source, notes, tags, area_name, associated_person_ids, associated_business_ids, project_id, case_id, created_at, updated_at FROM wireless_networks WHERE 1=1';
     const params = [];
     let paramCount = 0;
 
@@ -232,6 +232,16 @@ router.get('/', requireAuth, async (req, res) => {
       // Match against the authoritative arrays; OR singular for backwards compatibility (issue #41)
       query += ` AND ($${++paramCount}::int = ANY(COALESCE(associated_person_ids, ARRAY[]::int[])) OR person_id = $${paramCount}::int)`;
       params.push(person_id);
+    }
+
+    if (project_id) {
+      query += ` AND project_id = $${++paramCount}`;
+      params.push(parseInt(project_id, 10));
+    }
+
+    if (case_id) {
+      query += ` AND case_id = $${++paramCount}`;
+      params.push(parseInt(case_id, 10));
     }
 
     if (ssid) {
@@ -283,7 +293,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   const id = req.params.id;
   try {
-    const result = await pool.query('SELECT id, ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength, frequency, channel, network_type, confidence_level, first_seen, last_seen, scan_date, person_id, association_note, association_confidence, import_source, notes, tags, area_name, associated_person_ids, associated_business_ids, created_at, updated_at FROM wireless_networks WHERE id = $1', [id]);
+    const result = await pool.query('SELECT id, ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength, frequency, channel, network_type, confidence_level, first_seen, last_seen, scan_date, person_id, association_note, association_confidence, import_source, notes, tags, area_name, associated_person_ids, associated_business_ids, project_id, case_id, created_at, updated_at FROM wireless_networks WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Wireless network not found' });
     }
@@ -301,11 +311,16 @@ router.post('/', requireAuth, async (req, res) => {
       ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
       frequency, channel, network_type, confidence_level, first_seen, last_seen,
       scan_date, person_id, association_note, association_confidence,
-      import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids
+      import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids,
+      project_id, case_id
     } = req.body;
 
     if (!ssid) {
       return res.status(400).json({ error: 'SSID is required' });
+    }
+
+    if (!project_id) {
+      return res.status(400).json({ error: 'project_id is required' });
     }
 
     // If location is provided, both lat and long must be present
@@ -318,13 +333,15 @@ router.post('/', requireAuth, async (req, res) => {
         ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
         frequency, channel, network_type, confidence_level, first_seen, last_seen,
         scan_date, person_id, association_note, association_confidence,
-        import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids,
+        project_id, case_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
        frequency, channel, network_type || 'WIFI', confidence_level, first_seen, last_seen,
        scan_date, person_id, association_note, association_confidence,
-       import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids]
+       import_source, notes, tags, area_name, password, associated_person_ids, associated_business_ids,
+       project_id, case_id || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -342,7 +359,8 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
       ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
       frequency, channel, network_type, confidence_level, first_seen, last_seen,
       scan_date, person_id, association_note, association_confidence,
-      notes, tags, area_name, password, associated_person_ids, associated_business_ids
+      notes, tags, area_name, password, associated_person_ids, associated_business_ids,
+      case_id
     } = req.body;
 
     const result = await pool.query(
@@ -352,12 +370,14 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
         network_type = $10, confidence_level = $11, first_seen = $12, last_seen = $13,
         scan_date = $14, person_id = $15, association_note = $16,
         association_confidence = $17, notes = $18, tags = $19, area_name = $20,
-        password = $21, associated_person_ids = $22, associated_business_ids = $23
-      WHERE id = $24 RETURNING *`,
+        password = $21, associated_person_ids = $22, associated_business_ids = $23,
+        case_id = $24
+      WHERE id = $25 RETURNING *`,
       [ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
        frequency, channel, network_type, confidence_level, first_seen, last_seen,
        scan_date, person_id, association_note, association_confidence,
-       notes, tags, area_name, password, associated_person_ids, associated_business_ids, id]
+       notes, tags, area_name, password, associated_person_ids, associated_business_ids,
+       case_id || null, id]
     );
 
     if (result.rows.length === 0) {
