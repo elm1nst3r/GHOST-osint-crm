@@ -283,6 +283,34 @@ const ProjectUpdateSchema = z.object({
   ...projectBaseFields,
 });
 
+// ── Relationships ─────────────────────────────────────────────────────────────
+// Real rows as of issue #83 (previously only JSONB `connections` on people /
+// `employees` + owner_* on businesses, which stay as-is — see the migration
+// comment in 20260818000003_relationships_table.js). source_id/target_id are
+// unconstrained ints: Postgres has no polymorphic FK across people/businesses,
+// same looseness this codebase already accepts for subject/holder columns.
+
+const entityTypeEnum = z.enum(['person', 'business']);
+
+const relationshipBaseFields = {
+  case_id: optId(),
+  relationship_type: z.string().min(1, 'relationship_type is required').max(100),
+  note: optStr(2000),
+};
+
+const RelationshipCreateSchema = z.object({
+  project_id: reqId('project_id'),
+  source_type: entityTypeEnum,
+  source_id: reqId('source_id'),
+  target_type: entityTypeEnum,
+  target_id: reqId('target_id'),
+  ...relationshipBaseFields,
+});
+
+const RelationshipUpdateSchema = z.object({
+  ...relationshipBaseFields,
+});
+
 // ── Todos ─────────────────────────────────────────────────────────────────────
 
 const TODO_STATUSES = ['open', 'in_progress', 'on_hold', 'attention', 'done', 'cancelled'];
@@ -510,6 +538,8 @@ module.exports = {
   CaseUpdateSchema,
   ProjectCreateSchema,
   ProjectUpdateSchema,
+  RelationshipCreateSchema,
+  RelationshipUpdateSchema,
   TodoCreateSchema,
   TodoUpdateSchema,
   TravelHistoryCreateSchema,

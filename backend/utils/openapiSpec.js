@@ -188,6 +188,8 @@ const spec = {
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       ProjectCreate: toSchema(S.ProjectCreateSchema),
       ProjectUpdate: toSchema(S.ProjectUpdateSchema),
+      RelationshipCreate: toSchema(S.RelationshipCreateSchema),
+      RelationshipUpdate: toSchema(S.RelationshipUpdateSchema),
       TodoCreate: toSchema(S.TodoCreateSchema),
       TodoUpdate: toSchema(S.TodoUpdateSchema),
       TravelHistoryCreate: toSchema(S.TravelHistoryCreateSchema),
@@ -373,20 +375,18 @@ const spec = {
       get: op('Geocoding', 'Geocoding coverage statistics'),
     },
 
-    // ── Entity network ──
-    '/entity-relationships': {
-      get: op('Relationships', 'List entity relationships'),
-      post: op('Relationships', 'Create an entity relationship', { body: anyObject }),
-    },
-    '/entity-relationships/{id}': {
-      delete: op('Relationships', 'Delete an entity relationship', { params: [idParam] }),
-    },
-    '/relationship-types': {
-      get: op('Relationships', 'Available relationship types'),
-    },
-    '/entity-network': {
-      get: op('Relationships', 'Full entity network graph (nodes and edges)'),
-    },
+    // ── Relationships ──
+    ...crudPaths('Relationships', '/relationships', 'RelationshipCreate', 'RelationshipUpdate', {
+      getById: false,
+      listParams: [
+        queryParam('source_type', 'Filter by source entity type (person|business)'),
+        queryParam('source_id', 'Filter by source entity id', { type: 'integer' }),
+        queryParam('target_type', 'Filter by target entity type (person|business)'),
+        queryParam('target_id', 'Filter by target entity id', { type: 'integer' }),
+        queryParam('project_id', 'Filter by project', { type: 'integer' }),
+        queryParam('case_id', 'Filter by case', { type: 'integer' }),
+      ],
+    }),
 
     // ── Wireless networks ──
     '/wireless-networks': {
