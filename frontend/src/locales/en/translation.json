@@ -677,6 +677,7 @@
     "updatePerson": "Update Person",
     "createPerson": "Create Person",
     "errorSavePerson": "Failed to save person: {{message}}",
+    "errorNoActiveProject": "Select a project before adding a person.",
     "locations": {
       "label": "Locations",
       "streetAddress": "Street Address",
@@ -1713,6 +1714,14 @@
   "darkModeToggle": {
     "switchToLight": "Switch to Light Mode",
     "switchToDark": "Switch to Dark Mode"
+  },
+  "projectSelector": {
+    "title": "Active project",
+    "noneSelected": "No project selected",
+    "none": "No projects yet",
+    "namePlaceholder": "Project name...",
+    "newProject": "New Project",
+    "errorCreate": "Failed to create project"
   },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",

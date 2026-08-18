@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
 import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
+import { useProject } from '../contexts/ProjectContext';
 import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
 import { optionLabel } from '../utils/optionLabels';
 import { locationColors, buildIconCache, colorForCustomType } from './map/mapUtils';
@@ -34,6 +35,7 @@ const MapBounds = ({ markers }) => {
 
 const GlobalMap = () => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [wirelessNetworks, setWirelessNetworks] = useState([]);
@@ -70,7 +72,8 @@ const GlobalMap = () => {
     fetchWirelessNetworks();
     fetchGeocodingStats();
     fetchTransactionLayers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const fetchTransactionLayers = async () => {
     try {
@@ -101,8 +104,9 @@ const GlobalMap = () => {
   const fetchPeople = async (page = 0, limit = 100) => {
     try {
       setLoading(true);
+      const projectParam = activeProjectId ? `&project_id=${activeProjectId}` : '';
       const res = await fetch(
-        `${API_BASE}/locations?limit=${limit}&offset=${page * limit}&confidence=0&includeUngeocoded=true`,
+        `${API_BASE}/locations?limit=${limit}&offset=${page * limit}&confidence=0&includeUngeocoded=true${projectParam}`,
         { credentials: 'include' }
       );
       if (!res.ok) throw new Error('Failed to fetch locations');
@@ -123,7 +127,8 @@ const GlobalMap = () => {
 
   const fetchAllPeople = async () => {
     try {
-      const res = await fetch(`${API_BASE}/people?limit=1000`, { credentials: 'include' });
+      const projectParam = activeProjectId ? `&project_id=${activeProjectId}` : '';
+      const res = await fetch(`${API_BASE}/people?limit=1000${projectParam}`, { credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data.people || data.data || []);

@@ -7,25 +7,23 @@ import {
   Edit2, Trash2, User,
   UserPlus, FileText
 } from 'lucide-react';
-import { casesAPI, peopleAPI, projectsAPI } from '../utils/api';
+import { casesAPI, peopleAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 
 const CaseManagement = () => {
   const { t } = useTranslation();
   const { people, fetchPeople } = useData();
   const { setEditingPerson, setSelectedPersonForDetail } = useUI();
+  const { projects, activeProjectId } = useProject();
   const [cases, setCases] = useState([]);
   const [expandedCases, setExpandedCases] = useState({});
   const [editingCase, setEditingCase] = useState(null);
   const [showNewCaseForm, setShowNewCaseForm] = useState(false);
   const [newCaseData, setNewCaseData] = useState({ case_name: '', description: '', status: 'active', project_id: null });
-  // Temporary until the project selector lands (issue #83 phase 2): a case
-  // must belong to a project, so default new cases to the first one that
-  // exists. Replace with the active-project selector's value once it ships.
-  const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(null);
   const [quickAddPerson, setQuickAddPerson] = useState({ firstName: '', lastName: '' });
@@ -34,20 +32,16 @@ const CaseManagement = () => {
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [reportCaseId, setReportCaseId] = useState(null);
 
+  const defaultNewCaseProjectId = () => activeProjectId || projects[0]?.id || null;
+
   useEffect(() => {
     fetchCases();
   }, [people]);
 
   useEffect(() => {
-    projectsAPI.getAll()
-      .then(data => {
-        setProjects(data);
-        if (data.length > 0) {
-          setNewCaseData(prev => (prev.project_id ? prev : { ...prev, project_id: data[0].id }));
-        }
-      })
-      .catch(error => console.error('Error fetching projects:', error));
-  }, []);
+    setNewCaseData(prev => (prev.project_id ? prev : { ...prev, project_id: defaultNewCaseProjectId() }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, activeProjectId]);
 
   const fetchCases = async () => {
     try {
@@ -83,7 +77,7 @@ const CaseManagement = () => {
 
     try {
       await casesAPI.create(newCaseData);
-      setNewCaseData({ case_name: '', description: '', status: 'active', project_id: projects[0]?.id ?? null });
+      setNewCaseData({ case_name: '', description: '', status: 'active', project_id: defaultNewCaseProjectId() });
       setShowNewCaseForm(false);
       fetchCases();
     } catch (error) {
@@ -292,7 +286,7 @@ const CaseManagement = () => {
               <button
                 onClick={() => {
                   setShowNewCaseForm(false);
-                  setNewCaseData({ case_name: '', description: '', status: 'active', project_id: projects[0]?.id ?? null });
+                  setNewCaseData({ case_name: '', description: '', status: 'active', project_id: defaultNewCaseProjectId() });
                 }}
                 className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >

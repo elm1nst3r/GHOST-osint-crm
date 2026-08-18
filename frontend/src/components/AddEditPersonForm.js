@@ -9,6 +9,7 @@ import { mergeOptionMeta } from '../utils/useModelOptions';
 import { personNameOrder } from '../utils/personName';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useProject } from '../contexts/ProjectContext';
 import LocationsSection from './person-form/LocationsSection';
 import OsintSection from './person-form/OsintSection';
 import ConnectionsSection from './person-form/ConnectionsSection';
@@ -24,6 +25,7 @@ const AddEditPersonForm = () => {
   const { t, i18n } = useTranslation();
   const { people, customFields, fetchPeople } = useData();
   const { editingPerson, setEditingPerson, setShowAddPersonForm } = useUI();
+  const { activeProjectId } = useProject();
   const person = editingPerson;
 
   const handleClose = () => { setEditingPerson(null); setShowAddPersonForm(false); };
@@ -107,18 +109,25 @@ const AddEditPersonForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // project_id is a NOT NULL FK as of issue #83 -- only creation needs it
+    // (immutable on update), but there's no create path without a project.
+    if (!person && !activeProjectId) {
+      alert(t('personForm.errorNoActiveProject'));
+      return;
+    }
     if (formData.caseName && !caseExists) {
       try {
         await casesAPI.create({
           case_name: formData.caseName,
           description: `Auto-created from person: ${formData.firstName} ${formData.lastName}`,
           status: 'active',
+          project_id: activeProjectId,
         });
       } catch (error) { console.error('Error creating case:', error); }
     }
     try {
       if (person) await peopleAPI.update(person.id, { ...formData, dateOfBirth: formData.dateOfBirth || null });
-      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null });
+      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null, project_id: activeProjectId });
       handleClose();
       fetchPeople();
     } catch (error) {

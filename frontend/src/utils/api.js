@@ -64,8 +64,8 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 // People API
 export const peopleAPI = {
-  getAll: ({ limit = 100, offset = 0 } = {}) =>
-    fetchAPI(`/people?limit=${limit}&offset=${offset}`, { returnMeta: true }),
+  getAll: ({ limit = 100, offset = 0, ...rest } = {}) =>
+    fetchAPI(`/people${buildQuery({ limit, offset, ...rest })}`, { returnMeta: true }),
 
   getById: (id) => fetchAPI(`/people/${id}`),
 

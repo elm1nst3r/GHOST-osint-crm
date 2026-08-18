@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
 import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './components/Dashboard';
@@ -28,6 +29,7 @@ import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
+import ProjectSelector from './components/ProjectSelector';
 import SystemHealth from './components/SystemHealth';
 import WirelessNetworks from './components/WirelessNetworks';
 import PropertyList from './components/PropertyList';
@@ -72,6 +74,7 @@ const AppShell = () => {
   const { t } = useTranslation();
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
+  const { refetchProjects } = useProject();
   const {
     activeSection, setActiveSection,
     selectedPersonForDetail, setSelectedPersonForDetail,
@@ -151,8 +154,8 @@ const AppShell = () => {
 
   // Fetch all data once authenticated
   useEffect(() => {
-    if (authenticated) refreshAll();
-  }, [authenticated, refreshAll]);
+    if (authenticated) { refreshAll(); refetchProjects(); }
+  }, [authenticated, refreshAll, refetchProjects]);
 
   // Escape closes the mobile drawer
   useEffect(() => {
@@ -191,6 +194,9 @@ const AppShell = () => {
         <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
           {appSettings.appName}
         </span>
+        <div className="ml-auto">
+          <ProjectSelector compact />
+        </div>
       </div>
 
       {/* Scrim — closes the drawer on tap. Below md only. */}
@@ -240,6 +246,9 @@ const AppShell = () => {
                 <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
+          </div>
+          <div className="mt-3">
+            <ProjectSelector />
           </div>
         </div>
 
@@ -379,11 +388,13 @@ const App = () => (
   <ThemeProvider>
     <BrowserRouter>
       <AuthProvider>
-        <DataProvider>
-          <UIProvider>
-            <AppShell />
-          </UIProvider>
-        </DataProvider>
+        <ProjectProvider>
+          <DataProvider>
+            <UIProvider>
+              <AppShell />
+            </UIProvider>
+          </DataProvider>
+        </ProjectProvider>
       </AuthProvider>
     </BrowserRouter>
   </ThemeProvider>

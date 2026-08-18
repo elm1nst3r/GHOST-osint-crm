@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, transactionsAPI } from '../utils/api';
 import { DEFAULT_APP_SETTINGS } from '../utils/constants';
+import { useProject } from './ProjectContext';
 
 const DataContext = createContext(null);
 
 const PAGE_SIZE = 100;
 
 export const DataProvider = ({ children }) => {
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [peopleMeta, setPeopleMeta] = useState({ total: 0, hasMore: false });
   const peopleLoadedRef = useRef(0); // tracks how many people are currently in state
@@ -39,7 +41,7 @@ export const DataProvider = ({ children }) => {
   // Fetch people from a given offset. offset=0 replaces the list; offset>0 appends.
   const fetchPeople = useCallback(async (offset = 0) => {
     try {
-      const { data, meta } = await peopleAPI.getAll({ limit: PAGE_SIZE, offset });
+      const { data, meta } = await peopleAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
       if (offset === 0) {
         setPeople(data);
         peopleLoadedRef.current = data.length;
@@ -51,7 +53,7 @@ export const DataProvider = ({ children }) => {
     } catch (err) {
       console.error('Error fetching people:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   const loadMorePeople = useCallback(async () => {
     await fetchPeople(peopleLoadedRef.current);
