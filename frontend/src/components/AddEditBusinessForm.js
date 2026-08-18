@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, MapPin, Building2, User, Users, Phone, Mail, Globe } from 'lucide-react';
 import { businessAPI, peopleAPI } from '../utils/api';
 import { formatPersonName } from '../utils/personName';
+import { useProject } from '../contexts/ProjectContext';
 
 const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [formData, setFormData] = useState({
@@ -64,11 +66,12 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         notes: business.notes || ''
       });
     }
-  }, [business]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [business, activeProjectId]);
 
   const fetchPeople = async () => {
     try {
-      const { data: peopleList } = await peopleAPI.getAll();
+      const { data: peopleList } = await peopleAPI.getAll({ project_id: activeProjectId });
       setPeople(peopleList);
     } catch (error) {
       console.error('Error fetching people:', error);
@@ -78,7 +81,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
   // Candidates for the owning-business picker (ownership chains, issue #65)
   const fetchBusinesses = async () => {
     try {
-      const list = await businessAPI.getAll();
+      const list = await businessAPI.getAll({ project_id: activeProjectId });
       setBusinesses(Array.isArray(list) ? list : list?.data ?? []);
     } catch (error) {
       console.error('Error fetching businesses:', error);
@@ -87,13 +90,18 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!business && !activeProjectId) {
+      alert(t('businessForm.errorNoActiveProject'));
+      return;
+    }
+
     try {
       let savedBusiness;
       if (business) {
         savedBusiness = await businessAPI.update(business.id, formData);
       } else {
-        savedBusiness = await businessAPI.create(formData);
+        savedBusiness = await businessAPI.create({ ...formData, project_id: activeProjectId });
       }
       onSave(savedBusiness);
     } catch (error) {

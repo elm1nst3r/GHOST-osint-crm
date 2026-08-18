@@ -3,9 +3,11 @@ import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Upload, FileText, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { wirelessNetworksAPI } from '../utils/api';
+import { useProject } from '../contexts/ProjectContext';
 
 const ImportKML = ({ onClose, onImportComplete }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -163,13 +165,17 @@ const ImportKML = ({ onClose, onImportComplete }) => {
       setError(t('importKmlModal.errorSelectFileFirst'));
       return;
     }
+    if (!activeProjectId) {
+      setError(t('importKmlModal.errorNoActiveProject'));
+      return;
+    }
 
     setImporting(true);
     setShowPreview(false);
     setError(null);
 
     try {
-      const result = await wirelessNetworksAPI.importKML(file);
+      const result = await wirelessNetworksAPI.importKML(file, activeProjectId);
       setImportResult(result);
 
       // Call completion callback after short delay

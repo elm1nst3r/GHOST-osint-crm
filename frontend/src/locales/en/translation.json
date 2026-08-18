@@ -458,6 +458,7 @@
     "globalRelationshipOverview": "Global Relationship Overview",
     "viewFullNetwork": "View Full Network →",
     "errorAddTodo": "Failed to add todo",
+    "errorNoActiveProject": "Select a project before adding a todo.",
     "errorUpdateTodo": "Failed to update todo",
     "errorDeleteTodo": "Failed to delete todo",
     "todoStatus": {
@@ -583,6 +584,7 @@
     "fullEdit": "Full Edit",
     "noPeopleYet": "No people added yet. Click \"Quick Add\" to get started!",
     "errorFirstNameRequired": "First name is required",
+    "errorNoActiveProject": "Select a project before adding people.",
     "errorUpdatePerson": "Failed to update person",
     "csvMustHaveHeader": "CSV must have a header row and at least one data row",
     "csvParseErrorsPrefix": "CSV parse errors:",
@@ -707,6 +709,7 @@
   "businessForm": {
     "editTitle": "Edit Business",
     "addTitle": "Add New Business",
+    "errorNoActiveProject": "Select a project before adding a business.",
     "basicInformation": "Basic Information",
     "businessNameRequired": "Business Name *",
     "type": "Type",
@@ -800,6 +803,7 @@
     "description": "Description",
     "notes": "Notes",
     "errorNameRequired": "Name is required",
+    "errorNoActiveProject": "Select a project before adding a property.",
     "errorSaveProperty": "Failed to save property"
   },
   "assetForm": {
@@ -840,6 +844,7 @@
     "notes": "Notes",
     "errorNameRequired": "Name is required",
     "errorLocationPersonRequired": "Pick a person for the pinned location",
+    "errorNoActiveProject": "Select a project before adding an asset.",
     "errorSaveAsset": "Failed to save asset"
   },
   "transactionForm": {
@@ -881,6 +886,7 @@
     "notes": "Notes",
     "errorTypeRequired": "Transaction type is required",
     "errorPartyRequired": "At least one party (giver or receiver) is required",
+    "errorNoActiveProject": "Select a project before adding a transaction.",
     "errorSaveTransaction": "Failed to save transaction",
     "tags": "Tags",
     "tagsPlaceholder": "city-council-conflict-of-interest, follow-up",
@@ -1108,6 +1114,7 @@
   },
   "addNetworkForm": {
     "title": "Add Network Manually",
+    "errorNoActiveProject": "Select a project before adding a network.",
     "networkIdentification": "Network Identification",
     "ssidLabel": "SSID (Network Name)",
     "bssidLabel": "BSSID (MAC Address)",
@@ -1148,6 +1155,7 @@
     "errorInvalidKmlFormat": "Invalid KML file format",
     "errorParseKmlFile": "Failed to parse KML file: {{message}}",
     "errorSelectFileFirst": "Please select a file first",
+    "errorNoActiveProject": "Select a project before importing.",
     "errorImportKmlFile": "Failed to import KML file",
     "title": "Import WiGLE KML File",
     "subtitle": "Upload your WiGLE wardriving export",

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Receipt } from 'lucide-react';
 import { transactionsAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { useProject } from '../contexts/ProjectContext';
 import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
@@ -39,6 +40,7 @@ const PartyPicker = ({ title, kind, setKind, id, setId, external, setExternal, p
 const AddEditTransactionForm = ({ transaction, onClose }) => {
   const { t } = useTranslation();
   const { people, businesses, assets, properties, fetchTransactions } = useData();
+  const { activeProjectId } = useProject();
   const isEdit = !!transaction;
   const [typeOptions, setTypeOptions] = useState([]);
   const [itemCategoryOptions, setItemCategoryOptions] = useState([]);
@@ -104,13 +106,15 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
       setTypeOptions(d.filter(o => o.model_type === 'transaction_type' && o.is_active));
       setItemCategoryOptions(d.filter(o => o.model_type === 'transaction_item_category' && o.is_active));
     }).catch(() => {});
-    casesAPI.getAll().then(setCases).catch(() => {});
-  }, []);
+    casesAPI.getAll({ project_id: activeProjectId }).then(setCases).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!transaction_type) { setError(t('transactionForm.errorTypeRequired')); return; }
     if (fromKind === 'none' && toKind === 'none') { setError(t('transactionForm.errorPartyRequired')); return; }
+    if (!isEdit && !activeProjectId) { setError(t('transactionForm.errorNoActiveProject')); return; }
 
     const payload = {
       transaction_type,
@@ -144,7 +148,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
     setError('');
     try {
       if (isEdit) await transactionsAPI.update(transaction.id, payload);
-      else await transactionsAPI.create(payload);
+      else await transactionsAPI.create({ ...payload, project_id: activeProjectId });
       await fetchTransactions(0);
       onClose();
     } catch (err) {

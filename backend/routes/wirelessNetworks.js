@@ -136,6 +136,10 @@ router.post('/import-kml', requireAuth, (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ error: 'KML file is required' });
     }
+    const projectId = req.body.project_id ? parseInt(req.body.project_id, 10) : null;
+    if (!projectId) {
+      return res.status(400).json({ error: 'project_id is required' });
+    }
 
     const kmlContent = req.file.buffer.toString('utf-8');
     const parser = new xml2js.Parser();
@@ -190,15 +194,15 @@ router.post('/import-kml', requireAuth, (req, res, next) => {
         const result = await pool.query(
           `INSERT INTO wireless_networks (
             ssid, bssid, latitude, longitude, accuracy, encryption, signal_strength,
-            network_type, confidence_level, scan_date, import_source
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            network_type, confidence_level, scan_date, import_source, project_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (bssid, latitude, longitude, scan_date)
           DO UPDATE SET
             signal_strength = GREATEST(wireless_networks.signal_strength, EXCLUDED.signal_strength),
             last_seen = CURRENT_TIMESTAMP
           RETURNING *`,
           [name, bssid, latitude, longitude, accuracy, encryption, signal,
-           networkType, confidence, timestamp, importSource]
+           networkType, confidence, timestamp, importSource, projectId]
         );
 
         importedNetworks.push(result.rows[0]);
