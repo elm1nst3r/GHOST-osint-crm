@@ -279,6 +279,7 @@ const projectBaseFields = {
   description: optStr(2000),
   status: z.enum(['active', 'on_hold', 'closed']).nullable().optional(),
   allow_cross_linking: z.boolean().nullable().optional(),
+  icon: optStr(8),
 };
 
 const ProjectCreateSchema = z.object({

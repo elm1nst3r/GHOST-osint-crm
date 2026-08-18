@@ -1729,8 +1729,16 @@
     "noneSelected": "No project selected",
     "none": "No projects yet",
     "namePlaceholder": "Project name...",
+    "iconPlaceholder": "🗂",
     "newProject": "New Project",
-    "errorCreate": "Failed to create project"
+    "errorCreate": "Failed to create project",
+    "errorUpdate": "Failed to update project",
+    "errorDelete": "Failed to delete project",
+    "confirmDelete": "Delete project \"{{name}}\"? This only works if it has no data left in it.",
+    "statusActive": "Active",
+    "statusOnHold": "On Hold",
+    "statusClosed": "Closed",
+    "allowCrossLinking": "Allow linking to entities in other projects"
   },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",

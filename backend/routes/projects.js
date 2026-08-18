@@ -26,13 +26,13 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, validate(ProjectCreateSchema), async (req, res) => {
-  const { name, description, status, allow_cross_linking } = req.body;
+  const { name, description, status, allow_cross_linking, icon } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO projects (name, description, status, allow_cross_linking)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [name, description || null, status || 'active', allow_cross_linking || false]
+      `INSERT INTO projects (name, description, status, allow_cross_linking, icon)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, description || null, status || 'active', allow_cross_linking || false, icon || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -46,13 +46,13 @@ router.post('/', requireAuth, validate(ProjectCreateSchema), async (req, res) =>
 
 router.put('/:id', requireAuth, validateIdParam, validate(ProjectUpdateSchema), async (req, res) => {
   const projectId = req.params.id;
-  const { name, description, status, allow_cross_linking } = req.body;
+  const { name, description, status, allow_cross_linking, icon } = req.body;
 
   try {
     const result = await pool.query(
-      `UPDATE projects SET name = $1, description = $2, status = $3, allow_cross_linking = $4
-       WHERE id = $5 RETURNING *`,
-      [name, description || null, status || 'active', allow_cross_linking || false, projectId]
+      `UPDATE projects SET name = $1, description = $2, status = $3, allow_cross_linking = $4, icon = $5
+       WHERE id = $6 RETURNING *`,
+      [name, description || null, status || 'active', allow_cross_linking || false, icon || null, projectId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Project not found' });
     res.json(result.rows[0]);
