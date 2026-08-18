@@ -161,6 +161,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
 
     res.status(201).json(newBusiness);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error creating business:', err);
     res.status(500).json({ error: 'Failed to create business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }
@@ -259,6 +260,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
 
     res.json(updatedBusiness);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error updating business:', err);
     res.status(500).json({ error: 'Failed to update business', ...(process.env.NODE_ENV !== 'production' && { detail: err.message }) });
   }

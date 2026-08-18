@@ -1760,6 +1760,8 @@
     "importTools": "Import"
   },
   "personDetailModal": {
+    "otherProjectBadge": "From project: {{project}} (not your active project)",
+    "otherProjectUnknown": "unknown",
     "confirmRemoveLocation": "Remove this location?",
     "errorDeleteLocation": "Failed to delete location",
     "generateReportTitle": "Generate Report",

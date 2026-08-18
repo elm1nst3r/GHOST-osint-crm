@@ -428,9 +428,9 @@ export const wirelessNetworksAPI = {
     method: 'DELETE',
   }),
 
-  bulkDelete: (ids) => fetchAPI('/wireless-networks/bulk-delete', {
+  bulkDelete: (ids, projectId) => fetchAPI('/wireless-networks/bulk-delete', {
     method: 'POST',
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify({ ids, project_id: projectId }),
   }),
 
   importKML: async (file, projectId) => {

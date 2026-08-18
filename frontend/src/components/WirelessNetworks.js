@@ -100,7 +100,7 @@ const WirelessNetworks = () => {
     if (!window.confirm(t('wirelessNetworks.confirmBulkDelete', { count: selectedNetworks.length }))) return;
 
     try {
-      await wirelessNetworksAPI.bulkDelete(selectedNetworks);
+      await wirelessNetworksAPI.bulkDelete(selectedNetworks, activeProjectId);
       setSelectedNetworks([]);
       fetchNetworks();
       fetchStats();

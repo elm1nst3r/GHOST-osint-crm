@@ -20,6 +20,20 @@ async function fetchEntityProject(entityType, entityId) {
   return rows[0]?.project_id ?? null;
 }
 
+// Shared by POST / and the sync helpers below -- a relationship whose two
+// endpoints are in different projects is only allowed if the relationship's
+// own project has allow_cross_linking on. Throws (with a 409 statusCode) so
+// the caller's request fails loudly instead of silently dropping the link.
+async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetProjectId) {
+  if (sourceProjectId === targetProjectId) return;
+  const { rows } = await pool.query('SELECT allow_cross_linking FROM projects WHERE id = $1', [relationshipProjectId]);
+  if (!rows[0] || !rows[0].allow_cross_linking) {
+    const err = new Error('Cannot link entities from different projects unless the project has allow_cross_linking enabled');
+    err.statusCode = 409;
+    throw err;
+  }
+}
+
 // Converges a person's person->person relationship rows to match an incoming
 // `connections` array (issue #83's replacement for the old person.connections
 // JSONB write path). Full replace rather than a field-by-field diff: simpler,
@@ -33,6 +47,20 @@ async function syncPersonConnections(personId, projectId, caseId, connections) {
       relationship_type: c.type || 'other',
       note: c.note || null,
     }));
+
+  // Cross-project check per target, same rule as POST /relationships -- this
+  // is the write path AddEditPersonForm actually uses, so skipping it here
+  // would let a deep-linked out-of-project edit bypass allow_cross_linking
+  // entirely (issue #83 follow-up).
+  for (const c of desired) {
+    const targetProjectId = await fetchEntityProject('person', c.target_id);
+    if (targetProjectId === null) {
+      const err = new Error(`person ${c.target_id} not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+    await assertLinkAllowed(projectId, projectId, targetProjectId);
+  }
 
   await pool.query(
     `DELETE FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
@@ -73,6 +101,18 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
         note: e.role || null,
       });
     }
+  }
+
+  // Same cross-project guard as syncPersonConnections -- checked before any
+  // DELETE so a rejected save doesn't lose existing relationships.
+  for (const d of desired) {
+    const targetProjectId = await fetchEntityProject(d.target_type, d.target_id);
+    if (targetProjectId === null) {
+      const err = new Error(`${d.target_type} ${d.target_id} not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+    await assertLinkAllowed(projectId, projectId, targetProjectId);
   }
 
   // Scoped to the relationship_types this function manages, not every row
@@ -131,14 +171,7 @@ router.post('/', requireAuth, validate(RelationshipCreateSchema), async (req, re
     if (sourceProjectId === null) return res.status(404).json({ error: `${source_type} ${source_id} not found` });
     if (targetProjectId === null) return res.status(404).json({ error: `${target_type} ${target_id} not found` });
 
-    if (sourceProjectId !== targetProjectId) {
-      const { rows } = await pool.query('SELECT allow_cross_linking FROM projects WHERE id = $1', [project_id]);
-      if (!rows[0] || !rows[0].allow_cross_linking) {
-        return res.status(409).json({
-          error: 'Cannot link entities from different projects unless the project has allow_cross_linking enabled',
-        });
-      }
-    }
+    await assertLinkAllowed(project_id, sourceProjectId, targetProjectId);
 
     const result = await pool.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
@@ -147,6 +180,7 @@ router.post('/', requireAuth, validate(RelationshipCreateSchema), async (req, re
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error creating relationship:', err);
     res.status(500).json({ error: 'Failed to create relationship' });
   }

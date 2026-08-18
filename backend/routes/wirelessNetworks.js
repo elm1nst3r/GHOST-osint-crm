@@ -105,14 +105,25 @@ router.get('/nearby', requireAuth, async (req, res) => {
 // POST /bulk-delete — bulk delete wireless networks (admin only)
 router.post('/bulk-delete', requireAdmin, async (req, res) => {
   try {
-    const { ids } = req.body;
+    const { ids, project_id } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'IDs array is required' });
     }
 
+    // project_id is optional here (admin tooling may legitimately need to
+    // clean up across projects), but when the caller supplies it -- as the
+    // UI now always does, since its id list only ever comes from the active
+    // project's own filtered view -- scope the delete to it as a guard
+    // against an id list that accidentally spans projects.
+    const params = [ids];
+    let projectClause = '';
+    if (project_id) {
+      params.push(parseInt(project_id, 10));
+      projectClause = ' AND project_id = $2';
+    }
     const result = await pool.query(
-      'DELETE FROM wireless_networks WHERE id = ANY($1::int[]) RETURNING id',
-      [ids]
+      `DELETE FROM wireless_networks WHERE id = ANY($1::int[])${projectClause} RETURNING id`,
+      params
     );
 
     res.json({ message: `Deleted ${result.rowCount} wireless networks`, deletedIds: result.rows.map(r => r.id) });

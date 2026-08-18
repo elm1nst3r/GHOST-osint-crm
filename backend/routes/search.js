@@ -8,23 +8,29 @@ const { apiLimiter } = require('../middleware/rateLimiters');
 router.use(apiLimiter);
 // Universal search
 router.get('/', requireAuth, async (req, res) => {
-  const { q } = req.query;
+  const { q, project_id } = req.query;
   if (typeof q !== 'string' || q.length < 2) {
     return res.json({ people: [], tools: [] });
   }
 
   try {
     const searchTerm = `%${q.toLowerCase()}%`;
+    const peopleParams = [searchTerm];
+    let projectClause = '';
+    if (project_id) {
+      peopleParams.push(parseInt(project_id, 10));
+      projectClause = ` AND project_id = $${peopleParams.length}`;
+    }
 
     const peopleQuery = `
       SELECT id, first_name, last_name, patronymic, category, case_name
       FROM people
-      WHERE LOWER(first_name) LIKE $1
+      WHERE (LOWER(first_name) LIKE $1
          OR LOWER(last_name) LIKE $1
          OR LOWER(patronymic) LIKE $1
          OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $1
          OR EXISTS (SELECT 1 FROM unnest(aliases) AS alias WHERE LOWER(alias) LIKE $1)
-         OR LOWER(case_name) LIKE $1
+         OR LOWER(case_name) LIKE $1)${projectClause}
       LIMIT 10
     `;
 
@@ -38,7 +44,7 @@ router.get('/', requireAuth, async (req, res) => {
     `;
 
     const [peopleResult, toolsResult] = await Promise.all([
-      pool.query(peopleQuery, [searchTerm]),
+      pool.query(peopleQuery, peopleParams),
       pool.query(toolsQuery, [searchTerm])
     ]);
 
@@ -58,6 +64,11 @@ router.get('/advanced', requireAuth, async (req, res) => {
     let query = 'SELECT * FROM people WHERE 1=1';
     const queryParams = [];
     let paramCount = 0;
+
+    if (req.query.project_id) {
+      query += ` AND project_id = $${++paramCount}`;
+      queryParams.push(parseInt(req.query.project_id, 10));
+    }
 
     if (typeof req.query.searchText === 'string' && req.query.searchText) {
       const searchConditions = [];

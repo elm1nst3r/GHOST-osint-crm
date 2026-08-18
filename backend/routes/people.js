@@ -168,6 +168,7 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
 
     res.status(201).json(newPerson);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error creating person:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to create person' });
   }
@@ -336,6 +337,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
 
     res.json(newPerson);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error updating person:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to update person' });
   }
