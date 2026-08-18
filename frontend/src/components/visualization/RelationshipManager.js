@@ -11,6 +11,7 @@ import {
 import { casesAPI, businessesAPI, transactionsAPI } from '../../utils/api';
 import { DEFAULT_EDGE_LAYERS, EDGE_LAYERS } from '../../utils/edgeLayers';
 import { formatPersonName } from '../../utils/personName';
+import { useProject } from '../../contexts/ProjectContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -20,6 +21,7 @@ const RelationshipManager = ({
   onClose = null
 }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [cases, setCases] = useState([]);
@@ -57,7 +59,8 @@ const RelationshipManager = ({
       setError(null);
       
       console.log('=== RelationshipManager: Fetching people ===');
-      const response = await fetch(`${API_BASE_URL}/people`, {
+      const projectParam = activeProjectId ? `?project_id=${activeProjectId}` : '';
+      const response = await fetch(`${API_BASE_URL}/people${projectParam}`, {
         credentials: 'include'
       });
 
@@ -109,13 +112,13 @@ const RelationshipManager = ({
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, activeProjectId]);
 
   // Fetch businesses
   const fetchBusinesses = useCallback(async () => {
     try {
       console.log('=== RelationshipManager: Fetching businesses ===');
-      const data = await businessesAPI.getAll();
+      const data = await businessesAPI.getAll({ project_id: activeProjectId });
       console.log('Fetched businesses count:', data.length);
       
       // Transform businesses to have a similar structure to people for the diagram
@@ -147,24 +150,24 @@ const RelationshipManager = ({
     } catch (err) {
       console.error('Error fetching businesses:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   // Fetch cases
   const fetchCases = useCallback(async () => {
     try {
-      const data = await casesAPI.getAll();
+      const data = await casesAPI.getAll({ project_id: activeProjectId });
       setCases(data);
     } catch (err) {
       console.error('Error fetching cases:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   // Derive graph edges from the transaction log (issue #50): one aggregated
   // edge per giver→receiver pair. External (free-text) parties have no node,
   // so only person/business references become edges.
   const fetchTransactionEdges = useCallback(async () => {
     try {
-      const res = await transactionsAPI.getAll({ limit: 1000 });
+      const res = await transactionsAPI.getAll({ limit: 1000, project_id: activeProjectId });
       const list = res.data || [];
       const agg = new Map();
       list.forEach(t => {
@@ -189,7 +192,7 @@ const RelationshipManager = ({
     } catch (err) {
       console.error('Error fetching transaction edges:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     fetchPeople();

@@ -86,7 +86,7 @@ export const peopleAPI = {
 
 // Businesses API
 export const businessesAPI = {
-  getAll: () => fetchAPI('/businesses'),
+  getAll: (params = {}) => fetchAPI(`/businesses${buildQuery(params)}`),
   
   create: (businessData) => fetchAPI('/businesses', {
     method: 'POST',
@@ -149,7 +149,7 @@ export const todosAPI = {
 
 // Cases API
 export const casesAPI = {
-  getAll: () => fetchAPI('/cases'),
+  getAll: (params = {}) => fetchAPI(`/cases${buildQuery(params)}`),
   
   create: (caseData) => fetchAPI('/cases', {
     method: 'POST',
