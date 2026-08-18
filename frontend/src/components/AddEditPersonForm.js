@@ -69,12 +69,13 @@ const AddEditPersonForm = () => {
       } catch { setOptionsLoadError(true); }
     };
     const loadCases = async () => {
-      try { setExistingCases(await casesAPI.getAll()); }
+      try { setExistingCases(await casesAPI.getAll({ project_id: activeProjectId })); }
       catch { setOptionsLoadError(true); }
     };
     loadModelOptions();
     loadCases();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (person) {

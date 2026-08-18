@@ -78,9 +78,9 @@ const GlobalMap = () => {
   const fetchTransactionLayers = async () => {
     try {
       const [props, asts, txns] = await Promise.all([
-        propertiesAPI.getAll({ limit: 1000 }),
-        assetsAPI.getAll({ limit: 1000 }),
-        transactionsAPI.getAll({ limit: 1000 }),
+        propertiesAPI.getAll({ limit: 1000, project_id: activeProjectId }),
+        assetsAPI.getAll({ limit: 1000, project_id: activeProjectId }),
+        transactionsAPI.getAll({ limit: 1000, project_id: activeProjectId }),
       ]);
       setProperties((props.data || []).filter(p => p.latitude && p.longitude));
       setAssets((asts.data || []).filter(a => a.resolved_location && a.resolved_location.latitude != null));
@@ -151,7 +151,7 @@ const GlobalMap = () => {
 
   const fetchWirelessNetworks = async () => {
     try {
-      const networks = await wirelessNetworksAPI.getAll();
+      const networks = await wirelessNetworksAPI.getAll({ project_id: activeProjectId });
       setWirelessNetworks(networks.filter(n => n.latitude && n.longitude));
     } catch (error) {
       console.error('Error fetching wireless networks:', error);

@@ -10,6 +10,7 @@ import { useModelOptions } from '../utils/useModelOptions';
 import PeopleTableView from './PeopleTableView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 
 // Threshold above which the card list switches to react-window virtualization
@@ -24,6 +25,7 @@ const PeopleList = () => {
   const personCategories = translateOptions(t, 'person_category', categoryOptions);
   const personStatuses = translateOptions(t, 'person_status', statusOptions);
   const { people, fetchPeople, peopleMeta, loadMorePeople } = useData();
+  const { activeProjectId } = useProject();
   const { setShowAddPersonForm, setEditingPerson, setSelectedPersonForDetail } = useUI();
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,11 +38,12 @@ const PeopleList = () => {
 
   useEffect(() => {
     fetchCases();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const fetchCases = async () => {
     try {
-      const casesData = await casesAPI.getAll();
+      const casesData = await casesAPI.getAll({ project_id: activeProjectId });
       setCases(casesData);
     } catch (error) {
       console.error('Error fetching cases:', error);

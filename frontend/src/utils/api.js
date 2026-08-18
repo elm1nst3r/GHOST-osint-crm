@@ -130,7 +130,7 @@ export const toolsAPI = {
 
 // Todos API
 export const todosAPI = {
-  getAll: () => fetchAPI('/todos'),
+  getAll: (params = {}) => fetchAPI(`/todos${buildQuery(params)}`),
   
   create: (todoData) => fetchAPI('/todos', {
     method: 'POST',
@@ -326,7 +326,7 @@ export const uploadLogo = async (file) => {
 
 // Locations API
 export const locationsAPI = {
-  getAll: () => fetchAPI('/locations'),
+  getAll: (params = {}) => fetchAPI(`/locations${buildQuery(params)}`),
 };
 
 // Advanced Search API
@@ -374,7 +374,7 @@ export const travelHistoryAPI = {
 
 // Business API
 export const businessAPI = {
-  getAll: () => fetchAPI('/businesses'),
+  getAll: (params = {}) => fetchAPI(`/businesses${buildQuery(params)}`),
   
   getById: (id) => fetchAPI(`/businesses/${id}`),
   
@@ -452,7 +452,7 @@ export const wirelessNetworksAPI = {
     return response.json();
   },
 
-  getStats: () => fetchAPI('/wireless-networks/stats'),
+  getStats: (params = {}) => fetchAPI(`/wireless-networks/stats${buildQuery(params)}`),
 
   getNearby: (latitude, longitude, radius = 0.5) =>
     fetchAPI(`/wireless-networks/nearby?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),

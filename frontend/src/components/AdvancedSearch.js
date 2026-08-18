@@ -77,7 +77,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
   const loadInitialData = async () => {
     try {
       const [casesData, { data: peopleData }, customFieldsData, modelOptionsData] = await Promise.all([
-        casesAPI.getAll(),
+        casesAPI.getAll({ project_id: activeProjectId }),
         peopleAPI.getAll({ limit: 1000, project_id: activeProjectId }),
         customFieldsAPI.getAll(),
         modelOptionsAPI.getAll()

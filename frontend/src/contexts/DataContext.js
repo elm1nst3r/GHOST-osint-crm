@@ -61,12 +61,12 @@ export const DataProvider = ({ children }) => {
 
   const fetchBusinesses = useCallback(async () => {
     try {
-      const data = await businessAPI.getAll();
+      const data = await businessAPI.getAll({ project_id: activeProjectId });
       setBusinesses(data);
     } catch (err) {
       console.error('Error fetching businesses:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   const fetchTools = useCallback(async () => {
     try {
@@ -79,12 +79,12 @@ export const DataProvider = ({ children }) => {
 
   const fetchTodos = useCallback(async () => {
     try {
-      const data = await todosAPI.getAll();
+      const data = await todosAPI.getAll({ project_id: activeProjectId });
       setTodos(data);
     } catch (err) {
       console.error('Error fetching todos:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   const fetchCustomFields = useCallback(async () => {
     try {
@@ -97,38 +97,38 @@ export const DataProvider = ({ children }) => {
 
   const fetchProperties = useCallback(async (offset = 0) => {
     try {
-      const { data, meta } = await propertiesAPI.getAll({ limit: PAGE_SIZE, offset });
+      const { data, meta } = await propertiesAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
       if (offset === 0) { setProperties(data); propertiesLoadedRef.current = data.length; }
       else { setProperties(prev => [...prev, ...data]); propertiesLoadedRef.current += data.length; }
       setPropertiesMeta({ total: meta.total, hasMore: meta.hasMore });
     } catch (err) {
       console.error('Error fetching properties:', err);
     }
-  }, []);
+  }, [activeProjectId]);
   const loadMoreProperties = useCallback(async () => { await fetchProperties(propertiesLoadedRef.current); }, [fetchProperties]);
 
   const fetchAssets = useCallback(async (offset = 0) => {
     try {
-      const { data, meta } = await assetsAPI.getAll({ limit: PAGE_SIZE, offset });
+      const { data, meta } = await assetsAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
       if (offset === 0) { setAssets(data); assetsLoadedRef.current = data.length; }
       else { setAssets(prev => [...prev, ...data]); assetsLoadedRef.current += data.length; }
       setAssetsMeta({ total: meta.total, hasMore: meta.hasMore });
     } catch (err) {
       console.error('Error fetching assets:', err);
     }
-  }, []);
+  }, [activeProjectId]);
   const loadMoreAssets = useCallback(async () => { await fetchAssets(assetsLoadedRef.current); }, [fetchAssets]);
 
   const fetchTransactions = useCallback(async (offset = 0) => {
     try {
-      const { data, meta } = await transactionsAPI.getAll({ limit: PAGE_SIZE, offset });
+      const { data, meta } = await transactionsAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
       if (offset === 0) { setTransactions(data); transactionsLoadedRef.current = data.length; }
       else { setTransactions(prev => [...prev, ...data]); transactionsLoadedRef.current += data.length; }
       setTransactionsMeta({ total: meta.total, hasMore: meta.hasMore });
     } catch (err) {
       console.error('Error fetching transactions:', err);
     }
-  }, []);
+  }, [activeProjectId]);
   const loadMoreTransactions = useCallback(async () => { await fetchTransactions(transactionsLoadedRef.current); }, [fetchTransactions]);
 
   const refreshAll = useCallback(async () => {

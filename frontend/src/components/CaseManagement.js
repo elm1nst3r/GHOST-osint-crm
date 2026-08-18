@@ -36,7 +36,8 @@ const CaseManagement = () => {
 
   useEffect(() => {
     fetchCases();
-  }, [people]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [people, activeProjectId]);
 
   useEffect(() => {
     setNewCaseData(prev => (prev.project_id ? prev : { ...prev, project_id: defaultNewCaseProjectId() }));
@@ -45,7 +46,7 @@ const CaseManagement = () => {
 
   const fetchCases = async () => {
     try {
-      const casesData = await casesAPI.getAll();
+      const casesData = await casesAPI.getAll({ project_id: activeProjectId });
       
       // Process cases to add people count and other stats
       const processedCases = casesData.map(caseItem => {

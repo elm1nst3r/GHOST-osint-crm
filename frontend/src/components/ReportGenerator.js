@@ -71,11 +71,11 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     setLoading(true);
     try {
       const [casesData, peopleRaw, businessesData, locationsData, todosData] = await Promise.all([
-        casesAPI.getAll(),
+        casesAPI.getAll({ project_id: activeProjectId }),
         peopleAPI.getAll({ limit: 10000, project_id: activeProjectId }),
-        businessesAPI.getAll(),
-        locationsAPI.getAll(),
-        todosAPI.getAll(),
+        businessesAPI.getAll({ project_id: activeProjectId }),
+        locationsAPI.getAll({ project_id: activeProjectId }),
+        todosAPI.getAll({ project_id: activeProjectId }),
       ]);
 
       // peopleAPI.getAll returns { data, meta } due to returnMeta: true

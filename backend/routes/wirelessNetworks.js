@@ -18,6 +18,13 @@ router.use(apiLimiter);
 // GET /stats — wireless network statistics
 router.get('/stats', requireAuth, async (req, res) => {
   try {
+    const params = [];
+    let whereSql = '';
+    if (req.query.project_id) {
+      params.push(parseInt(req.query.project_id, 10));
+      whereSql = `WHERE project_id = $${params.length}`;
+    }
+
     const stats = await pool.query(`
       SELECT
         COUNT(*) as total,
@@ -32,21 +39,24 @@ router.get('/stats', requireAuth, async (req, res) => {
         COUNT(CASE WHEN encryption IN ('Open', 'Unknown') THEN 1 END) as open_count,
         AVG(signal_strength) as avg_signal
       FROM wireless_networks
-    `);
+      ${whereSql}
+    `, params);
 
     const byType = await pool.query(`
       SELECT network_type, COUNT(*) as count
       FROM wireless_networks
+      ${whereSql}
       GROUP BY network_type
       ORDER BY count DESC
-    `);
+    `, params);
 
     const byEncryption = await pool.query(`
       SELECT encryption, COUNT(*) as count
       FROM wireless_networks
+      ${whereSql}
       GROUP BY encryption
       ORDER BY count DESC
-    `);
+    `, params);
 
     res.json({
       ...stats.rows[0],

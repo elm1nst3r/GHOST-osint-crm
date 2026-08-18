@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css';
 import { Link, UserPlus, Bug, Building2, Landmark, Network } from 'lucide-react';
 import { transactionsAPI } from '../utils/api';
 import { formatPersonName } from '../utils/personName';
+import { useProject } from '../contexts/ProjectContext';
 
 // Debug component to show data structure
 const DebugPanel = ({ people, nodes, edges, show }) => {
@@ -150,6 +151,7 @@ const RelationshipDiagram = ({
   onLayoutTypeChange = null
 }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   // Edge styles
   const edgeStyles = useMemo(() => ({
     family: { stroke: '#10b981', strokeWidth: 3, label: t('relationshipDiagram.edgeStyles.family') },
@@ -177,10 +179,10 @@ const RelationshipDiagram = ({
   const [txData, setTxData] = useState([]);
 
   useEffect(() => {
-    transactionsAPI.getAll({ limit: 1000 })
+    transactionsAPI.getAll({ limit: 1000, project_id: activeProjectId })
       .then(r => setTxData(r.data || []))
       .catch(err => console.error('Error loading transactions for graph:', err));
-  }, []);
+  }, [activeProjectId]);
 
   // Helper function to get full name
   const getFullName = useCallback(

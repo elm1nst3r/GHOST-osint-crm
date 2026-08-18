@@ -46,7 +46,7 @@ const WirelessNetworks = () => {
   const fetchNetworks = async () => {
     try {
       setLoading(true);
-      const data = await wirelessNetworksAPI.getAll(filters);
+      const data = await wirelessNetworksAPI.getAll({ ...filters, project_id: activeProjectId });
       setNetworks(data);
 
       // Extract unique import sources
@@ -62,7 +62,7 @@ const WirelessNetworks = () => {
 
   const fetchStats = async () => {
     try {
-      const data = await wirelessNetworksAPI.getStats();
+      const data = await wirelessNetworksAPI.getStats({ project_id: activeProjectId });
       setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
