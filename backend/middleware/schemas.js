@@ -61,8 +61,14 @@ const optArray = (item) =>
 // NOTE: people.js uses camelCase body keys (firstName, lastName, etc.)
 
 const personLocationSchema = z.object({
+  type: optStr(100),
   label: optStr(500),
   address: optStr(500),
+  city: optStr(255),
+  state: optStr(255),
+  country: optStr(255),
+  postal_code: optStr(50),
+  notes: optStr(1000),
   latitude: optNum(z.number().min(-90).max(90)),
   longitude: optNum(z.number().min(-180).max(180)),
 });
