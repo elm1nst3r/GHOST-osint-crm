@@ -186,6 +186,8 @@ const spec = {
       ToolBulkImport: toSchema(S.ToolBulkImportSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
+      ProjectCreate: toSchema(S.ProjectCreateSchema),
+      ProjectUpdate: toSchema(S.ProjectUpdateSchema),
       TodoCreate: toSchema(S.TodoCreateSchema),
       TodoUpdate: toSchema(S.TodoUpdateSchema),
       TravelHistoryCreate: toSchema(S.TravelHistoryCreateSchema),
@@ -294,6 +296,7 @@ const spec = {
     },
     ...crudPaths('Todos', '/todos', 'TodoCreate', 'TodoUpdate', { getById: false }),
     ...crudPaths('Cases', '/cases', 'CaseCreate', 'CaseUpdate', { getById: false }),
+    ...crudPaths('Projects', '/projects', 'ProjectCreate', 'ProjectUpdate', { getById: false }),
 
     // ── Properties ──
     ...crudPaths('Properties', '/properties', 'PropertyCreate', 'PropertyUpdate', {

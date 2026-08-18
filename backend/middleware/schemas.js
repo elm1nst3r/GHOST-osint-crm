@@ -43,6 +43,14 @@ const optNum = (inner) =>
 
 const optId = () => optNum(z.number().int().positive());
 
+// Required id: same coercion as optId (numeric string, number), but rejects
+// null/''/undefined — for project_id, which is a NOT NULL FK on every
+// case-scoped table (issue #83).
+const reqId = (label) =>
+  z
+    .union([z.number(), z.string().min(1, `${label} is required`).transform(Number)])
+    .pipe(z.number().int().positive({ message: `${label} must be a positive integer` }));
+
 const dateString = z
   .union([
     z
@@ -253,6 +261,26 @@ const CaseCreateSchema = z.object({
 const CaseUpdateSchema = z.object({
   case_name: z.string().min(1, 'Case name is required').max(255),
   ...caseBaseFields,
+});
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+// The hard isolation boundary (issue #83) — a project is close to "a fresh
+// database" per investigation. Cases (above) nest inside a project.
+
+const projectBaseFields = {
+  description: optStr(2000),
+  status: z.enum(['active', 'on_hold', 'closed']).nullable().optional(),
+  allow_cross_linking: z.boolean().nullable().optional(),
+};
+
+const ProjectCreateSchema = z.object({
+  name: z.string().min(1, 'Project name is required').max(255),
+  ...projectBaseFields,
+});
+
+const ProjectUpdateSchema = z.object({
+  name: z.string().min(1, 'Project name is required').max(255),
+  ...projectBaseFields,
 });
 
 // ── Todos ─────────────────────────────────────────────────────────────────────
@@ -480,6 +508,8 @@ module.exports = {
   ToolUpdateSchema,
   CaseCreateSchema,
   CaseUpdateSchema,
+  ProjectCreateSchema,
+  ProjectUpdateSchema,
   TodoCreateSchema,
   TodoUpdateSchema,
   TravelHistoryCreateSchema,
