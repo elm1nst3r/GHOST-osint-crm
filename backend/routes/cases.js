@@ -10,7 +10,12 @@ const { apiLimiter } = require('../middleware/rateLimiters');
 router.use(apiLimiter);
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM cases ORDER BY case_name ASC');
+    const where = [];
+    const params = [];
+    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`project_id = $${params.length}`); }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const result = await pool.query(`SELECT * FROM cases ${whereClause} ORDER BY case_name ASC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching cases:', err);
@@ -19,12 +24,12 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, validate(CaseCreateSchema), async (req, res) => {
-  const { case_name, description } = req.body;
+  const { case_name, description, project_id } = req.body;
 
   try {
     const result = await pool.query(
-      'INSERT INTO cases (case_name, description) VALUES ($1, $2) RETURNING *',
-      [case_name, description || null]
+      'INSERT INTO cases (case_name, description, project_id) VALUES ($1, $2, $3) RETURNING *',
+      [case_name, description || null, project_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

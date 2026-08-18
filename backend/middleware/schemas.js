@@ -262,6 +262,7 @@ const caseBaseFields = {
 
 const CaseCreateSchema = z.object({
   case_name: z.string().min(1, 'Case name is required').max(255),
+  project_id: reqId('project_id'),
   ...caseBaseFields,
 });
 

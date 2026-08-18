@@ -479,6 +479,7 @@
     "caseNamePlaceholder": "Enter case name...",
     "description": "Description",
     "descriptionPlaceholder": "Enter case description...",
+    "project": "Project",
     "createCase": "Create Case",
     "peopleCount": "{{count}} people",
     "status": "Status",

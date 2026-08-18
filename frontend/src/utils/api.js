@@ -166,6 +166,25 @@ export const casesAPI = {
   }),
 };
 
+// Projects API (issue #83) — the hard isolation boundary; cases nest inside a project.
+export const projectsAPI = {
+  getAll: () => fetchAPI('/projects'),
+
+  create: (projectData) => fetchAPI('/projects', {
+    method: 'POST',
+    body: JSON.stringify(projectData),
+  }),
+
+  update: (id, projectData) => fetchAPI(`/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(projectData),
+  }),
+
+  delete: (id) => fetchAPI(`/projects/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Custom Fields API
 export const customFieldsAPI = {
   getAll: () => fetchAPI('/settings/custom-fields'),

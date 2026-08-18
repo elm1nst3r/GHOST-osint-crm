@@ -155,8 +155,8 @@ describe('schemas — form-shaped payloads', () => {
     expect(TodoUpdateSchema.safeParse({ status: 'done' }).success).toBe(true);
     expect(TodoUpdateSchema.safeParse({ status: 'cancelled' }).success).toBe(true);
     expect(TodoUpdateSchema.safeParse({ status: 'attention' }).success).toBe(true);
-    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'active' }).success).toBe(true);
-    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'bogus' }).success).toBe(false);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'active', project_id: 1 }).success).toBe(true);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'bogus', project_id: 1 }).success).toBe(false);
   });
 
   test('required fields still enforced', () => {

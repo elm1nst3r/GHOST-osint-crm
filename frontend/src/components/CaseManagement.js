@@ -7,7 +7,7 @@ import {
   Edit2, Trash2, User,
   UserPlus, FileText
 } from 'lucide-react';
-import { casesAPI, peopleAPI } from '../utils/api';
+import { casesAPI, peopleAPI, projectsAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
@@ -21,7 +21,11 @@ const CaseManagement = () => {
   const [expandedCases, setExpandedCases] = useState({});
   const [editingCase, setEditingCase] = useState(null);
   const [showNewCaseForm, setShowNewCaseForm] = useState(false);
-  const [newCaseData, setNewCaseData] = useState({ case_name: '', description: '', status: 'active' });
+  const [newCaseData, setNewCaseData] = useState({ case_name: '', description: '', status: 'active', project_id: null });
+  // Temporary until the project selector lands (issue #83 phase 2): a case
+  // must belong to a project, so default new cases to the first one that
+  // exists. Replace with the active-project selector's value once it ships.
+  const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(null);
   const [quickAddPerson, setQuickAddPerson] = useState({ firstName: '', lastName: '' });
@@ -34,13 +38,24 @@ const CaseManagement = () => {
     fetchCases();
   }, [people]);
 
+  useEffect(() => {
+    projectsAPI.getAll()
+      .then(data => {
+        setProjects(data);
+        if (data.length > 0) {
+          setNewCaseData(prev => (prev.project_id ? prev : { ...prev, project_id: data[0].id }));
+        }
+      })
+      .catch(error => console.error('Error fetching projects:', error));
+  }, []);
+
   const fetchCases = async () => {
     try {
       const casesData = await casesAPI.getAll();
       
       // Process cases to add people count and other stats
       const processedCases = casesData.map(caseItem => {
-        const casePeople = people.filter(p => p.case_name === caseItem.case_name);
+        const casePeople = people.filter(p => p.case_id === caseItem.id);
         const lastUpdate = Math.max(
           ...casePeople.map(p => new Date(p.updated_at || p.created_at).getTime()),
           new Date(caseItem.updated_at || caseItem.created_at).getTime()
@@ -64,11 +79,11 @@ const CaseManagement = () => {
   };
 
   const handleCreateCase = async () => {
-    if (!newCaseData.case_name.trim()) return;
-    
+    if (!newCaseData.case_name.trim() || !newCaseData.project_id) return;
+
     try {
       await casesAPI.create(newCaseData);
-      setNewCaseData({ case_name: '', description: '', status: 'active' });
+      setNewCaseData({ case_name: '', description: '', status: 'active', project_id: projects[0]?.id ?? null });
       setShowNewCaseForm(false);
       fetchCases();
     } catch (error) {
@@ -100,14 +115,18 @@ const CaseManagement = () => {
     }
   };
 
-  const handleQuickAddPerson = async (caseName) => {
+  const handleQuickAddPerson = async (caseId) => {
     if (!quickAddPerson.firstName.trim()) return;
-    
+
+    const targetCase = cases.find(c => c.id === caseId);
+    if (!targetCase) return;
+
     try {
       const newPerson = {
         firstName: quickAddPerson.firstName,
         lastName: quickAddPerson.lastName,
-        caseName: caseName,
+        case_id: caseId,
+        project_id: targetCase.project_id,
         status: 'Open',
         category: 'Person of Interest',
         aliases: [],
@@ -117,7 +136,7 @@ const CaseManagement = () => {
         attachments: [],
         custom_fields: {}
       };
-      
+
       await peopleAPI.create(newPerson);
       setQuickAddPerson({ firstName: '', lastName: '' });
       setShowQuickAdd(null);
@@ -128,7 +147,7 @@ const CaseManagement = () => {
     }
   };
 
-  const handleAddPeopleToCase = async (caseName) => {
+  const handleAddPeopleToCase = async (caseId) => {
     for (const personId of selectedPeopleToAdd) {
       const person = people.find(p => p.id === personId);
       if (person) {
@@ -140,7 +159,7 @@ const CaseManagement = () => {
           category: person.category,
           status: person.status,
           crmStatus: person.crm_status,
-          caseName: caseName,
+          case_id: caseId,
           profilePictureUrl: person.profile_picture_url,
           notes: person.notes,
           osintData: person.osint_data,
@@ -198,8 +217,11 @@ const CaseManagement = () => {
     caseItem.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const availablePeople = people.filter(p => 
-    !p.case_name || p.case_name === ''
+  // Scoped to the project of the case being added to (showAddPeopleModal is
+  // that case's id) -- a case can only pull in people from its own project.
+  const addPeopleModalCase = cases.find(c => c.id === showAddPeopleModal);
+  const availablePeople = people.filter(p =>
+    !p.case_id && (!addPeopleModalCase || p.project_id === addPeopleModalCase.project_id)
   );
 
   return (
@@ -254,11 +276,23 @@ const CaseManagement = () => {
                 placeholder={t('caseManagement.descriptionPlaceholder')}
               />
             </div>
+            {projects.length > 1 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{t('caseManagement.project')}</label>
+                <select
+                  value={newCaseData.project_id || ''}
+                  onChange={(e) => setNewCaseData({ ...newCaseData, project_id: parseInt(e.target.value, 10) })}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => {
                   setShowNewCaseForm(false);
-                  setNewCaseData({ case_name: '', description: '', status: 'active' });
+                  setNewCaseData({ case_name: '', description: '', status: 'active', project_id: projects[0]?.id ?? null });
                 }}
                 className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
               >
@@ -446,14 +480,14 @@ const CaseManagement = () => {
                     <h4 className="font-medium">{t('caseManagement.peopleInCase')}</h4>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setShowAddPeopleModal(caseItem.case_name)}
+                        onClick={() => setShowAddPeopleModal(caseItem.id)}
                         className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
                       >
                         <UserPlus className="w-4 h-4 mr-1" />
                         {t('caseManagement.addExisting')}
                       </button>
                       <button
-                        onClick={() => setShowQuickAdd(caseItem.case_name)}
+                        onClick={() => setShowQuickAdd(caseItem.id)}
                         className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
                       >
                         <Plus className="w-4 h-4 mr-1" />
@@ -463,7 +497,7 @@ const CaseManagement = () => {
                   </div>
 
                   {/* Quick Add Form */}
-                  {showQuickAdd === caseItem.case_name && (
+                  {showQuickAdd === caseItem.id && (
                     <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
                       <div className="flex space-x-2">
                         <input
@@ -481,7 +515,7 @@ const CaseManagement = () => {
                           className="flex-1 px-3 py-2 border rounded-md text-sm"
                         />
                         <button
-                          onClick={() => handleQuickAddPerson(caseItem.case_name)}
+                          onClick={() => handleQuickAddPerson(caseItem.id)}
                           className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
                         >
                           {t('common.add')}
@@ -551,7 +585,7 @@ const CaseManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold">{t('caseManagement.addPeopleToCase', { caseName: showAddPeopleModal })}</h3>
+              <h3 className="text-lg font-semibold">{t('caseManagement.addPeopleToCase', { caseName: addPeopleModalCase?.case_name })}</h3>
             </div>
             <div className="p-6">
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{t('caseManagement.selectPeopleHint')}</p>
