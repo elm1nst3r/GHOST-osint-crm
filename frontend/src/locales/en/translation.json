@@ -699,7 +699,11 @@
       "selectPerson": "Select a person",
       "notesPlaceholder": "Connection notes (optional)",
       "addConnection": "Add Connection",
-      "unknownPerson": "Unknown"
+      "unknownPerson": "Unknown",
+      "linkOtherProject": "Link from another project",
+      "linkThisProject": "Back to this project",
+      "chooseProject": "Choose a project...",
+      "fromProject": "from {{project}}"
     },
     "customFields": {
       "label": "Custom Fields",

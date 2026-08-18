@@ -25,8 +25,14 @@ const AddEditPersonForm = () => {
   const { t, i18n } = useTranslation();
   const { people, customFields, fetchPeople } = useData();
   const { editingPerson, setEditingPerson, setShowAddPersonForm } = useUI();
-  const { activeProjectId } = useProject();
+  const { activeProjectId, projects } = useProject();
   const person = editingPerson;
+  // Cross-linking is governed by the SUBJECT's own project (person?.project_id
+  // when editing, since a deep-linked person may belong to a different
+  // project than the one currently active), not the active project itself.
+  const currentPersonProjectId = person?.project_id ?? activeProjectId;
+  const currentPersonProject = projects.find(p => p.id === currentPersonProjectId);
+  const otherProjects = projects.filter(p => p.id !== currentPersonProjectId);
 
   const handleClose = () => { setEditingPerson(null); setShowAddPersonForm(false); };
 
@@ -316,6 +322,9 @@ const AddEditPersonForm = () => {
             connectionTypes={tConnectionTypes}
             people={people}
             currentPersonId={person?.id}
+            currentPersonProjectId={currentPersonProjectId}
+            allowCrossLinking={!!currentPersonProject?.allow_cross_linking}
+            otherProjects={otherProjects}
             onChange={val => set('connections', val)}
           />
 
