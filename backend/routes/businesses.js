@@ -6,7 +6,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
-const { syncBusinessRelationships } = require('./relationships');
+const { syncBusinessRelationships, syncBusinessOwnership } = require('./relationships');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 
 // Computed from the relationships table (issue #83) -- owner_person_id and
@@ -153,6 +153,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       ownerPersonId: owner_person_id,
       employees,
     });
+    await syncBusinessOwnership(newBusiness.id, newBusiness.project_id, newBusiness.case_id, null, owner_business_id);
 
     // Log audit
     await logAudit('business', newBusiness.id, 'create', {
@@ -245,6 +246,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       ownerPersonId: owner_person_id,
       employees,
     });
+    await syncBusinessOwnership(updatedBusiness.id, updatedBusiness.project_id, updatedBusiness.case_id, oldBusiness.owner_business_id, owner_business_id);
 
     // Log audit changes
     const changes = {};

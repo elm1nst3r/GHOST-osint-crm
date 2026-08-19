@@ -30,6 +30,7 @@ import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
 import ProjectSelector from './components/ProjectSelector';
+import ProjectGate from './components/ProjectGate';
 import SystemHealth from './components/SystemHealth';
 import WirelessNetworks from './components/WirelessNetworks';
 import PropertyList from './components/PropertyList';
@@ -178,6 +179,7 @@ const AppShell = () => {
   }
 
   return (
+    <ProjectGate>
     <div className="flex min-h-[100dvh] bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
 
       {/* Mobile top bar — the only chrome visible below md, since the sidebar
@@ -379,6 +381,7 @@ const AppShell = () => {
           itself on 403 in case the role is stale. */}
       {currentUser?.role === 'admin' && <SystemHealth />}
     </div>
+    </ProjectGate>
   );
 };
 

@@ -81,14 +81,14 @@ async function syncPersonConnections(personId, projectId, caseId, connections) {
 // current for businesses created/edited after that one-time migration, not
 // just the ones it covered historically.
 //
-// owner_business_id is deliberately NOT synced here. Phase 3's migration
-// stores that edge owner -> owned (source = the owning business, target =
-// this one), i.e. NOT rooted at this business, so it can't be converged by a
-// "delete everything sourced from me, reinsert" pass scoped to this business
-// -- doing so would either miss the direction or require reaching into the
-// other business's rows. Left as a known gap (the scalar owner_business_id
-// column stays authoritative either way); revisit if this needs to be live
-// rather than only correct as of the one-time migration.
+// owner_business_id is NOT synced by syncBusinessRelationships below. Phase
+// 3's migration stores that edge owner -> owned (source = the owning
+// business, target = this one), i.e. NOT rooted at this business, so it
+// can't be converged by a "delete everything sourced from me, reinsert" pass
+// scoped to this business. syncBusinessOwnership (further down) handles it
+// separately, keyed on the specific old/new owner rather than a full
+// converge, since a delete-and-reinsert scoped to the owner would also wipe
+// out that owner's edges to any OTHER businesses it owns.
 async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }) {
   const desired = [];
   if (ownerPersonId) desired.push({ target_type: 'person', target_id: parseInt(ownerPersonId, 10), relationship_type: 'owner', note: null });
@@ -130,6 +130,46 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
        VALUES ($1, $2, 'business', $3, $4, $5, $6, $7)`,
       [projectId, caseId || null, businessId, d.target_type, d.target_id, d.relationship_type, d.note]
+    );
+  }
+}
+
+// Keeps the business->business ownership edge (source = the OWNING
+// business, target = businessId) live across create/update, closing the gap
+// left by Phase 3's migration (which produced correct rows once, but nothing
+// kept them current afterward -- see the comment above
+// syncBusinessRelationships). Deletes the specific prior edge by its old
+// owner (if any) and inserts the new one (if any) rather than converging a
+// set, since the edge isn't sourced from businessId. oldOwnerBusinessId /
+// newOwnerBusinessId may be null, string, or number -- both sides are
+// normalized before comparing so a no-op update (unchanged owner) doesn't
+// do a pointless delete+reinsert.
+async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusinessId, newOwnerBusinessId) {
+  const oldOwner = oldOwnerBusinessId != null ? parseInt(oldOwnerBusinessId, 10) : null;
+  const newOwner = newOwnerBusinessId != null ? parseInt(newOwnerBusinessId, 10) : null;
+  if (oldOwner === newOwner) return;
+
+  if (oldOwner != null) {
+    await pool.query(
+      `DELETE FROM relationships
+       WHERE source_type = 'business' AND source_id = $1
+         AND target_type = 'business' AND target_id = $2 AND relationship_type = 'owner'`,
+      [oldOwner, businessId]
+    );
+  }
+
+  if (newOwner != null) {
+    const ownerProjectId = await fetchEntityProject('business', newOwner);
+    if (ownerProjectId === null) {
+      const err = new Error(`business ${newOwner} not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+    await assertLinkAllowed(projectId, projectId, ownerProjectId);
+    await pool.query(
+      `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+       VALUES ($1, $2, 'business', $3, 'business', $4, 'owner', NULL)`,
+      [projectId, caseId || null, newOwner, businessId]
     );
   }
 }
@@ -217,3 +257,4 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 module.exports = router;
 module.exports.syncPersonConnections = syncPersonConnections;
 module.exports.syncBusinessRelationships = syncBusinessRelationships;
+module.exports.syncBusinessOwnership = syncBusinessOwnership;

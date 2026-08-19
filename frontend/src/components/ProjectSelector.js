@@ -1,7 +1,8 @@
 // File: frontend/src/components/ProjectSelector.js
 // Top-of-app project switcher (issue #83): switch, create, and edit
-// projects (rename, symbol, cross-linking, archive status, delete).
-// Deliberately still basic beyond that -- no first-run gate, no "all
+// projects (rename, symbol, cross-linking, archive status, delete). The
+// first-run / no-active-project case is handled separately by ProjectGate,
+// which wraps AppShell. Deliberately still basic beyond that -- no "all
 // projects" merged view, no cross-project admin mode -- those are later
 // stages per docs/specs/case-data-isolation.md.
 import React, { useState } from 'react';

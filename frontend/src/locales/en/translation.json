@@ -1744,6 +1744,15 @@
     "statusClosed": "Closed",
     "allowCrossLinking": "Allow linking to entities in other projects"
   },
+  "projectGate": {
+    "titleFirstRun": "Create your first project",
+    "descriptionFirstRun": "Projects are the isolation boundary for your data — create one to get started.",
+    "titlePick": "Select a project",
+    "descriptionPick": "Pick a project to continue, or create a new one.",
+    "namePlaceholder": "Project name...",
+    "create": "Create",
+    "errorCreate": "Failed to create project"
+  },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",
     "tryAgain": "Try again"
