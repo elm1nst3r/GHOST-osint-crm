@@ -299,7 +299,7 @@ const ProjectUpdateSchema = z.object({
 // unconstrained ints: Postgres has no polymorphic FK across people/businesses,
 // same looseness this codebase already accepts for subject/holder columns.
 
-const entityTypeEnum = z.enum(['person', 'business']);
+const entityTypeEnum = z.enum(['person', 'business', 'crypto_wallet']);
 
 const relationshipBaseFields = {
   case_id: optId(),
@@ -449,6 +449,34 @@ const AssetUpdateSchema = z.object({
   ...assetBaseFields,
 });
 
+// ── Crypto Wallets (issue #82) ───────────────────────────────────────────────
+// Wallets are a first-class entity, not chain analysis -- see the migration
+// comment in 20260819000001_crypto_wallets.js. network/status are open
+// vocabularies backed by model_options (crypto_wallet_network/asset_status-
+// style), same as assetBaseFields.category/status above, so plain optStr
+// rather than z.enum.
+
+const cryptoWalletBaseFields = {
+  network: optStr(100),
+  label: optStr(255),
+  tags: optArray(z.string().max(100)),
+  external_reference_url: optStr(1000),
+  notes: optStr(1000),
+  status: optStr(50),
+  case_id: optId(),
+};
+
+const CryptoWalletCreateSchema = z.object({
+  address: z.string().min(1, 'address is required').max(255),
+  project_id: reqId('project_id'),
+  ...cryptoWalletBaseFields,
+});
+
+const CryptoWalletUpdateSchema = z.object({
+  address: z.string().min(1, 'address is required').max(255),
+  ...cryptoWalletBaseFields,
+});
+
 // ── Transactions ──────────────────────────────────────────────────────────────
 // Complex polymorphic rules are handled by the existing validateTransactionShape()
 // in transactionHelpers.js.  Zod only enforces basic types here.
@@ -468,6 +496,9 @@ const TransactionCreateSchema = z.object({
   to_person_id: optId(),
   from_business_id: optId(),
   to_business_id: optId(),
+  from_wallet_id: optId(),
+  to_wallet_id: optId(),
+  tx_hash: optStr(255),
   from_external: optStr(255),
   to_external: optStr(255),
   subject_asset_id: optId(),
@@ -565,6 +596,8 @@ module.exports = {
   PropertyUpdateSchema,
   AssetCreateSchema,
   AssetUpdateSchema,
+  CryptoWalletCreateSchema,
+  CryptoWalletUpdateSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,

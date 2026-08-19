@@ -502,6 +502,25 @@ export const assetsAPI = {
   getByPerson: (personId) => fetchAPI(`/people/${personId}/assets`),
 };
 
+// Crypto Wallets API (issue #82)
+export const cryptoWalletsAPI = {
+  getAll: (params = {}) => fetchAPI(`/crypto-wallets${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/crypto-wallets/${id}`),
+  create: (data) => fetchAPI('/crypto-wallets', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/crypto-wallets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/crypto-wallets/${id}`, { method: 'DELETE' }),
+};
+
+// Relationships API (issue #83's write-of-record table; issue #82's wallet
+// links are the first frontend consumer to read/write it directly rather
+// than through the person/business JSONB sync path).
+export const relationshipsAPI = {
+  getAll: (params = {}) => fetchAPI(`/relationships${buildQuery(params)}`),
+  create: (data) => fetchAPI('/relationships', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/relationships/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/relationships/${id}`, { method: 'DELETE' }),
+};
+
 // Transactions API
 export const transactionsAPI = {
   getAll: (params = {}) => fetchAPI(`/transactions${buildQuery(params)}`),

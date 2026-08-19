@@ -47,6 +47,7 @@ const ROUTE_SCHEMAS = {
   'travelHistory.js': shape(S.TravelHistoryCreateSchema, S.TravelHistoryUpdateSchema),
   'properties.js': shape(S.PropertyCreateSchema, S.PropertyUpdateSchema),
   'assets.js': shape(S.AssetCreateSchema, S.AssetUpdateSchema),
+  'cryptoWallets.js': shape(S.CryptoWalletCreateSchema, S.CryptoWalletUpdateSchema),
   'transactions.js': shape(S.TransactionCreateSchema, S.TransactionUpdateSchema),
   'settings.js': shape(
     S.SettingsCustomFieldCreateSchema,

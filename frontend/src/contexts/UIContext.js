@@ -28,6 +28,11 @@ export const UIProvider = ({ children }) => {
   const [editingAsset, setEditingAsset] = useState(null);
   const [showAddAssetForm, setShowAddAssetForm] = useState(false);
 
+  // Crypto wallet modals (issue #82)
+  const [selectedCryptoWalletForDetail, setSelectedCryptoWalletForDetail] = useState(null);
+  const [editingCryptoWallet, setEditingCryptoWallet] = useState(null);
+  const [showAddCryptoWalletForm, setShowAddCryptoWalletForm] = useState(false);
+
   // Transaction modals
   const [selectedTransactionForDetail, setSelectedTransactionForDetail] = useState(null);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -55,6 +60,9 @@ export const UIProvider = ({ children }) => {
       selectedAssetForDetail, setSelectedAssetForDetail,
       editingAsset, setEditingAsset,
       showAddAssetForm, setShowAddAssetForm,
+      selectedCryptoWalletForDetail, setSelectedCryptoWalletForDetail,
+      editingCryptoWallet, setEditingCryptoWallet,
+      showAddCryptoWalletForm, setShowAddCryptoWalletForm,
       selectedTransactionForDetail, setSelectedTransactionForDetail,
       editingTransaction, setEditingTransaction,
       showAddTransactionForm, setShowAddTransactionForm,

@@ -194,6 +194,7 @@ const travelHistoryRoutes = require('./routes/travelHistory');
 const wirelessNetworksRoutes = require('./routes/wirelessNetworks');
 const propertiesRoutes = require('./routes/properties');
 const assetsRoutes = require('./routes/assets');
+const cryptoWalletsRoutes = require('./routes/cryptoWallets');
 const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
 const openapiSpec = require('./utils/openapiSpec');
@@ -222,6 +223,7 @@ app.use('/api', travelHistoryRoutes);
 app.use('/api/wireless-networks', wirelessNetworksRoutes);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/assets', assetsRoutes);
+app.use('/api/crypto-wallets', cryptoWalletsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api', ledgerRoutes);
 

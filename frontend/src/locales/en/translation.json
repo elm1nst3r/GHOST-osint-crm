@@ -13,6 +13,7 @@
       "businesses": "Businesses",
       "properties": "Properties",
       "assets": "Assets",
+      "crypto-wallets": "Crypto Wallets",
       "transactions": "Transactions",
       "tools": "OSINT Tools",
       "relationships": "Entity Network",
@@ -72,6 +73,19 @@
         "victim": "Victim",
         "witness": "Witness",
         "board_member": "Board Member / Decision Maker"
+      },
+      "crypto_wallet_network": {
+        "bitcoin": "Bitcoin",
+        "ethereum": "Ethereum",
+        "solana": "Solana",
+        "tron": "Tron",
+        "other": "Other"
+      },
+      "crypto_wallet_tag": {
+        "suspicious": "Suspicious",
+        "exchange": "Exchange",
+        "mixer": "Mixer",
+        "scam": "Scam"
       },
       "crm_status": {
         "active": "Active",
@@ -350,7 +364,9 @@
         "transactionItemCategory": "Transaction Item Categories",
         "assetCategory": "Asset Categories",
         "assetStatus": "Asset Statuses",
-        "propertyType": "Property Types"
+        "propertyType": "Property Types",
+        "cryptoWalletNetwork": "Crypto Wallet Networks",
+        "cryptoWalletTag": "Crypto Wallet Tags"
       },
       "predefinedOptions": "Predefined Options",
       "addOption": "Add Option",
@@ -642,6 +658,20 @@
     "errorDeleteAsset": "Failed to delete asset: {{message}}",
     "showingOfTotal": "Showing {{count}} of {{total}}"
   },
+  "cryptoWalletsList": {
+    "title": "Crypto Wallets",
+    "countTotal": "{{count}} of {{total}} wallets",
+    "countSimple": "{{count}} wallets",
+    "addWallet": "Add Wallet",
+    "searchPlaceholder": "Search by address or label…",
+    "allNetworks": "All Networks",
+    "allTags": "All Tags",
+    "externalReference": "External reference",
+    "noResultsFound": "No crypto wallets found.",
+    "confirmDelete": "Delete this crypto wallet?",
+    "errorDelete": "Failed to delete crypto wallet: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
   "transactionsList": {
     "title": "Transactions",
     "countTotal": "{{count}} of {{total}} transactions",
@@ -852,17 +882,50 @@
     "errorNoActiveProject": "Select a project before adding an asset.",
     "errorSaveAsset": "Failed to save asset"
   },
+  "cryptoWalletForm": {
+    "editTitle": "Edit Crypto Wallet",
+    "addTitle": "Add Crypto Wallet",
+    "addressRequired": "Address *",
+    "network": "Network",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusArchived": "Archived",
+    "label": "Label",
+    "externalReferenceUrl": "External Reference URL",
+    "externalReferenceUrlPlaceholder": "e.g. a GraphSense or block explorer link",
+    "tags": "Tags",
+    "addTagPlaceholder": "Add a custom tag…",
+    "notes": "Notes",
+    "errorAddressRequired": "Address is required",
+    "errorNoActiveProject": "Select a project before adding a crypto wallet.",
+    "errorSave": "Failed to save crypto wallet"
+  },
+  "cryptoWalletDetailModal": {
+    "person": "Person",
+    "business": "Business",
+    "wallet": "Wallet",
+    "viewExternalReference": "View external reference",
+    "relationships": "Relationships",
+    "noRelationships": "No relationships yet.",
+    "relationshipTypePlaceholder": "Relationship type",
+    "confirmRemoveRelationship": "Remove this relationship?",
+    "errorAddRelationship": "Failed to add relationship",
+    "errorRemoveRelationship": "Failed to remove relationship"
+  },
   "transactionForm": {
     "editTitle": "Edit Transaction",
     "addTitle": "Add Transaction",
     "partyPicker": {
       "person": "Person",
       "business": "Business",
+      "wallet": "Crypto Wallet",
       "external": "External (free text)",
       "externalNamePlaceholder": "External name"
     },
     "fromTitle": "From (giver)",
     "toTitle": "To (receiver)",
+    "txHash": "Transaction Hash",
+    "txHashPlaceholder": "On-chain transaction hash",
     "typeRequired": "Type *",
     "date": "Date",
     "subject": "Subject (what changed hands)",
@@ -1338,6 +1401,7 @@
     "employeeConnectionNote": "Employee — {{role}}",
     "employeeConnectionNoteNoRole": "Employee",
     "errorBusinessConnectionsNotSupported": "Connections to businesses are not supported yet. Set the owner on the business instead, or link the people directly.",
+    "errorWalletConnectionsNotSupported": "Crypto wallet relationships can't be created here. Open the wallet's detail view to add or remove relationships.",
     "errorUnrecognisedNode": "Could not create connection: unrecognised node.",
     "promptConnectionType": "Connection type (family, friend, associate, etc.):",
     "edgeTypes": {

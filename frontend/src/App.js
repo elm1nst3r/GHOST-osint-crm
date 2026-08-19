@@ -5,7 +5,7 @@ import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -39,6 +39,9 @@ import PropertyDetailModal from './components/PropertyDetailModal';
 import AssetsList from './components/AssetsList';
 import AddEditAssetForm from './components/AddEditAssetForm';
 import AssetDetailModal from './components/AssetDetailModal';
+import CryptoWalletsList from './components/CryptoWalletsList';
+import AddEditCryptoWalletForm from './components/AddEditCryptoWalletForm';
+import CryptoWalletDetailModal from './components/CryptoWalletDetailModal';
 import TransactionsList from './components/TransactionsList';
 import AddEditTransactionForm from './components/AddEditTransactionForm';
 import TransactionDetailModal from './components/TransactionDetailModal';
@@ -61,6 +64,7 @@ const navigationItemIds = [
   { id: 'businesses',    icon: Building2 },
   { id: 'properties',    icon: Landmark },
   { id: 'assets',        icon: Package },
+  { id: 'crypto-wallets', icon: Wallet },
   { id: 'transactions',  icon: Receipt },
   { id: 'tools',         icon: Wrench },
   { id: 'relationships', icon: Network },
@@ -91,6 +95,9 @@ const AppShell = () => {
     selectedAssetForDetail, setSelectedAssetForDetail,
     editingAsset, setEditingAsset,
     showAddAssetForm, setShowAddAssetForm,
+    selectedCryptoWalletForDetail, setSelectedCryptoWalletForDetail,
+    editingCryptoWallet, setEditingCryptoWallet,
+    showAddCryptoWalletForm, setShowAddCryptoWalletForm,
     selectedTransactionForDetail, setSelectedTransactionForDetail,
     editingTransaction, setEditingTransaction,
     showAddTransactionForm, setShowAddTransactionForm,
@@ -317,6 +324,7 @@ const AppShell = () => {
               {activeSection === 'businesses'    && <BusinessList />}
               {activeSection === 'properties'    && <PropertyList />}
               {activeSection === 'assets'        && <AssetsList />}
+              {activeSection === 'crypto-wallets' && <CryptoWalletsList />}
               {activeSection === 'transactions'  && <TransactionsList />}
               {activeSection === 'map'           && <div className="h-full"><GlobalMap /></div>}
               {activeSection === 'wireless'      && <div className="h-full"><WirelessNetworks /></div>}
@@ -360,6 +368,10 @@ const AppShell = () => {
       {showAddAssetForm && <AddEditAssetForm asset={null} onClose={() => setShowAddAssetForm(false)} />}
       {editingAsset     && <AddEditAssetForm asset={editingAsset} onClose={() => setEditingAsset(null)} />}
       {selectedAssetForDetail && <AssetDetailModal asset={selectedAssetForDetail} onClose={() => setSelectedAssetForDetail(null)} />}
+
+      {showAddCryptoWalletForm && <AddEditCryptoWalletForm wallet={null} onClose={() => setShowAddCryptoWalletForm(false)} />}
+      {editingCryptoWallet     && <AddEditCryptoWalletForm wallet={editingCryptoWallet} onClose={() => setEditingCryptoWallet(null)} />}
+      {selectedCryptoWalletForDetail && <CryptoWalletDetailModal wallet={selectedCryptoWalletForDetail} onClose={() => setSelectedCryptoWalletForDetail(null)} />}
 
       {/* Transaction modals */}
       {showAddTransactionForm && <AddEditTransactionForm transaction={null} onClose={() => setShowAddTransactionForm(false)} />}

@@ -14,9 +14,9 @@ const personLabel = (p) => `${p.first_name || ''} ${p.last_name || ''}`.trim();
 
 // Hoisted to module scope so the external-name input keeps focus across re-renders.
 // It's a real component (not a plain object), so it can call useTranslation itself.
-const PartyPicker = ({ title, kind, setKind, id, setId, external, setExternal, people, businesses }) => {
+const PartyPicker = ({ title, kind, setKind, id, setId, external, setExternal, people, businesses, wallets }) => {
   const { t } = useTranslation();
-  const entities = kind === 'person' ? people : kind === 'business' ? businesses : [];
+  const entities = kind === 'person' ? people : kind === 'business' ? businesses : kind === 'wallet' ? wallets : [];
   return (
     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-2">
       <label className={labelClass}>{title}</label>
@@ -24,12 +24,13 @@ const PartyPicker = ({ title, kind, setKind, id, setId, external, setExternal, p
         <option value="none">{t('common.nonePlaceholder')}</option>
         <option value="person">{t('transactionForm.partyPicker.person')}</option>
         <option value="business">{t('transactionForm.partyPicker.business')}</option>
+        <option value="wallet">{t('transactionForm.partyPicker.wallet')}</option>
         <option value="external">{t('transactionForm.partyPicker.external')}</option>
       </select>
-      {(kind === 'person' || kind === 'business') && (
+      {(kind === 'person' || kind === 'business' || kind === 'wallet') && (
         <select className={inputClass} value={id} onChange={e => setId(e.target.value)}>
           <option value="">{t('common.selectPlaceholder')}</option>
-          {entities.map(ent => <option key={ent.id} value={ent.id}>{kind === 'person' ? personLabel(ent) : ent.name}</option>)}
+          {entities.map(ent => <option key={ent.id} value={ent.id}>{kind === 'person' ? personLabel(ent) : kind === 'wallet' ? (ent.label || ent.address) : ent.name}</option>)}
         </select>
       )}
       {kind === 'external' && <input className={inputClass} value={external} onChange={e => setExternal(e.target.value)} placeholder={t('transactionForm.partyPicker.externalNamePlaceholder')} />}
@@ -39,7 +40,7 @@ const PartyPicker = ({ title, kind, setKind, id, setId, external, setExternal, p
 
 const AddEditTransactionForm = ({ transaction, onClose }) => {
   const { t } = useTranslation();
-  const { people, businesses, assets, properties, fetchTransactions } = useData();
+  const { people, businesses, assets, properties, cryptoWallets, fetchTransactions } = useData();
   const { activeProjectId } = useProject();
   const isEdit = !!transaction;
   const [typeOptions, setTypeOptions] = useState([]);
@@ -52,6 +53,7 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
     if (!txn) return 'none';
     if (txn[`${dir}_person_id`]) return 'person';
     if (txn[`${dir}_business_id`]) return 'business';
+    if (txn[`${dir}_wallet_id`]) return 'wallet';
     if (txn[`${dir}_external`]) return 'external';
     return 'none';
   };
@@ -72,11 +74,12 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
 
   const [transaction_type, setType] = useState(transaction?.transaction_type || '');
   const [fromKind, setFromKind] = useState(initialPartyKind(transaction, 'from'));
-  const [fromId, setFromId] = useState(transaction?.from_person_id || transaction?.from_business_id || '');
+  const [fromId, setFromId] = useState(transaction?.from_person_id || transaction?.from_business_id || transaction?.from_wallet_id || '');
   const [fromExternal, setFromExternal] = useState(transaction?.from_external || '');
   const [toKind, setToKind] = useState(initialPartyKind(transaction, 'to'));
-  const [toId, setToId] = useState(transaction?.to_person_id || transaction?.to_business_id || '');
+  const [toId, setToId] = useState(transaction?.to_person_id || transaction?.to_business_id || transaction?.to_wallet_id || '');
   const [toExternal, setToExternal] = useState(transaction?.to_external || '');
+  const [txHash, setTxHash] = useState(transaction?.tx_hash || '');
 
   const [subjectKind, setSubjectKind] = useState(initialSubjectKind(transaction));
   const [itemLabel, setItemLabel] = useState(transaction?.item_label || '');
@@ -120,10 +123,13 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
       transaction_type,
       from_person_id: fromKind === 'person' ? fromId || null : null,
       from_business_id: fromKind === 'business' ? fromId || null : null,
+      from_wallet_id: fromKind === 'wallet' ? fromId || null : null,
       from_external: fromKind === 'external' ? fromExternal || null : null,
       to_person_id: toKind === 'person' ? toId || null : null,
       to_business_id: toKind === 'business' ? toId || null : null,
+      to_wallet_id: toKind === 'wallet' ? toId || null : null,
       to_external: toKind === 'external' ? toExternal || null : null,
+      tx_hash: (fromKind === 'wallet' || toKind === 'wallet') ? txHash || null : null,
       subject_asset_id: subjectKind === 'asset' ? subjectId || null : null,
       subject_business_id: subjectKind === 'business' ? subjectId || null : null,
       subject_property_id: subjectKind === 'property' ? subjectId || null : null,
@@ -179,9 +185,13 @@ const AddEditTransactionForm = ({ transaction, onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PartyPicker title={t('transactionForm.fromTitle')} kind={fromKind} setKind={setFromKind} id={fromId} setId={setFromId} external={fromExternal} setExternal={setFromExternal} people={people} businesses={businesses} />
-            <PartyPicker title={t('transactionForm.toTitle')} kind={toKind} setKind={setToKind} id={toId} setId={setToId} external={toExternal} setExternal={setToExternal} people={people} businesses={businesses} />
+            <PartyPicker title={t('transactionForm.fromTitle')} kind={fromKind} setKind={setFromKind} id={fromId} setId={setFromId} external={fromExternal} setExternal={setFromExternal} people={people} businesses={businesses} wallets={cryptoWallets} />
+            <PartyPicker title={t('transactionForm.toTitle')} kind={toKind} setKind={setToKind} id={toId} setId={setToId} external={toExternal} setExternal={setToExternal} people={people} businesses={businesses} wallets={cryptoWallets} />
           </div>
+
+          {(fromKind === 'wallet' || toKind === 'wallet') && (
+            <div><label className={labelClass}>{t('transactionForm.txHash')}</label><input className={`${inputClass} font-mono`} value={txHash} onChange={e => setTxHash(e.target.value)} placeholder={t('transactionForm.txHashPlaceholder')} /></div>
+          )}
 
           {/* Subject picker */}
           <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-2">

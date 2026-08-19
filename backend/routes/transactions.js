@@ -46,6 +46,11 @@ router.get('/', requireAuth, async (req, res) => {
     if (q.item_category) add(`t.item_category = $${params.length + 1}`, q.item_category);
     if (q.from_person_id) add(`t.from_person_id = $${params.length + 1}`, parseInt(q.from_person_id, 10));
     if (q.to_person_id) add(`t.to_person_id = $${params.length + 1}`, parseInt(q.to_person_id, 10));
+    if (q.wallet_id) {
+      const v = parseInt(q.wallet_id, 10);
+      add(`(t.from_wallet_id = $${params.length + 1} OR t.to_wallet_id = $${params.length + 1})`, v);
+    }
+    if (q.tx_hash) add(`t.tx_hash = $${params.length + 1}`, q.tx_hash);
     if (q.person_id) {
       const v = parseInt(q.person_id, 10);
       add(`(t.from_person_id = $${params.length + 1} OR t.to_person_id = $${params.length + 1})`, v);
@@ -90,7 +95,8 @@ router.get('/', requireAuth, async (req, res) => {
 
 const TX_COLUMNS = [
   'transaction_type', 'item_label', 'item_category', 'subject_asset_id', 'subject_business_id', 'subject_property_id',
-  'from_person_id', 'from_business_id', 'from_external', 'to_person_id', 'to_business_id', 'to_external',
+  'from_person_id', 'from_business_id', 'from_wallet_id', 'from_external',
+  'to_person_id', 'to_business_id', 'to_wallet_id', 'to_external', 'tx_hash',
   'value', 'currency', 'occurred_on', 'location_business_id', 'location_property_id', 'location_name',
   'address', 'city', 'state', 'country', 'postal_code', 'latitude', 'longitude',
   'geocode_confidence', 'geocode_provider', 'geocoded_at', 'case_id', 'notes', 'tags',

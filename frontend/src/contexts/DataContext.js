@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, transactionsAPI } from '../utils/api';
+import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, cryptoWalletsAPI, transactionsAPI } from '../utils/api';
 import { DEFAULT_APP_SETTINGS } from '../utils/constants';
 import { useProject } from './ProjectContext';
 
@@ -25,6 +25,9 @@ export const DataProvider = ({ children }) => {
   const [assets, setAssets] = useState([]);
   const [assetsMeta, setAssetsMeta] = useState({ total: 0, hasMore: false });
   const assetsLoadedRef = useRef(0);
+  const [cryptoWallets, setCryptoWallets] = useState([]);
+  const [cryptoWalletsMeta, setCryptoWalletsMeta] = useState({ total: 0, hasMore: false });
+  const cryptoWalletsLoadedRef = useRef(0);
   const [transactions, setTransactions] = useState([]);
   const [transactionsMeta, setTransactionsMeta] = useState({ total: 0, hasMore: false });
   const transactionsLoadedRef = useRef(0);
@@ -119,6 +122,18 @@ export const DataProvider = ({ children }) => {
   }, [activeProjectId]);
   const loadMoreAssets = useCallback(async () => { await fetchAssets(assetsLoadedRef.current); }, [fetchAssets]);
 
+  const fetchCryptoWallets = useCallback(async (offset = 0) => {
+    try {
+      const { data, meta } = await cryptoWalletsAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
+      if (offset === 0) { setCryptoWallets(data); cryptoWalletsLoadedRef.current = data.length; }
+      else { setCryptoWallets(prev => [...prev, ...data]); cryptoWalletsLoadedRef.current += data.length; }
+      setCryptoWalletsMeta({ total: meta.total, hasMore: meta.hasMore });
+    } catch (err) {
+      console.error('Error fetching crypto wallets:', err);
+    }
+  }, [activeProjectId]);
+  const loadMoreCryptoWallets = useCallback(async () => { await fetchCryptoWallets(cryptoWalletsLoadedRef.current); }, [fetchCryptoWallets]);
+
   const fetchTransactions = useCallback(async (offset = 0) => {
     try {
       const { data, meta } = await transactionsAPI.getAll({ limit: PAGE_SIZE, offset, project_id: activeProjectId });
@@ -140,9 +155,10 @@ export const DataProvider = ({ children }) => {
       fetchCustomFields(),
       fetchProperties(0),
       fetchAssets(0),
+      fetchCryptoWallets(0),
       fetchTransactions(0),
     ]);
-  }, [fetchPeople, fetchBusinesses, fetchTools, fetchTodos, fetchCustomFields, fetchProperties, fetchAssets, fetchTransactions]);
+  }, [fetchPeople, fetchBusinesses, fetchTools, fetchTodos, fetchCustomFields, fetchProperties, fetchAssets, fetchCryptoWallets, fetchTransactions]);
 
   const handleAppNameChange = useCallback((newName) => {
     setAppSettings(prev => {
@@ -166,6 +182,7 @@ export const DataProvider = ({ children }) => {
       customFields, setCustomFields, fetchCustomFields,
       properties, setProperties, fetchProperties, propertiesMeta, loadMoreProperties,
       assets, setAssets, fetchAssets, assetsMeta, loadMoreAssets,
+      cryptoWallets, setCryptoWallets, fetchCryptoWallets, cryptoWalletsMeta, loadMoreCryptoWallets,
       transactions, setTransactions, fetchTransactions, transactionsMeta, loadMoreTransactions,
       appSettings, setAppSettings: persistAppSettings, handleAppNameChange,
       refreshAll,

@@ -12,7 +12,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, RelationshipCreateSchema, RelationshipUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
-const ENTITY_TABLE = { person: 'people', business: 'businesses' };
+const ENTITY_TABLE = { person: 'people', business: 'businesses', crypto_wallet: 'crypto_wallets' };
 
 async function fetchEntityProject(entityType, entityId) {
   const table = ENTITY_TABLE[entityType];
