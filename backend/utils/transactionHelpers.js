@@ -121,13 +121,15 @@ function decorateTransaction(row) {
 }
 
 // Geocode free-text address fields. Non-fatal: returns coords or a failure reason.
-async function geocodeFields(service, fields) {
+// projectId scopes the geocoding cache so a hit from one investigation can't
+// surface in an unrelated one (issue #83 follow-up).
+async function geocodeFields(service, fields, projectId = null) {
   const parts = [fields.address, fields.city, fields.state, fields.country].filter(Boolean);
   if (!service || parts.length === 0) {
     return { latitude: null, longitude: null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: parts.length === 0 ? 'empty' : 'service_error' };
   }
   try {
-    const result = await service.geocodeAddress(parts.join(', '), { minConfidence: 30 });
+    const result = await service.geocodeAddress(parts.join(', '), { minConfidence: 30, projectId });
     if (result && !result.failure) {
       return {
         latitude: result.lat,

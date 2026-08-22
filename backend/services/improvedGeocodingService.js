@@ -33,7 +33,11 @@ class ImprovedGeocodingService {
 
   async initializeDatabase() {
     try {
-      // Create geocoding cache table
+      // Create geocoding cache table. project_id is nullable: entity-save
+      // call sites always pass one (issue #83 follow-up -- a cache hit from
+      // one investigation was leaking into an unrelated one), but the
+      // standalone /api/geocoding lookup tools aren't tied to a specific
+      // project and share an unscoped pool of rows instead.
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS geocoding_cache (
           id SERIAL PRIMARY KEY,
@@ -48,16 +52,23 @@ class ImprovedGeocodingService {
           city VARCHAR(100),
           state VARCHAR(100),
           postal_code VARCHAR(20),
+          project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
-      // Create index for faster lookups
+      // Create index for faster lookups. NULLS NOT DISTINCT (PG15+) so the
+      // unscoped standalone-lookup rows (project_id IS NULL) still collide
+      // and update in place via ON CONFLICT, the same as scoped rows do --
+      // without it every repeat lookup of the same unscoped address would
+      // insert a fresh row instead of refreshing the existing one.
       await this.pool.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS geocoding_cache_hash_provider_key ON geocoding_cache(address_hash, provider);
+        CREATE UNIQUE INDEX IF NOT EXISTS geocoding_cache_hash_provider_project_key
+          ON geocoding_cache(address_hash, provider, project_id) NULLS NOT DISTINCT;
         CREATE INDEX IF NOT EXISTS idx_geocoding_cache_hash ON geocoding_cache(address_hash);
         CREATE INDEX IF NOT EXISTS idx_geocoding_cache_address ON geocoding_cache(normalized_address);
+        CREATE INDEX IF NOT EXISTS idx_geocoding_cache_project ON geocoding_cache(project_id);
       `);
 
       console.log('Geocoding cache database initialized');
@@ -83,14 +94,17 @@ class ImprovedGeocodingService {
       .trim();
   }
 
-  // Check database cache first
-  async getCachedCoordinates(address, provider) {
+  // Check database cache first. projectId scopes the lookup so a cache hit
+  // from one investigation can't surface in an unrelated one (issue #83
+  // follow-up); pass null/undefined for the standalone lookup tools that
+  // aren't tied to a project.
+  async getCachedCoordinates(address, provider, projectId = null) {
     const hash = this.createAddressHash(address);
     try {
       const result = await this.pool.query(
         `SELECT latitude, longitude, confidence_score, city, state, country_code
-         FROM geocoding_cache WHERE address_hash = $1 AND provider = $2`,
-        [hash, provider]
+         FROM geocoding_cache WHERE address_hash = $1 AND provider = $2 AND project_id IS NOT DISTINCT FROM $3`,
+        [hash, provider, projectId]
       );
       
       if (result.rows.length > 0) {
@@ -111,17 +125,18 @@ class ImprovedGeocodingService {
     return null;
   }
 
-  // Cache coordinates in database
-  async cacheCoordinates(address, result) {
+  // Cache coordinates in database, scoped to projectId (null for the
+  // standalone lookup tools -- see getCachedCoordinates).
+  async cacheCoordinates(address, result, projectId = null) {
     const hash = this.createAddressHash(address);
     const normalized = this.normalizeAddress(address);
-    
+
     try {
       await this.pool.query(`
-        INSERT INTO geocoding_cache 
-        (address_hash, original_address, normalized_address, latitude, longitude, confidence_score, city, state, country_code, provider)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (address_hash, provider)
+        INSERT INTO geocoding_cache
+        (address_hash, original_address, normalized_address, latitude, longitude, confidence_score, city, state, country_code, provider, project_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (address_hash, provider, project_id)
         DO UPDATE SET
           latitude = EXCLUDED.latitude,
           longitude = EXCLUDED.longitude,
@@ -131,9 +146,9 @@ class ImprovedGeocodingService {
           country_code = EXCLUDED.country_code,
           updated_at = CURRENT_TIMESTAMP
       `, [
-        hash, address, normalized, result.lat, result.lng, 
+        hash, address, normalized, result.lat, result.lng,
         result.confidence || 50, result.city || null, result.state || null,
-        result.country || null, result.provider || 'nominatim'
+        result.country || null, result.provider || 'nominatim', projectId
       ]);
     } catch (error) {
       console.error('Error caching coordinates:', error);
@@ -473,7 +488,7 @@ class ImprovedGeocodingService {
     // Check cache first — per provider, or switching provider would keep
     // serving the old one's results (issue #62)
     const activeProvider = await this.getEffectiveProvider();
-    const cached = await this.getCachedCoordinates(normalizedAddress, activeProvider);
+    const cached = await this.getCachedCoordinates(normalizedAddress, activeProvider, options.projectId ?? null);
     if (cached && cached.confidence > minConfidence) {
       return cached;
     }
@@ -510,7 +525,7 @@ class ImprovedGeocodingService {
       };
     }
 
-    await this.cacheCoordinates(normalizedAddress, result);
+    await this.cacheCoordinates(normalizedAddress, result, options.projectId ?? null);
     return result;
   }
 

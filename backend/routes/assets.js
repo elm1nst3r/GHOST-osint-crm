@@ -167,7 +167,7 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
 
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country }, b.project_id);
     } else if (mode === 'fixed_known' && b.location_person_id && b.location_ref != null) {
       // snapshot the chosen people.locations entry coords
       const pr = await pool.query('SELECT locations FROM people WHERE id = $1', [b.location_person_id]);
@@ -251,7 +251,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
 
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country }, existing.rows[0].project_id);
     } else if (mode === 'fixed_known' && b.location_person_id && b.location_ref != null) {
       const pr = await pool.query('SELECT locations FROM people WHERE id = $1', [b.location_person_id]);
       const locs = (pr.rows[0] && pr.rows[0].locations) || [];

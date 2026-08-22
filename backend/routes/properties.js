@@ -70,7 +70,7 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
 
     let geo = { latitude, longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address, city, state, country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address, city, state, country }, project_id);
     }
 
     const result = await pool.query(
@@ -138,7 +138,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema),
 
     let geo = { latitude, longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address, city, state, country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address, city, state, country }, existing.rows[0].project_id);
     }
 
     const result = await pool.query(

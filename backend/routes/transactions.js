@@ -128,7 +128,7 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body);
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body, req.body.project_id);
     }
     // project_id is intentionally NOT in TX_COLUMNS: that array is shared with
     // PUT's buildValues(), and PUT's schema omits project_id (immutable via the
@@ -175,7 +175,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body);
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body, existing.rows[0].project_id);
     }
     const setSql = TX_COLUMNS.map((col, i) => `${col} = $${i + 1}`).join(', ');
     const values = buildValues(req.body, geo);

@@ -95,7 +95,8 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
       if (improvedGeocodingService) {
         const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
           minConfidence: 30,
-          maxConcurrent: 3
+          maxConcurrent: 3,
+          projectId: project_id
         });
         // Merge geocoded results back by reference into the original array
         for (let i = 0; i < geocoded.length; i++) {
@@ -238,7 +239,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
         if (improvedGeocodingService) {
           const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
             minConfidence: 30,
-            maxConcurrent: 3
+            maxConcurrent: 3,
+            projectId: oldPerson.project_id
           });
           // Merge geocoded results back by reference into the original array
           for (let i = 0; i < geocoded.length; i++) {

@@ -101,7 +101,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       const improvedGeocodingService = req.app.locals.improvedGeocodingService;
       if (locationParts.length > 0 && improvedGeocodingService) {
         try {
-          const geocodeResult = await improvedGeocodingService.geocodeAddress(locationParts.join(', '), { minConfidence: 30 });
+          const geocodeResult = await improvedGeocodingService.geocodeAddress(locationParts.join(', '), { minConfidence: 30, projectId: project_id });
           if (geocodeResult && !geocodeResult.failure) {
             finalLatitude = geocodeResult.lat;
             finalLongitude = geocodeResult.lng;
@@ -207,7 +207,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       const improvedGeocodingService = req.app.locals.improvedGeocodingService;
       if (locationParts.length > 0 && improvedGeocodingService) {
         try {
-          const geocodeResult = await improvedGeocodingService.geocodeAddress(locationParts.join(', '), { minConfidence: 30 });
+          const geocodeResult = await improvedGeocodingService.geocodeAddress(locationParts.join(', '), { minConfidence: 30, projectId: oldBusiness.project_id });
           if (geocodeResult && !geocodeResult.failure) {
             finalLatitude = geocodeResult.lat;
             finalLongitude = geocodeResult.lng;
