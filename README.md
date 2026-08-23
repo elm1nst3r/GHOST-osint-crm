@@ -76,8 +76,15 @@ If this project is ever shelved, this section will be updated and the repository
 - **Status tracking**: Pending, In Progress, Completed
 - **Case assignment**: Organize tasks by investigation
 
+### 🗂️ Projects — Data Isolation & Access Control
+- **Projects are the hard isolation boundary**: every person, business, asset, transaction, wireless network, and relationship belongs to exactly one project — separate investigations don't bleed into each other, including in the geocoding cache
+- **Cases nest inside a project**: a lighter grouping for different angles or hypotheses within the same investigation
+- **Cross-project linking**: off by default, an opt-in per-project setting for the rare case where the same person legitimately resurfaces in an unrelated story — linked entities stay owned by their home project and show a "from Project X" badge
+- **Per-project roles**: Administrators see and manage every project; each other user is added to specific projects as a **Manager** (also edits project settings and membership) or an **Investigator** (full access to that project's data only) — enforced on the backend, not just the UI
+- **First-run project gate**: a fresh install or a newly-added user is walked into picking or creating a project before anything else is usable
+
 ### 📊 Case Management
-- **Multi-case support**: Manage multiple investigations
+- **Multi-case support**: Manage multiple investigations within a project
 - **Status tracking**: Custom case statuses and data types
 - **Case-person linking**: Associate people with cases
 - **Timeline tracking**: Investigation chronology
@@ -85,9 +92,16 @@ If this project is ever shelved, this section will be updated and the repository
 
 ### 🏢 Business Intelligence
 - **Business tracking**: Companies and organizations
-- **Employee mapping**: Track personnel
+- **Employee mapping**: Track personnel, with board members/decision-makers distinguished from regular employees
+- **Ownership chains**: a business can be owned by another business, not just a person — represents holding/shell structures
 - **Business relationships**: Link to people and other businesses
 - **Address and contact management**: Full business profiles
+
+### 🪙 Crypto Wallet Tracking
+- **Wallet entities**: address, network/chain, label, and free-form tags (suspicious, exchange, mixer, scam…)
+- **Manual transaction log**: wallet-to-wallet transfers with hash, amount, and timestamp — entered by hand, no live chain API calls
+- **Relationships**: wallet↔wallet, wallet↔person, and wallet↔business links, visible in the same relationship graph as everything else
+- **External reference field**: link out to GraphSense, a block explorer, or any other specialized analysis tool — GHOST tracks the citation and the connections, not the on-chain analysis itself
 
 ### 💸 Asset, Property & Transaction Tracking
 - **Assets**: Persistent physical goods (vehicles, devices, jewellery…) with categories, value, and status
@@ -100,9 +114,9 @@ If this project is ever shelved, this section will be updated and the repository
 - **Configurable taxonomies**: Transaction types, item categories, asset categories/statuses, and property types are editable in Settings → Data Model
 
 ### 🤖 API, OpenAPI & MCP Server
-- **OpenAPI 3.1 spec**: `GET /api/openapi.json` (authenticated) serves a machine-readable description of the full API — 54 paths, request schemas, auth flow, pagination, rate limits
+- **OpenAPI 3.1 spec**: `GET /api/openapi.json` (authenticated) serves a machine-readable description of the full API — 55 paths, request schemas, auth flow, pagination, rate limits
 - **Single source of truth**: The spec is generated at startup from the same Zod schemas that validate requests — documentation can't drift from behaviour
-- **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the entire GHOST API as ~86 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
+- **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the entire GHOST API as ~90 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
 - **Duplicate protection**: MCP create tools check for same-name records first and refuse with a match list unless explicitly overridden
 - **Schema validation everywhere**: All POST/PUT routes validate bodies against Zod schemas and return structured field-level errors
 
@@ -240,18 +254,18 @@ GHOST-osint-crm/
 │   │   │   ├── settings/        # SettingsPage tabs
 │   │   │   ├── visualization/   # Graphs and diagrams
 │   │   │   └── wireless/        # WirelessNetworkDetail panels
-│   │   ├── contexts/            # AuthContext, DataContext, UIContext
+│   │   ├── contexts/            # AuthContext, DataContext, ProjectContext, UIContext
 │   │   └── utils/               # API layer, report generators, constants
 │   ├── public/                  # Static assets
 │   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
 ├── backend/                     # Node.js/Express API
 │   ├── server.js                # App entry point (~1,000 lines)
-│   ├── routes/                  # 19 route modules (people, cases, assets, transactions…)
+│   ├── routes/                  # 21 route modules (people, cases, projects, crypto wallets, assets, transactions…)
 │   ├── middleware/              # Auth, audit, rate limiters, Zod schemas & validation
 │   ├── services/                # Geocoding services
-│   ├── utils/                   # Password policy, session revocation, transaction helpers
+│   ├── utils/                   # Password policy, session revocation, project access control, transaction helpers
 │   └── public/uploads/          # File uploads
-├── mcp/                         # Bundled MCP server (86 tools from the OpenAPI spec)
+├── mcp/                         # Bundled MCP server (~90 tools from the OpenAPI spec)
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
 ```
@@ -259,12 +273,13 @@ GHOST-osint-crm/
 ## 🎮 Usage Guide
 
 ### Starting a New Investigation
-1. **Create a case** in the Cases section
-2. **Add people** with all relevant details
-3. **Map connections** in Entity Network view
-4. **Track locations** on the Global Map
-5. **Import wireless networks** (if using WiGLE data)
-6. **Assign tasks** to track investigation progress
+1. **Select or create a project** — the top-bar project selector; a fresh install or a newly-added user is prompted for this before anything else is usable
+2. **Create a case** in the Cases section (optional — a lighter grouping inside the project, for different angles on the same investigation)
+3. **Add people** with all relevant details
+4. **Map connections** in Entity Network view
+5. **Track locations** on the Global Map
+6. **Import wireless networks** (if using WiGLE data)
+7. **Assign tasks** to track investigation progress
 
 ### Wireless Network Intelligence
 **Manual Entry:**
@@ -327,6 +342,7 @@ GHOST-osint-crm/
 - 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
+- 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); a Manager role can edit project settings and membership, an Investigator role cannot
 - 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
 - 🔒 **Request body validation** — every POST/PUT route validates against a Zod schema; unknown fields are stripped and errors are returned per-field
 - 🔒 **Error detail suppression** — raw database error messages are not exposed to clients when `NODE_ENV=production`
@@ -621,5 +637,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.9.1
-**Last Updated:** July 7, 2026
+**Version:** 2.14.2 (latest tagged release — `main` also includes project isolation, per-project roles, and crypto wallet tracking, pending their own release)
+**Last Updated:** August 23, 2026
