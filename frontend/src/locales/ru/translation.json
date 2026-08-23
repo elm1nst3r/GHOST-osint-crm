@@ -13,6 +13,7 @@
       "businesses": "Организации",
       "properties": "Недвижимость",
       "assets": "Вещественные улики",
+      "crypto-wallets": "Crypto Wallets",
       "transactions": "Транзакции",
       "tools": "OSINT инструменты",
       "relationships": "Доска связей",
@@ -72,6 +73,19 @@
         "victim": "Жертва",
         "witness": "Свидетель",
         "board_member": "Член Совета/принимающий решения"
+      },
+      "crypto_wallet_network": {
+        "bitcoin": "Bitcoin",
+        "ethereum": "Ethereum",
+        "solana": "Solana",
+        "tron": "Tron",
+        "other": "Other"
+      },
+      "crypto_wallet_tag": {
+        "suspicious": "Suspicious",
+        "exchange": "Exchange",
+        "mixer": "Mixer",
+        "scam": "Scam"
       },
       "crm_status": {
         "active": "Активен",
@@ -350,7 +364,9 @@
         "transactionItemCategory": "Категория элементов транзакции",
         "assetCategory": "Категории вещественных улик",
         "assetStatus": "Статусы вещественных улик",
-        "propertyType": "Типы недвижимости"
+        "propertyType": "Типы недвижимости",
+        "cryptoWalletNetwork": "Crypto Wallet Networks",
+        "cryptoWalletTag": "Crypto Wallet Tags"
       },
       "predefinedOptions": "Предопределенные настройки",
       "addOption": "Добавить опцию",
@@ -398,6 +414,7 @@
       "errorInvalidFileFormat": "Неверный формат файла импорта",
       "errorReadFile": "Не удалось прочитать файл импорта: {{message}}",
       "errorImportData": "Не удалось импортировать данные: {{message}}",
+      "errorNoActiveProject": "Select a project before importing — imported data will be added to it.",
       "importPreview": "Предпросмотр импорта",
       "fileName": "Имя файла",
       "fileSize": "Размер файла",
@@ -458,6 +475,7 @@
     "globalRelationshipOverview": "Глобальная доска связей",
     "viewFullNetwork": "Смотреть всю паутину",
     "errorAddTodo": "Не удалось добавить задачу",
+    "errorNoActiveProject": "Select a project before adding a todo.",
     "errorUpdateTodo": "Не удалось обновить задачу",
     "errorDeleteTodo": "Не удалось удалить задачу",
     "todoStatus": {
@@ -479,6 +497,7 @@
     "caseNamePlaceholder": "Введите имя дела...",
     "description": "Описание",
     "descriptionPlaceholder": "Введите описание дела...",
+    "project": "Project",
     "createCase": "Создать дело",
     "peopleCount": "{{count}} личностей",
     "status": "Статус",
@@ -582,6 +601,7 @@
     "fullEdit": "Полное редактирование",
     "noPeopleYet": "Нет добавленных личностей. Нажмите \"Добавить быстро\", чтобы начать!",
     "errorFirstNameRequired": "Необходимо указать имя",
+    "errorNoActiveProject": "Select a project before adding people.",
     "errorUpdatePerson": "Не удалось обновить личность",
     "csvMustHaveHeader": "CSV должен иметь строку заголовка и по крайней мере одну строку данных",
     "csvParseErrorsPrefix": "Ошибка CSV парсинга:",
@@ -638,6 +658,20 @@
     "errorDeleteAsset": "Не удалось удалить вещь: {{message}}",
     "showingOfTotal": "Показаны {{count}} из {{total}}"
   },
+  "cryptoWalletsList": {
+    "title": "Crypto Wallets",
+    "countTotal": "{{count}} of {{total}} wallets",
+    "countSimple": "{{count}} wallets",
+    "addWallet": "Add Wallet",
+    "searchPlaceholder": "Search by address or label…",
+    "allNetworks": "All Networks",
+    "allTags": "All Tags",
+    "externalReference": "External reference",
+    "noResultsFound": "No crypto wallets found.",
+    "confirmDelete": "Delete this crypto wallet?",
+    "errorDelete": "Failed to delete crypto wallet: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
   "transactionsList": {
     "title": "Транзакции",
     "countTotal": "{{count}} из {{total}} транзакций",
@@ -676,6 +710,7 @@
     "updatePerson": "Обновить личность",
     "createPerson": "Создать личность",
     "errorSavePerson": "Не удалось сохранить личность: {{message}}",
+    "errorNoActiveProject": "Select a project before adding a person.",
     "locations": {
       "label": "Позиционирование",
       "streetAddress": "Уличный  адрес",
@@ -694,7 +729,11 @@
       "selectPerson": "Выбрать личность",
       "notesPlaceholder": "Заметки о связи (опционально)",
       "addConnection": "Добавить связь",
-      "unknownPerson": "Неизвестно"
+      "unknownPerson": "Неизвестно",
+      "linkOtherProject": "Link from another project",
+      "linkThisProject": "Back to this project",
+      "chooseProject": "Choose a project...",
+      "fromProject": "from {{project}}"
     },
     "customFields": {
       "label": "Пользовательские поля",
@@ -705,6 +744,7 @@
   "businessForm": {
     "editTitle": "Редактировать организацию",
     "addTitle": "Добавить новую организацию",
+    "errorNoActiveProject": "Select a project before adding a business.",
     "basicInformation": "Основная информация",
     "businessNameRequired": "Наименование организации *",
     "type": "Тип",
@@ -798,6 +838,7 @@
     "description": "Описание",
     "notes": "Заметки",
     "errorNameRequired": "Требуется название",
+    "errorNoActiveProject": "Select a project before adding a property.",
     "errorSaveProperty": "Не удалось сохранить недвижимость"
   },
   "assetForm": {
@@ -838,7 +879,38 @@
     "notes": "Заметки",
     "errorNameRequired": "Необходимо ввести название",
     "errorLocationPersonRequired": "Выберите человека для закреплённого местоположения",
+    "errorNoActiveProject": "Select a project before adding an asset.",
     "errorSaveAsset": "Не удалось сохранить вещь"
+  },
+  "cryptoWalletForm": {
+    "editTitle": "Edit Crypto Wallet",
+    "addTitle": "Add Crypto Wallet",
+    "addressRequired": "Address *",
+    "network": "Network",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusArchived": "Archived",
+    "label": "Label",
+    "externalReferenceUrl": "External Reference URL",
+    "externalReferenceUrlPlaceholder": "e.g. a GraphSense or block explorer link",
+    "tags": "Tags",
+    "addTagPlaceholder": "Add a custom tag…",
+    "notes": "Notes",
+    "errorAddressRequired": "Address is required",
+    "errorNoActiveProject": "Select a project before adding a crypto wallet.",
+    "errorSave": "Failed to save crypto wallet"
+  },
+  "cryptoWalletDetailModal": {
+    "person": "Person",
+    "business": "Business",
+    "wallet": "Wallet",
+    "viewExternalReference": "View external reference",
+    "relationships": "Relationships",
+    "noRelationships": "No relationships yet.",
+    "relationshipTypePlaceholder": "Relationship type",
+    "confirmRemoveRelationship": "Remove this relationship?",
+    "errorAddRelationship": "Failed to add relationship",
+    "errorRemoveRelationship": "Failed to remove relationship"
   },
   "transactionForm": {
     "editTitle": "Редактировать транзакцию",
@@ -846,11 +918,14 @@
     "partyPicker": {
       "person": "Личность",
       "business": "Организация",
+      "wallet": "Crypto Wallet",
       "external": "Внешний (свободный текст)",
       "externalNamePlaceholder": "Внешнее имя"
     },
     "fromTitle": "От (отправитель)",
     "toTitle": "К (получатель)",
+    "txHash": "Transaction Hash",
+    "txHashPlaceholder": "On-chain transaction hash",
     "typeRequired": "Тип *",
     "date": "Дата",
     "subject": "Предмет (что перешло из рук в руки)",
@@ -879,6 +954,7 @@
     "notes": "Заметки",
     "errorTypeRequired": "Требуется тип транзакции",
     "errorPartyRequired": "Требуется хотя бы одна сторона (отправитель или получатель)",
+    "errorNoActiveProject": "Select a project before adding a transaction.",
     "errorSaveTransaction": "Не удалось сохранить транзакцию",
     "tags": "Теги",
     "tagsPlaceholder": "городской совет - конфликт интересов, последующие меры",
@@ -1106,6 +1182,7 @@
   },
   "addNetworkForm": {
     "title": "Добавить сеть вручную",
+    "errorNoActiveProject": "Select a project before adding a network.",
     "networkIdentification": "Идентификатор сети",
     "ssidLabel": "SSID (имя сети)",
     "bssidLabel": "BSSID (MAC адрес)",
@@ -1146,6 +1223,7 @@
     "errorInvalidKmlFormat": "Недопустимый формат файла KML",
     "errorParseKmlFile": "Не удалось распознать KML файл: {{message}}",
     "errorSelectFileFirst": "Сначала выберите файл",
+    "errorNoActiveProject": "Select a project before importing.",
     "errorImportKmlFile": "Не удалось импортировать KML файл",
     "title": "Импорт файла WiGLE KML",
     "subtitle": "Загрузите свой экспорт WiGLE wardriving",
@@ -1323,6 +1401,7 @@
     "employeeConnectionNote": "Сотрудник — {{role}}",
     "employeeConnectionNoteNoRole": "Сотрудник",
     "errorBusinessConnectionsNotSupported": "Связи с организациями пока не поддерживаются. Вместо этого свяжите с владельцем организации или свяжите с личностью напрямую.",
+    "errorWalletConnectionsNotSupported": "Crypto wallet relationships can't be created here. Open the wallet's detail view to add or remove relationships.",
     "errorUnrecognisedNode": "Не удалось создать связь: узел нераспознан.",
     "promptConnectionType": "Тип связи (семья, друзья, коллеги т. д.):",
     "edgeTypes": {
@@ -1713,6 +1792,48 @@
     "switchToLight": "Переключиться в светлый режим",
     "switchToDark": "Переключиться в темный режим"
   },
+  "projectSelector": {
+    "title": "Active project",
+    "noneSelected": "No project selected",
+    "none": "No projects yet",
+    "namePlaceholder": "Project name...",
+    "iconPlaceholder": "🗂",
+    "newProject": "New Project",
+    "errorCreate": "Failed to create project",
+    "errorUpdate": "Failed to update project",
+    "errorDelete": "Failed to delete project",
+    "confirmDelete": "Delete project \"{{name}}\"? This only works if it has no data left in it.",
+    "statusActive": "Active",
+    "statusOnHold": "On Hold",
+    "statusClosed": "Closed",
+    "allowCrossLinking": "Allow linking to entities in other projects"
+  },
+  "projectGate": {
+    "titleFirstRun": "Create your first project",
+    "descriptionFirstRun": "Projects are the isolation boundary for your data — create one to get started.",
+    "titleNoMemberships": "No projects yet",
+    "descriptionNoMemberships": "You haven't been added to any projects. Ask an administrator or project manager to add you.",
+    "titlePick": "Select a project",
+    "descriptionPick": "Pick a project to continue, or create a new one.",
+    "namePlaceholder": "Project name...",
+    "create": "Create",
+    "errorCreate": "Failed to create project"
+  },
+  "projectMembers": {
+    "title": "Members — {{name}}",
+    "columnUser": "User",
+    "columnRole": "Role",
+    "noMembers": "No members yet.",
+    "addMember": "Add member",
+    "roleManager": "Manager",
+    "roleInvestigator": "Investigator",
+    "roleHint": "Investigators have full access to this project's data. Managers can also manage project settings and membership.",
+    "adminHint": "Administrators always have access to every project and aren't listed here.",
+    "confirmRemove": "Remove this member from the project?",
+    "errorAdd": "Failed to add member",
+    "errorUpdateRole": "Failed to update member role",
+    "errorRemove": "Failed to remove member"
+  },
   "errorBoundary": {
     "viewFailedToRender": "Не удалось отобразить этот вид",
     "tryAgain": "Попробуйте еще раз"
@@ -1741,6 +1862,8 @@
     "importTools": "Импорт"
   },
   "personDetailModal": {
+    "otherProjectBadge": "From project: {{project}} (not your active project)",
+    "otherProjectUnknown": "unknown",
     "confirmRemoveLocation": "Удалить эту локацию?",
     "errorDeleteLocation": "Не удалось удалить локацию",
     "generateReportTitle": "Создать отчет",
