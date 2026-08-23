@@ -4,10 +4,9 @@
 // never a real table — they lived as JSONB `connections` arrays on `people`
 // rows (plus `employees[]`/`owner_person_id`/`owner_business_id` on
 // `businesses`, wired together only client-side in RelationshipManager.js).
-// The cross-project-linking design (docs/specs/case-data-isolation.md §3)
-// needs relationships to be independently addressable rows with their own
-// project_id/case_id, so this migration introduces `relationships` and
-// copies the existing data into it.
+// The cross-project-linking design needs relationships to be independently
+// addressable rows with their own project_id/case_id, so this migration
+// introduces `relationships` and copies the existing data into it.
 //
 // Nothing is dropped: people.connections, businesses.employees, and
 // businesses.owner_person_id/owner_business_id all stay exactly as they are.

@@ -1,10 +1,10 @@
 // File: frontend/src/components/ProjectSelector.js
 // Top-of-app project switcher (issue #83): switch, create, and edit
-// projects (rename, symbol, cross-linking, archive status, delete). The
-// first-run / no-active-project case is handled separately by ProjectGate,
-// which wraps AppShell. Deliberately still basic beyond that -- no "all
-// projects" merged view, no cross-project admin mode -- those are later
-// stages per docs/specs/case-data-isolation.md.
+// projects (rename, symbol, cross-linking, archive status, delete), plus a
+// Members button (issue #84) for admins/managers. The first-run / no-active-
+// project case is handled separately by ProjectGate, which wraps AppShell.
+// Deliberately still basic beyond that -- no "all projects" merged view for
+// admins is a later stage.
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderKanban, Plus, Check, Pencil, Trash2, X, Users } from 'lucide-react';
