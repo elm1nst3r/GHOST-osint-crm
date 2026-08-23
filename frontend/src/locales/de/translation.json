@@ -13,6 +13,7 @@
       "businesses": "Businesses",
       "properties": "Properties",
       "assets": "Assets",
+      "crypto-wallets": "Crypto Wallets",
       "transactions": "Transactions",
       "tools": "OSINT Tools",
       "relationships": "Entity Network",
@@ -72,6 +73,19 @@
         "victim": "Victim",
         "witness": "Witness",
         "board_member": "Board Member / Decision Maker"
+      },
+      "crypto_wallet_network": {
+        "bitcoin": "Bitcoin",
+        "ethereum": "Ethereum",
+        "solana": "Solana",
+        "tron": "Tron",
+        "other": "Other"
+      },
+      "crypto_wallet_tag": {
+        "suspicious": "Suspicious",
+        "exchange": "Exchange",
+        "mixer": "Mixer",
+        "scam": "Scam"
       },
       "crm_status": {
         "active": "Active",
@@ -350,7 +364,9 @@
         "transactionItemCategory": "Transaction Item Categories",
         "assetCategory": "Asset Categories",
         "assetStatus": "Asset Statuses",
-        "propertyType": "Property Types"
+        "propertyType": "Property Types",
+        "cryptoWalletNetwork": "Crypto Wallet Networks",
+        "cryptoWalletTag": "Crypto Wallet Tags"
       },
       "predefinedOptions": "Predefined Options",
       "addOption": "Add Option",
@@ -398,6 +414,7 @@
       "errorInvalidFileFormat": "Invalid import file format",
       "errorReadFile": "Failed to read import file: {{message}}",
       "errorImportData": "Failed to import data: {{message}}",
+      "errorNoActiveProject": "Select a project before importing — imported data will be added to it.",
       "importPreview": "Import Preview",
       "fileName": "File Name",
       "fileSize": "File Size",
@@ -458,6 +475,7 @@
     "globalRelationshipOverview": "Global Relationship Overview",
     "viewFullNetwork": "View Full Network →",
     "errorAddTodo": "Failed to add todo",
+    "errorNoActiveProject": "Select a project before adding a todo.",
     "errorUpdateTodo": "Failed to update todo",
     "errorDeleteTodo": "Failed to delete todo",
     "todoStatus": {
@@ -479,6 +497,7 @@
     "caseNamePlaceholder": "Enter case name...",
     "description": "Description",
     "descriptionPlaceholder": "Enter case description...",
+    "project": "Project",
     "createCase": "Create Case",
     "peopleCount": "{{count}} people",
     "status": "Status",
@@ -582,6 +601,7 @@
     "fullEdit": "Full Edit",
     "noPeopleYet": "No people added yet. Click \"Quick Add\" to get started!",
     "errorFirstNameRequired": "First name is required",
+    "errorNoActiveProject": "Select a project before adding people.",
     "errorUpdatePerson": "Failed to update person",
     "csvMustHaveHeader": "CSV must have a header row and at least one data row",
     "csvParseErrorsPrefix": "CSV parse errors:",
@@ -638,6 +658,20 @@
     "errorDeleteAsset": "Failed to delete asset: {{message}}",
     "showingOfTotal": "Showing {{count}} of {{total}}"
   },
+  "cryptoWalletsList": {
+    "title": "Crypto Wallets",
+    "countTotal": "{{count}} of {{total}} wallets",
+    "countSimple": "{{count}} wallets",
+    "addWallet": "Add Wallet",
+    "searchPlaceholder": "Search by address or label…",
+    "allNetworks": "All Networks",
+    "allTags": "All Tags",
+    "externalReference": "External reference",
+    "noResultsFound": "No crypto wallets found.",
+    "confirmDelete": "Delete this crypto wallet?",
+    "errorDelete": "Failed to delete crypto wallet: {{message}}",
+    "showingOfTotal": "Showing {{count}} of {{total}}"
+  },
   "transactionsList": {
     "title": "Transactions",
     "countTotal": "{{count}} of {{total}} transactions",
@@ -676,6 +710,7 @@
     "updatePerson": "Update Person",
     "createPerson": "Create Person",
     "errorSavePerson": "Failed to save person: {{message}}",
+    "errorNoActiveProject": "Select a project before adding a person.",
     "locations": {
       "label": "Locations",
       "streetAddress": "Street Address",
@@ -694,7 +729,11 @@
       "selectPerson": "Select a person",
       "notesPlaceholder": "Connection notes (optional)",
       "addConnection": "Add Connection",
-      "unknownPerson": "Unknown"
+      "unknownPerson": "Unknown",
+      "linkOtherProject": "Link from another project",
+      "linkThisProject": "Back to this project",
+      "chooseProject": "Choose a project...",
+      "fromProject": "from {{project}}"
     },
     "customFields": {
       "label": "Custom Fields",
@@ -705,6 +744,7 @@
   "businessForm": {
     "editTitle": "Edit Business",
     "addTitle": "Add New Business",
+    "errorNoActiveProject": "Select a project before adding a business.",
     "basicInformation": "Basic Information",
     "businessNameRequired": "Business Name *",
     "type": "Type",
@@ -798,6 +838,7 @@
     "description": "Description",
     "notes": "Notes",
     "errorNameRequired": "Name is required",
+    "errorNoActiveProject": "Select a project before adding a property.",
     "errorSaveProperty": "Failed to save property"
   },
   "assetForm": {
@@ -838,7 +879,38 @@
     "notes": "Notes",
     "errorNameRequired": "Name is required",
     "errorLocationPersonRequired": "Pick a person for the pinned location",
+    "errorNoActiveProject": "Select a project before adding an asset.",
     "errorSaveAsset": "Failed to save asset"
+  },
+  "cryptoWalletForm": {
+    "editTitle": "Edit Crypto Wallet",
+    "addTitle": "Add Crypto Wallet",
+    "addressRequired": "Address *",
+    "network": "Network",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusArchived": "Archived",
+    "label": "Label",
+    "externalReferenceUrl": "External Reference URL",
+    "externalReferenceUrlPlaceholder": "e.g. a GraphSense or block explorer link",
+    "tags": "Tags",
+    "addTagPlaceholder": "Add a custom tag…",
+    "notes": "Notes",
+    "errorAddressRequired": "Address is required",
+    "errorNoActiveProject": "Select a project before adding a crypto wallet.",
+    "errorSave": "Failed to save crypto wallet"
+  },
+  "cryptoWalletDetailModal": {
+    "person": "Person",
+    "business": "Business",
+    "wallet": "Wallet",
+    "viewExternalReference": "View external reference",
+    "relationships": "Relationships",
+    "noRelationships": "No relationships yet.",
+    "relationshipTypePlaceholder": "Relationship type",
+    "confirmRemoveRelationship": "Remove this relationship?",
+    "errorAddRelationship": "Failed to add relationship",
+    "errorRemoveRelationship": "Failed to remove relationship"
   },
   "transactionForm": {
     "editTitle": "Edit Transaction",
@@ -846,11 +918,14 @@
     "partyPicker": {
       "person": "Person",
       "business": "Business",
+      "wallet": "Crypto Wallet",
       "external": "External (free text)",
       "externalNamePlaceholder": "External name"
     },
     "fromTitle": "From (giver)",
     "toTitle": "To (receiver)",
+    "txHash": "Transaction Hash",
+    "txHashPlaceholder": "On-chain transaction hash",
     "typeRequired": "Type *",
     "date": "Date",
     "subject": "Subject (what changed hands)",
@@ -879,6 +954,7 @@
     "notes": "Notes",
     "errorTypeRequired": "Transaction type is required",
     "errorPartyRequired": "At least one party (giver or receiver) is required",
+    "errorNoActiveProject": "Select a project before adding a transaction.",
     "errorSaveTransaction": "Failed to save transaction",
     "tags": "Tags",
     "tagsPlaceholder": "city-council-conflict-of-interest, follow-up",
@@ -1106,6 +1182,7 @@
   },
   "addNetworkForm": {
     "title": "Add Network Manually",
+    "errorNoActiveProject": "Select a project before adding a network.",
     "networkIdentification": "Network Identification",
     "ssidLabel": "SSID (Network Name)",
     "bssidLabel": "BSSID (MAC Address)",
@@ -1146,6 +1223,7 @@
     "errorInvalidKmlFormat": "Invalid KML file format",
     "errorParseKmlFile": "Failed to parse KML file: {{message}}",
     "errorSelectFileFirst": "Please select a file first",
+    "errorNoActiveProject": "Select a project before importing.",
     "errorImportKmlFile": "Failed to import KML file",
     "title": "Import WiGLE KML File",
     "subtitle": "Upload your WiGLE wardriving export",
@@ -1323,6 +1401,7 @@
     "employeeConnectionNote": "Employee — {{role}}",
     "employeeConnectionNoteNoRole": "Employee",
     "errorBusinessConnectionsNotSupported": "Connections to businesses are not supported yet. Set the owner on the business instead, or link the people directly.",
+    "errorWalletConnectionsNotSupported": "Crypto wallet relationships can't be created here. Open the wallet's detail view to add or remove relationships.",
     "errorUnrecognisedNode": "Could not create connection: unrecognised node.",
     "promptConnectionType": "Connection type (family, friend, associate, etc.):",
     "edgeTypes": {
@@ -1713,6 +1792,48 @@
     "switchToLight": "Switch to Light Mode",
     "switchToDark": "Switch to Dark Mode"
   },
+  "projectSelector": {
+    "title": "Active project",
+    "noneSelected": "No project selected",
+    "none": "No projects yet",
+    "namePlaceholder": "Project name...",
+    "iconPlaceholder": "🗂",
+    "newProject": "New Project",
+    "errorCreate": "Failed to create project",
+    "errorUpdate": "Failed to update project",
+    "errorDelete": "Failed to delete project",
+    "confirmDelete": "Delete project \"{{name}}\"? This only works if it has no data left in it.",
+    "statusActive": "Active",
+    "statusOnHold": "On Hold",
+    "statusClosed": "Closed",
+    "allowCrossLinking": "Allow linking to entities in other projects"
+  },
+  "projectGate": {
+    "titleFirstRun": "Create your first project",
+    "descriptionFirstRun": "Projects are the isolation boundary for your data — create one to get started.",
+    "titleNoMemberships": "No projects yet",
+    "descriptionNoMemberships": "You haven't been added to any projects. Ask an administrator or project manager to add you.",
+    "titlePick": "Select a project",
+    "descriptionPick": "Pick a project to continue, or create a new one.",
+    "namePlaceholder": "Project name...",
+    "create": "Create",
+    "errorCreate": "Failed to create project"
+  },
+  "projectMembers": {
+    "title": "Members — {{name}}",
+    "columnUser": "User",
+    "columnRole": "Role",
+    "noMembers": "No members yet.",
+    "addMember": "Add member",
+    "roleManager": "Manager",
+    "roleInvestigator": "Investigator",
+    "roleHint": "Investigators have full access to this project's data. Managers can also manage project settings and membership.",
+    "adminHint": "Administrators always have access to every project and aren't listed here.",
+    "confirmRemove": "Remove this member from the project?",
+    "errorAdd": "Failed to add member",
+    "errorUpdateRole": "Failed to update member role",
+    "errorRemove": "Failed to remove member"
+  },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",
     "tryAgain": "Try again"
@@ -1741,6 +1862,8 @@
     "importTools": "Import"
   },
   "personDetailModal": {
+    "otherProjectBadge": "From project: {{project}} (not your active project)",
+    "otherProjectUnknown": "unknown",
     "confirmRemoveLocation": "Remove this location?",
     "errorDeleteLocation": "Failed to delete location",
     "generateReportTitle": "Generate Report",
