@@ -9,6 +9,7 @@ const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncPersonConnections } = require('./relationships');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 // connections is now backed by the relationships table (issue #83), not the
 // stored JSONB column -- read it computed here so 11+ frontend consumers that
@@ -43,7 +44,8 @@ router.get('/', requireAuth, async (req, res) => {
 
     const where = [];
     const params = [];
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`p.project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'p', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`p.case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -74,6 +76,9 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     caseName, case_id, project_id, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
+
+  const accessErr = await requireProjectMember(req, project_id);
+  if (accessErr) return res.status(403).json({ error: accessErr });
 
   const caseErr = await checkCaseProjectConsistency(case_id, project_id);
   if (caseErr) return res.status(400).json({ error: caseErr });
@@ -190,6 +195,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
       return res.status(404).json({ error: 'Person not found' });
     }
 
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching person:', err.message);
@@ -212,6 +220,10 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const oldResult = await pool.query('SELECT * FROM people WHERE id = $1', [personId]);
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
     const oldPerson = oldResult.rows[0];
+
+    const accessErr = await requireProjectMember(req, oldPerson.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const oldConnectionsResult = await pool.query(
       `SELECT jsonb_build_object('person_id', target_id, 'type', relationship_type, 'note', note) AS c
        FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
@@ -355,6 +367,11 @@ router.post('/:id/locations', requireAuth, validateIdParam, async (req, res) => 
   }
 
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = COALESCE(locations, '[]'::jsonb) || $1::jsonb
@@ -382,6 +399,11 @@ router.put('/:id/locations/:index', requireAuth, validateIdParam, async (req, re
     return res.status(400).json({ error: 'Location object is required' });
   }
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = jsonb_set(locations, ARRAY[$1::text], $2::jsonb, false)
@@ -405,6 +427,11 @@ router.delete('/:id/locations/:index', requireAuth, validateIdParam, async (req,
     return res.status(400).json({ error: 'Invalid location index' });
   }
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = locations - $1
@@ -428,6 +455,9 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     // Get person first for audit
     const oldResult = await pool.query('SELECT * FROM people WHERE id = $1', [personId]);
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+
+    const accessErr = await requireProjectMember(req, oldResult.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const result = await pool.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Person not found' });

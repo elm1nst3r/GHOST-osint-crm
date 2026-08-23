@@ -8,6 +8,7 @@ const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncBusinessRelationships, syncBusinessOwnership } = require('./relationships');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 // Computed from the relationships table (issue #83) -- owner_person_id and
 // employees[] entries with a real person_id were migrated there. Outgoing
@@ -33,7 +34,8 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const where = [];
     const params = [];
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`b.project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'b', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`b.case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -73,6 +75,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Business not found' });
     }
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching business:', err);
@@ -88,6 +92,9 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       latitude, longitude, phone, email, website, owner_person_id, owner_business_id,
       registration_number, registration_date, status, employees, notes, case_id, project_id
     } = req.body;
+
+    const accessErr = await requireProjectMember(req, project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
@@ -195,6 +202,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
     }
     const oldBusiness = oldResult.rows[0];
 
+    const accessErr = await requireProjectMember(req, oldBusiness.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(case_id, oldBusiness.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -279,6 +289,9 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
       return res.status(404).json({ error: 'Business not found' });
     }
     const business = businessResult.rows[0];
+
+    const accessErr = await requireProjectMember(req, business.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     // Delete the business
     await pool.query('DELETE FROM businesses WHERE id = $1', [businessId]);

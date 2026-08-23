@@ -11,10 +11,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderKanban, Plus } from 'lucide-react';
 import { useProject } from '../contexts/ProjectContext';
+import { useAuth } from '../contexts/AuthContext';
 import { projectsAPI } from '../utils/api';
 
 const ProjectGate = ({ children }) => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const { projects, activeProjectId, loaded, setActiveProjectId, refetchProjects } = useProject();
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -45,11 +48,15 @@ const ProjectGate = ({ children }) => {
         <div className="flex items-center gap-2 mb-1">
           <FolderKanban className="w-5 h-5 text-accent-primary" />
           <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            {projects.length === 0 ? t('projectGate.titleFirstRun') : t('projectGate.titlePick')}
+            {projects.length === 0
+              ? (isAdmin ? t('projectGate.titleFirstRun') : t('projectGate.titleNoMemberships'))
+              : t('projectGate.titlePick')}
           </h1>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          {projects.length === 0 ? t('projectGate.descriptionFirstRun') : t('projectGate.descriptionPick')}
+          {projects.length === 0
+            ? (isAdmin ? t('projectGate.descriptionFirstRun') : t('projectGate.descriptionNoMemberships'))
+            : t('projectGate.descriptionPick')}
         </p>
 
         {projects.length > 0 && (
@@ -67,24 +74,26 @@ const ProjectGate = ({ children }) => {
           </div>
         )}
 
-        <form onSubmit={handleCreate} className="flex gap-2">
-          <input
-            autoFocus={projects.length === 0}
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder={t('projectGate.namePlaceholder')}
-            className="flex-1 min-w-0 px-3 py-2 text-sm border rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-          />
-          <button
-            type="submit"
-            disabled={creating || !newName.trim()}
-            className="flex items-center gap-1 px-3 py-2 text-sm bg-accent-primary text-white rounded-md disabled:opacity-50 flex-shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            {t('projectGate.create')}
-          </button>
-        </form>
+        {isAdmin && (
+          <form onSubmit={handleCreate} className="flex gap-2">
+            <input
+              autoFocus={projects.length === 0}
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder={t('projectGate.namePlaceholder')}
+              className="flex-1 min-w-0 px-3 py-2 text-sm border rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+            />
+            <button
+              type="submit"
+              disabled={creating || !newName.trim()}
+              className="flex items-center gap-1 px-3 py-2 text-sm bg-accent-primary text-white rounded-md disabled:opacity-50 flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              {t('projectGate.create')}
+            </button>
+          </form>
+        )}
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
       </div>
     </div>

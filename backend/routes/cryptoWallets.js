@@ -11,6 +11,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, CryptoWalletCreateSchema, CryptoWalletUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 // A wallet has no legacy JSONB connections field to stay backward-compatible
 // with (unlike BUSINESS_CONNECTIONS_SUBQUERY, which is outgoing-only), so
@@ -46,7 +47,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.network) { params.push(req.query.network); where.push(`w.network = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); where.push(`w.status = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`w.case_id = $${params.length}`); }
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`w.project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'w', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(w.address ILIKE $${params.length} OR w.label ILIKE $${params.length})`); }
     if (req.query.tag) { params.push(req.query.tag); where.push(`w.tags @> ARRAY[$${params.length}]::text[]`); }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -76,6 +78,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching crypto wallet:', err);
@@ -87,6 +91,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
 router.post('/', requireAuth, validate(CryptoWalletCreateSchema), async (req, res) => {
   const b = req.body;
   try {
+    const accessErr = await requireProjectMember(req, b.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(b.case_id, b.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -111,6 +118,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(CryptoWalletUpdateSche
     const existing = await pool.query('SELECT * FROM crypto_wallets WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
 
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(b.case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -132,6 +142,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(CryptoWalletUpdateSche
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM crypto_wallets WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM crypto_wallets WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
     res.json({ message: 'Crypto wallet deleted successfully' });

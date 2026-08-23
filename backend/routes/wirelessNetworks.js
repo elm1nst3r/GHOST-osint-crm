@@ -8,6 +8,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 
 router.use(apiLimiter);
@@ -19,12 +20,11 @@ router.use(apiLimiter);
 // GET /stats — wireless network statistics
 router.get('/stats', requireAuth, async (req, res) => {
   try {
+    const where = [];
     const params = [];
-    let whereSql = '';
-    if (req.query.project_id) {
-      params.push(parseInt(req.query.project_id, 10));
-      whereSql = `WHERE project_id = $${params.length}`;
-    }
+    const scopeErr = await applyProjectScope(req, 'wireless_networks', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const stats = await pool.query(`
       SELECT
@@ -87,12 +87,15 @@ router.get('/nearby', requireAuth, async (req, res) => {
     const latDelta = radius / 111.0;
     const lonDelta = radius / (111.0 * Math.cos(lat * Math.PI / 180));
 
+    const where = [];
+    const params = [lat - latDelta, lat + latDelta, lng - lonDelta, lng + lonDelta];
+    where.push(`latitude BETWEEN $1 AND $2`, `longitude BETWEEN $3 AND $4`);
+    const scopeErr = await applyProjectScope(req, 'wireless_networks', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+
     const result = await pool.query(
-      `SELECT * FROM wireless_networks
-       WHERE latitude BETWEEN $1 AND $2
-       AND longitude BETWEEN $3 AND $4
-       ORDER BY scan_date DESC`,
-      [lat - latDelta, lat + latDelta, lng - lonDelta, lng + lonDelta]
+      `SELECT * FROM wireless_networks WHERE ${where.join(' AND ')} ORDER BY scan_date DESC`,
+      params
     );
 
     res.json(result.rows);
@@ -162,6 +165,9 @@ router.post('/import-kml', requireAuth, (req, res, next) => {
     if (!projectId) {
       return res.status(400).json({ error: 'project_id is required' });
     }
+
+    const accessErr = await requireProjectMember(req, projectId);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const kmlContent = req.file.buffer.toString('utf-8');
     const parser = new xml2js.Parser();
@@ -260,10 +266,21 @@ router.get('/', requireAuth, async (req, res) => {
       params.push(person_id);
     }
 
-    if (project_id) {
-      query += ` AND project_id = $${++paramCount}`;
-      params.push(parseInt(project_id, 10));
-    }
+    // Project scoping (issue #84): admin sees all (or the requested project);
+    // everyone else is constrained to their memberships, even when
+    // project_id is omitted -- applyProjectScope appends its own clause(s)
+    // directly into `where`/`params`, which paramCount is kept in sync with
+    // afterward so the rest of this handler's placeholders stay correct.
+    const scopeWhere = [];
+    const scopeErr = await applyProjectScope(
+      { session: req.session, query: { project_id } },
+      'wireless_networks',
+      scopeWhere,
+      params
+    );
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    paramCount = params.length;
+    if (scopeWhere.length) query += ` AND ${scopeWhere.join(' AND ')}`;
 
     if (case_id) {
       query += ` AND case_id = $${++paramCount}`;
@@ -323,6 +340,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Wireless network not found' });
     }
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching wireless network:', err);
@@ -348,6 +367,9 @@ router.post('/', requireAuth, async (req, res) => {
     if (!project_id) {
       return res.status(400).json({ error: 'project_id is required' });
     }
+
+    const accessErr = await requireProjectMember(req, project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
@@ -394,6 +416,8 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
 
     const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -429,6 +453,11 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   const id = req.params.id;
   try {
+    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM wireless_networks WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Wireless network not found' });
@@ -450,6 +479,11 @@ router.post('/:id/associate', requireAuth, validateIdParam, async (req, res) => 
     if (!person_id && !business_id) {
       return res.status(400).json({ error: 'person_id or business_id is required' });
     }
+
+    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     let query;
     let params;
@@ -498,6 +532,11 @@ router.delete('/:id/associate', requireAuth, validateIdParam, async (req, res) =
   const id = req.params.id;
   try {
     const { person_id, business_id } = req.body;
+
+    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     if (!person_id && !business_id) {
       // Legacy behaviour: clear all associations

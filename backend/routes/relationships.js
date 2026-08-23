@@ -11,6 +11,7 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, RelationshipCreateSchema, RelationshipUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 const ENTITY_TABLE = { person: 'people', business: 'businesses', crypto_wallet: 'crypto_wallets' };
 
@@ -188,7 +189,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.source_id) add('source_id = ?', parseInt(req.query.source_id, 10));
     if (req.query.target_type) add('target_type = ?', req.query.target_type);
     if (req.query.target_id) add('target_id = ?', parseInt(req.query.target_id, 10));
-    if (req.query.project_id) add('project_id = ?', parseInt(req.query.project_id, 10));
+    const scopeErr = await applyProjectScope(req, 'relationships', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) add('case_id = ?', parseInt(req.query.case_id, 10));
 
     const sql = `SELECT * FROM relationships${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC`;
@@ -202,6 +204,9 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, validate(RelationshipCreateSchema), async (req, res) => {
   const { project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note } = req.body;
+
+  const accessErr = await requireProjectMember(req, project_id);
+  if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
     const [sourceProjectId, targetProjectId] = await Promise.all([
@@ -230,6 +235,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(RelationshipUpdateSche
   const { case_id, relationship_type, note } = req.body;
 
   try {
+    const existing = await pool.query('SELECT project_id FROM relationships WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE relationships SET case_id = $1, relationship_type = $2, note = $3
        WHERE id = $4 RETURNING *`,
@@ -245,6 +255,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(RelationshipUpdateSche
 
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM relationships WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM relationships WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
     res.json({ message: 'Relationship deleted successfully' });

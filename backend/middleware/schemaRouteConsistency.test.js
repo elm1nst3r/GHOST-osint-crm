@@ -41,7 +41,7 @@ const ROUTE_SCHEMAS = {
   'businesses.js': shape(S.BusinessCreateSchema, S.BusinessUpdateSchema),
   'tools.js': shape(S.ToolCreateSchema, S.ToolUpdateSchema, S.ToolBulkImportSchema),
   'cases.js': shape(S.CaseCreateSchema, S.CaseUpdateSchema),
-  'projects.js': shape(S.ProjectCreateSchema, S.ProjectUpdateSchema),
+  'projects.js': shape(S.ProjectCreateSchema, S.ProjectUpdateSchema, S.ProjectMemberCreateSchema, S.ProjectMemberUpdateSchema),
   'relationships.js': shape(S.RelationshipCreateSchema, S.RelationshipUpdateSchema),
   'todos.js': shape(S.TodoCreateSchema, S.TodoUpdateSchema),
   'travelHistory.js': shape(S.TravelHistoryCreateSchema, S.TravelHistoryUpdateSchema),

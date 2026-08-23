@@ -292,6 +292,19 @@ const ProjectUpdateSchema = z.object({
   ...projectBaseFields,
 });
 
+// ── Project Members (issue #84) ──────────────────────────────────────────────
+// project_role lives on the membership row, not on `users` -- the same user
+// can be a manager on one project and an investigator on another.
+
+const ProjectMemberCreateSchema = z.object({
+  user_id: reqId('user_id'),
+  project_role: z.enum(['manager', 'investigator']),
+});
+
+const ProjectMemberUpdateSchema = z.object({
+  project_role: z.enum(['manager', 'investigator']),
+});
+
 // ── Relationships ─────────────────────────────────────────────────────────────
 // Real rows as of issue #83 (previously only JSONB `connections` on people /
 // `employees` + owner_* on businesses, which stay as-is — see the migration
@@ -586,6 +599,8 @@ module.exports = {
   CaseUpdateSchema,
   ProjectCreateSchema,
   ProjectUpdateSchema,
+  ProjectMemberCreateSchema,
+  ProjectMemberUpdateSchema,
   RelationshipCreateSchema,
   RelationshipUpdateSchema,
   TodoCreateSchema,

@@ -185,6 +185,22 @@ export const projectsAPI = {
   }),
 };
 
+// Project Members API (issue #84)
+export const projectMembersAPI = {
+  getAll: (projectId) => fetchAPI(`/projects/${projectId}/members`),
+  add: (projectId, data) => fetchAPI(`/projects/${projectId}/members`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateRole: (projectId, userId, project_role) => fetchAPI(`/projects/${projectId}/members/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ project_role }),
+  }),
+  remove: (projectId, userId) => fetchAPI(`/projects/${projectId}/members/${userId}`, {
+    method: 'DELETE',
+  }),
+};
+
 // Custom Fields API
 export const customFieldsAPI = {
   getAll: () => fetchAPI('/settings/custom-fields'),

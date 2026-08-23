@@ -7,6 +7,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, TransactionCreateSchema, TransactionUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 router.use(apiLimiter);
 const {
@@ -65,7 +66,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (q.location_business_id) add(`t.location_business_id = $${params.length + 1}`, parseInt(q.location_business_id, 10));
     if (q.location_property_id) add(`t.location_property_id = $${params.length + 1}`, parseInt(q.location_property_id, 10));
     if (q.case_id) add(`t.case_id = $${params.length + 1}`, parseInt(q.case_id, 10));
-    if (q.project_id) add(`t.project_id = $${params.length + 1}`, parseInt(q.project_id, 10));
+    const scopeErr = await applyProjectScope(req, 't', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (q.date_from) add(`t.occurred_on >= $${params.length + 1}`, q.date_from);
     if (q.date_to) add(`t.occurred_on <= $${params.length + 1}`, q.date_to);
     if (q.bbox) {
@@ -122,6 +124,9 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
   if (err) return res.status(400).json({ error: err });
   normaliseSubject(req.body);
   try {
+    const accessErr = await requireProjectMember(req, req.body.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(req.body.case_id, req.body.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -153,6 +158,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
     const result = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     res.json(decorateTransaction(result.rows[0]));
   } catch (err) {
     console.error('Error fetching transaction:', err);
@@ -168,6 +175,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
   try {
     const existing = await pool.query('SELECT * FROM transactions WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const caseErr = await checkCaseProjectConsistency(req.body.case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
@@ -193,6 +203,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM transactions WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM transactions WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
     res.json({ message: 'Transaction deleted successfully' });

@@ -8,6 +8,7 @@ const { validate, PropertyCreateSchema, PropertyUpdateSchema } = require('../mid
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 const OWNERSHIP_TYPES = ['sale', 'purchase', 'transfer', 'acquisition'];
 
@@ -23,7 +24,8 @@ router.get('/', requireAuth, async (req, res) => {
     const params = [];
     if (req.query.property_type) { params.push(req.query.property_type); where.push(`p.property_type = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`p.case_id = $${params.length}`); }
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`p.project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'p', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.owner_person_id) { params.push(parseInt(req.query.owner_person_id, 10)); where.push(`p.owner_person_id = $${params.length}`); }
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(p.name ILIKE $${params.length} OR p.address ILIKE $${params.length} OR p.city ILIKE $${params.length})`); }
     if (req.query.bbox) {
@@ -65,6 +67,9 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
       latitude, longitude, owner_person_id, case_id, notes, project_id
     } = req.body;
 
+    const accessErr = await requireProjectMember(req, project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -100,6 +105,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
        FROM properties p LEFT JOIN people o ON p.owner_person_id = o.id WHERE p.id = $1`, [id]);
     if (propResult.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
 
+    const accessErr = await requireProjectMember(req, propResult.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const subjectTx = await pool.query(
       `${TX_SELECT} WHERE t.subject_property_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
     const decoratedSubject = subjectTx.rows.map(decorateTransaction);
@@ -127,6 +135,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema),
     const id = req.params.id;
     const existing = await pool.query('SELECT * FROM properties WHERE id = $1', [id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
+
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const {
       name, property_type, description, address, city, state, country, postal_code,
@@ -162,6 +173,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema),
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM properties WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM properties WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
     res.json({ message: 'Property deleted successfully' });
@@ -175,6 +191,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 router.get('/:id/transactions', requireAuth, validateIdParam, async (req, res) => {
   try {
     const id = req.params.id;
+    const propCheck = await pool.query('SELECT project_id FROM properties WHERE id = $1', [id]);
+    if (propCheck.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
+    const accessErr = await requireProjectMember(req, propCheck.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `${TX_SELECT} WHERE t.subject_property_id = $1 OR t.location_property_id = $1
        ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, [id]);

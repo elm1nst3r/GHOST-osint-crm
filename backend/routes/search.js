@@ -3,12 +3,13 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { applyProjectScope } = require('../utils/projectAccess');
 
 
 router.use(apiLimiter);
 // Universal search
 router.get('/', requireAuth, async (req, res) => {
-  const { q, project_id } = req.query;
+  const { q } = req.query;
   if (typeof q !== 'string' || q.length < 2) {
     return res.json({ people: [], tools: [] });
   }
@@ -16,11 +17,10 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const searchTerm = `%${q.toLowerCase()}%`;
     const peopleParams = [searchTerm];
-    let projectClause = '';
-    if (project_id) {
-      peopleParams.push(parseInt(project_id, 10));
-      projectClause = ` AND project_id = $${peopleParams.length}`;
-    }
+    const scopeWhere = [];
+    const scopeErr = await applyProjectScope(req, 'people', scopeWhere, peopleParams);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    const projectClause = scopeWhere.length ? ` AND ${scopeWhere.join(' AND ')}` : '';
 
     const peopleQuery = `
       SELECT id, first_name, last_name, patronymic, category, case_name
@@ -65,10 +65,11 @@ router.get('/advanced', requireAuth, async (req, res) => {
     const queryParams = [];
     let paramCount = 0;
 
-    if (req.query.project_id) {
-      query += ` AND project_id = $${++paramCount}`;
-      queryParams.push(parseInt(req.query.project_id, 10));
-    }
+    const scopeWhere = [];
+    const scopeErr = await applyProjectScope(req, 'people', scopeWhere, queryParams);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    paramCount = queryParams.length;
+    if (scopeWhere.length) query += ` AND ${scopeWhere.join(' AND ')}`;
 
     if (typeof req.query.searchText === 'string' && req.query.searchText) {
       const searchConditions = [];

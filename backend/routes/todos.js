@@ -6,6 +6,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, TodoCreateSchema, TodoUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 
 router.use(apiLimiter);
@@ -13,7 +14,8 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const where = [];
     const params = [];
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'todos', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -32,6 +34,9 @@ router.post('/', requireAuth, validate(TodoCreateSchema), async (req, res) => {
   const values = [text, status || 'open', last_update_comment || null, project_id, case_id || null];
 
   try {
+    const accessErr = await requireProjectMember(req, project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -51,9 +56,12 @@ router.put('/:id', requireAuth, validateIdParam, validate(TodoUpdateSchema), asy
   const values = [text, status, last_update_comment, case_id, todoId];
 
   try {
+    const existing = await pool.query('SELECT project_id FROM todos WHERE id = $1', [todoId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     if (case_id != null) {
-      const existing = await pool.query('SELECT project_id FROM todos WHERE id = $1', [todoId]);
-      if (existing.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
       const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
       if (caseErr) return res.status(400).json({ error: caseErr });
     }
@@ -71,6 +79,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   const todoId = req.params.id;
 
   try {
+    const existing = await pool.query('SELECT project_id FROM todos WHERE id = $1', [todoId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *;', [todoId]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Todo not found' });
     res.status(200).json({ message: 'Todo deleted successfully', deletedTodo: result.rows[0] });

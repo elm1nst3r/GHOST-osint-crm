@@ -7,20 +7,25 @@
 // stages per docs/specs/case-data-isolation.md.
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderKanban, Plus, Check, Pencil, Trash2, X } from 'lucide-react';
+import { FolderKanban, Plus, Check, Pencil, Trash2, X, Users } from 'lucide-react';
 import { useProject } from '../contexts/ProjectContext';
+import { useAuth } from '../contexts/AuthContext';
 import { projectsAPI } from '../utils/api';
+import ProjectMembersModal from './ProjectMembersModal';
 
 const EMPTY_EDIT = { name: '', icon: '', status: 'active', allow_cross_linking: false };
 
 const ProjectSelector = ({ compact = false }) => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const { projects, activeProjectId, activeProject, setActiveProjectId, refetchProjects } = useProject();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_EDIT);
+  const [managingMembersFor, setManagingMembersFor] = useState(null);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -145,14 +150,28 @@ const ProjectSelector = ({ compact = false }) => {
                       <span>{t('projectSelector.allowCrossLinking')}</span>
                     </label>
                     <div className="flex items-center justify-between pt-1">
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(e, p)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex gap-1">
+                        {p.my_role === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, p)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
+                            title={t('common.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(p.my_role === 'admin' || p.my_role === 'manager') && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setManagingMembersFor(p); }}
+                            className="p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
+                            title={t('projectMembers.title', { name: p.name })}
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -185,13 +204,15 @@ const ProjectSelector = ({ compact = false }) => {
                       )}
                     </button>
                     {p.id === activeProjectId && <Check className="w-4 h-4 text-accent-primary flex-shrink-0" />}
-                    <button
-                      onClick={(e) => startEdit(e, p)}
-                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-0 group-hover:opacity-100 flex-shrink-0"
-                      title={t('common.edit')}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
+                    {(p.my_role === 'admin' || p.my_role === 'manager') && (
+                      <button
+                        onClick={(e) => startEdit(e, p)}
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                        title={t('common.edit')}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -199,6 +220,7 @@ const ProjectSelector = ({ compact = false }) => {
             {projects.length === 0 && (
               <p className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">{t('projectSelector.none')}</p>
             )}
+            {isAdmin && (
             <div className="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
               {creating ? (
                 <form onSubmit={handleCreate} className="px-3 py-2 flex gap-2">
@@ -231,8 +253,13 @@ const ProjectSelector = ({ compact = false }) => {
                 </button>
               )}
             </div>
+            )}
           </div>
         </>
+      )}
+
+      {managingMembersFor && (
+        <ProjectMembersModal project={managingMembersFor} onClose={() => setManagingMembersFor(null)} />
       )}
     </div>
   );

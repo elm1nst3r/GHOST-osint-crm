@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, TravelHistoryCreateSchema, TravelHistoryUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { requireProjectMember } = require('../utils/projectAccess');
 
 
 router.use(apiLimiter);
@@ -13,6 +14,11 @@ router.get('/people/:id/travel-history', requireAuth, validateIdParam, async (re
   const personId = req.params.id;
 
   try {
+    const personCheck = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (personCheck.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, personCheck.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `SELECT * FROM travel_history
        WHERE person_id = $1
@@ -46,6 +52,9 @@ router.post('/people/:id/travel-history', requireAuth, validateIdParam, validate
     if (personResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
     const { project_id, case_id } = personResult.rows[0];
 
+    const accessErr = await requireProjectMember(req, project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `INSERT INTO travel_history
        (person_id, location_type, location_name, address, city, state, country, postal_code,
@@ -78,6 +87,11 @@ router.put('/travel-history/:id', requireAuth, validateIdParam, validate(TravelH
   const parsedDeparture = departure_date ? new Date(departure_date) : null;
 
   try {
+    const existing = await pool.query('SELECT project_id FROM travel_history WHERE id = $1', [travelId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE travel_history
        SET location_type = $1, location_name = $2, address = $3, city = $4, state = $5,
@@ -103,6 +117,11 @@ router.delete('/travel-history/:id', requireAuth, validateIdParam, async (req, r
   const travelId = req.params.id;
 
   try {
+    const existing = await pool.query('SELECT project_id FROM travel_history WHERE id = $1', [travelId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM travel_history WHERE id = $1 RETURNING *', [travelId]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Travel record not found' });
     res.json({ message: 'Travel record deleted successfully' });
@@ -117,6 +136,11 @@ router.get('/people/:id/travel-analysis', requireAuth, validateIdParam, async (r
   const personId = req.params.id;
 
   try {
+    const personCheck = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (personCheck.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, personCheck.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const travelHistory = await pool.query(
       `SELECT * FROM travel_history
        WHERE person_id = $1

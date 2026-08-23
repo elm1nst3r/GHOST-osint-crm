@@ -1811,11 +1811,28 @@
   "projectGate": {
     "titleFirstRun": "Create your first project",
     "descriptionFirstRun": "Projects are the isolation boundary for your data — create one to get started.",
+    "titleNoMemberships": "No projects yet",
+    "descriptionNoMemberships": "You haven't been added to any projects. Ask an administrator or project manager to add you.",
     "titlePick": "Select a project",
     "descriptionPick": "Pick a project to continue, or create a new one.",
     "namePlaceholder": "Project name...",
     "create": "Create",
     "errorCreate": "Failed to create project"
+  },
+  "projectMembers": {
+    "title": "Members — {{name}}",
+    "columnUser": "User",
+    "columnRole": "Role",
+    "noMembers": "No members yet.",
+    "addMember": "Add member",
+    "roleManager": "Manager",
+    "roleInvestigator": "Investigator",
+    "roleHint": "Investigators have full access to this project's data. Managers can also manage project settings and membership.",
+    "adminHint": "Administrators always have access to every project and aren't listed here.",
+    "confirmRemove": "Remove this member from the project?",
+    "errorAdd": "Failed to add member",
+    "errorUpdateRole": "Failed to update member role",
+    "errorRemove": "Failed to remove member"
   },
   "errorBoundary": {
     "viewFailedToRender": "This view failed to render",

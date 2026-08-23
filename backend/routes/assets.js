@@ -8,6 +8,7 @@ const { validate, AssetCreateSchema, AssetUpdateSchema } = require('../middlewar
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 const LOCATION_MODES = ['with_holder', 'fixed_known', 'fixed_custom', 'unknown'];
 const num = (v) => (v == null ? null : parseFloat(v));
@@ -99,7 +100,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.category) { params.push(req.query.category); where.push(`a.category = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); where.push(`a.status = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`a.case_id = $${params.length}`); }
-    if (req.query.project_id) { params.push(parseInt(req.query.project_id, 10)); where.push(`a.project_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'a', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(a.name ILIKE $${params.length} OR a.identifier ILIKE $${params.length})`); }
     if (req.query.holder_person_id) {
       params.push(parseInt(req.query.holder_person_id, 10));
@@ -161,6 +163,9 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
   const b = req.body;
   const mode = b.location_mode || 'with_holder';
   try {
+    const accessErr = await requireProjectMember(req, b.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const caseErr = await checkCaseProjectConsistency(b.case_id, b.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
 
@@ -216,6 +221,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     if (assetResult.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
     const asset = assetResult.rows[0];
 
+    const accessErr = await requireProjectMember(req, asset.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const txResult = await pool.query(
       `${TX_SELECT} WHERE t.subject_asset_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
     const decorated = txResult.rows.map(decorateTransaction);
@@ -245,6 +253,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
   try {
     const existing = await pool.query('SELECT * FROM assets WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const caseErr = await checkCaseProjectConsistency(b.case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
@@ -283,6 +294,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM assets WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM assets WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
     res.json({ message: 'Asset deleted successfully' });
