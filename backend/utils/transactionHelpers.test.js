@@ -22,7 +22,7 @@ describe('validateTransactionShape', () => {
   test('rejects two givers, naming the conflicting fields', () => {
     const err = validateTransactionShape({ from_person_id: 1, from_business_id: 2 });
     expect(err).toMatch(/from_person_id \(1\) and from_business_id \(2\) are both set/);
-    expect(err).toMatch(/at most one of from_person_id, from_business_id, from_external/);
+    expect(err).toMatch(/at most one of from_person_id, from_business_id, from_wallet_id, from_external/);
   });
   test('rejects two subject references, naming the conflicting fields', () => {
     const err = validateTransactionShape({ to_person_id: 1, subject_asset_id: 1, subject_business_id: 2 });

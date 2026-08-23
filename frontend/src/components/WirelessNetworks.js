@@ -11,9 +11,11 @@ import WirelessNetworkMap from './WirelessNetworkMap';
 import WirelessNetworkDetail from './WirelessNetworkDetail';
 import ImportKML from './ImportKML';
 import AddNetworkForm from './AddNetworkForm';
+import { useProject } from '../contexts/ProjectContext';
 
 const WirelessNetworks = () => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [networks, setNetworks] = useState([]);
   const [people, setPeople] = useState([]);
   const [stats, setStats] = useState(null);
@@ -38,12 +40,13 @@ const WirelessNetworks = () => {
     fetchNetworks();
     fetchStats();
     fetchPeople();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, activeProjectId]);
 
   const fetchNetworks = async () => {
     try {
       setLoading(true);
-      const data = await wirelessNetworksAPI.getAll(filters);
+      const data = await wirelessNetworksAPI.getAll({ ...filters, project_id: activeProjectId });
       setNetworks(data);
 
       // Extract unique import sources
@@ -59,7 +62,7 @@ const WirelessNetworks = () => {
 
   const fetchStats = async () => {
     try {
-      const data = await wirelessNetworksAPI.getStats();
+      const data = await wirelessNetworksAPI.getStats({ project_id: activeProjectId });
       setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -68,7 +71,7 @@ const WirelessNetworks = () => {
 
   const fetchPeople = async () => {
     try {
-      const { data: peopleList } = await peopleAPI.getAll();
+      const { data: peopleList } = await peopleAPI.getAll({ project_id: activeProjectId });
       setPeople(peopleList);
     } catch (error) {
       console.error('Error fetching people:', error);
@@ -97,7 +100,7 @@ const WirelessNetworks = () => {
     if (!window.confirm(t('wirelessNetworks.confirmBulkDelete', { count: selectedNetworks.length }))) return;
 
     try {
-      await wirelessNetworksAPI.bulkDelete(selectedNetworks);
+      await wirelessNetworksAPI.bulkDelete(selectedNetworks, activeProjectId);
       setSelectedNetworks([]);
       fetchNetworks();
       fetchStats();

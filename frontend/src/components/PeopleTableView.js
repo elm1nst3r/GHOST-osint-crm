@@ -14,6 +14,7 @@ import { optionLabel, translateOptions } from '../utils/optionLabels';
 import { useModelOptions } from '../utils/useModelOptions';
 import BulkRelationshipTool from './BulkRelationshipTool';
 import { formatPersonName } from '../utils/personName';
+import { useProject } from '../contexts/ProjectContext';
 
 const PeopleTableView = ({
   people,
@@ -22,6 +23,7 @@ const PeopleTableView = ({
   setSelectedPersonForDetail
 }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   // From Settings → Data Model, falling back to the constants (issue #67)
   const categoryOptions = useModelOptions('person_category', PERSON_CATEGORIES);
   const statusOptions = useModelOptions('person_status', PERSON_STATUSES);
@@ -115,6 +117,10 @@ const PeopleTableView = ({
       alert(t('peopleTableView.errorFirstNameRequired'));
       return;
     }
+    if (!activeProjectId) {
+      alert(t('peopleTableView.errorNoActiveProject'));
+      return;
+    }
 
     try {
       await peopleAPI.create({
@@ -128,7 +134,8 @@ const PeopleTableView = ({
         attachments: [],
         connections: [],
         locations: [],
-        custom_fields: {}
+        custom_fields: {},
+        project_id: activeProjectId,
       });
 
       setQuickAddData({
@@ -210,6 +217,11 @@ const PeopleTableView = ({
       return;
     }
 
+    if (!activeProjectId) {
+      alert(t('peopleTableView.errorNoActiveProject'));
+      return;
+    }
+
     const created = [];
     const errors = [];
 
@@ -228,7 +240,8 @@ const PeopleTableView = ({
         attachments: [],
         connections: [],
         locations: [],
-        custom_fields: {}
+        custom_fields: {},
+        project_id: activeProjectId,
       };
 
       if (!personData.firstName) {

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Landmark } from 'lucide-react';
 import { propertiesAPI, modelOptionsAPI, casesAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { useProject } from '../contexts/ProjectContext';
 import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
@@ -12,6 +13,7 @@ const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 m
 const AddEditPropertyForm = ({ property, onClose }) => {
   const { t } = useTranslation();
   const { people, fetchProperties } = useData();
+  const { activeProjectId } = useProject();
   const isEdit = !!property;
   const [typeOptions, setTypeOptions] = useState([]);
   const [cases, setCases] = useState([]);
@@ -35,14 +37,16 @@ const AddEditPropertyForm = ({ property, onClose }) => {
 
   useEffect(() => {
     modelOptionsAPI.getAll().then(d => setTypeOptions(d.filter(o => o.model_type === 'property_type' && o.is_active))).catch(() => {});
-    casesAPI.getAll().then(setCases).catch(() => {});
-  }, []);
+    casesAPI.getAll({ project_id: activeProjectId }).then(setCases).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setError(t('propertyForm.errorNameRequired')); return; }
+    if (!isEdit && !activeProjectId) { setError(t('propertyForm.errorNoActiveProject')); return; }
     setSaving(true);
     setError('');
     const payload = {
@@ -54,7 +58,7 @@ const AddEditPropertyForm = ({ property, onClose }) => {
     };
     try {
       if (isEdit) await propertiesAPI.update(property.id, payload);
-      else await propertiesAPI.create(payload);
+      else await propertiesAPI.create({ ...payload, project_id: activeProjectId });
       await fetchProperties(0);
       onClose();
     } catch (err) {

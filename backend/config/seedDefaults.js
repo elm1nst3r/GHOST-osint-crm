@@ -104,6 +104,20 @@ const defaultOptions = [
   { model_type: 'asset_status', option_value: 'seized',    option_label: 'Seized',    display_order: 4 },
   { model_type: 'asset_status', option_value: 'disposed',  option_label: 'Disposed',  display_order: 5 },
 
+  // Crypto wallet networks (issue #82)
+  { model_type: 'crypto_wallet_network', option_value: 'bitcoin',  option_label: 'Bitcoin',  display_order: 1 },
+  { model_type: 'crypto_wallet_network', option_value: 'ethereum', option_label: 'Ethereum', display_order: 2 },
+  { model_type: 'crypto_wallet_network', option_value: 'solana',   option_label: 'Solana',   display_order: 3 },
+  { model_type: 'crypto_wallet_network', option_value: 'tron',     option_label: 'Tron',     display_order: 4 },
+  { model_type: 'crypto_wallet_network', option_value: 'other',    option_label: 'Other',    display_order: 5 },
+
+  // Crypto wallet tags (issue #82) -- suggestions, not a fixed vocabulary;
+  // tags is text[] so an investigator can add their own alongside these.
+  { model_type: 'crypto_wallet_tag', option_value: 'suspicious', option_label: 'Suspicious', display_order: 1 },
+  { model_type: 'crypto_wallet_tag', option_value: 'exchange',   option_label: 'Exchange',   display_order: 2 },
+  { model_type: 'crypto_wallet_tag', option_value: 'mixer',      option_label: 'Mixer',      display_order: 3 },
+  { model_type: 'crypto_wallet_tag', option_value: 'scam',       option_label: 'Scam',       display_order: 4 },
+
   // Property types
   { model_type: 'property_type', option_value: 'parcel',          option_label: 'Parcel / Lot',    display_order: 1 },
   { model_type: 'property_type', option_value: 'residential',     option_label: 'Residential',     display_order: 2 },

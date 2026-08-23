@@ -6,6 +6,7 @@ import { downloadMarkdown, downloadWord, downloadLedgerMarkdown, downloadLedgerW
 import ReportOptions from './reports/ReportOptions';
 import ReportPreview from './reports/ReportPreview';
 import LedgerReportPanel from './reports/LedgerReportPanel';
+import { useProject } from '../contexts/ProjectContext';
 
 const DEFAULT_OPTIONS = {
   ...REPORT_TYPE_PRESETS.comprehensive,
@@ -15,6 +16,7 @@ const DEFAULT_OPTIONS = {
 
 const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = null, ledgerEntity = null, onClose }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   // Opened from a person, start on the person-profile type — otherwise the
@@ -50,7 +52,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     if (ledgerEntity) fetchLedger();
     else fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope.kind, scope.id, ledgerEntity]);
+  }, [scope.kind, scope.id, ledgerEntity, activeProjectId]);
 
   const fetchLedger = async () => {
     setLoading(true);
@@ -69,11 +71,11 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
     setLoading(true);
     try {
       const [casesData, peopleRaw, businessesData, locationsData, todosData] = await Promise.all([
-        casesAPI.getAll(),
-        peopleAPI.getAll({ limit: 10000 }),
-        businessesAPI.getAll(),
-        locationsAPI.getAll(),
-        todosAPI.getAll(),
+        casesAPI.getAll({ project_id: activeProjectId }),
+        peopleAPI.getAll({ limit: 10000, project_id: activeProjectId }),
+        businessesAPI.getAll({ project_id: activeProjectId }),
+        locationsAPI.getAll({ project_id: activeProjectId }),
+        todosAPI.getAll({ project_id: activeProjectId }),
       ]);
 
       // peopleAPI.getAll returns { data, meta } due to returnMeta: true

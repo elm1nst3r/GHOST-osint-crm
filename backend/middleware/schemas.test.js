@@ -109,6 +109,7 @@ describe('schemas — form-shaped payloads', () => {
     // schema or the acquisition transaction is never seeded.
     const result = AssetCreateSchema.safeParse({
       name: 'Rolex',
+      project_id: 1,
       initial_holder: { person_id: '5', business_id: null, external: null, occurred_on: '2026-07-01' },
     });
     expect(result.success).toBe(true);
@@ -154,8 +155,8 @@ describe('schemas — form-shaped payloads', () => {
     expect(TodoUpdateSchema.safeParse({ status: 'done' }).success).toBe(true);
     expect(TodoUpdateSchema.safeParse({ status: 'cancelled' }).success).toBe(true);
     expect(TodoUpdateSchema.safeParse({ status: 'attention' }).success).toBe(true);
-    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'active' }).success).toBe(true);
-    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'bogus' }).success).toBe(false);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'active', project_id: 1 }).success).toBe(true);
+    expect(CaseCreateSchema.safeParse({ case_name: 'Op X', status: 'bogus', project_id: 1 }).success).toBe(false);
   });
 
   test('required fields still enforced', () => {

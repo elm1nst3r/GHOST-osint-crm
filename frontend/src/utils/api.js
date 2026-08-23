@@ -64,8 +64,8 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 // People API
 export const peopleAPI = {
-  getAll: ({ limit = 100, offset = 0 } = {}) =>
-    fetchAPI(`/people?limit=${limit}&offset=${offset}`, { returnMeta: true }),
+  getAll: ({ limit = 100, offset = 0, ...rest } = {}) =>
+    fetchAPI(`/people${buildQuery({ limit, offset, ...rest })}`, { returnMeta: true }),
 
   getById: (id) => fetchAPI(`/people/${id}`),
 
@@ -86,7 +86,7 @@ export const peopleAPI = {
 
 // Businesses API
 export const businessesAPI = {
-  getAll: () => fetchAPI('/businesses'),
+  getAll: (params = {}) => fetchAPI(`/businesses${buildQuery(params)}`),
   
   create: (businessData) => fetchAPI('/businesses', {
     method: 'POST',
@@ -130,7 +130,7 @@ export const toolsAPI = {
 
 // Todos API
 export const todosAPI = {
-  getAll: () => fetchAPI('/todos'),
+  getAll: (params = {}) => fetchAPI(`/todos${buildQuery(params)}`),
   
   create: (todoData) => fetchAPI('/todos', {
     method: 'POST',
@@ -149,7 +149,7 @@ export const todosAPI = {
 
 // Cases API
 export const casesAPI = {
-  getAll: () => fetchAPI('/cases'),
+  getAll: (params = {}) => fetchAPI(`/cases${buildQuery(params)}`),
   
   create: (caseData) => fetchAPI('/cases', {
     method: 'POST',
@@ -162,6 +162,41 @@ export const casesAPI = {
   }),
   
   delete: (id) => fetchAPI(`/cases/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Projects API (issue #83) — the hard isolation boundary; cases nest inside a project.
+export const projectsAPI = {
+  getAll: () => fetchAPI('/projects'),
+
+  create: (projectData) => fetchAPI('/projects', {
+    method: 'POST',
+    body: JSON.stringify(projectData),
+  }),
+
+  update: (id, projectData) => fetchAPI(`/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(projectData),
+  }),
+
+  delete: (id) => fetchAPI(`/projects/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Project Members API (issue #84)
+export const projectMembersAPI = {
+  getAll: (projectId) => fetchAPI(`/projects/${projectId}/members`),
+  add: (projectId, data) => fetchAPI(`/projects/${projectId}/members`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateRole: (projectId, userId, project_role) => fetchAPI(`/projects/${projectId}/members/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ project_role }),
+  }),
+  remove: (projectId, userId) => fetchAPI(`/projects/${projectId}/members/${userId}`, {
     method: 'DELETE',
   }),
 };
@@ -275,7 +310,7 @@ export const exportAPI = {
 };
 
 export const importAPI = {
-  import: (data) => fetchAPI('/import', {
+  import: (data, projectId) => fetchAPI(`/import${buildQuery({ project_id: projectId })}`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -307,7 +342,7 @@ export const uploadLogo = async (file) => {
 
 // Locations API
 export const locationsAPI = {
-  getAll: () => fetchAPI('/locations'),
+  getAll: (params = {}) => fetchAPI(`/locations${buildQuery(params)}`),
 };
 
 // Advanced Search API
@@ -355,7 +390,7 @@ export const travelHistoryAPI = {
 
 // Business API
 export const businessAPI = {
-  getAll: () => fetchAPI('/businesses'),
+  getAll: (params = {}) => fetchAPI(`/businesses${buildQuery(params)}`),
   
   getById: (id) => fetchAPI(`/businesses/${id}`),
   
@@ -409,14 +444,15 @@ export const wirelessNetworksAPI = {
     method: 'DELETE',
   }),
 
-  bulkDelete: (ids) => fetchAPI('/wireless-networks/bulk-delete', {
+  bulkDelete: (ids, projectId) => fetchAPI('/wireless-networks/bulk-delete', {
     method: 'POST',
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify({ ids, project_id: projectId }),
   }),
 
-  importKML: async (file) => {
+  importKML: async (file, projectId) => {
     const formData = new FormData();
     formData.append('kmlFile', file);
+    if (projectId) formData.append('project_id', projectId);
 
     const response = await fetch(`${API_BASE_URL}/wireless-networks/import-kml`, {
       method: 'POST',
@@ -432,7 +468,7 @@ export const wirelessNetworksAPI = {
     return response.json();
   },
 
-  getStats: () => fetchAPI('/wireless-networks/stats'),
+  getStats: (params = {}) => fetchAPI(`/wireless-networks/stats${buildQuery(params)}`),
 
   getNearby: (latitude, longitude, radius = 0.5) =>
     fetchAPI(`/wireless-networks/nearby?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
@@ -480,6 +516,25 @@ export const assetsAPI = {
   update: (id, data) => fetchAPI(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   remove: (id) => fetchAPI(`/assets/${id}`, { method: 'DELETE' }),
   getByPerson: (personId) => fetchAPI(`/people/${personId}/assets`),
+};
+
+// Crypto Wallets API (issue #82)
+export const cryptoWalletsAPI = {
+  getAll: (params = {}) => fetchAPI(`/crypto-wallets${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/crypto-wallets/${id}`),
+  create: (data) => fetchAPI('/crypto-wallets', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/crypto-wallets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/crypto-wallets/${id}`, { method: 'DELETE' }),
+};
+
+// Relationships API (issue #83's write-of-record table; issue #82's wallet
+// links are the first frontend consumer to read/write it directly rather
+// than through the person/business JSONB sync path).
+export const relationshipsAPI = {
+  getAll: (params = {}) => fetchAPI(`/relationships${buildQuery(params)}`),
+  create: (data) => fetchAPI('/relationships', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => fetchAPI(`/relationships/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/relationships/${id}`, { method: 'DELETE' }),
 };
 
 // Transactions API

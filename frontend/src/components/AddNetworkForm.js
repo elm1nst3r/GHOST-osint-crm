@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Wifi, MapPin, Lock, Plus } from 'lucide-react';
 import { wirelessNetworksAPI, peopleAPI, businessesAPI } from '../utils/api';
+import { useProject } from '../contexts/ProjectContext';
 
 const AddNetworkForm = ({ onClose, onSuccess }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,13 +32,14 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
 
   useEffect(() => {
     fetchPeopleAndBusinesses();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const fetchPeopleAndBusinesses = async () => {
     try {
       const [{ data: peopleData }, businessData] = await Promise.all([
-        peopleAPI.getAll(),
-        businessesAPI.getAll()
+        peopleAPI.getAll({ project_id: activeProjectId }),
+        businessesAPI.getAll({ project_id: activeProjectId })
       ]);
       setPeople(peopleData);
       setBusinesses(businessData);
@@ -70,6 +73,11 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
       return;
     }
 
+    if (!activeProjectId) {
+      alert(t('addNetworkForm.errorNoActiveProject'));
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -80,7 +88,8 @@ const AddNetworkForm = ({ onClose, onSuccess }) => {
         signal_strength: formData.signal_strength ? parseInt(formData.signal_strength) : null,
         channel: formData.channel ? parseInt(formData.channel) : null,
         import_source: 'Manual Entry',
-        scan_date: formData.scan_date ? new Date(formData.scan_date).toISOString() : new Date().toISOString()
+        scan_date: formData.scan_date ? new Date(formData.scan_date).toISOString() : new Date().toISOString(),
+        project_id: activeProjectId,
       };
 
       await wirelessNetworksAPI.create(payload);

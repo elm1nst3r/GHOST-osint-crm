@@ -23,6 +23,8 @@ const DataModelTab = () => {
     asset_category: t('settings.dataModel.types.assetCategory'),
     asset_status: t('settings.dataModel.types.assetStatus'),
     property_type: t('settings.dataModel.types.propertyType'),
+    crypto_wallet_network: t('settings.dataModel.types.cryptoWalletNetwork'),
+    crypto_wallet_tag: t('settings.dataModel.types.cryptoWalletTag'),
   }), [t]);
   const [modelOptions, setModelOptions] = useState([]);
   const [showAddOptionForm, setShowAddOptionForm] = useState(false);

@@ -7,6 +7,8 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, AssetCreateSchema, AssetUpdateSchema } = require('../middleware/schemas');
 const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 const LOCATION_MODES = ['with_holder', 'fixed_known', 'fixed_custom', 'unknown'];
 const num = (v) => (v == null ? null : parseFloat(v));
@@ -98,6 +100,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.category) { params.push(req.query.category); where.push(`a.category = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); where.push(`a.status = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`a.case_id = $${params.length}`); }
+    const scopeErr = await applyProjectScope(req, 'a', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.q) { params.push(`%${req.query.q}%`); where.push(`(a.name ILIKE $${params.length} OR a.identifier ILIKE $${params.length})`); }
     if (req.query.holder_person_id) {
       params.push(parseInt(req.query.holder_person_id, 10));
@@ -159,10 +163,16 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
   const b = req.body;
   const mode = b.location_mode || 'with_holder';
   try {
+    const accessErr = await requireProjectMember(req, b.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const caseErr = await checkCaseProjectConsistency(b.case_id, b.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
 
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country }, b.project_id);
     } else if (mode === 'fixed_known' && b.location_person_id && b.location_ref != null) {
       // snapshot the chosen people.locations entry coords
       const pr = await pool.query('SELECT locations FROM people WHERE id = $1', [b.location_person_id]);
@@ -176,13 +186,13 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
       `INSERT INTO assets
         (name, category, identifier, description, notes, estimated_value, currency, status,
          location_mode, location_person_id, location_ref, location_name, address, city, state, country, postal_code,
-         latitude, longitude, geocode_confidence, geocode_provider, geocoded_at, case_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
+         latitude, longitude, geocode_confidence, geocode_provider, geocoded_at, case_id, project_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) RETURNING *`,
       [b.name.trim(), b.category || null, b.identifier || null, b.description || null, b.notes || null,
        b.estimated_value != null ? b.estimated_value : null, b.currency || null, b.status || 'active',
        mode, b.location_person_id || null, b.location_ref != null ? String(b.location_ref) : null, b.location_name || null,
        b.address || null, b.city || null, b.state || null, b.country || null, b.postal_code || null,
-       geo.latitude, geo.longitude, geo.geocode_confidence, geo.geocode_provider, geo.geocoded_at, b.case_id || null]
+       geo.latitude, geo.longitude, geo.geocode_confidence, geo.geocode_provider, geo.geocoded_at, b.case_id || null, b.project_id]
     );
     const asset = result.rows[0];
 
@@ -191,9 +201,9 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
     if (ih && (ih.person_id || ih.business_id || ih.external)) {
       const occurred = ih.occurred_on || new Date().toISOString().slice(0, 10);
       await pool.query(
-        `INSERT INTO transactions (transaction_type, subject_asset_id, to_person_id, to_business_id, to_external, occurred_on, case_id)
-         VALUES ('acquisition', $1, $2, $3, $4, $5, $6)`,
-        [asset.id, ih.person_id || null, ih.business_id || null, ih.external || null, occurred, b.case_id || null]);
+        `INSERT INTO transactions (transaction_type, subject_asset_id, to_person_id, to_business_id, to_external, occurred_on, case_id, project_id)
+         VALUES ('acquisition', $1, $2, $3, $4, $5, $6, $7)`,
+        [asset.id, ih.person_id || null, ih.business_id || null, ih.external || null, occurred, b.case_id || null, b.project_id]);
     }
 
     res.status(201).json({ ...asset, geocode_failure: geo.geocode_failure });
@@ -210,6 +220,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     const assetResult = await pool.query('SELECT * FROM assets WHERE id = $1', [id]);
     if (assetResult.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
     const asset = assetResult.rows[0];
+
+    const accessErr = await requireProjectMember(req, asset.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const txResult = await pool.query(
       `${TX_SELECT} WHERE t.subject_asset_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
@@ -241,9 +254,15 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
     const existing = await pool.query('SELECT * FROM assets WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
 
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const caseErr = await checkCaseProjectConsistency(b.case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country });
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, { address: b.address, city: b.city, state: b.state, country: b.country }, existing.rows[0].project_id);
     } else if (mode === 'fixed_known' && b.location_person_id && b.location_ref != null) {
       const pr = await pool.query('SELECT locations FROM people WHERE id = $1', [b.location_person_id]);
       const locs = (pr.rows[0] && pr.rows[0].locations) || [];
@@ -275,6 +294,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM assets WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM assets WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
     res.json({ message: 'Asset deleted successfully' });

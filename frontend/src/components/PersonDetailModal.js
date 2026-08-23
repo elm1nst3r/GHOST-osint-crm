@@ -10,14 +10,21 @@ import EntityLedger from './EntityLedger';
 import { transactionsAPI, assetsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
   const { people, customFields } = useData();
   const { selectedPersonForDetail, setSelectedPersonForDetail, setEditingPerson } = useUI();
-  // Resolve full record (callers may pass a partial { id }).
+  const { activeProjectId, projects } = useProject();
+  // Resolve full record (callers may pass a partial { id }). If the record
+  // isn't in the (project-scoped) `people` list, it fell through to the raw
+  // fetch from a deep link -- e.g. /people/:id for a person in a different
+  // project than the one currently active.
   const person = (selectedPersonForDetail && people.find(p => p.id === selectedPersonForDetail.id)) || selectedPersonForDetail;
+  const isOtherProject = person && activeProjectId && person.project_id != null && person.project_id !== activeProjectId;
+  const otherProjectName = isOtherProject && projects.find(p => p.id === person.project_id)?.name;
 
   const onClose = () => setSelectedPersonForDetail(null);
   const onEdit = (p) => { setSelectedPersonForDetail(null); setEditingPerson(p); };
@@ -147,6 +154,11 @@ const PersonDetailModal = () => {
                 </h2>
                 {person.aliases && person.aliases.length > 0 && (
                   <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
+                )}
+                {isOtherProject && (
+                  <p className="text-xs mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
+                    {t('personDetailModal.otherProjectBadge', { project: otherProjectName || t('personDetailModal.otherProjectUnknown') })}
+                  </p>
                 )}
               </div>
             </div>

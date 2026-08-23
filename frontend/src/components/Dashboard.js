@@ -7,12 +7,14 @@ import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { useProject } from '../contexts/ProjectContext';
 import { useUI } from '../contexts/UIContext';
 
 const Dashboard = () => {
   const { t } = useTranslation();
   const { people, todos, setTodos } = useData();
   const { setSelectedPersonForDetail, setActiveSection } = useUI();
+  const { activeProjectId } = useProject();
   // Show most recently updated people (up to 5)
   const activePeople = [...people]
     .sort((a, b) => {
@@ -57,9 +59,10 @@ const Dashboard = () => {
 
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return;
+    if (!activeProjectId) { alert(t('dashboard.errorNoActiveProject')); return; }
 
     try {
-      const todo = await todosAPI.create({ text: newTodo, status: 'open' });
+      const todo = await todosAPI.create({ text: newTodo, status: 'open', project_id: activeProjectId });
       setTodos([todo, ...todos]);
       setNewTodo('');
     } catch (error) {

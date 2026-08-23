@@ -41,6 +41,7 @@ const ObsidianGraph = ({
       default: '#4c51bf',
       person: '#667eea',
       business: '#48bb78',
+      crypto_wallet: '#a855f7',
       selected: '#f6ad55',
       hover: '#fc8181',
       text: '#ffffff'
@@ -169,6 +170,7 @@ const ObsidianGraph = ({
   const getNodeColor = (node, isSelected) => {
     if (isSelected) return theme.node.selected;
     if (node.type === 'business') return theme.node.business;
+    if (node.type === 'crypto_wallet') return theme.node.crypto_wallet;
 
     // Color by category
     const categoryColors = {
@@ -489,9 +491,16 @@ const ObsidianGraph = ({
   const handleCreateConnection = (source, target) => {
     // Person↔business links aren't supported by the connections model yet —
     // parseInt('business-N') is NaN and used to persist person_id: null,
-    // permanently crashing this view (issue #56)
+    // permanently crashing this view (issue #56). Wallet edges are read-only
+    // here too, but for a different reason: they're written through the
+    // relationships API from the wallet detail modal (issue #82), not the
+    // person.connections JSONB model this in-graph creation flow calls.
     if (source.type === 'business' || target.type === 'business') {
       alert(t('obsidianGraph.errorBusinessConnectionsNotSupported'));
+      return;
+    }
+    if (source.type === 'crypto_wallet' || target.type === 'crypto_wallet') {
+      alert(t('obsidianGraph.errorWalletConnectionsNotSupported'));
       return;
     }
     const sourceId = parseInt(source.id, 10);

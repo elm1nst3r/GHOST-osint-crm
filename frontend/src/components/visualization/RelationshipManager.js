@@ -8,9 +8,10 @@ import {
   Maximize2, Minimize2, RefreshCw, Bug, Filter, X, Search,
   Briefcase, Tag, GitBranch, Sparkles
 } from 'lucide-react';
-import { casesAPI, businessesAPI, transactionsAPI } from '../../utils/api';
+import { casesAPI, businessesAPI, transactionsAPI, cryptoWalletsAPI, relationshipsAPI } from '../../utils/api';
 import { DEFAULT_EDGE_LAYERS, EDGE_LAYERS } from '../../utils/edgeLayers';
 import { formatPersonName } from '../../utils/personName';
+import { useProject } from '../../contexts/ProjectContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -20,8 +21,10 @@ const RelationshipManager = ({
   onClose = null
 }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [people, setPeople] = useState([]);
   const [businesses, setBusinesses] = useState([]);
+  const [cryptoWallets, setCryptoWallets] = useState([]);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,7 +60,8 @@ const RelationshipManager = ({
       setError(null);
       
       console.log('=== RelationshipManager: Fetching people ===');
-      const response = await fetch(`${API_BASE_URL}/people`, {
+      const projectParam = activeProjectId ? `?project_id=${activeProjectId}` : '';
+      const response = await fetch(`${API_BASE_URL}/people${projectParam}`, {
         credentials: 'include'
       });
 
@@ -109,13 +113,13 @@ const RelationshipManager = ({
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, activeProjectId]);
 
   // Fetch businesses
   const fetchBusinesses = useCallback(async () => {
     try {
       console.log('=== RelationshipManager: Fetching businesses ===');
-      const data = await businessesAPI.getAll();
+      const data = await businessesAPI.getAll({ project_id: activeProjectId });
       console.log('Fetched businesses count:', data.length);
       
       // Transform businesses to have a similar structure to people for the diagram
@@ -147,31 +151,68 @@ const RelationshipManager = ({
     } catch (err) {
       console.error('Error fetching businesses:', err);
     }
-  }, []);
+  }, [activeProjectId]);
+
+  // Fetch crypto wallets (issue #82). Wallets have no legacy JSONB
+  // connections field to sync into -- relationships involving them live
+  // only in the `relationships` table, so this reads that table directly
+  // (both directions) rather than deriving edges client-side the way
+  // fetchBusinesses does from owner_person_id/owner_business_id.
+  const fetchCryptoWallets = useCallback(async () => {
+    try {
+      const [walletsRes, relationships] = await Promise.all([
+        cryptoWalletsAPI.getAll({ project_id: activeProjectId }),
+        relationshipsAPI.getAll({ project_id: activeProjectId }),
+      ]);
+      const wallets = walletsRes.data || [];
+      const idForEntity = (type, id) => (type === 'business' ? `business-${id}` : type === 'crypto_wallet' ? `wallet-${id}` : String(id));
+
+      const transformed = wallets.map(w => ({
+        id: `wallet-${w.id}`,
+        first_name: w.label || w.address,
+        last_name: '',
+        category: 'Crypto Wallet',
+        type: 'crypto_wallet',
+        status: w.status,
+        connections: (relationships || [])
+          .filter(r => r.source_type === 'crypto_wallet' && r.source_id === w.id)
+          .map(r => ({
+            person_id: idForEntity(r.target_type, r.target_id),
+            type: r.relationship_type,
+            note: r.note,
+          })),
+      }));
+      setCryptoWallets(transformed);
+    } catch (err) {
+      console.error('Error fetching crypto wallets:', err);
+    }
+  }, [activeProjectId]);
 
   // Fetch cases
   const fetchCases = useCallback(async () => {
     try {
-      const data = await casesAPI.getAll();
+      const data = await casesAPI.getAll({ project_id: activeProjectId });
       setCases(data);
     } catch (err) {
       console.error('Error fetching cases:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   // Derive graph edges from the transaction log (issue #50): one aggregated
   // edge per giver→receiver pair. External (free-text) parties have no node,
   // so only person/business references become edges.
   const fetchTransactionEdges = useCallback(async () => {
     try {
-      const res = await transactionsAPI.getAll({ limit: 1000 });
+      const res = await transactionsAPI.getAll({ limit: 1000, project_id: activeProjectId });
       const list = res.data || [];
       const agg = new Map();
       list.forEach(t => {
         const src = t.from_person_id != null ? String(t.from_person_id)
-          : t.from_business_id != null ? `business-${t.from_business_id}` : null;
+          : t.from_business_id != null ? `business-${t.from_business_id}`
+          : t.from_wallet_id != null ? `wallet-${t.from_wallet_id}` : null;
         const dst = t.to_person_id != null ? String(t.to_person_id)
-          : t.to_business_id != null ? `business-${t.to_business_id}` : null;
+          : t.to_business_id != null ? `business-${t.to_business_id}`
+          : t.to_wallet_id != null ? `wallet-${t.to_wallet_id}` : null;
         if (!src || !dst || src === dst) return;
         const key = `${src}|${dst}`;
         const e = agg.get(key) || { source: src, target: dst, count: 0, types: new Set() };
@@ -189,14 +230,15 @@ const RelationshipManager = ({
     } catch (err) {
       console.error('Error fetching transaction edges:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     fetchPeople();
     fetchBusinesses();
+    fetchCryptoWallets();
     fetchCases();
     fetchTransactionEdges();
-  }, [fetchPeople, fetchBusinesses, fetchCases, fetchTransactionEdges]);
+  }, [fetchPeople, fetchBusinesses, fetchCryptoWallets, fetchCases, fetchTransactionEdges]);
 
   // Update connection between two people
   const updateConnection = useCallback(async (sourceId, targetId, type, note) => {
@@ -392,8 +434,8 @@ const RelationshipManager = ({
 
   // Apply filters to people and businesses
   const applyFilters = useCallback(() => {
-    // Combine people and businesses
-    let allEntities = [...people, ...enrichedBusinesses];
+    // Combine people, businesses, and crypto wallets
+    let allEntities = [...people, ...enrichedBusinesses, ...cryptoWallets];
     let filtered = allEntities;
     
     // Text search
@@ -508,7 +550,7 @@ const RelationshipManager = ({
     }
     
     return filtered;
-  }, [people, enrichedBusinesses, filters]);
+  }, [people, enrichedBusinesses, cryptoWallets, filters]);
 
   // Get filtered people — memoised so ObsidianGraph only redraws when data/filters
   // actually change, not on every parent re-render (which would reset the D3
@@ -542,7 +584,7 @@ const RelationshipManager = ({
   }, [personId, people, applyFilters]);
 
   // Get unique values for filters
-  const allEntities = [...people, ...enrichedBusinesses];
+  const allEntities = [...people, ...enrichedBusinesses, ...cryptoWallets];
   const uniqueCategories = [...new Set(allEntities.map(e => e.category).filter(Boolean))];
   const uniqueStatuses = [...new Set(allEntities.map(e => e.status).filter(Boolean))];
   const uniqueConnectionTypes = [...new Set(
@@ -609,7 +651,7 @@ const RelationshipManager = ({
           <span className="text-sm text-gray-600 dark:text-slate-400">
             {t('relationshipManager.entitiesSummary', {
               total: filteredPeople.length,
-              people: filteredPeople.filter(e => !e.type || e.type !== 'business').length,
+              people: filteredPeople.filter(e => !e.type).length,
               businesses: filteredPeople.filter(e => e.type === 'business').length,
             })}
           </span>

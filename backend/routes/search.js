@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { applyProjectScope } = require('../utils/projectAccess');
 
 
 router.use(apiLimiter);
@@ -15,16 +16,21 @@ router.get('/', requireAuth, async (req, res) => {
 
   try {
     const searchTerm = `%${q.toLowerCase()}%`;
+    const peopleParams = [searchTerm];
+    const scopeWhere = [];
+    const scopeErr = await applyProjectScope(req, 'people', scopeWhere, peopleParams);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    const projectClause = scopeWhere.length ? ` AND ${scopeWhere.join(' AND ')}` : '';
 
     const peopleQuery = `
       SELECT id, first_name, last_name, patronymic, category, case_name
       FROM people
-      WHERE LOWER(first_name) LIKE $1
+      WHERE (LOWER(first_name) LIKE $1
          OR LOWER(last_name) LIKE $1
          OR LOWER(patronymic) LIKE $1
          OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $1
          OR EXISTS (SELECT 1 FROM unnest(aliases) AS alias WHERE LOWER(alias) LIKE $1)
-         OR LOWER(case_name) LIKE $1
+         OR LOWER(case_name) LIKE $1)${projectClause}
       LIMIT 10
     `;
 
@@ -38,7 +44,7 @@ router.get('/', requireAuth, async (req, res) => {
     `;
 
     const [peopleResult, toolsResult] = await Promise.all([
-      pool.query(peopleQuery, [searchTerm]),
+      pool.query(peopleQuery, peopleParams),
       pool.query(toolsQuery, [searchTerm])
     ]);
 
@@ -58,6 +64,12 @@ router.get('/advanced', requireAuth, async (req, res) => {
     let query = 'SELECT * FROM people WHERE 1=1';
     const queryParams = [];
     let paramCount = 0;
+
+    const scopeWhere = [];
+    const scopeErr = await applyProjectScope(req, 'people', scopeWhere, queryParams);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    paramCount = queryParams.length;
+    if (scopeWhere.length) query += ` AND ${scopeWhere.join(' AND ')}`;
 
     if (typeof req.query.searchText === 'string' && req.query.searchText) {
       const searchConditions = [];

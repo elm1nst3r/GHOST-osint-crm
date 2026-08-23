@@ -6,9 +6,11 @@ import ReportGenerator from './ReportGenerator';
 import SearchFilters from './search/SearchFilters';
 import SearchResults from './search/SearchResults';
 import { personSearchHaystack } from '../utils/personName';
+import { useProject } from '../contexts/ProjectContext';
 
 const AdvancedSearch = ({ onSelectPerson, onClose }) => {
   const { t } = useTranslation();
+  const { activeProjectId } = useProject();
   const [searchParams, setSearchParams] = useState({
     // Basic search
     searchText: '',
@@ -69,13 +71,14 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   const loadInitialData = async () => {
     try {
       const [casesData, { data: peopleData }, customFieldsData, modelOptionsData] = await Promise.all([
-        casesAPI.getAll(),
-        peopleAPI.getAll({ limit: 1000 }),
+        casesAPI.getAll({ project_id: activeProjectId }),
+        peopleAPI.getAll({ limit: 1000, project_id: activeProjectId }),
         customFieldsAPI.getAll(),
         modelOptionsAPI.getAll()
       ]);

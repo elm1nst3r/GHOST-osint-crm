@@ -6,6 +6,8 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, TransactionCreateSchema, TransactionUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
 router.use(apiLimiter);
 const {
@@ -45,6 +47,11 @@ router.get('/', requireAuth, async (req, res) => {
     if (q.item_category) add(`t.item_category = $${params.length + 1}`, q.item_category);
     if (q.from_person_id) add(`t.from_person_id = $${params.length + 1}`, parseInt(q.from_person_id, 10));
     if (q.to_person_id) add(`t.to_person_id = $${params.length + 1}`, parseInt(q.to_person_id, 10));
+    if (q.wallet_id) {
+      const v = parseInt(q.wallet_id, 10);
+      add(`(t.from_wallet_id = $${params.length + 1} OR t.to_wallet_id = $${params.length + 1})`, v);
+    }
+    if (q.tx_hash) add(`t.tx_hash = $${params.length + 1}`, q.tx_hash);
     if (q.person_id) {
       const v = parseInt(q.person_id, 10);
       add(`(t.from_person_id = $${params.length + 1} OR t.to_person_id = $${params.length + 1})`, v);
@@ -59,6 +66,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (q.location_business_id) add(`t.location_business_id = $${params.length + 1}`, parseInt(q.location_business_id, 10));
     if (q.location_property_id) add(`t.location_property_id = $${params.length + 1}`, parseInt(q.location_property_id, 10));
     if (q.case_id) add(`t.case_id = $${params.length + 1}`, parseInt(q.case_id, 10));
+    const scopeErr = await applyProjectScope(req, 't', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (q.date_from) add(`t.occurred_on >= $${params.length + 1}`, q.date_from);
     if (q.date_to) add(`t.occurred_on <= $${params.length + 1}`, q.date_to);
     if (q.bbox) {
@@ -88,7 +97,8 @@ router.get('/', requireAuth, async (req, res) => {
 
 const TX_COLUMNS = [
   'transaction_type', 'item_label', 'item_category', 'subject_asset_id', 'subject_business_id', 'subject_property_id',
-  'from_person_id', 'from_business_id', 'from_external', 'to_person_id', 'to_business_id', 'to_external',
+  'from_person_id', 'from_business_id', 'from_wallet_id', 'from_external',
+  'to_person_id', 'to_business_id', 'to_wallet_id', 'to_external', 'tx_hash',
   'value', 'currency', 'occurred_on', 'location_business_id', 'location_property_id', 'location_name',
   'address', 'city', 'state', 'country', 'postal_code', 'latitude', 'longitude',
   'geocode_confidence', 'geocode_provider', 'geocoded_at', 'case_id', 'notes', 'tags',
@@ -114,15 +124,27 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
   if (err) return res.status(400).json({ error: err });
   normaliseSubject(req.body);
   try {
+    const accessErr = await requireProjectMember(req, req.body.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const caseErr = await checkCaseProjectConsistency(req.body.case_id, req.body.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body);
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body, req.body.project_id);
     }
-    const placeholders = TX_COLUMNS.map((_, i) => `$${i + 1}`).join(', ');
+    // project_id is intentionally NOT in TX_COLUMNS: that array is shared with
+    // PUT's buildValues(), and PUT's schema omits project_id (immutable via the
+    // generic update route, issue #83) -- including it there would write
+    // `undefined` -> null on every update and wipe the column. Insert-only,
+    // appended as its own column.
+    const insertColumns = [...TX_COLUMNS, 'project_id'];
+    const placeholders = insertColumns.map((_, i) => `$${i + 1}`).join(', ');
     const result = await pool.query(
-      `INSERT INTO transactions (${TX_COLUMNS.join(', ')}) VALUES (${placeholders}) RETURNING id`,
-      buildValues(req.body, geo));
+      `INSERT INTO transactions (${insertColumns.join(', ')}) VALUES (${placeholders}) RETURNING id`,
+      [...buildValues(req.body, geo), req.body.project_id]);
     const full = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [result.rows[0].id]);
     res.status(201).json({ ...decorateTransaction(full.rows[0]), geocode_failure: geo.geocode_failure });
   } catch (e) {
@@ -136,6 +158,8 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
     const result = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     res.json(decorateTransaction(result.rows[0]));
   } catch (err) {
     console.error('Error fetching transaction:', err);
@@ -152,10 +176,16 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
     const existing = await pool.query('SELECT * FROM transactions WHERE id = $1', [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
 
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const caseErr = await checkCaseProjectConsistency(req.body.case_id, existing.rows[0].project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
+
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
     if (!hasRefLocation && (req.body.latitude == null || req.body.longitude == null) && (req.body.address || req.body.city || req.body.country)) {
-      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body);
+      geo = await geocodeFields(req.app.locals.improvedGeocodingService, req.body, existing.rows[0].project_id);
     }
     const setSql = TX_COLUMNS.map((col, i) => `${col} = $${i + 1}`).join(', ');
     const values = buildValues(req.body, geo);
@@ -173,6 +203,11 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
 // DELETE /:id
 router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const existing = await pool.query('SELECT project_id FROM transactions WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query('DELETE FROM transactions WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
     res.json({ message: 'Transaction deleted successfully' });

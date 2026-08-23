@@ -9,6 +9,7 @@ import { mergeOptionMeta } from '../utils/useModelOptions';
 import { personNameOrder } from '../utils/personName';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useProject } from '../contexts/ProjectContext';
 import LocationsSection from './person-form/LocationsSection';
 import OsintSection from './person-form/OsintSection';
 import ConnectionsSection from './person-form/ConnectionsSection';
@@ -24,7 +25,14 @@ const AddEditPersonForm = () => {
   const { t, i18n } = useTranslation();
   const { people, customFields, fetchPeople } = useData();
   const { editingPerson, setEditingPerson, setShowAddPersonForm } = useUI();
+  const { activeProjectId, projects } = useProject();
   const person = editingPerson;
+  // Cross-linking is governed by the SUBJECT's own project (person?.project_id
+  // when editing, since a deep-linked person may belong to a different
+  // project than the one currently active), not the active project itself.
+  const currentPersonProjectId = person?.project_id ?? activeProjectId;
+  const currentPersonProject = projects.find(p => p.id === currentPersonProjectId);
+  const otherProjects = projects.filter(p => p.id !== currentPersonProjectId);
 
   const handleClose = () => { setEditingPerson(null); setShowAddPersonForm(false); };
 
@@ -67,12 +75,13 @@ const AddEditPersonForm = () => {
       } catch { setOptionsLoadError(true); }
     };
     const loadCases = async () => {
-      try { setExistingCases(await casesAPI.getAll()); }
+      try { setExistingCases(await casesAPI.getAll({ project_id: activeProjectId })); }
       catch { setOptionsLoadError(true); }
     };
     loadModelOptions();
     loadCases();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (person) {
@@ -107,18 +116,25 @@ const AddEditPersonForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // project_id is a NOT NULL FK as of issue #83 -- only creation needs it
+    // (immutable on update), but there's no create path without a project.
+    if (!person && !activeProjectId) {
+      alert(t('personForm.errorNoActiveProject'));
+      return;
+    }
     if (formData.caseName && !caseExists) {
       try {
         await casesAPI.create({
           case_name: formData.caseName,
           description: `Auto-created from person: ${formData.firstName} ${formData.lastName}`,
           status: 'active',
+          project_id: activeProjectId,
         });
       } catch (error) { console.error('Error creating case:', error); }
     }
     try {
       if (person) await peopleAPI.update(person.id, { ...formData, dateOfBirth: formData.dateOfBirth || null });
-      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null });
+      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null, project_id: activeProjectId });
       handleClose();
       fetchPeople();
     } catch (error) {
@@ -306,6 +322,9 @@ const AddEditPersonForm = () => {
             connectionTypes={tConnectionTypes}
             people={people}
             currentPersonId={person?.id}
+            currentPersonProjectId={currentPersonProjectId}
+            allowCrossLinking={!!currentPersonProject?.allow_cross_linking}
+            otherProjects={otherProjects}
             onChange={val => set('connections', val)}
           />
 

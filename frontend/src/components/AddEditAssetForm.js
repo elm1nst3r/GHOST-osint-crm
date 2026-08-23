@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Package } from 'lucide-react';
 import { assetsAPI, modelOptionsAPI, casesAPI, transactionsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
+import { useProject } from '../contexts/ProjectContext';
 import { optionLabel } from '../utils/optionLabels';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white';
@@ -18,6 +19,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
     { value: 'unknown', label: t('assetForm.locationModes.unknown') },
   ], [t]);
   const { people, businesses, fetchAssets } = useData();
+  const { activeProjectId } = useProject();
   const isEdit = !!asset;
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [statusOptions, setStatusOptions] = useState([]);
@@ -59,8 +61,9 @@ const AddEditAssetForm = ({ asset, onClose }) => {
       setCategoryOptions(d.filter(o => o.model_type === 'asset_category' && o.is_active));
       setStatusOptions(d.filter(o => o.model_type === 'asset_status' && o.is_active));
     }).catch(() => {});
-    casesAPI.getAll().then(setCases).catch(() => {});
-  }, []);
+    casesAPI.getAll({ project_id: activeProjectId }).then(setCases).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   // when fixed_known person changes, load their locations from the people slice
   useEffect(() => {
@@ -78,6 +81,7 @@ const AddEditAssetForm = ({ asset, onClose }) => {
     e.preventDefault();
     if (!form.name.trim()) { setError(t('assetForm.errorNameRequired')); return; }
     if (form.location_mode === 'fixed_known' && !form.location_person_id) { setError(t('assetForm.errorLocationPersonRequired')); return; }
+    if (!isEdit && !activeProjectId) { setError(t('assetForm.errorNoActiveProject')); return; }
     setSaving(true);
     setError('');
     const payload = {
@@ -109,10 +113,11 @@ const AddEditAssetForm = ({ asset, onClose }) => {
             to_external: holderKind === 'external' ? holderExternal || null : null,
             occurred_on: holderDate || new Date().toISOString().slice(0, 10),
             case_id: form.case_id || null,
+            project_id: asset.project_id,
           });
         }
       } else {
-        await assetsAPI.create(payload);
+        await assetsAPI.create({ ...payload, project_id: activeProjectId });
       }
       await fetchAssets(0);
       onClose();

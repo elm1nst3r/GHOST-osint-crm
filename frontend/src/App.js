@@ -5,13 +5,14 @@ import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ProjectProvider, useProject } from './contexts/ProjectContext';
 
 import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './components/Dashboard';
@@ -28,6 +29,8 @@ import AdvancedSearch from './components/AdvancedSearch';
 import BusinessList from './components/BusinessList';
 import AddEditBusinessForm from './components/AddEditBusinessForm';
 import DarkModeToggle from './components/DarkModeToggle';
+import ProjectSelector from './components/ProjectSelector';
+import ProjectGate from './components/ProjectGate';
 import SystemHealth from './components/SystemHealth';
 import WirelessNetworks from './components/WirelessNetworks';
 import PropertyList from './components/PropertyList';
@@ -36,6 +39,9 @@ import PropertyDetailModal from './components/PropertyDetailModal';
 import AssetsList from './components/AssetsList';
 import AddEditAssetForm from './components/AddEditAssetForm';
 import AssetDetailModal from './components/AssetDetailModal';
+import CryptoWalletsList from './components/CryptoWalletsList';
+import AddEditCryptoWalletForm from './components/AddEditCryptoWalletForm';
+import CryptoWalletDetailModal from './components/CryptoWalletDetailModal';
 import TransactionsList from './components/TransactionsList';
 import AddEditTransactionForm from './components/AddEditTransactionForm';
 import TransactionDetailModal from './components/TransactionDetailModal';
@@ -58,6 +64,7 @@ const navigationItemIds = [
   { id: 'businesses',    icon: Building2 },
   { id: 'properties',    icon: Landmark },
   { id: 'assets',        icon: Package },
+  { id: 'crypto-wallets', icon: Wallet },
   { id: 'transactions',  icon: Receipt },
   { id: 'tools',         icon: Wrench },
   { id: 'relationships', icon: Network },
@@ -72,6 +79,7 @@ const AppShell = () => {
   const { t } = useTranslation();
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
+  const { refetchProjects } = useProject();
   const {
     activeSection, setActiveSection,
     selectedPersonForDetail, setSelectedPersonForDetail,
@@ -87,6 +95,9 @@ const AppShell = () => {
     selectedAssetForDetail, setSelectedAssetForDetail,
     editingAsset, setEditingAsset,
     showAddAssetForm, setShowAddAssetForm,
+    selectedCryptoWalletForDetail, setSelectedCryptoWalletForDetail,
+    editingCryptoWallet, setEditingCryptoWallet,
+    showAddCryptoWalletForm, setShowAddCryptoWalletForm,
     selectedTransactionForDetail, setSelectedTransactionForDetail,
     editingTransaction, setEditingTransaction,
     showAddTransactionForm, setShowAddTransactionForm,
@@ -151,8 +162,8 @@ const AppShell = () => {
 
   // Fetch all data once authenticated
   useEffect(() => {
-    if (authenticated) refreshAll();
-  }, [authenticated, refreshAll]);
+    if (authenticated) { refreshAll(); refetchProjects(); }
+  }, [authenticated, refreshAll, refetchProjects]);
 
   // Escape closes the mobile drawer
   useEffect(() => {
@@ -175,6 +186,7 @@ const AppShell = () => {
   }
 
   return (
+    <ProjectGate>
     <div className="flex min-h-[100dvh] bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
 
       {/* Mobile top bar — the only chrome visible below md, since the sidebar
@@ -191,6 +203,9 @@ const AppShell = () => {
         <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
           {appSettings.appName}
         </span>
+        <div className="ml-auto">
+          <ProjectSelector compact />
+        </div>
       </div>
 
       {/* Scrim — closes the drawer on tap. Below md only. */}
@@ -240,6 +255,9 @@ const AppShell = () => {
                 <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
+          </div>
+          <div className="mt-3">
+            <ProjectSelector />
           </div>
         </div>
 
@@ -306,6 +324,7 @@ const AppShell = () => {
               {activeSection === 'businesses'    && <BusinessList />}
               {activeSection === 'properties'    && <PropertyList />}
               {activeSection === 'assets'        && <AssetsList />}
+              {activeSection === 'crypto-wallets' && <CryptoWalletsList />}
               {activeSection === 'transactions'  && <TransactionsList />}
               {activeSection === 'map'           && <div className="h-full"><GlobalMap /></div>}
               {activeSection === 'wireless'      && <div className="h-full"><WirelessNetworks /></div>}
@@ -350,6 +369,10 @@ const AppShell = () => {
       {editingAsset     && <AddEditAssetForm asset={editingAsset} onClose={() => setEditingAsset(null)} />}
       {selectedAssetForDetail && <AssetDetailModal asset={selectedAssetForDetail} onClose={() => setSelectedAssetForDetail(null)} />}
 
+      {showAddCryptoWalletForm && <AddEditCryptoWalletForm wallet={null} onClose={() => setShowAddCryptoWalletForm(false)} />}
+      {editingCryptoWallet     && <AddEditCryptoWalletForm wallet={editingCryptoWallet} onClose={() => setEditingCryptoWallet(null)} />}
+      {selectedCryptoWalletForDetail && <CryptoWalletDetailModal wallet={selectedCryptoWalletForDetail} onClose={() => setSelectedCryptoWalletForDetail(null)} />}
+
       {/* Transaction modals */}
       {showAddTransactionForm && <AddEditTransactionForm transaction={null} onClose={() => setShowAddTransactionForm(false)} />}
       {editingTransaction     && <AddEditTransactionForm transaction={editingTransaction} onClose={() => setEditingTransaction(null)} />}
@@ -370,6 +393,7 @@ const AppShell = () => {
           itself on 403 in case the role is stale. */}
       {currentUser?.role === 'admin' && <SystemHealth />}
     </div>
+    </ProjectGate>
   );
 };
 
@@ -379,11 +403,13 @@ const App = () => (
   <ThemeProvider>
     <BrowserRouter>
       <AuthProvider>
-        <DataProvider>
-          <UIProvider>
-            <AppShell />
-          </UIProvider>
-        </DataProvider>
+        <ProjectProvider>
+          <DataProvider>
+            <UIProvider>
+              <AppShell />
+            </UIProvider>
+          </DataProvider>
+        </ProjectProvider>
       </AuthProvider>
     </BrowserRouter>
   </ThemeProvider>

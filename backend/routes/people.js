@@ -7,7 +7,31 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, PersonCreateSchema, PersonUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { syncPersonConnections } = require('./relationships');
+const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
+const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
+// connections is now backed by the relationships table (issue #83), not the
+// stored JSONB column -- read it computed here so 11+ frontend consumers that
+// read person.connections keep working unmodified. Listed AFTER `p.*` on
+// purpose: pg (and the node driver) keeps the LAST column when two share a
+// name, so this silently wins over the raw (now-unused-for-reads) column.
+const PERSON_CONNECTIONS_SUBQUERY = `
+  (SELECT COALESCE(
+     jsonb_agg(jsonb_build_object('person_id', r.target_id, 'type', r.relationship_type, 'note', r.note) ORDER BY r.id),
+     '[]'::jsonb
+   ) FROM relationships r WHERE r.source_type = 'person' AND r.source_id = p.id AND r.target_type = 'person') AS connections
+`;
+
+async function fetchPersonById(id) {
+  const result = await pool.query(
+    `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
+            ${PERSON_CONNECTIONS_SUBQUERY}
+     FROM people p WHERE p.id = $1`,
+    [id]
+  );
+  return result.rows[0];
+}
 
 router.use(apiLimiter);
 // GET / — paginated people list
@@ -18,13 +42,21 @@ router.get('/', requireAuth, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
+    const where = [];
+    const params = [];
+    const scopeErr = await applyProjectScope(req, 'p', where, params);
+    if (scopeErr) return res.status(403).json({ error: scopeErr });
+    if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`p.case_id = $${params.length}`); }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
     const [dataResult, countResult] = await Promise.all([
       pool.query(
-        `SELECT *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name
-         FROM people ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-        [limit, offset]
+        `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
+                ${PERSON_CONNECTIONS_SUBQUERY}
+         FROM people p ${whereClause} ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        [...params, limit, offset]
       ),
-      pool.query('SELECT COUNT(*)::int AS count FROM people'),
+      pool.query(`SELECT COUNT(*)::int AS count FROM people p ${whereClause}`, params),
     ]);
 
     const total = countResult.rows[0].count;
@@ -41,9 +73,15 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => {
   const {
     firstName, lastName, patronymic, aliases, dateOfBirth, category, status, crmStatus,
-    caseName, profilePictureUrl, notes, osintData, attachments, connections,
+    caseName, case_id, project_id, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
+
+  const accessErr = await requireProjectMember(req, project_id);
+  if (accessErr) return res.status(403).json({ error: accessErr });
+
+  const caseErr = await checkCaseProjectConsistency(case_id, project_id);
+  if (caseErr) return res.status(400).json({ error: caseErr });
 
   // Geocode locations before saving using improved service if available.
   // Always merge results back into the original array so already-geocoded entries
@@ -62,7 +100,8 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
       if (improvedGeocodingService) {
         const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
           minConfidence: 30,
-          maxConcurrent: 3
+          maxConcurrent: 3,
+          projectId: project_id
         });
         // Merge geocoded results back by reference into the original array
         for (let i = 0; i < geocoded.length; i++) {
@@ -93,9 +132,11 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     }
   }
 
+  // connections is intentionally not written here (issue #83) -- it's now
+  // backed by the relationships table, synced below once the person exists.
   const query = `
-    INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status, crm_status, case_name, profile_picture_url, notes, osint_data, attachments, connections, locations, custom_fields)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status, crm_status, case_name, case_id, project_id, profile_picture_url, notes, osint_data, attachments, locations, custom_fields)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name;
   `;
 
@@ -109,18 +150,22 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     status || null,
     crmStatus || null,
     caseName || null,
+    case_id || null,
+    project_id,
     profilePictureUrl || null,
     notes || null,
     JSON.stringify(osintData || []),
     JSON.stringify(attachments || []),
-    JSON.stringify(connections || []),
     JSON.stringify(geocodedLocations),
     JSON.stringify(custom_fields || {})
   ];
 
   try {
     const result = await pool.query(query, values);
-    const newPerson = result.rows[0];
+    let newPerson = result.rows[0];
+
+    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
+    newPerson = await fetchPersonById(newPerson.id);
 
     // Log audit
     await logAudit('person', newPerson.id, 'create', {
@@ -129,6 +174,7 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
 
     res.status(201).json(newPerson);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error creating person:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to create person' });
   }
@@ -139,14 +185,18 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
     const personId = req.params.id;
     const result = await pool.query(
-      `SELECT *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name
-       FROM people WHERE id = $1`,
+      `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
+              ${PERSON_CONNECTIONS_SUBQUERY}
+       FROM people p WHERE p.id = $1`,
       [personId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Person not found' });
     }
+
+    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     res.json(result.rows[0]);
   } catch (err) {
@@ -160,15 +210,29 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
   const personId = req.params.id;
   const {
     firstName, lastName, patronymic, aliases, dateOfBirth, category, status, crmStatus,
-    caseName, profilePictureUrl, notes, osintData, attachments, connections,
+    caseName, case_id, profilePictureUrl, notes, osintData, attachments, connections,
     locations, custom_fields
   } = req.body;
 
   try {
-    // Get old values for audit
+    // Get old values for audit. connections comes from relationships now, not
+    // the (stale-for-reads) raw column, so it's fetched separately.
     const oldResult = await pool.query('SELECT * FROM people WHERE id = $1', [personId]);
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
     const oldPerson = oldResult.rows[0];
+
+    const accessErr = await requireProjectMember(req, oldPerson.project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const oldConnectionsResult = await pool.query(
+      `SELECT jsonb_build_object('person_id', target_id, 'type', relationship_type, 'note', note) AS c
+       FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
+      [personId]
+    );
+    const oldConnections = oldConnectionsResult.rows.map((r) => r.c);
+
+    const caseErr = await checkCaseProjectConsistency(case_id, oldPerson.project_id);
+    if (caseErr) return res.status(400).json({ error: caseErr });
 
     // Geocode any locations that don't have coordinates using improved service if available.
     // Always merge results back into the original array so already-geocoded entries
@@ -187,7 +251,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
         if (improvedGeocodingService) {
           const geocoded = await improvedGeocodingService.batchGeocode(locationsToGeocode, {
             minConfidence: 30,
-            maxConcurrent: 3
+            maxConcurrent: 3,
+            projectId: oldPerson.project_id
           });
           // Merge geocoded results back by reference into the original array
           for (let i = 0; i < geocoded.length; i++) {
@@ -221,8 +286,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const query = `
       UPDATE people
       SET first_name = $1, last_name = $2, patronymic = $3, aliases = $4, date_of_birth = $5, category = $6,
-          status = $7, crm_status = $8, case_name = $9, profile_picture_url = $10, notes = $11,
-          osint_data = $12, attachments = $13, connections = $14, locations = $15, custom_fields = $16
+          status = $7, crm_status = $8, case_name = $9, case_id = $10, profile_picture_url = $11, notes = $12,
+          osint_data = $13, attachments = $14, locations = $15, custom_fields = $16
       WHERE id = $17
       RETURNING *, CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, '')) as full_name;
     `;
@@ -237,18 +302,21 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
       status || null,
       crmStatus || null,
       caseName || null,
+      case_id || null,
       profilePictureUrl || null,
       notes || null,
       JSON.stringify(osintData || []),
       JSON.stringify(attachments || []),
-      JSON.stringify(connections || []),
       JSON.stringify(geocodedLocations),
       JSON.stringify(custom_fields || {}),
       personId
     ];
 
-    const result = await pool.query(query, values);
-    const newPerson = result.rows[0];
+    let result = await pool.query(query, values);
+    let newPerson = result.rows[0];
+
+    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
+    newPerson = await fetchPersonById(personId);
 
     // Log audit changes — scalar fields compared directly, JSON fields by serialisation
     const changes = {};
@@ -258,15 +326,19 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     if (oldPerson.category !== category) changes.category = { oldValue: oldPerson.category, newValue: category };
     if (oldPerson.status !== status) changes.status = { oldValue: oldPerson.status, newValue: status };
     if (oldPerson.case_name !== caseName) changes.case_name = { oldValue: oldPerson.case_name, newValue: caseName };
+    if (oldPerson.case_id !== (case_id || null)) changes.case_id = { oldValue: oldPerson.case_id, newValue: case_id || null };
     if (oldPerson.notes !== (notes || null)) changes.notes = { oldValue: oldPerson.notes, newValue: notes || null };
-    // Store actual before/after JSON for tracked fields (issue #39)
+    // Store actual before/after JSON for tracked fields (issue #39).
+    // connections compares against oldConnections (fetched from relationships
+    // pre-update above), not oldPerson.connections -- that raw column is no
+    // longer authoritative as of issue #83.
     const jsonFieldMap = [
-      ['locations', geocodedLocations],
-      ['connections', connections],
-      ['osint_data', osintData],
+      ['locations', geocodedLocations, oldPerson.locations],
+      ['connections', connections, oldConnections],
+      ['osint_data', osintData, oldPerson.osint_data],
     ];
-    for (const [field, newVal] of jsonFieldMap) {
-      const oldSerialized = JSON.stringify(oldPerson[field] ?? null);
+    for (const [field, newVal, oldVal] of jsonFieldMap) {
+      const oldSerialized = JSON.stringify(oldVal ?? null);
       const newSerialized = JSON.stringify(newVal ?? null);
       if (oldSerialized !== newSerialized) {
         changes[field] = { oldValue: oldSerialized, newValue: newSerialized };
@@ -279,6 +351,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
 
     res.json(newPerson);
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error('Error updating person:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to update person' });
   }
@@ -294,6 +367,11 @@ router.post('/:id/locations', requireAuth, validateIdParam, async (req, res) => 
   }
 
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = COALESCE(locations, '[]'::jsonb) || $1::jsonb
@@ -321,6 +399,11 @@ router.put('/:id/locations/:index', requireAuth, validateIdParam, async (req, re
     return res.status(400).json({ error: 'Location object is required' });
   }
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = jsonb_set(locations, ARRAY[$1::text], $2::jsonb, false)
@@ -344,6 +427,11 @@ router.delete('/:id/locations/:index', requireAuth, validateIdParam, async (req,
     return res.status(400).json({ error: 'Invalid location index' });
   }
   try {
+    const existing = await pool.query('SELECT project_id FROM people WHERE id = $1', [personId]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     const result = await pool.query(
       `UPDATE people
        SET locations = locations - $1
@@ -367,6 +455,9 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     // Get person first for audit
     const oldResult = await pool.query('SELECT * FROM people WHERE id = $1', [personId]);
     if (oldResult.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+
+    const accessErr = await requireProjectMember(req, oldResult.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const result = await pool.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Person not found' });

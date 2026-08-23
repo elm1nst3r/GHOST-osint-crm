@@ -43,6 +43,14 @@ const optNum = (inner) =>
 
 const optId = () => optNum(z.number().int().positive());
 
+// Required id: same coercion as optId (numeric string, number), but rejects
+// null/''/undefined — for project_id, which is a NOT NULL FK on every
+// case-scoped table (issue #83).
+const reqId = (label) =>
+  z
+    .union([z.number(), z.string().min(1, `${label} is required`).transform(Number)])
+    .pipe(z.number().int().positive({ message: `${label} must be a positive integer` }));
+
 const dateString = z
   .union([
     z
@@ -81,7 +89,8 @@ const personBaseFields = {
   category: optStr(1000),
   status: optStr(1000),
   crmStatus: optStr(1000),
-  caseName: optStr(1000),
+  caseName: optStr(1000), // deprecated (issue #83) — case_id is now the real grouping, see CaseManagement.js
+  case_id: optId(),
   notes: optStr(1000),
   profilePictureUrl: optStr(2000),
   aliases: optArray(z.string()),
@@ -106,6 +115,10 @@ const personBaseFields = {
 
 const PersonCreateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(255),
+  // Required on create, immutable via the generic update route (issue #83) —
+  // moving a person between projects is a deliberate future action, not
+  // absorbed here.
+  project_id: reqId('project_id'),
   ...personBaseFields,
 });
 
@@ -162,10 +175,12 @@ const businessBaseFields = {
   // companies, shells) are representable rather than collapsing to one hop.
   owner_business_id: optId(),
   employees: optArray(employeeSchema),
+  case_id: optId(),
 };
 
 const BusinessCreateSchema = z.object({
   name: z.string().min(1, 'Business name is required').max(255),
+  project_id: reqId('project_id'),
   ...businessBaseFields,
 });
 
@@ -247,12 +262,75 @@ const caseBaseFields = {
 
 const CaseCreateSchema = z.object({
   case_name: z.string().min(1, 'Case name is required').max(255),
+  project_id: reqId('project_id'),
   ...caseBaseFields,
 });
 
 const CaseUpdateSchema = z.object({
   case_name: z.string().min(1, 'Case name is required').max(255),
   ...caseBaseFields,
+});
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+// The hard isolation boundary (issue #83) — a project is close to "a fresh
+// database" per investigation. Cases (above) nest inside a project.
+
+const projectBaseFields = {
+  description: optStr(2000),
+  status: z.enum(['active', 'on_hold', 'closed']).nullable().optional(),
+  allow_cross_linking: z.boolean().nullable().optional(),
+  icon: optStr(8),
+};
+
+const ProjectCreateSchema = z.object({
+  name: z.string().min(1, 'Project name is required').max(255),
+  ...projectBaseFields,
+});
+
+const ProjectUpdateSchema = z.object({
+  name: z.string().min(1, 'Project name is required').max(255),
+  ...projectBaseFields,
+});
+
+// ── Project Members (issue #84) ──────────────────────────────────────────────
+// project_role lives on the membership row, not on `users` -- the same user
+// can be a manager on one project and an investigator on another.
+
+const ProjectMemberCreateSchema = z.object({
+  user_id: reqId('user_id'),
+  project_role: z.enum(['manager', 'investigator']),
+});
+
+const ProjectMemberUpdateSchema = z.object({
+  project_role: z.enum(['manager', 'investigator']),
+});
+
+// ── Relationships ─────────────────────────────────────────────────────────────
+// Real rows as of issue #83 (previously only JSONB `connections` on people /
+// `employees` + owner_* on businesses, which stay as-is — see the migration
+// comment in 20260818000003_relationships_table.js). source_id/target_id are
+// unconstrained ints: Postgres has no polymorphic FK across people/businesses,
+// same looseness this codebase already accepts for subject/holder columns.
+
+const entityTypeEnum = z.enum(['person', 'business', 'crypto_wallet']);
+
+const relationshipBaseFields = {
+  case_id: optId(),
+  relationship_type: z.string().min(1, 'relationship_type is required').max(100),
+  note: optStr(2000),
+};
+
+const RelationshipCreateSchema = z.object({
+  project_id: reqId('project_id'),
+  source_type: entityTypeEnum,
+  source_id: reqId('source_id'),
+  target_type: entityTypeEnum,
+  target_id: reqId('target_id'),
+  ...relationshipBaseFields,
+});
+
+const RelationshipUpdateSchema = z.object({
+  ...relationshipBaseFields,
 });
 
 // ── Todos ─────────────────────────────────────────────────────────────────────
@@ -263,6 +341,8 @@ const TodoCreateSchema = z.object({
   text: z.string().min(1, 'Todo text is required').max(2000),
   status: z.enum(TODO_STATUSES).nullable().optional().default('open'),
   last_update_comment: optStr(1000),
+  project_id: reqId('project_id'),
+  case_id: optId(),
 });
 
 const TodoUpdateSchema = z
@@ -270,6 +350,7 @@ const TodoUpdateSchema = z
     text: z.string().min(1).max(2000).optional(),
     status: z.enum(TODO_STATUSES).nullable().optional(),
     last_update_comment: optStr(1000),
+    case_id: optId(),
   })
   .refine((data) => data.text !== undefined || data.status !== undefined, {
     message: 'text or status is required',
@@ -318,6 +399,7 @@ const propertyBaseFields = {
 
 const PropertyCreateSchema = z.object({
   name: z.string().min(1, 'Property name is required').max(255),
+  project_id: reqId('project_id'),
   ...propertyBaseFields,
 });
 
@@ -371,12 +453,41 @@ const initialHolderSchema = z
 const AssetCreateSchema = z.object({
   name: z.string().min(1, 'Asset name is required').max(255),
   initial_holder: initialHolderSchema,
+  project_id: reqId('project_id'),
   ...assetBaseFields,
 });
 
 const AssetUpdateSchema = z.object({
   name: z.string().min(1, 'Asset name is required').max(255),
   ...assetBaseFields,
+});
+
+// ── Crypto Wallets (issue #82) ───────────────────────────────────────────────
+// Wallets are a first-class entity, not chain analysis -- see the migration
+// comment in 20260819000001_crypto_wallets.js. network/status are open
+// vocabularies backed by model_options (crypto_wallet_network/asset_status-
+// style), same as assetBaseFields.category/status above, so plain optStr
+// rather than z.enum.
+
+const cryptoWalletBaseFields = {
+  network: optStr(100),
+  label: optStr(255),
+  tags: optArray(z.string().max(100)),
+  external_reference_url: optStr(1000),
+  notes: optStr(1000),
+  status: optStr(50),
+  case_id: optId(),
+};
+
+const CryptoWalletCreateSchema = z.object({
+  address: z.string().min(1, 'address is required').max(255),
+  project_id: reqId('project_id'),
+  ...cryptoWalletBaseFields,
+});
+
+const CryptoWalletUpdateSchema = z.object({
+  address: z.string().min(1, 'address is required').max(255),
+  ...cryptoWalletBaseFields,
 });
 
 // ── Transactions ──────────────────────────────────────────────────────────────
@@ -398,6 +509,9 @@ const TransactionCreateSchema = z.object({
   to_person_id: optId(),
   from_business_id: optId(),
   to_business_id: optId(),
+  from_wallet_id: optId(),
+  to_wallet_id: optId(),
+  tx_hash: optStr(255),
   from_external: optStr(255),
   to_external: optStr(255),
   subject_asset_id: optId(),
@@ -420,9 +534,12 @@ const TransactionCreateSchema = z.object({
   latitude: optNum(z.number().min(-90).max(90)),
   longitude: optNum(z.number().min(-180).max(180)),
   case_id: optId(),
+  project_id: reqId('project_id'),
 });
 
-const TransactionUpdateSchema = TransactionCreateSchema;
+// project_id is required on create, immutable via the generic update route
+// (issue #83) — everything else about a transaction stays freely editable.
+const TransactionUpdateSchema = TransactionCreateSchema.omit({ project_id: true });
 
 // ── Settings — Custom Fields ──────────────────────────────────────────────────
 // POST /custom-fields: field_name + field_label + field_type required
@@ -480,6 +597,12 @@ module.exports = {
   ToolUpdateSchema,
   CaseCreateSchema,
   CaseUpdateSchema,
+  ProjectCreateSchema,
+  ProjectUpdateSchema,
+  ProjectMemberCreateSchema,
+  ProjectMemberUpdateSchema,
+  RelationshipCreateSchema,
+  RelationshipUpdateSchema,
   TodoCreateSchema,
   TodoUpdateSchema,
   TravelHistoryCreateSchema,
@@ -488,6 +611,8 @@ module.exports = {
   PropertyUpdateSchema,
   AssetCreateSchema,
   AssetUpdateSchema,
+  CryptoWalletCreateSchema,
+  CryptoWalletUpdateSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,

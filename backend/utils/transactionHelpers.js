@@ -8,8 +8,10 @@ const TX_SELECT = `
   SELECT t.*,
     fp.first_name AS from_person_first, fp.last_name AS from_person_last,
     fb.name AS from_business_name,
+    fw.label AS from_wallet_label, fw.address AS from_wallet_address,
     tp.first_name AS to_person_first, tp.last_name AS to_person_last,
     tb.name AS to_business_name,
+    tw.label AS to_wallet_label, tw.address AS to_wallet_address,
     sa.name AS subject_asset_name,
     sb.name AS subject_business_name,
     sp.name AS subject_property_name,
@@ -18,8 +20,10 @@ const TX_SELECT = `
   FROM transactions t
   LEFT JOIN people     fp ON t.from_person_id     = fp.id
   LEFT JOIN businesses fb ON t.from_business_id   = fb.id
+  LEFT JOIN crypto_wallets fw ON t.from_wallet_id = fw.id
   LEFT JOIN people     tp ON t.to_person_id       = tp.id
   LEFT JOIN businesses tb ON t.to_business_id     = tb.id
+  LEFT JOIN crypto_wallets tw ON t.to_wallet_id   = tw.id
   LEFT JOIN assets     sa ON t.subject_asset_id   = sa.id
   LEFT JOIN businesses sb ON t.subject_business_id= sb.id
   LEFT JOIN properties sp ON t.subject_property_id= sp.id
@@ -35,12 +39,17 @@ function resolveParty(row, dir) {
   // dir is 'from' or 'to'
   const personId = row[`${dir}_person_id`];
   const businessId = row[`${dir}_business_id`];
+  const walletId = row[`${dir}_wallet_id`];
   const external = row[`${dir}_external`];
   if (personId) {
     return { type: 'person', id: personId, label: fullName(row[`${dir}_person_first`], row[`${dir}_person_last`]) || `Person #${personId}` };
   }
   if (businessId) {
     return { type: 'business', id: businessId, label: row[`${dir}_business_name`] || `Business #${businessId}` };
+  }
+  if (walletId) {
+    const label = row[`${dir}_wallet_label`] || row[`${dir}_wallet_address`] || `Wallet #${walletId}`;
+    return { type: 'crypto_wallet', id: walletId, label };
   }
   if (external) {
     return { type: 'external', id: null, label: external };
@@ -100,7 +109,9 @@ function decorateTransaction(row) {
   // remove join-only helper columns
   [
     'from_person_first', 'from_person_last', 'from_business_name',
+    'from_wallet_label', 'from_wallet_address',
     'to_person_first', 'to_person_last', 'to_business_name',
+    'to_wallet_label', 'to_wallet_address',
     'subject_asset_name', 'subject_business_name', 'subject_property_name',
     'location_business_name', 'location_business_lat', 'location_business_lng',
     'location_property_name', 'location_property_lat', 'location_property_lng',
@@ -110,13 +121,15 @@ function decorateTransaction(row) {
 }
 
 // Geocode free-text address fields. Non-fatal: returns coords or a failure reason.
-async function geocodeFields(service, fields) {
+// projectId scopes the geocoding cache so a hit from one investigation can't
+// surface in an unrelated one (issue #83 follow-up).
+async function geocodeFields(service, fields, projectId = null) {
   const parts = [fields.address, fields.city, fields.state, fields.country].filter(Boolean);
   if (!service || parts.length === 0) {
     return { latitude: null, longitude: null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: parts.length === 0 ? 'empty' : 'service_error' };
   }
   try {
-    const result = await service.geocodeAddress(parts.join(', '), { minConfidence: 30 });
+    const result = await service.geocodeAddress(parts.join(', '), { minConfidence: 30, projectId });
     if (result && !result.failure) {
       return {
         latitude: result.lat,
@@ -259,8 +272,8 @@ function deriveLedger(kind, id, rawRows) {
 
 // Pure validation of transaction body shape (§5 rules 2-5). The transaction_type
 // required + active-option check stays in the route (needs DB). Returns error string or null.
-const FROM_REFS = ['from_person_id', 'from_business_id', 'from_external'];
-const TO_REFS = ['to_person_id', 'to_business_id', 'to_external'];
+const FROM_REFS = ['from_person_id', 'from_business_id', 'from_wallet_id', 'from_external'];
+const TO_REFS = ['to_person_id', 'to_business_id', 'to_wallet_id', 'to_external'];
 const SUBJECT_REFS = ['subject_asset_id', 'subject_business_id', 'subject_property_id'];
 const LOCATION_REFS = ['location_business_id', 'location_property_id'];
 
@@ -289,7 +302,7 @@ function validateTransactionShape(body) {
   if (countSet(body, TO_REFS) > 1) return exclusivityError(body, TO_REFS, 'receiver');
   if (countSet(body, SUBJECT_REFS) > 1) return exclusivityError(body, SUBJECT_REFS, 'referenced subject');
   if (countSet(body, LOCATION_REFS) > 1) return exclusivityError(body, LOCATION_REFS, 'event location reference');
-  for (const k of [...FROM_REFS.slice(0, 2), ...TO_REFS.slice(0, 2), ...SUBJECT_REFS, ...LOCATION_REFS, 'case_id']) {
+  for (const k of [...FROM_REFS.slice(0, 3), ...TO_REFS.slice(0, 3), ...SUBJECT_REFS, ...LOCATION_REFS, 'case_id']) {
     if (!isPositiveIntOrNull(body[k])) return `${k} must be a positive integer`;
   }
   if (body.value != null && body.value !== '' && (isNaN(Number(body.value)) || Number(body.value) < 0)) {

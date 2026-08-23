@@ -81,6 +81,22 @@ export const authAPI = {
 };
 
 export const usersAPI = {
+  // Lightweight directory (any authenticated user) — id/username/email only,
+  // for a Project Manager's "add member" picker (issue #84). Not admin-only,
+  // unlike everything else here.
+  getDirectory: async () => {
+    const response = await fetch(`${API_BASE_URL}/users/directory`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch user directory');
+    }
+
+    return response.json();
+  },
+
   // Get all users (admin only)
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/users`, {
