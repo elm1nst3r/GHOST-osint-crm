@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.15.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.16.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -184,7 +184,7 @@ schema step. Your data lives in a Docker volume and is not touched.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.15.0
+GHOST_VERSION=2.16.0
 ```
 
 Without it, the containers track the latest release.
@@ -505,6 +505,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.16.0 (August 2026)
+- 🗑️ **Delete a project and all its data in one step** — the delete action now shows exactly what will be destroyed (people, organizations, relationships, cases, assets, transactions, wallets, …) and removes it all in one transaction, instead of refusing until every entity was hand-deleted; requires typing the project name to confirm (issue #88)
+- ⏳ **Archived-project retention policy** — optionally auto-delete projects left in "Closed" status past a chosen window (30/90/180/365 days) via a daily background sweep; off by default (issue #88)
 
 ### Version 2.15.0 (August 2026)
 - 🗂️ **Project-based data isolation** — a Project is now a hard wall around an investigation (people, orgs, locations, assets, transactions, wallets, relationships all scoped to it); Cases become an optional grouping inside a project; cross-project linking is opt-in per project; existing data migrates to a "Default Project" (issue #83)

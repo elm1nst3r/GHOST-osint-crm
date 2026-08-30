@@ -5,6 +5,28 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.0] - 2026-08-31
+
+### ✨ Added
+
+- **Delete a project together with all of its data (#88).** Deleting a
+  project used to be refused until every entity inside it had been removed by
+  hand. The delete action now opens a confirmation dialog listing what it
+  will destroy — people, organizations, relationships, cases, properties,
+  assets, transactions, crypto wallets, wireless networks, travel records,
+  tasks — and removes all of it plus the project in a single transaction.
+  When the project holds data the operator must type its exact name to
+  confirm. Data in other projects, and global configuration (data model,
+  OSINT tools, integrations), are untouched. `GET /api/projects/:id/stats`
+  exposes the per-entity counts.
+- **Archived-project retention policy (#88).** A new admin setting
+  (Settings → General) can automatically delete projects that have stayed in
+  the "Closed" status longer than a chosen window (30 / 90 / 180 / 365 days),
+  along with all their data, via a daily background sweep. The default is
+  "Never" — the feature does nothing until an operator opts in. A new
+  `projects.archived_at` column records when a project was closed and is the
+  clock the window counts from.
+
 ## [2.15.0] - 2026-08-30
 
 ### ✨ Added
