@@ -455,6 +455,14 @@
       "disabledHint": "Update checking is off. GHOST will make no outbound connections for this.",
       "saved": "Saved",
       "saveFailed": "Could not save the update settings."
+    },
+    "projectRetention": {
+      "title": "Archived project retention",
+      "description": "Automatically delete projects that have stayed in the \"Closed\" status for longer than the selected period, together with all of their data. A daily background job runs the cleanup.",
+      "label": "Delete closed projects after",
+      "never": "Never delete automatically",
+      "days": "{{count}} days",
+      "warning": "Closed projects older than {{count}} days will be permanently deleted, including all their entities, on the next daily sweep."
     }
   },
   "dashboard": {
@@ -2070,5 +2078,28 @@
     "resultCreated": "Added: {{count}}",
     "resultUpdated": "Updated: {{count}}",
     "resultSkipped": "Skipped: {{count}}"
+  },
+  "deleteProject": {
+    "title": "Delete \"{{name}}\"",
+    "containsData": "This project contains investigation data. Everything below will be permanently deleted along with the project:",
+    "empty": "This project has no data in it. It will be permanently deleted.",
+    "permanentWarning": "This cannot be undone. Data in other projects is not affected.",
+    "typeNameToConfirm": "Type the project name ({{name}}) to confirm:",
+    "deleteWithData": "Delete project & all data",
+    "errorStats": "Could not load the project contents.",
+    "errorDelete": "Could not delete the project.",
+    "entities": {
+      "people": "People",
+      "businesses": "Organizations",
+      "relationships": "Relationships",
+      "cases": "Cases",
+      "properties": "Properties",
+      "assets": "Assets",
+      "transactions": "Transactions",
+      "crypto_wallets": "Crypto wallets",
+      "wireless_networks": "Wireless networks",
+      "travel_history": "Travel records",
+      "todos": "Tasks"
+    }
   }
 }
