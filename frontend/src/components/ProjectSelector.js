@@ -12,6 +12,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { projectsAPI } from '../utils/api';
 import ProjectMembersModal from './ProjectMembersModal';
+import DeleteProjectModal from './DeleteProjectModal';
 
 const EMPTY_EDIT = { name: '', icon: '', status: 'active', allow_cross_linking: false };
 
@@ -26,6 +27,7 @@ const ProjectSelector = ({ compact = false }) => {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_EDIT);
   const [managingMembersFor, setManagingMembersFor] = useState(null);
+  const [deletingProject, setDeletingProject] = useState(null);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -74,18 +76,12 @@ const ProjectSelector = ({ compact = false }) => {
     }
   };
 
-  const handleDelete = async (e, p) => {
-    e.stopPropagation();
-    if (!window.confirm(t('projectSelector.confirmDelete', { name: p.name }))) return;
-    try {
-      await projectsAPI.delete(p.id);
-      await refetchProjects();
-      if (activeProjectId === p.id) setActiveProjectId(null);
-      cancelEdit();
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      alert(error.message || t('projectSelector.errorDelete'));
-    }
+  const handleDeleted = async (deletedId) => {
+    setDeletingProject(null);
+    await refetchProjects();
+    if (activeProjectId === deletedId) setActiveProjectId(null);
+    cancelEdit();
+    setOpen(false);
   };
 
   return (
@@ -154,7 +150,7 @@ const ProjectSelector = ({ compact = false }) => {
                         {p.my_role === 'admin' && (
                           <button
                             type="button"
-                            onClick={(e) => handleDelete(e, p)}
+                            onClick={(e) => { e.stopPropagation(); setDeletingProject(p); }}
                             className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                             title={t('common.delete')}
                           >
@@ -260,6 +256,14 @@ const ProjectSelector = ({ compact = false }) => {
 
       {managingMembersFor && (
         <ProjectMembersModal project={managingMembersFor} onClose={() => setManagingMembersFor(null)} />
+      )}
+
+      {deletingProject && (
+        <DeleteProjectModal
+          project={deletingProject}
+          onClose={() => setDeletingProject(null)}
+          onDeleted={() => handleDeleted(deletingProject.id)}
+        />
       )}
     </div>
   );

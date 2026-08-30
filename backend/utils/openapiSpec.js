@@ -299,6 +299,15 @@ const spec = {
     ...crudPaths('Todos', '/todos', 'TodoCreate', 'TodoUpdate', { getById: false }),
     ...crudPaths('Cases', '/cases', 'CaseCreate', 'CaseUpdate', { getById: false }),
     ...crudPaths('Projects', '/projects', 'ProjectCreate', 'ProjectUpdate', { getById: false }),
+    '/projects/{id}/stats': {
+      get: op('Projects', 'Per-entity row counts for a project', {
+        description: 'Powers the delete-confirmation dialog. DELETE /projects/{id} '
+          + 'requires the project name echoed back in a "confirm_name" body field '
+          + 'when the project still contains data, and then removes every '
+          + 'project-scoped entity along with the project.',
+        params: [idParam],
+      }),
+    },
 
     // ── Properties ──
     ...crudPaths('Properties', '/properties', 'PropertyCreate', 'PropertyUpdate', {

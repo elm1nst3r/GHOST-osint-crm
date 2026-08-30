@@ -12,6 +12,7 @@ const {
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
   SettingsUpdateCheckSchema,
+  SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 } = require('../middleware/schemas');
@@ -109,6 +110,38 @@ router.put('/updates', requireAdmin, validate(SettingsUpdateCheckSchema), async 
   } catch (err) {
     console.error('Error saving update settings:', err);
     res.status(500).json({ error: 'Failed to save update settings' });
+  }
+});
+
+// ── Archived-project retention (issue #88) ───────────────────────────────────
+// How many days a project may stay in 'closed' status before the retention
+// scheduler permanently deletes it and all its data. 0 = never (default).
+// Admin-only, read only by the Settings page — never during startup.
+const PROJECT_RETENTION_KEY = 'archived_project_retention_days';
+
+router.get('/project-retention', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT value FROM app_settings WHERE key = $1`, [PROJECT_RETENTION_KEY]);
+    const retentionDays = result.rows.length === 0 ? 0 : parseInt(result.rows[0].value, 10) || 0;
+    res.json({ retentionDays });
+  } catch (err) {
+    console.error('Error fetching project retention setting:', err);
+    res.status(500).json({ error: 'Failed to fetch project retention setting' });
+  }
+});
+
+router.put('/project-retention', requireAdmin, validate(SettingsProjectRetentionSchema), async (req, res) => {
+  const { retentionDays } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [PROJECT_RETENTION_KEY, String(retentionDays)]
+    );
+    res.json({ retentionDays });
+  } catch (err) {
+    console.error('Error saving project retention setting:', err);
+    res.status(500).json({ error: 'Failed to save project retention setting' });
   }
 });
 

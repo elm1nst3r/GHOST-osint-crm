@@ -180,8 +180,14 @@ export const projectsAPI = {
     body: JSON.stringify(projectData),
   }),
 
-  delete: (id) => fetchAPI(`/projects/${id}`, {
+  // Per-entity row counts for the delete-confirmation dialog (issue #88).
+  getStats: (id) => fetchAPI(`/projects/${id}/stats`),
+
+  // Cascade delete (issue #88). When the project holds data the backend
+  // requires confirmName to equal the project's exact name.
+  delete: (id, confirmName) => fetchAPI(`/projects/${id}`, {
     method: 'DELETE',
+    body: JSON.stringify(confirmName != null ? { confirm_name: confirmName } : {}),
   }),
 };
 
@@ -232,6 +238,15 @@ export const updateSettingsAPI = {
   update: (payload) => fetchAPI('/settings/updates', {
     method: 'PUT',
     body: JSON.stringify(payload),
+  }),
+};
+
+// Archived-project retention policy (issue #88). retentionDays: 0 = never.
+export const projectRetentionAPI = {
+  get: () => fetchAPI('/settings/project-retention'),
+  update: (retentionDays) => fetchAPI('/settings/project-retention', {
+    method: 'PUT',
+    body: JSON.stringify({ retentionDays }),
   }),
 };
 

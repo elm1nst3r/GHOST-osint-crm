@@ -55,7 +55,8 @@ const ROUTE_SCHEMAS = {
     S.SettingsModelOptionCreateSchema,
     S.SettingsModelOptionUpdateSchema,
     S.SettingsGeocodingUpdateSchema,
-    S.SettingsUpdateCheckSchema
+    S.SettingsUpdateCheckSchema,
+    S.SettingsProjectRetentionSchema
   ),
 };
 
@@ -63,6 +64,11 @@ const ROUTE_SCHEMAS = {
 // `rows`: assets.js reuses `b` as a query-result var inside resolveAssetLocation.
 const ALLOWLIST = {
   'assets.js': new Set(['rows']),
+  // DELETE /projects/:id reads confirm_name straight off req.body as a
+  // delete-confirmation token (issue #88). That route has no validate()
+  // middleware, so the strip-then-wipe hazard this guard exists for can't
+  // apply — there's no schema to declare it in.
+  'projects.js': new Set(['confirm_name']),
 };
 
 // Nested body objects: parent must be in the route schema, and every child
