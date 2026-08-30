@@ -6,6 +6,7 @@
 // scoped to one project instead of the whole install. Triggered from
 // ProjectSelector's inline edit form, admin/manager only.
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Users, Plus, Trash2, Shield, UserCog, User, X, AlertCircle } from 'lucide-react';
 import { projectMembersAPI } from '../utils/api';
@@ -80,7 +81,13 @@ const ProjectMembersModal = ({ project, onClose }) => {
     }
   };
 
-  return (
+  // Rendered through a portal to document.body: this modal is mounted from
+  // ProjectSelector, which lives inside the sidebar — and the sidebar carries
+  // a `transform` for its off-canvas slide. A CSS transform makes it the
+  // containing block for `position: fixed` descendants, which was pinning this
+  // modal to the ~256px sidebar column and clipping the member-remove buttons
+  // off the right edge (issue #84).
+  return createPortal(
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -182,7 +189,8 @@ const ProjectMembersModal = ({ project, onClose }) => {
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
