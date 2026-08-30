@@ -5,6 +5,66 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.0] - 2026-08-30
+
+### ✨ Added
+
+- **Project-based data isolation (#83).** A *Project* is now the hard boundary
+  around an investigation — effectively a separate database per investigation.
+  Every entity (people, businesses, locations, assets, transactions, wireless
+  networks, wallets, relationships, todos, cases) belongs to exactly one
+  project, and the app works within one active project at a time via a
+  top-bar switcher. *Cases* become a lighter optional grouping nested inside
+  a project. Cross-project linking is off by default and enabled per project.
+  Existing data is migrated onto an auto-created "Default Project" — no data
+  is lost on upgrade.
+- **Project membership and per-project roles (#84).** A `project_members`
+  table gives each user a role *per project* — `manager` (edits project
+  settings, manages membership) or `investigator` (full CRUD on that
+  project's data). Admins stay global. Non-admins now only see and can reach
+  projects they're a member of, enforced on every project-scoped route — not
+  just hidden in the selector.
+- **Cryptocurrency wallet entities (#82).** `crypto_wallet` is a first-class
+  entity (address, network, label, tags like suspicious/exchange/mixer/scam,
+  and an external-reference URL for linking out to a specialist tool such as
+  GraphSense). Manual wallet-to-wallet transactions (hash, amount, timestamp)
+  and wallet↔wallet/person/business relationships show up in the relationship
+  graph alongside everyone else. GHOST does no chain analysis itself — this is
+  the entity/citation layer only.
+- **Relationships are a real table.** Connections used to live only as JSONB
+  arrays on `people` rows; they're now independently addressable rows with
+  their own project/case scope, which is what made project isolation and
+  cross-project linking tractable.
+
+### 🐛 Fixed
+
+- **The project-members dialog is no longer clipped to the sidebar (#84).** It
+  rendered as a fixed-position modal mounted inside the sidebar, whose
+  off-canvas transform made it the containing block — pinning the modal to a
+  ~256px column and cutting the member-remove buttons off the right edge. It
+  now renders through a portal.
+- **Audit log entries for people and businesses show who made the change
+  (#84).** The audit helper used by those routes never recorded the user id,
+  so every person/business edit displayed as "System".
+- **Dark mode: inputs, selects and textareas written with only light-mode
+  styling no longer render white (or white-on-white) (#87).** A base-layer
+  fallback gives every native form control a sane dark appearance; components
+  with explicit dark styling are unaffected.
+- **Person-card locations kept only their coordinates (#62).** Type, city,
+  state, country and notes entered on a person's location were dropped on
+  save.
+- **Advanced Search could not be closed on mobile (#64).**
+- **Selecting a Yandex or LocationIQ address suggestion crashed the form
+  (#62).**
+- Addressed a batch of CodeQL findings — query-parameter type confusion,
+  missing rate limiting on a route, a dead XSS filter, and log injection.
+
+### 🌍 Translations
+
+- German, Spanish, French and Chinese catalogs are now mirrored from Crowdin
+  but not yet enabled in the language picker — they're still largely
+  untranslated. Russian and English remain the shipped languages.
+
 ## [2.14.2] - 2026-08-11
 
 ### 🐛 Fixed

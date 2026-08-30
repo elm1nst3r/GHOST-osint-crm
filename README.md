@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.14.2-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.15.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -184,7 +184,7 @@ schema step. Your data lives in a Docker volume and is not touched.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.14.2
+GHOST_VERSION=2.15.0
 ```
 
 Without it, the containers track the latest release.
@@ -505,6 +505,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.15.0 (August 2026)
+- 🗂️ **Project-based data isolation** — a Project is now a hard wall around an investigation (people, orgs, locations, assets, transactions, wallets, relationships all scoped to it); Cases become an optional grouping inside a project; cross-project linking is opt-in per project; existing data migrates to a "Default Project" (issue #83)
+- 👥 **Per-project membership and roles** — each user is a `manager` or `investigator` on a given project; non-admins only see and can reach projects they're a member of, enforced server-side (issue #84)
+- 🪙 **Cryptocurrency wallet entities** — wallets (address, network, tags, external-reference URL), manual transactions and wallet relationships in the investigation graph; GHOST holds the entities and citations, specialist tools do the chain analysis (issue #82)
+- 🐛 **Project-members dialog no longer clipped to the sidebar; person/business audit entries show the actual user instead of "System"; dark-mode inputs no longer render white** (issues #84, #87)
+- 🐛 **Person-card locations keep their type/city/state/country/notes; Advanced Search closes on mobile** (issues #62, #64)
 
 ### Version 2.14.2 (August 2026)
 - 🐛 **Fresh installs no longer crash-loop** — a migration introduced in 2.13.0 ran against `geocoding_cache` before that table existed on a virgin database; it's now a no-op when the table isn't there yet (issue #81)
