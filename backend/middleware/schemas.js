@@ -208,6 +208,13 @@ const SettingsUpdateCheckSchema = z.object({
   updateCheckEnabled: z.boolean(),
 });
 
+// Archived-project retention (issue #88): number of days a project may sit
+// in 'closed' status before the retention scheduler deletes it and all its
+// data. 0 = never (the default). Capped at 10 years.
+const SettingsProjectRetentionSchema = z.object({
+  retentionDays: z.number().int().min(0).max(3650),
+});
+
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 const toolBaseFields = {
@@ -619,6 +626,7 @@ module.exports = {
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
   SettingsUpdateCheckSchema,
+  SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
 };

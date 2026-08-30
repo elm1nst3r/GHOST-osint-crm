@@ -6,14 +6,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, ProjectCreateSchema, ProjectUpdateSchema, ProjectMemberCreateSchema, ProjectMemberUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { requireProjectMember, requireProjectManager } = require('../utils/projectAccess');
-
-// Tables that carry a project_id — used by DELETE to refuse to orphan data.
-// Kept as a flat list rather than deriving it from information_schema so the
-// check stays fast and explicit as more tables gain the column.
-const PROJECT_SCOPED_TABLES = [
-  'cases', 'people', 'businesses', 'wireless_networks', 'travel_history',
-  'todos', 'properties', 'assets', 'transactions', 'relationships', 'crypto_wallets',
-];
+const { deleteProjectCascade, getProjectStats } = require('../utils/deleteProjectCascade');
 
 router.use(apiLimiter);
 
@@ -71,10 +64,19 @@ router.put('/:id', requireAuth, validateIdParam, validate(ProjectUpdateSchema), 
   if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
+    const nextStatus = status || 'active';
+    // archived_at tracks when the project entered 'closed' — set it on the
+    // transition in, clear it on the way out, leave it alone otherwise
+    // (issue #88 retention policy counts from this).
+    const archivedAtExpr =
+      nextStatus === 'closed'
+        ? `CASE WHEN status = 'closed' THEN archived_at ELSE CURRENT_TIMESTAMP END`
+        : `NULL`;
     const result = await pool.query(
-      `UPDATE projects SET name = $1, description = $2, status = $3, allow_cross_linking = $4, icon = $5
+      `UPDATE projects SET name = $1, description = $2, status = $3, allow_cross_linking = $4, icon = $5,
+              archived_at = ${archivedAtExpr}
        WHERE id = $6 RETURNING *`,
-      [name, description || null, status || 'active', allow_cross_linking || false, icon || null, projectId]
+      [name, description || null, nextStatus, allow_cross_linking || false, icon || null, projectId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Project not found' });
     res.json(result.rows[0]);
@@ -87,29 +89,63 @@ router.put('/:id', requireAuth, validateIdParam, validate(ProjectUpdateSchema), 
   }
 });
 
-// DELETE /:id — admin only, same reasoning as POST /.
-router.delete('/:id', requireAuth, requireAdmin, validateIdParam, async (req, res) => {
+// GET /:id/stats — per-entity row counts for this project. Powers the
+// delete-confirmation dialog (issue #88). Any member (or admin) may read it.
+router.get('/:id/stats', requireAuth, validateIdParam, async (req, res) => {
   const projectId = req.params.id;
+  const accessErr = await requireProjectMember(req, projectId);
+  if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
-    for (const table of PROJECT_SCOPED_TABLES) {
-      const { rows } = await pool.query(
-        `SELECT 1 FROM ${table} WHERE project_id = $1 LIMIT 1`,
-        [projectId]
-      );
-      if (rows.length > 0) {
-        return res.status(409).json({
-          error: `Cannot delete project: it still has data in "${table}". Reassign or remove that data first.`,
-        });
-      }
+    const project = await pool.query('SELECT id, name FROM projects WHERE id = $1', [projectId]);
+    if (project.rows.length === 0) return res.status(404).json({ error: 'Project not found' });
+    const { counts, total } = await getProjectStats(pool, projectId);
+    res.json({ projectId: project.rows[0].id, name: project.rows[0].name, counts, total });
+  } catch (err) {
+    console.error('Error fetching project stats:', err);
+    res.status(500).json({ error: 'Failed to fetch project stats' });
+  }
+});
+
+// DELETE /:id — admin only, same reasoning as POST /. Deletes every
+// project-scoped entity in one transaction (issue #88), not just the empty
+// shell. When the project holds any data the caller must echo its exact name
+// back in `confirm_name` — a guard against deleting the wrong project.
+router.delete('/:id', requireAuth, requireAdmin, validateIdParam, async (req, res) => {
+  const projectId = req.params.id;
+  const confirmName = req.body?.confirm_name ?? req.query.confirm_name;
+
+  const client = await pool.connect();
+  try {
+    const projectRes = await client.query('SELECT id, name FROM projects WHERE id = $1', [projectId]);
+    if (projectRes.rows.length === 0) return res.status(404).json({ error: 'Project not found' });
+    const project = projectRes.rows[0];
+
+    const { counts, total } = await getProjectStats(client, projectId);
+    if (total > 0 && confirmName !== project.name) {
+      return res.status(409).json({
+        error: 'This project contains data. Confirm deletion by sending its exact name in "confirm_name".',
+        requiresConfirmation: true,
+        name: project.name,
+        counts,
+        total,
+      });
     }
 
-    const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING *', [projectId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Project not found' });
-    res.json({ message: 'Project deleted successfully' });
+    await client.query('BEGIN');
+    await deleteProjectCascade(client, projectId);
+    await client.query('COMMIT');
+
+    await req.audit.log('project', parseInt(projectId, 10), 'delete', 'cascade',
+      JSON.stringify({ name: project.name, deleted: counts }), null);
+
+    res.json({ message: 'Project and all its data deleted successfully', deleted: counts, total });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Error deleting project:', err);
     res.status(500).json({ error: 'Failed to delete project' });
+  } finally {
+    client.release();
   }
 });
 

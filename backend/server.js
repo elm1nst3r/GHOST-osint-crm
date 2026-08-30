@@ -131,6 +131,12 @@ initializeDatabase().then(() => {
   // nothing, and can be disabled entirely in Settings.
   const { UpdateCheckService } = require('./services/updateCheckService');
   app.locals.updateCheckService = new UpdateCheckService(pool, APP_VERSION);
+
+  // Archived-project retention sweep (issue #88). Off unless an operator sets
+  // a retention window in Settings; reads the policy live on each run.
+  const { ProjectRetentionService } = require('./services/projectRetentionService');
+  app.locals.projectRetentionService = new ProjectRetentionService(pool);
+  app.locals.projectRetentionService.start();
 }).catch((err) => {
   console.error('Error during database initialization:', err.stack);
   process.exit(1);

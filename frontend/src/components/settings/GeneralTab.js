@@ -5,6 +5,7 @@ import { uploadLogo } from '../../utils/api';
 import { useData } from '../../contexts/DataContext';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
 import GeocodingSection from './GeocodingSection';
+import ProjectRetentionSection from './ProjectRetentionSection';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
@@ -95,6 +96,7 @@ const GeneralTab = () => {
         </div>
       </div>
       <GeocodingSection />
+      <ProjectRetentionSection />
     </div>
   );
 };
