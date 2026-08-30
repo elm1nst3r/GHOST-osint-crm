@@ -170,7 +170,7 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     // Log audit
     await logAudit('person', newPerson.id, 'create', {
       record: { oldValue: null, newValue: JSON.stringify(newPerson) }
-    });
+    }, req.session?.userId);
 
     res.status(201).json(newPerson);
   } catch (err) {
@@ -346,7 +346,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     }
 
     if (Object.keys(changes).length > 0) {
-      await logAudit('person', personId, 'update', changes);
+      await logAudit('person', personId, 'update', changes, req.session?.userId);
     }
 
     res.json(newPerson);
@@ -464,7 +464,7 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 
     await logAudit('person', personId, 'delete', {
       record: { oldValue: JSON.stringify(result.rows[0]), newValue: null }
-    });
+    }, req.session?.userId);
 
     res.status(200).json({ message: 'Person deleted successfully', deletedPerson: result.rows[0] });
   } catch (err) {

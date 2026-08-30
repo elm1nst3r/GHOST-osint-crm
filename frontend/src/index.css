@@ -47,6 +47,31 @@ body {
   letter-spacing: -0.011em;
 }
 
+/* ── Dark-mode form-control safety net (issue #87) ─────────────────────────
+   Many older inputs/selects/textareas were written with only light-mode
+   classes, so they stayed white (often white-on-white) under the dark theme.
+   This gives every native form control a sane dark default. Components that
+   set explicit `dark:` utilities still win — Tailwind's class-strategy
+   `dark:` selectors (`.dark .dark\:bg-...`) outrank these element rules and
+   the utilities layer is emitted after base. */
+@layer base {
+  .dark input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  .dark select,
+  .dark textarea {
+    background-color: rgb(30 41 59);   /* slate-800 */
+    border-color: rgb(71 85 105);      /* slate-600 */
+    color: rgb(241 245 249);           /* slate-100 */
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgb(100 116 139);           /* slate-500 */
+  }
+  .dark option {
+    background-color: rgb(30 41 59);
+    color: rgb(241 245 249);
+  }
+}
+
 /* ── Shared control classes ────────────────────────────────────────────── */
 @layer components {
   .btn {

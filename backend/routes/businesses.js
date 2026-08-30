@@ -165,7 +165,7 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
     // Log audit
     await logAudit('business', newBusiness.id, 'create', {
       record: { oldValue: null, newValue: JSON.stringify(newBusiness) }
-    });
+    }, req.session?.userId);
 
     res.status(201).json(newBusiness);
   } catch (err) {
@@ -267,7 +267,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
     });
 
     if (Object.keys(changes).length > 0) {
-      await logAudit('business', businessId, 'update', changes);
+      await logAudit('business', businessId, 'update', changes, req.session?.userId);
     }
 
     res.json(updatedBusiness);
@@ -299,7 +299,7 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     // Log audit
     await logAudit('business', businessId, 'delete', {
       record: { oldValue: JSON.stringify(business), newValue: null }
-    });
+    }, req.session?.userId);
 
     res.json({ message: 'Business deleted successfully' });
   } catch (err) {
