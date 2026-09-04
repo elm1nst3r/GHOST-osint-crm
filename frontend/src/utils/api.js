@@ -242,6 +242,17 @@ export const updateSettingsAPI = {
 };
 
 // Archived-project retention policy (issue #88). retentionDays: 0 = never.
+// Server-side global app settings (issue #91): branding + system-wide
+// defaults for language/theme. GET needs no auth — the login screen and the
+// first app paint need it before we know who's signed in.
+export const brandingAPI = {
+  get: () => fetchAPI('/settings/branding'),
+  update: (data) => fetchAPI('/settings/branding', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+};
+
 export const projectRetentionAPI = {
   get: () => fetchAPI('/settings/project-retention'),
   update: (retentionDays) => fetchAPI('/settings/project-retention', {

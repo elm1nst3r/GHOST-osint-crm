@@ -12,6 +12,7 @@ const {
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
   SettingsUpdateCheckSchema,
+  SettingsBrandingUpdateSchema,
   SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
@@ -20,6 +21,70 @@ const { apiLimiter } = require('../middleware/rateLimiters');
 
 
 router.use(apiLimiter);
+
+// ── Branding + global defaults (issue #91) ───────────────────────────────────
+// App name/logo and the system-wide default language/theme, stored in
+// app_settings so every user/device sees the same values instead of each
+// browser's localStorage having its own copy. Read is intentionally NOT
+// gated behind requireAuth — the login screen and the first paint of the
+// app (before we know who's logged in, or whether anyone is) both need the
+// app's name/logo/default language/theme to render correctly. None of these
+// four values are sensitive; API keys and other credentials stay on the
+// admin-only routes below and are never included here.
+//
+// A per-user override (auth.js /me: language, theme_mode) takes precedence
+// over these defaults when one is set — see the cascade comment there.
+const BRANDING_KEYS = {
+  appName: 'app_name',
+  appLogo: 'app_logo',
+  defaultLanguage: 'default_language',
+  defaultThemeMode: 'default_theme_mode',
+};
+
+const readBrandingSettings = async () => {
+  const result = await pool.query(
+    `SELECT key, value FROM app_settings WHERE key = ANY($1)`,
+    [Object.values(BRANDING_KEYS)]
+  );
+  const map = Object.fromEntries(result.rows.map((r) => [r.key, r.value]));
+  return {
+    appName: map[BRANDING_KEYS.appName] || 'OSINT Investigation CRM',
+    appLogo: map[BRANDING_KEYS.appLogo] || null,
+    defaultLanguage: map[BRANDING_KEYS.defaultLanguage] || 'en',
+    defaultThemeMode: map[BRANDING_KEYS.defaultThemeMode] || 'light',
+  };
+};
+
+router.get('/branding', async (req, res) => {
+  try {
+    res.json(await readBrandingSettings());
+  } catch (err) {
+    console.error('Error fetching branding settings:', err);
+    res.status(500).json({ error: 'Failed to fetch branding settings' });
+  }
+});
+
+router.put('/branding', requireAdmin, validate(SettingsBrandingUpdateSchema), async (req, res) => {
+  const { appName, appLogo, defaultLanguage, defaultThemeMode } = req.body;
+  const upsert = (key, value) => pool.query(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+    [key, value]
+  );
+
+  try {
+    if (appName !== undefined) await upsert(BRANDING_KEYS.appName, appName);
+    if (appLogo !== undefined) await upsert(BRANDING_KEYS.appLogo, appLogo);
+    if (defaultLanguage !== undefined) await upsert(BRANDING_KEYS.defaultLanguage, defaultLanguage);
+    if (defaultThemeMode !== undefined) await upsert(BRANDING_KEYS.defaultThemeMode, defaultThemeMode);
+
+    res.json(await readBrandingSettings());
+  } catch (err) {
+    console.error('Error saving branding settings:', err);
+    res.status(500).json({ error: 'Failed to save branding settings' });
+  }
+});
+
 // Custom fields
 // Reading the definitions is requireAuth, not requireAdmin: every user needs
 // them to render custom fields on person profiles, and the frontend fetches

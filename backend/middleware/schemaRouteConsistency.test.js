@@ -56,7 +56,8 @@ const ROUTE_SCHEMAS = {
     S.SettingsModelOptionUpdateSchema,
     S.SettingsGeocodingUpdateSchema,
     S.SettingsUpdateCheckSchema,
-    S.SettingsProjectRetentionSchema
+    S.SettingsProjectRetentionSchema,
+    S.SettingsBrandingUpdateSchema
   ),
 };
 

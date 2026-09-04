@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sun, Moon, Monitor, Check } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { authAPI } from '../../utils/authAPI';
 
 const SegmentedControl = ({ options, value, onChange, ariaLabel }) => (
   <div
@@ -67,7 +68,13 @@ const AppearanceTab = () => {
         <SegmentedControl
           ariaLabel={t('appearanceTab.themeModeAriaLabel')}
           value={themeMode}
-          onChange={setThemeMode}
+          onChange={(mode) => {
+            setThemeMode(mode);
+            // Theme mode (unlike accent/density/surface) is a per-user
+            // server-side override (issue #91) — it follows the account to
+            // another device, taking precedence over the admin's default.
+            authAPI.updateProfile({ theme_mode: mode }).catch((err) => console.error('Error saving theme preference:', err));
+          }}
           options={[
             { value: 'light',  label: t('appearanceTab.light'),  icon: Sun },
             { value: 'dark',   label: t('appearanceTab.dark'),   icon: Moon },

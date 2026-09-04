@@ -69,7 +69,11 @@ router.post('/login', loginLimiter, async (req, res) => {
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
-        role: user.role
+        role: user.role,
+        // Per-user overrides of the global defaults (issue #91). NULL means
+        // "no override" — the frontend falls back to /settings/branding.
+        language: user.language,
+        theme_mode: user.theme_mode
       }
     });
   } catch (error) {
@@ -91,9 +95,24 @@ router.post('/logout', requireAuth, (req, res) => {
 });
 
 // Get current session
-router.get('/session', (req, res) => {
+router.get('/session', async (req, res) => {
   if (!req.session || !req.session.userId) {
     return res.json({ authenticated: false });
+  }
+
+  // language/theme_mode aren't in the session cookie itself (issue #91) —
+  // an admin flipping the global default, or the user changing their own
+  // override on another device, needs to show up on the next page load, not
+  // just the next login.
+  let language = null;
+  let theme_mode = null;
+  try {
+    const result = await pool.query('SELECT language, theme_mode FROM users WHERE id = $1', [req.session.userId]);
+    if (result.rows.length > 0) {
+      ({ language, theme_mode } = result.rows[0]);
+    }
+  } catch (err) {
+    console.error('Error fetching user preferences for session:', err);
   }
 
   res.json({
@@ -101,7 +120,9 @@ router.get('/session', (req, res) => {
     user: {
       id: req.session.userId,
       username: req.session.username,
-      role: req.session.userRole
+      role: req.session.userRole,
+      language,
+      theme_mode
     }
   });
 });
@@ -110,7 +131,7 @@ router.get('/session', (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, email, first_name, last_name, role, last_login, created_at FROM users WHERE id = $1',
+      'SELECT id, username, email, first_name, last_name, role, last_login, created_at, language, theme_mode FROM users WHERE id = $1',
       [req.session.userId]
     );
 
@@ -128,8 +149,22 @@ router.get('/me', requireAuth, async (req, res) => {
 // Update current user's profile
 router.put('/me', requireAuth, async (req, res) => {
   try {
-    const { email, first_name, last_name, current_password, new_password } = req.body;
+    const { email, first_name, last_name, current_password, new_password, language, theme_mode } = req.body;
     const userId = req.session.userId;
+
+    // Personal overrides of the global defaults (issue #91). Self-service —
+    // any authenticated user sets their own, no admin needed. `null` (or
+    // '') explicitly clears the override back to "inherit the global
+    // default"; the key being absent from the body just leaves it alone —
+    // same absent-vs-null convention as the geocoding settings route.
+    if (language !== undefined && language !== null && language !== '' && !/^[a-z]{2}(-[A-Z]{2})?$/.test(language)) {
+      return res.status(400).json({ error: 'Invalid language code' });
+    }
+    if (theme_mode !== undefined && theme_mode !== null && theme_mode !== '' && !['light', 'dark', 'system'].includes(theme_mode)) {
+      return res.status(400).json({ error: 'Invalid theme_mode' });
+    }
+    const languageValue = language === '' ? null : language;
+    const themeModeValue = theme_mode === '' ? null : theme_mode;
 
     // If changing password, validate and enforce policy
     if (new_password) {
@@ -164,15 +199,19 @@ router.put('/me', requireAuth, async (req, res) => {
       await revokeSessionsForUser(pool, userId, { keepSessionId: req.sessionID });
     }
 
-    // Update other profile fields
+    // Update other profile fields. language/theme_mode use CASE, not
+    // COALESCE, so an explicit clear (value null, key present) can actually
+    // reach NULL in the column instead of being coerced back to the old value.
     const result = await pool.query(
       `UPDATE users SET
         email = COALESCE($1, email),
         first_name = COALESCE($2, first_name),
-        last_name = COALESCE($3, last_name)
-      WHERE id = $4
-      RETURNING id, username, email, first_name, last_name, role`,
-      [email, first_name, last_name, userId]
+        last_name = COALESCE($3, last_name),
+        language = CASE WHEN $4 THEN $5 ELSE language END,
+        theme_mode = CASE WHEN $6 THEN $7 ELSE theme_mode END
+      WHERE id = $8
+      RETURNING id, username, email, first_name, last_name, role, language, theme_mode`,
+      [email, first_name, last_name, language !== undefined, languageValue, theme_mode !== undefined, themeModeValue, userId]
     );
 
     res.json(result.rows[0]);

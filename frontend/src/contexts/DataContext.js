@@ -1,7 +1,14 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, cryptoWalletsAPI, transactionsAPI } from '../utils/api';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, cryptoWalletsAPI, transactionsAPI, brandingAPI } from '../utils/api';
 import { DEFAULT_APP_SETTINGS } from '../utils/constants';
 import { useProject } from './ProjectContext';
+
+// Branding + defaults (issue #91) now live server-side in app_settings, so
+// every user/device sees the same app name/logo instead of each browser
+// having its own copy. localStorage is kept only as a paint-before-fetch
+// cache — the server response (fetched on mount, below) is the source of
+// truth and overwrites it as soon as it arrives.
+const APP_SETTINGS_CACHE_KEY = 'appSettings';
 
 const DataContext = createContext(null);
 
@@ -34,12 +41,32 @@ export const DataProvider = ({ children }) => {
 
   const [appSettings, setAppSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem('appSettings');
+      const saved = localStorage.getItem(APP_SETTINGS_CACHE_KEY);
       return saved ? JSON.parse(saved) : DEFAULT_APP_SETTINGS;
     } catch {
       return DEFAULT_APP_SETTINGS;
     }
   });
+
+  // Load the real, server-side branding once on mount (works before login —
+  // the endpoint is public) and let it replace the localStorage cache.
+  useEffect(() => {
+    brandingAPI.get()
+      .then((branding) => {
+        setAppSettings((prev) => {
+          const updated = {
+            ...prev,
+            appName: branding.appName,
+            appLogo: branding.appLogo,
+            defaultLanguage: branding.defaultLanguage,
+            defaultThemeMode: branding.defaultThemeMode,
+          };
+          try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+          return updated;
+        });
+      })
+      .catch((err) => console.error('Error fetching branding settings:', err));
+  }, []);
 
   // Fetch people from a given offset. offset=0 replaces the list; offset>0 appends.
   const fetchPeople = useCallback(async (offset = 0) => {
@@ -160,17 +187,24 @@ export const DataProvider = ({ children }) => {
     ]);
   }, [fetchPeople, fetchBusinesses, fetchTools, fetchTodos, fetchCustomFields, fetchProperties, fetchAssets, fetchCryptoWallets, fetchTransactions]);
 
+  // Both of these are admin-only server writes now (issue #91) — the PUT
+  // will 403 for a non-admin, same as every other admin-gated settings call.
+  // Local state + cache are still updated optimistically for a snappy UI;
+  // GeneralTab only renders the editing controls for admins in the first
+  // place, so a non-admin never reaches this path.
   const handleAppNameChange = useCallback((newName) => {
     setAppSettings(prev => {
       const updated = { ...prev, appName: newName };
-      localStorage.setItem('appSettings', JSON.stringify(updated));
+      try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
       return updated;
     });
+    brandingAPI.update({ appName: newName }).catch((err) => console.error('Error saving app name:', err));
   }, []);
 
   const persistAppSettings = useCallback((updated) => {
     setAppSettings(updated);
-    localStorage.setItem('appSettings', JSON.stringify(updated));
+    try { localStorage.setItem(APP_SETTINGS_CACHE_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    brandingAPI.update({ appName: updated.appName, appLogo: updated.appLogo }).catch((err) => console.error('Error saving branding:', err));
   }, []);
 
   return (

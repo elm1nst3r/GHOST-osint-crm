@@ -208,6 +208,17 @@ const SettingsUpdateCheckSchema = z.object({
   updateCheckEnabled: z.boolean(),
 });
 
+// Server-side global app settings (issue #91): branding + the system-wide
+// defaults for language/theme that a user's own preference (auth.js /me)
+// can override. All fields optional — PUT sends only what changed, same
+// convention as SettingsGeocodingUpdateSchema.
+const SettingsBrandingUpdateSchema = z.object({
+  appName: optStr(120),
+  appLogo: z.union([z.string().max(500), z.null()]).optional(),
+  defaultLanguage: z.union([z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/), z.null()]).optional(),
+  defaultThemeMode: z.enum(['light', 'dark', 'system']).optional(),
+});
+
 // Archived-project retention (issue #88): number of days a project may sit
 // in 'closed' status before the retention scheduler deletes it and all its
 // data. 0 = never (the default). Capped at 10 years.
@@ -626,6 +637,7 @@ module.exports = {
   SettingsCustomFieldUpdateSchema,
   SettingsGeocodingUpdateSchema,
   SettingsUpdateCheckSchema,
+  SettingsBrandingUpdateSchema,
   SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,

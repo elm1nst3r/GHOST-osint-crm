@@ -11,8 +11,9 @@ import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
+import { changeLanguage } from './i18n';
 
 import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './components/Dashboard';
@@ -76,7 +77,7 @@ const navigationItemIds = [
 // ── Inner component (has access to all context hooks) ───────────────────────
 
 const AppShell = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
   const { refetchProjects } = useProject();
@@ -104,6 +105,29 @@ const AppShell = () => {
     selectedBusinessForDetail, setSelectedBusinessForDetail,
     showAdvancedSearch, setShowAdvancedSearch,
   } = useUI();
+
+  // ── Global-default / per-user-override reconciliation (issue #91) ─────────
+  // localStorage (read synchronously by i18n.js / ThemeContext on first
+  // paint, to avoid a flash) is only a cache. The source of truth is: this
+  // user's own override (currentUser.language / .theme_mode, set in
+  // General/Appearance) if they have one, else the admin's global default
+  // (appSettings.defaultLanguage / .defaultThemeMode), else the hardcoded
+  // fallback. Reconcile once both pieces are known, so a second device (no
+  // local cache yet) or an admin's changed default picks up the right value
+  // without the user having to touch anything.
+  const { setThemeMode } = useTheme();
+  useEffect(() => {
+    if (!currentUser) return;
+    const effectiveLanguage = currentUser.language || appSettings.defaultLanguage;
+    if (effectiveLanguage && effectiveLanguage !== i18n.language) {
+      changeLanguage(effectiveLanguage);
+    }
+    const effectiveThemeMode = currentUser.theme_mode || appSettings.defaultThemeMode;
+    if (effectiveThemeMode) {
+      setThemeMode(effectiveThemeMode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, appSettings.defaultLanguage, appSettings.defaultThemeMode]);
 
   const navigationItems = useMemo(() => navigationItemIds.map(item => ({
     ...item,
