@@ -139,7 +139,7 @@ git clone <repo-url>
 cd GHOST-osint-crm
 
 # Generate .env with secure random credentials
-printf "DB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
+printf "COMPOSE_PROFILES=local-db\nDB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
 
 # Start all services (pulls prebuilt images — no local build needed)
 docker compose pull
@@ -165,6 +165,13 @@ Password must be at least 12 characters. Common weak passwords are rejected.
 - Backend API: http://localhost:3001
 - Health Check: http://localhost:3001/api/health
 
+**Using an external PostgreSQL server instead of the bundled container?**
+Set `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` in `.env` to point
+at it, and clear `COMPOSE_PROFILES` (delete the line, or set it to an empty
+value). The bundled `db` service only starts when `COMPOSE_PROFILES=local-db`
+is set, so clearing it skips starting a local Postgres container entirely —
+you're then responsible for that server's backups and monitoring yourself.
+GHOST still runs its own migrations against it at startup.
 
 ## 🔄 Updating
 
@@ -180,6 +187,12 @@ docker compose up -d          # restart onto them
 
 Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in a Docker volume and is not touched.
+
+**If your `.env` predates this update**, add `COMPOSE_PROFILES=local-db` to
+it before running `docker compose up -d`. The bundled PostgreSQL container is
+now opt-in via that profile (see [Quick Start](#-quick-start-docker)) so an
+external database can be used instead — without the line, `docker compose
+up -d` will no longer start your local `db` container.
 
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 

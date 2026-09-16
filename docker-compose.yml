@@ -46,11 +46,11 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
-      DB_HOST: db
+      DB_HOST: ${DB_HOST:-db}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-osint_crm_db}
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT:-5432}
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
 
@@ -60,6 +60,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        required: false
     networks:
       - osint-crm-network
     healthcheck:
@@ -71,7 +72,16 @@ services:
       start_period: 40s
 
   # Database Service (PostgreSQL)
+  #
+  # Pointing GHOST at your own PostgreSQL server instead? Set DB_HOST/DB_PORT
+  # (and DB_USER/DB_PASSWORD/DB_NAME) in .env to that server, then leave
+  # COMPOSE_PROFILES unset/empty so this bundled container never starts. The
+  # `profiles` key below is what makes that skip possible — services outside
+  # an active profile are not created, and `required: false` on backend's
+  # depends_on above means backend won't wait on or fail over a db that was
+  # never started.
   db:
+    profiles: ["local-db"]
     image: postgres:15-alpine
     container_name: osint-crm-db
     environment:
