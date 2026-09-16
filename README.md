@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.16.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.17.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -197,7 +197,7 @@ up -d` will no longer start your local `db` container.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.16.0
+GHOST_VERSION=2.17.0
 ```
 
 Without it, the containers track the latest release.
@@ -518,6 +518,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.17.0 (September 2026)
+- 🌍 **Five new community-translated languages** — French, German, Spanish, Chinese (Simplified) and Russian are now selectable in Settings → General, via Crowdin (issue #59)
+- ⚙️ **Server-side global application settings** — app name, logo, default language and default theme mode now live in the database instead of the browser, admin-configured and shared across every user/device; each user can still override language/theme for their own account (issue #91)
+- 🐘 **External PostgreSQL server support** — the bundled Postgres container is now opt-out (`COMPOSE_PROFILES`), and `DB_HOST`/`DB_PORT` no longer get silently overridden by `docker-compose.yml`, so GHOST can point at your own PostgreSQL server without hand-editing compose files (issue #75)
 
 ### Version 2.16.0 (August 2026)
 - 🗑️ **Delete a project and all its data in one step** — the delete action now shows exactly what will be destroyed (people, organizations, relationships, cases, assets, transactions, wallets, …) and removes it all in one transaction, instead of refusing until every entity was hand-deleted; requires typing the project name to confirm (issue #88)

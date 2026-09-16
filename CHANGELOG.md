@@ -5,6 +5,36 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-09-16
+
+### ✨ Added
+
+- **Five new community-translated languages (#59).** French, German,
+  Spanish, Chinese (Simplified) and Russian join English in Settings →
+  General, via the project's Crowdin integration. The translated catalogs
+  had already landed on `main` through Crowdin PRs but weren't wired into
+  `frontend/src/i18n.js` yet — that's the step this release completes.
+- **Server-side global application settings (#91).** App name, logo,
+  default language, and default theme mode move from browser `localStorage`
+  into the database — admin-configured once, shared across every user and
+  device instead of per-browser. Each user can still set their own
+  language/theme, which takes precedence over the admin default
+  (`PUT /api/auth/me`). API keys, integrations, the update-check toggle, and
+  archived-project retention were already server-side from #62.
+
+### 🔧 Changed
+
+- **External PostgreSQL server support (#75).** `docker-compose.yml`'s
+  backend service was hardcoding `DB_HOST`/`DB_PORT` to `db`/`5432`,
+  silently overriding whatever was set in `.env`. Fixed so both are read
+  from `.env` like the other database variables. The bundled `db` container
+  now sits behind a `local-db` Compose profile — clearing
+  `COMPOSE_PROFILES` in `.env` skips starting it entirely, for anyone
+  pointing GHOST at their own PostgreSQL server. **Existing `.env` files
+  need `COMPOSE_PROFILES=local-db` added before the next
+  `docker compose up -d`**, or the bundled database will stop starting.
+  Full MySQL/MariaDB support remains out of scope — see the issue for why.
+
 ## [2.16.0] - 2026-08-31
 
 ### ✨ Added
