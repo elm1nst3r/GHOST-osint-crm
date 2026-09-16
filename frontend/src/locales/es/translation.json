@@ -319,6 +319,7 @@
       "uploadLogo": "Upload Logo",
       "logoHelp": "PNG, JPG, GIF, or SVG. Max 5MB.",
       "logoUploadFailed": "Failed to upload logo",
+      "yourPreferences": "Your preferences",
       "language": "Language",
       "languageHelp": "More languages coming via community translation.",
       "systemInformation": "System Information",
@@ -463,6 +464,13 @@
       "never": "Never delete automatically",
       "days": "{{count}} days",
       "warning": "Closed projects older than {{count}} days will be permanently deleted, including all their entities, on the next daily sweep."
+    },
+    "globalDefaults": {
+      "title": "Global defaults",
+      "description": "Applies to every user who hasn't chosen their own language or theme in their own account settings.",
+      "language": "Default language",
+      "themeMode": "Default theme",
+      "overrideHint": "A user's own language (Settings → General) or theme (Settings → Appearance) choice always wins over this default."
     }
   },
   "dashboard": {
@@ -1794,7 +1802,7 @@
     "surfaceAriaLabel": "Surface style",
     "solid": "Solid",
     "glass": "Glass",
-    "preferencesStoredNote": "Preferences are stored in this browser."
+    "preferencesStoredNote": "Theme mode is saved to your account and follows you to other devices. Accent, density and surface style are stored in this browser only."
   },
   "darkModeToggle": {
     "switchToLight": "Switch to Light Mode",
