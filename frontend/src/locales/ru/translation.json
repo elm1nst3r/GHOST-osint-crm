@@ -319,6 +319,7 @@
       "uploadLogo": "Загрузить логотип",
       "logoHelp": "PNG, JPG, GIF, или SVG. Максимум 5MB.",
       "logoUploadFailed": "Ошибка при загрузке логотипа",
+      "yourPreferences": "Your preferences",
       "language": "Язык",
       "languageHelp": "Больше переводов в нашем сообществе переводчиков.",
       "systemInformation": "Сведения о системе",
@@ -463,6 +464,13 @@
       "never": "Никогда не удалять автоматически",
       "days": "{{count}} дней",
       "warning": "Закрытые проекты старше 30 {{count}} будут безвозвратно удалены со всеми их объектами при следующей ежедневной очистке.\n\n"
+    },
+    "globalDefaults": {
+      "title": "Global defaults",
+      "description": "Applies to every user who hasn't chosen their own language or theme in their own account settings.",
+      "language": "Default language",
+      "themeMode": "Default theme",
+      "overrideHint": "A user's own language (Settings → General) or theme (Settings → Appearance) choice always wins over this default."
     }
   },
   "dashboard": {
@@ -1794,7 +1802,7 @@
     "surfaceAriaLabel": "Стиль поверхности",
     "solid": "Твердый",
     "glass": "Прозрачный",
-    "preferencesStoredNote": "Настройки сохраняются в этом браузере."
+    "preferencesStoredNote": "Theme mode is saved to your account and follows you to other devices. Accent, density and surface style are stored in this browser only."
   },
   "darkModeToggle": {
     "switchToLight": "Переключиться в светлый режим",
