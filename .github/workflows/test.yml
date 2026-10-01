@@ -1,0 +1,41 @@
+# Runs the backend test suite on every push and pull request.
+#
+# The suite needs no database. Besides unit tests it holds the guards that keep
+# the OpenAPI document honest (utils/openapiCoverage.test.js): every route
+# documented, query parameters and admin flags matching the handlers. The
+# catalogue build is run too, because it checks what the MCP server will make of
+# the document — tool-name collisions and argument names MCP clients reject.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
+
+      - name: Build API catalogue (checks MCP tool generation)
+        working-directory: backend
+        run: node scripts/build-api-docs.js "$RUNNER_TEMP/api-docs"

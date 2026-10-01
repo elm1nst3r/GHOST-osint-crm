@@ -74,6 +74,13 @@ const projectParam = queryParam(
   { type: 'integer' }
 );
 
+const intParam = (name, description) => queryParam(name, description, { type: 'integer' });
+const caseParam = intParam('case_id', 'Filter by case');
+const dateRangeParams = (field) => [
+  queryParam('date_from', `Only ${field} on or after this date (YYYY-MM-DD)`),
+  queryParam('date_to', `Only ${field} on or before this date (YYYY-MM-DD)`),
+];
+
 const multipartBody = (schema) => ({
   required: true,
   content: { 'multipart/form-data': { schema } },
@@ -139,10 +146,13 @@ function op(tag, summary, extra = {}) {
 // Standard CRUD path set for one entity.
 // opts.paginated: list returns { data, meta }; otherwise a plain array.
 // opts.projectScoped: list accepts the shared project_id filter.
+// opts.adminOnly: methods (e.g. ['post', 'delete']) that need an admin session.
+// opts.deleteParams / opts.deleteDescription: extras for DELETE {base}/{id}.
 // opts.getById / opts.listParams control extras.
 function crudPaths(tag, base, createSchemaName, updateSchemaName, opts = {}) {
   const paths = {};
   const listResponse = opts.paginated ? paginatedEnvelope : objectArray;
+  const admin = (method) => (opts.adminOnly || []).includes(method);
 
   paths[base] = {
     get: op(tag, `List ${tag}`, {
@@ -155,6 +165,7 @@ function crudPaths(tag, base, createSchemaName, updateSchemaName, opts = {}) {
     }),
     post: op(tag, `Create a ${tag.replace(/s$/, '').toLowerCase()}`, {
       body: ref(createSchemaName),
+      admin: admin('post'),
       responses: { 201: jsonResponse('Created', anyObject) },
     }),
   };
@@ -162,7 +173,11 @@ function crudPaths(tag, base, createSchemaName, updateSchemaName, opts = {}) {
   paths[`${base}/{id}`] = {
     ...(opts.getById !== false && { get: op(tag, `Get one by ID`, { params: [idParam] }) }),
     put: op(tag, `Update by ID`, { params: [idParam], body: ref(updateSchemaName) }),
-    delete: op(tag, `Delete by ID`, { params: [idParam] }),
+    delete: op(tag, `Delete by ID`, {
+      params: [idParam, ...(opts.deleteParams || [])],
+      admin: admin('delete'),
+      description: opts.deleteDescription,
+    }),
   };
 
   return paths;
@@ -303,7 +318,7 @@ const spec = {
     // is in the X-Total-Count / X-Has-More response headers.
     ...crudPaths('People', '/people', 'PersonCreate', 'PersonUpdate', {
       projectScoped: true,
-      listParams: paginationParams,
+      listParams: [...paginationParams, caseParam],
     }),
     '/people/{id}/locations': {
       post: op('People', 'Add a location to a person', { params: [idParam], body: anyObject }),
@@ -366,7 +381,16 @@ const spec = {
       listParams: [queryParam('case_id', 'Filter by case', { type: 'integer' })],
     }),
     ...crudPaths('Cases', '/cases', 'CaseCreate', 'CaseUpdate', { getById: false, projectScoped: true }),
-    ...crudPaths('Projects', '/projects', 'ProjectCreate', 'ProjectUpdate', { getById: false }),
+    ...crudPaths('Projects', '/projects', 'ProjectCreate', 'ProjectUpdate', {
+      getById: false,
+      adminOnly: ['post', 'delete'],
+      deleteParams: [
+        queryParam('confirm_name', 'The project name, echoed back. Required when the project still contains data.'),
+      ],
+      deleteDescription:
+        'Removes the project and every project-scoped record in it. GET /projects/{id}/stats ' +
+        'shows what would be destroyed.',
+    }),
     '/projects/{id}/stats': {
       get: op('Projects', 'Per-entity row counts for a project', {
         description: 'Powers the delete-confirmation dialog. DELETE /projects/{id} '
@@ -425,7 +449,18 @@ const spec = {
     },
 
     // ── Assets ──
-    ...crudPaths('Assets', '/assets', 'AssetCreate', 'AssetUpdate', { paginated: true, projectScoped: true }),
+    ...crudPaths('Assets', '/assets', 'AssetCreate', 'AssetUpdate', {
+      paginated: true,
+      projectScoped: true,
+      listParams: [
+        queryParam('category', 'Filter by category (an asset_category model option)'),
+        queryParam('status', 'Filter by status'),
+        caseParam,
+        queryParam('q', 'Search name/identifier'),
+        intParam('holder_person_id', 'Assets currently held by this person'),
+        queryParam('bbox', 'Map bounds filter: west,south,east,north'),
+      ],
+    }),
 
     // ── Crypto wallets (issue #82) ──
     ...crudPaths('Crypto Wallets', '/crypto-wallets', 'CryptoWalletCreate', 'CryptoWalletUpdate', {
@@ -450,6 +485,17 @@ const spec = {
         queryParam('person_id', 'Transactions where the person is giver or receiver', { type: 'integer' }),
         queryParam('from_person_id', 'Filter by giver', { type: 'integer' }),
         queryParam('to_person_id', 'Filter by receiver', { type: 'integer' }),
+        intParam('business_id', 'Transactions where the business is giver, receiver, subject or venue'),
+        intParam('wallet_id', 'Transactions where the crypto wallet is sender or receiver'),
+        queryParam('tx_hash', 'Exact on-chain transaction hash'),
+        intParam('subject_asset_id', 'Filter by the asset the transaction is about'),
+        intParam('subject_business_id', 'Filter by the business the transaction is about'),
+        intParam('subject_property_id', 'Filter by the property the transaction is about'),
+        intParam('location_business_id', 'Filter by venue (business)'),
+        intParam('location_property_id', 'Filter by venue (property)'),
+        caseParam,
+        ...dateRangeParams('transactions that occurred'),
+        queryParam('bbox', 'Map bounds filter: west,south,east,north'),
       ],
     }),
 
@@ -462,6 +508,8 @@ const spec = {
         params: [
           { name: 'entityType', in: 'path', required: true, schema: { type: 'string', enum: ['people', 'businesses', 'properties'] } },
           idParam,
+          caseParam,
+          ...dateRangeParams('transactions that occurred'),
         ],
       }),
     },
@@ -473,14 +521,46 @@ const spec = {
       }),
     },
     '/search/advanced': {
-      get: op('Search', 'Advanced multi-filter search', {
-        params: [queryParam('q', 'Search term'), projectParam],
+      get: op('Search', 'Advanced multi-filter search over people', {
+        params: [
+          queryParam('searchText', 'Text to look for'),
+          queryParam('searchIn[]', 'Fields searchText is matched against. Defaults to name.', {
+            type: 'array', items: { type: 'string', enum: ['name', 'aliases', 'notes'] },
+          }),
+          queryParam('categories[]', 'Only people in one of these categories', { type: 'array', items: { type: 'string' } }),
+          queryParam('statuses[]', 'Only people with one of these statuses', { type: 'array', items: { type: 'string' } }),
+          queryParam('dateFilter', 'Which timestamp dateFrom/dateTo apply to. Defaults to updated; all ignores the dates.', {
+            type: 'string', enum: ['updated', 'created', 'all'],
+          }),
+          queryParam('dateFrom', 'Earliest timestamp (inclusive)'),
+          queryParam('dateTo', 'Latest timestamp (inclusive)'),
+          queryParam('sortBy', 'Sort column', {
+            type: 'string', default: 'updated_at',
+            enum: ['updated_at', 'created_at', 'first_name', 'last_name', 'status', 'category'],
+          }),
+          queryParam('sortOrder', 'Sort direction', { type: 'string', enum: ['asc', 'desc'], default: 'desc' }),
+          queryParam('limit', 'Maximum rows', { type: 'integer', default: 100, maximum: 500 }),
+          projectParam,
+        ],
       }),
     },
 
     // ── Locations ──
     '/locations': {
-      get: op('Locations', 'All mappable locations across entities', { params: [projectParam], responseSchema: objectArray }),
+      get: op('Locations', 'All mappable locations across entities', {
+        params: [
+          projectParam,
+          caseParam,
+          queryParam('limit', 'Maximum people returned', { type: 'integer', default: 100 }),
+          queryParam('offset', 'People to skip', { type: 'integer', default: 0 }),
+          queryParam('bbox', 'Map bounds filter: minLng,minLat,maxLng,maxLat'),
+          queryParam('confidence', 'Minimum geocode confidence, 0-100', { type: 'integer', default: 30 }),
+          queryParam('includeUngeocoded', 'Send true to also return people whose locations have no coordinates', {
+            type: 'string', enum: ['true'],
+          }),
+        ],
+        responseSchema: objectArray,
+      }),
     },
 
     // ── Geocoding ──
@@ -513,7 +593,10 @@ const spec = {
     },
     '/geocode/suggestions': {
       get: op('Geocoding', 'Address autocomplete suggestions (rate limited: 60/min)', {
-        params: [queryParam('q', 'Partial address')],
+        params: [
+          queryParam('q', 'Partial address (at least 3 characters)'),
+          queryParam('limit', 'Maximum suggestions', { type: 'integer', default: 5 }),
+        ],
       }),
     },
     '/geocode/address': {
@@ -563,7 +646,7 @@ const spec = {
       delete: op('Wireless Networks', 'Delete a wireless network', { params: [idParam] }),
     },
     '/wireless-networks/stats': {
-      get: op('Wireless Networks', 'Wireless network statistics'),
+      get: op('Wireless Networks', 'Wireless network statistics', { params: [projectParam] }),
     },
     '/wireless-networks/nearby': {
       get: op('Wireless Networks', 'Networks observed near a point', {
@@ -605,8 +688,31 @@ const spec = {
       }),
     },
     '/wireless-networks/{id}/associate': {
-      post: op('Wireless Networks', 'Associate a network with a person', { params: [idParam], body: anyObject }),
-      delete: op('Wireless Networks', 'Remove a person association', { params: [idParam] }),
+      post: op('Wireless Networks', 'Associate a network with a person or business', {
+        params: [idParam],
+        body: {
+          type: 'object',
+          description: 'One of person_id or business_id is required.',
+          properties: {
+            person_id: { type: 'integer' },
+            business_id: { type: 'integer' },
+            association_note: { type: 'string' },
+            association_confidence: { type: 'string' },
+          },
+        },
+      }),
+      delete: op('Wireless Networks', 'Remove an association from a network', {
+        description:
+          'Removes the named person or business. With neither given, every association on the network is cleared.',
+        params: [idParam],
+        body: {
+          type: 'object',
+          properties: {
+            person_id: { type: 'integer' },
+            business_id: { type: 'integer' },
+          },
+        },
+      }),
     },
 
     // ── Settings ──
@@ -682,7 +788,18 @@ const spec = {
 
     // ── Audit logs (admin) ──
     '/audit-logs': {
-      get: op('Audit Logs', 'List audit log entries', { admin: true }),
+      get: op('Audit Logs', 'List audit log entries', {
+        admin: true,
+        params: [
+          queryParam('entity_type', 'Filter by entity type'),
+          intParam('entity_id', 'Filter by entity id'),
+          intParam('user_id', 'Filter by the user who made the change'),
+          queryParam('action', 'Filter by action'),
+          queryParam('start_date', 'Entries at or after this timestamp'),
+          queryParam('end_date', 'Entries at or before this timestamp'),
+          ...paginationParams.map((param) => ({ ...param, schema: { type: 'integer', default: param.schema.default } })),
+        ],
+      }),
     },
     '/audit-logs/entity/{entity_type}/{entity_id}': {
       get: op('Audit Logs', 'Audit history for one entity', {
@@ -690,11 +807,18 @@ const spec = {
         params: [
           { name: 'entity_type', in: 'path', required: true, schema: { type: 'string' } },
           { name: 'entity_id', in: 'path', required: true, schema: { type: 'integer' } },
+          ...paginationParams.map((param) => ({ ...param, schema: { type: 'integer', default: param.schema.default } })),
         ],
       }),
     },
     '/audit-logs/stats': {
-      get: op('Audit Logs', 'Audit log statistics', { admin: true }),
+      get: op('Audit Logs', 'Audit log statistics', {
+        admin: true,
+        params: [
+          queryParam('start_date', 'Count entries at or after this timestamp'),
+          queryParam('end_date', 'Count entries at or before this timestamp'),
+        ],
+      }),
     },
 
     // ── System ──
@@ -723,9 +847,13 @@ const spec = {
       get: op('System', 'This document', { mcp: false }),
     },
     '/export': {
-      get: op('System', 'Export every record in the database as one JSON file', {
+      get: op('System', 'Export investigation data as one JSON file', {
         admin: true, mcp: false,
-        description: 'Spans all projects. The file is the input format for POST /import.',
+        description:
+          'Spans all projects. Covers people, businesses, properties, assets, transactions, wireless ' +
+          'networks, tools, todos, cases, travel history, custom fields and model options. Not included: ' +
+          'crypto wallets, relationship rows, projects and their members, users and audit logs — use a ' +
+          'database backup for a complete copy. The file is the input format for POST /import.',
       }),
     },
     '/import': {

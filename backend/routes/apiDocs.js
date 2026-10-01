@@ -13,10 +13,18 @@ const router = express.Router();
 const { version } = require('../package.json');
 const { renderApiDocsPage, SWAGGER_UI_DIR, SWAGGER_UI_ASSETS } = require('../utils/apiDocsPage');
 
+// The asset URLs deliberately have no .js/.css extension. The bundled nginx
+// config (and plenty of hand-written reverse proxies) sends every *.js and
+// *.css request to the frontend's static files, ahead of the /api proxy rule,
+// so /api/docs/swagger-ui.css never reached this server and the page rendered
+// blank. Extensionless paths are proxied like any other API route.
+const ASSET_ROUTES = { css: '/assets/css', js: '/assets/js' };
+
 const page = renderApiDocsPage({
   version,
   specUrl: '/api/openapi.json',
-  assetBase: '/api/docs/',
+  cssUrl: `/api/docs${ASSET_ROUTES.css}`,
+  jsUrl: `/api/docs${ASSET_ROUTES.js}`,
   interactive: true,
 });
 
@@ -38,9 +46,9 @@ router.get('/', (req, res) => {
 });
 
 // Stock Swagger UI files, identical for everyone — no reason to gate them.
-for (const asset of SWAGGER_UI_ASSETS) {
-  router.get(`/${asset}`, (req, res) => {
-    res.sendFile(path.join(SWAGGER_UI_DIR, asset), { maxAge: '1d' });
+for (const [kind, route] of Object.entries(ASSET_ROUTES)) {
+  router.get(route, (req, res) => {
+    res.sendFile(path.join(SWAGGER_UI_DIR, SWAGGER_UI_ASSETS[kind]), { maxAge: '1d' });
   });
 }
 

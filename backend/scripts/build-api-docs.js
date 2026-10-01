@@ -25,9 +25,22 @@ async function main() {
   // Clone: the annotations below are for the published page only and must not
   // leak into the module other code requires.
   const spec = JSON.parse(JSON.stringify(require('../utils/openapiSpec')));
-  const { toolName, isToolOperation } = await import(
+  const { toolName, isToolOperation, buildTools } = await import(
     pathToFileURL(path.join(REPO_ROOT, 'mcp', 'tools.js')).href
   );
+
+  // The MCP server builds its tools from this document at runtime, so problems
+  // that would only show up there are checked here, where they fail the build.
+  const { tools: mcpTools, collisions } = buildTools(spec);
+  const badArgs = mcpTools.flatMap((tool) =>
+    Object.keys(tool.inputSchema.properties)
+      .filter((arg) => !/^[a-zA-Z0-9_.-]{1,64}$/.test(arg))
+      .map((arg) => `${tool.name}: argument "${arg}" is not a valid MCP argument name`)
+  );
+  if (collisions.length || badArgs.length) {
+    console.error(['MCP tool generation problems:', ...collisions, ...badArgs].join('\n  '));
+    process.exit(1);
+  }
 
   spec.servers = [{ url: '/api', description: 'Relative to your own GHOST instance' }];
 
@@ -49,7 +62,7 @@ async function main() {
   }
 
   fs.mkdirSync(outDir, { recursive: true });
-  for (const asset of SWAGGER_UI_ASSETS) {
+  for (const asset of Object.values(SWAGGER_UI_ASSETS)) {
     fs.copyFileSync(path.join(SWAGGER_UI_DIR, asset), path.join(outDir, asset));
   }
   fs.writeFileSync(path.join(outDir, 'openapi.json'), JSON.stringify(spec, null, 2));
@@ -58,7 +71,8 @@ async function main() {
     renderApiDocsPage({
       version: spec.info.version,
       specUrl: 'openapi.json',
-      assetBase: '',
+      cssUrl: SWAGGER_UI_ASSETS.css,
+      jsUrl: SWAGGER_UI_ASSETS.js,
       interactive: false,
     })
   );

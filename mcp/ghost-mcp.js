@@ -201,7 +201,8 @@ async function main() {
     console.error('GHOST MCP: using cached OpenAPI spec');
   }
 
-  const { tools, registry } = buildTools(spec);
+  const { tools, registry, collisions } = buildTools(spec);
+  for (const collision of collisions) console.error(`GHOST MCP: tool name collision — ${collision}`);
 
   // Inject the dedup escape hatch into the create tools it applies to.
   for (const tool of tools) {
@@ -254,15 +255,18 @@ async function main() {
         path = path.replace(`{${p}}`, encodeURIComponent(args[p]));
       }
       const query = new URLSearchParams();
-      for (const q of entry.queryParams) {
-        if (args[q] !== undefined && args[q] !== null && args[q] !== '') query.set(q, args[q]);
+      for (const { arg, name: queryName } of entry.queryParams) {
+        const value = args[arg];
+        if (value === undefined || value === null || value === '') continue;
+        // Array filters repeat the key (searchIn[]=name&searchIn[]=notes).
+        for (const v of Array.isArray(value) ? value : [value]) query.append(queryName, v);
       }
       if (query.size > 0) path += `?${query}`;
 
       const options = { method: entry.method.toUpperCase() };
       if (entry.hasBody) {
         const body = { ...args };
-        for (const k of [...entry.pathParams, ...entry.queryParams, 'ignorePossibleDuplicates']) {
+        for (const k of [...entry.pathParams, ...entry.queryParams.map((q) => q.arg), 'ignorePossibleDuplicates']) {
           delete body[k];
         }
         options.body = JSON.stringify(body);

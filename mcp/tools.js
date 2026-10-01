@@ -34,9 +34,16 @@ export function isToolOperation(path, method, operation) {
   return true;
 }
 
+// MCP clients reject a whole tool list if one argument name falls outside
+// [a-zA-Z0-9_.-], and the API has array filters named like `searchIn[]`. The
+// tool argument drops the brackets; the request still uses the real name.
+export const argName = (paramName) => paramName.replace(/\[\]$/, '');
+
 export function buildTools(spec) {
-  const registry = new Map(); // name → { method, pathTemplate, pathParams, queryParams, hasBody }
+  // name → { method, pathTemplate, pathParams, queryParams: [{ arg, name }], hasBody }
+  const registry = new Map();
   const tools = [];
+  const collisions = [];
 
   for (const [path, ops] of Object.entries(spec.paths)) {
     for (const [method, operation] of Object.entries(ops)) {
@@ -44,12 +51,15 @@ export function buildTools(spec) {
 
       const name = toolName(method, path);
       if (registry.has(name)) {
-        // Two endpoints mapping to one name would make the first unreachable.
+        // Two endpoints mapping to one name: keep the first and report the
+        // other. The API's own checks fail on this before a release; at
+        // runtime, losing one tool beats refusing to start.
         const first = registry.get(name);
-        throw new Error(
-          `tool name ${name} is produced by both ${first.method.toUpperCase()} ${first.pathTemplate} ` +
-          `and ${method.toUpperCase()} ${path}`
+        collisions.push(
+          `${name}: ${method.toUpperCase()} ${path} skipped, already used by ` +
+          `${first.method.toUpperCase()} ${first.pathTemplate}`
         );
+        continue;
       }
 
       const properties = {};
@@ -58,10 +68,11 @@ export function buildTools(spec) {
       const queryParams = [];
 
       for (const p of operation.parameters || []) {
-        properties[p.name] = { ...p.schema, description: p.description || `${p.in} parameter` };
+        const arg = argName(p.name);
+        properties[arg] = { ...p.schema, description: p.description || `${p.in} parameter` };
         if (p.in === 'path') pathParams.push(p.name);
-        else queryParams.push(p.name);
-        if (p.in === 'path' || p.required) required.push(p.name);
+        else queryParams.push({ arg, name: p.name });
+        if (p.in === 'path' || p.required) required.push(arg);
       }
 
       let hasBody = false;
@@ -87,5 +98,5 @@ export function buildTools(spec) {
     }
   }
 
-  return { tools, registry };
+  return { tools, registry, collisions };
 }

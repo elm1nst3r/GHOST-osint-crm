@@ -5,6 +5,52 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.1] - 2026-10-02
+
+### 🐛 Fixed
+
+- **`/api/docs` rendered a blank page behind the bundled nginx (#93).** The
+  page's script and stylesheet were served from URLs ending in `.js` and
+  `.css`, and the frontend's nginx config routes every such URL to its own
+  static files before the `/api` proxy rule is considered — so they
+  returned 404. They are now served from extensionless URLs, which are
+  proxied like any other API route. No nginx change is needed, so this also
+  holds for custom reverse proxies using the same pattern.
+- **Advanced search through the MCP server ignored the search term.** The
+  spec documented a `q` parameter the endpoint never read (it reads
+  `searchText`, `searchIn[]`, `categories[]`, `statuses[]` and date/sort
+  options), so `ghost_get_search_advanced` returned every person in scope.
+  The real parameters are documented and the MCP server now sends array
+  filters correctly.
+- **`ghost_delete_wireless_networks_associate` always failed with a 500.**
+  The endpoint reads `person_id` / `business_id` from a request body the
+  spec did not declare, so the tool sent none.
+- **Project create and delete were not marked admin-only** in the spec, and
+  delete's `confirm_name` was undocumented, so a non-empty project could
+  not be deleted through the MCP server.
+- **The export endpoint's description claimed it exports every record.** It
+  does not include crypto wallets, relationship rows, or projects and their
+  members; the description now says so. Export/import itself is unchanged.
+
+### ✨ Added
+
+- **Previously undocumented filters** are in the spec and therefore usable
+  from the API reference and the MCP server: audit logs (entity, user,
+  action, date range, paging), assets (category, status, case, search,
+  holder, map bounds), transactions (business, wallet, tx hash, subject and
+  venue references, case, date range, map bounds), locations, the ledger's
+  case and date range, and `case_id` on people.
+- **A test workflow.** The backend suite now runs on every push and pull
+  request. It checks that every route is documented and that each
+  operation's query parameters and admin requirement match its handler.
+  2.18.0's notes described this guard as failing the build; until now
+  nothing ran it automatically.
+
+### 🔧 Changed
+
+- **MCP server v1.2.1.** A tool-name collision in a future spec is logged
+  and the duplicate skipped, instead of stopping the server at startup.
+
 ## [2.18.0] - 2026-10-01
 
 ### ✨ Added

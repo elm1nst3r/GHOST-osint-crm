@@ -8,7 +8,7 @@
 const path = require('path');
 
 const SWAGGER_UI_DIR = path.dirname(require.resolve('swagger-ui-dist/package.json'));
-const SWAGGER_UI_ASSETS = ['swagger-ui.css', 'swagger-ui-bundle.js'];
+const SWAGGER_UI_ASSETS = { css: 'swagger-ui.css', js: 'swagger-ui-bundle.js' };
 
 const REPO_URL = 'https://github.com/elm1nst3r/GHOST-osint-crm';
 
@@ -22,9 +22,9 @@ const NOTICE = {
     'once you are signed in.',
 };
 
-// opts.specUrl / opts.assetBase: where the page finds openapi.json and the
-// Swagger UI assets. opts.interactive: whether "Try it out" is offered.
-function renderApiDocsPage({ version, specUrl, assetBase, interactive }) {
+// opts.specUrl / opts.cssUrl / opts.jsUrl: where the page finds openapi.json
+// and the Swagger UI assets. opts.interactive: whether "Try it out" is offered.
+function renderApiDocsPage({ version, specUrl, cssUrl, jsUrl, interactive }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -32,7 +32,7 @@ function renderApiDocsPage({ version, specUrl, assetBase, interactive }) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GHOST OSINT CRM API v${version}</title>
   <meta name="description" content="Reference for the GHOST OSINT CRM REST API and the MCP tools generated from it.">
-  <link rel="stylesheet" href="${assetBase}swagger-ui.css">
+  <link rel="stylesheet" href="${cssUrl}">
   <style>
     :root { color-scheme: light; }
     body { margin: 0; background: #fff; }
@@ -78,7 +78,7 @@ function renderApiDocsPage({ version, specUrl, assetBase, interactive }) {
 
   <div id="swagger-ui"></div>
 
-  <script src="${assetBase}swagger-ui-bundle.js"></script>
+  <script src="${jsUrl}"></script>
   <script>
     window.ui = SwaggerUIBundle({
       url: ${JSON.stringify(specUrl)},
