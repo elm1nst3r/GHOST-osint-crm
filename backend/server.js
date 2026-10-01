@@ -5,9 +5,6 @@ const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const xml2js = require('xml2js');
-const { exec } = require('child_process');
-const util = require('util');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 
@@ -16,7 +13,6 @@ const pgSession = require('connect-pg-simple')(session);
 // exports were required but never called, and it bypassed the throttle.
 let improvedGeocodingService;
 const ImprovedGeocodingService = require('./services/improvedGeocodingService');
-const execPromise = util.promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -174,7 +170,6 @@ app.use(session({
 // Import audit logging middleware
 const { auditMiddleware } = require('./middleware/auditLog');
 const { requireAuth, requireAdmin } = require('./middleware/auth');
-const { geocodingLimiter } = require('./middleware/rateLimiters');
 app.use(auditMiddleware);
 
 // Import and mount routes
@@ -357,19 +352,6 @@ app.post('/api/import', requireAdmin, async (req, res) => {
   const { syncPersonConnections } = require('./routes/relationships');
 
   const client = await pool.connect();
-  
-  // Helper function to ensure proper JSON formatting
-  const ensureJSON = (data) => {
-    if (data === null || data === undefined) return null;
-    if (typeof data === 'string') {
-      try {
-        return JSON.parse(data);
-      } catch (e) {
-        return data;
-      }
-    }
-    return data;
-  };
   
   // Helper function to ensure proper JSON string for JSONB fields
   const toJSONString = (data) => {

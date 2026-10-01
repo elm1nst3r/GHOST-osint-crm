@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Third-party agent skill files under `.agents/` that had been committed by
   accident, and a design spec for a feature that shipped in 2.17.0.
+- Dead code, with no change in behaviour: five frontend packages nothing
+  imported (`html2canvas`, `jspdf`, `jspdf-autotable`, `recharts`,
+  `web-vitals`), two unused API client objects, and unused imports and
+  helpers in the backend — including a leftover `child_process` import in
+  `server.js`. The production frontend bundle is byte-identical before and
+  after.
+- SECURITY.md no longer claims that input is stripped of `<script>` tags
+  before storage. No such code exists; output escaping is done by React.
 
 ## [2.18.1] - 2026-10-02
 

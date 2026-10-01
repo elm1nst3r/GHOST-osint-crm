@@ -289,14 +289,6 @@ export const modelOptionsAPI = {
   }),
 };
 
-// Audit Log API
-export const auditAPI = {
-  getAll: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return fetchAPI(`/audit-logs${queryParams ? '?' + queryParams : ''}`);
-  },
-};
-
 // Export/Import API - Fixed export function
 export const exportAPI = {
   export: async () => {
@@ -369,28 +361,6 @@ export const uploadLogo = async (file) => {
 // Locations API
 export const locationsAPI = {
   getAll: (params = {}) => fetchAPI(`/locations${buildQuery(params)}`),
-};
-
-// Advanced Search API
-export const searchAPI = {
-  advanced: (params) => {
-    const queryParams = new URLSearchParams();
-    
-    // Convert complex search params to query string
-    Object.entries(params).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach(v => queryParams.append(`${key}[]`, v));
-      } else if (typeof value === 'object') {
-        Object.entries(value).forEach(([subKey, subValue]) => {
-          queryParams.append(`${key}[${subKey}]`, subValue);
-        });
-      } else if (value !== '' && value !== null) {
-        queryParams.append(key, value);
-      }
-    });
-    
-    return fetchAPI(`/search/advanced?${queryParams.toString()}`);
-  }
 };
 
 // Travel History API

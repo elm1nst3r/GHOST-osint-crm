@@ -63,9 +63,9 @@ replacing the images.
 
 ### Input Validation & Sanitisation
 - ✅ All `/:id` route parameters validated as positive integers via `validateIdParam` middleware
-- ✅ String inputs stripped of `<script>`, `<iframe>`, and inline event handlers before storage
+- ✅ Stored text is rendered through React, which escapes it on output — input is not rewritten or stripped on the way in
 - ✅ SQL injection prevented — all queries use parameterised statements (no string concatenation)
-- ✅ Email, URL, and date formats validated at API boundaries
+- ✅ Field formats (URLs, emails, ids, enums, lengths) validated by the Zod schemas where a field has one
 - ✅ Every POST/PUT request body validated against a Zod schema (`backend/middleware/schemas.js`); unknown fields stripped, structured field-level errors returned
 - ✅ Schema↔route consistency enforced by a static test (`schemaRouteConsistency.test.js`) — every body field a route reads must be declared in its schema
 - ✅ The backend test suite runs in CI on every push and pull request

@@ -1,57 +1,6 @@
 const {
-  isValidEmail,
-  isValidUrl,
   isValidId,
 } = require('./validation');
-
-// ── isValidEmail ───────────────────────────────────────────────────────────
-
-describe('isValidEmail', () => {
-  test('accepts standard email addresses', () => {
-    expect(isValidEmail('user@example.com')).toBe(true);
-    expect(isValidEmail('user.name+tag@sub.domain.org')).toBe(true);
-  });
-
-  test('rejects addresses without @', () => {
-    expect(isValidEmail('notanemail')).toBe(false);
-  });
-
-  test('rejects addresses without domain', () => {
-    expect(isValidEmail('user@')).toBe(false);
-  });
-
-  test('rejects addresses without local part', () => {
-    expect(isValidEmail('@example.com')).toBe(false);
-  });
-
-  test('rejects empty string', () => {
-    expect(isValidEmail('')).toBe(false);
-  });
-});
-
-// ── isValidUrl ─────────────────────────────────────────────────────────────
-
-describe('isValidUrl', () => {
-  test('accepts http URLs', () => {
-    expect(isValidUrl('http://example.com')).toBe(true);
-  });
-
-  test('accepts https URLs', () => {
-    expect(isValidUrl('https://example.com/path?q=1')).toBe(true);
-  });
-
-  test('rejects bare hostnames without scheme', () => {
-    expect(isValidUrl('example.com')).toBe(false);
-  });
-
-  test('rejects empty string', () => {
-    expect(isValidUrl('')).toBe(false);
-  });
-
-  test('rejects plain text', () => {
-    expect(isValidUrl('not a url')).toBe(false);
-  });
-});
 
 // ── isValidId ──────────────────────────────────────────────────────────────
 

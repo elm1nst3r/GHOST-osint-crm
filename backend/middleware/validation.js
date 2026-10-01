@@ -1,22 +1,6 @@
 // File: backend/middleware/validation.js
 // Input validation utilities
 
-// Validate email format
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-// Validate URL format
-function isValidUrl(url) {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // Validate integer ID
 function isValidId(id) {
   const numId = parseInt(id, 10);
@@ -37,7 +21,5 @@ function validateIdParam(req, res, next) {
 
 module.exports = {
   validateIdParam,
-  isValidEmail,
-  isValidUrl,
   isValidId
 };

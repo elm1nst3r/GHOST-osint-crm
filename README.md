@@ -549,7 +549,7 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 - Leaflet + react-leaflet-cluster (maps)
 - ReactFlow and D3 (diagrams, entity graph)
 - react-window (virtualised lists)
-- docx, jsPDF + file-saver (report export)
+- docx + file-saver (report export)
 - papaparse (CSV parsing)
 - Lucide Icons
 

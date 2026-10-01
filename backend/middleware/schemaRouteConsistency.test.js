@@ -17,7 +17,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { z } = require('zod');
 const S = require('./schemas');
 
 const ROUTES_DIR = path.join(__dirname, '..', 'routes');
