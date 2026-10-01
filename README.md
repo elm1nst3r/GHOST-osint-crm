@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.18.1-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.18.2-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -210,7 +210,7 @@ up -d` will no longer start your local `db` container.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.18.1
+GHOST_VERSION=2.18.2
 ```
 
 Without it, the containers track the latest release.
@@ -575,6 +575,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.18.2 (October 2026)
+- 🐛 **App icons fixed** — the browser tab had no icon and the home-screen icons were broken (mis-named logo files, empty favicon)
+- 📝 **Documentation brought up to date** — setup on ARM hosts, running without Docker, project roles, security posture; QUICK-START's `.env` command no longer leaves the database unstarted
+- 🧹 **Dead code removed** — five unused frontend packages and unused backend leftovers, with no change in behaviour
+
 ### Version 2.18.1 (October 2026)
 - 🐛 **`/api/docs` no longer renders blank behind the bundled nginx** — its script and stylesheet were being routed to the frontend's static files instead of the backend
 - 🐛 **Advanced search through the MCP server actually searches** — the spec documented a parameter the endpoint never read, so the tool returned every person in scope; filters across audit logs, assets, transactions, locations and the ledger are now documented and usable too
@@ -731,5 +736,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.18.1
+**Version:** 2.18.2
 **Last Updated:** October 2, 2026
