@@ -53,6 +53,7 @@ services:
       DB_PORT: ${DB_PORT:-5432}
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
 
     volumes:
       - ./backend/public:/usr/src/app/public

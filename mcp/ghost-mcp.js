@@ -22,6 +22,7 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { buildTools } from './tools.js';
 
 const API_URL = process.env.GHOST_API_URL || 'http://localhost:3001/api';
 const USERNAME = process.env.GHOST_USERNAME;
@@ -101,80 +102,6 @@ async function api(path, options = {}) {
     res = await fetch(`${API_URL}${path}`, { ...options, headers });
   }
   return res;
-}
-
-// ── Tool generation from the OpenAPI document ─────────────────────────────────
-
-function resolveRef(spec, schema) {
-  if (schema && schema.$ref) {
-    const name = schema.$ref.split('/').pop();
-    return spec.components.schemas[name] || { type: 'object' };
-  }
-  return schema;
-}
-
-// ghost_ + verb + path segments (params dropped, hyphens → underscores).
-// GET /people → ghost_get_people; GET /people/{id} → ghost_get_people_by_id;
-// POST /transactions → ghost_create_transactions.
-const VERB = { get: 'get', post: 'create', put: 'update', delete: 'delete' };
-
-function toolName(method, path) {
-  const segments = path.split('/').filter(Boolean).filter((s) => !s.startsWith('{'));
-  let name = `ghost_${VERB[method]}_${segments.join('_').replace(/-/g, '_')}`;
-  if (method === 'get' && path.endsWith('}')) name += '_by_id';
-  return name;
-}
-
-function buildTools(spec) {
-  const registry = new Map(); // name → { method, pathTemplate, pathParams, queryParams, hasBody }
-  const tools = [];
-
-  for (const [path, ops] of Object.entries(spec.paths)) {
-    if (path.startsWith('/auth/')) continue; // session is managed by this server
-
-    for (const [method, operation] of Object.entries(ops)) {
-      if (!VERB[method]) continue;
-
-      const name = toolName(method, path);
-      const properties = {};
-      const required = [];
-      const pathParams = [];
-      const queryParams = [];
-
-      for (const p of operation.parameters || []) {
-        properties[p.name] = { ...p.schema, description: p.description || `${p.in} parameter` };
-        if (p.in === 'path') {
-          pathParams.push(p.name);
-          required.push(p.name);
-        } else {
-          queryParams.push(p.name);
-        }
-      }
-
-      let hasBody = false;
-      if (operation.requestBody) {
-        hasBody = true;
-        const bodySchema = resolveRef(spec, operation.requestBody.content['application/json'].schema);
-        Object.assign(properties, bodySchema.properties || {});
-        for (const r of bodySchema.required || []) {
-          if (!required.includes(r)) required.push(r);
-        }
-      }
-
-      let description = operation.summary || `${method.toUpperCase()} ${path}`;
-      if (operation.description) description += `. ${operation.description}`;
-      if (operation['x-requires-admin']) description += ' (admin only)';
-
-      registry.set(name, { method, pathTemplate: path, pathParams, queryParams, hasBody });
-      tools.push({
-        name,
-        description,
-        inputSchema: { type: 'object', properties, ...(required.length && { required }) },
-      });
-    }
-  }
-
-  return { tools, registry };
 }
 
 // ── Duplicate detection (zbyte64's pattern) ───────────────────────────────────

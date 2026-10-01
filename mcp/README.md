@@ -17,7 +17,18 @@ Tool names follow the pattern `ghost_<verb>_<resource>`:
 | `ghost_get_ledger` | `GET /api/{entityType}/{id}/ledger` |
 | `ghost_get_businesses_venue_stats` | `GET /api/businesses/{id}/venue-stats` |
 
-…and ~45 more, covering the full API surface.
+| `ghost_get_crypto_wallets` | `GET /api/crypto-wallets` |
+| `ghost_get_projects_members` | `GET /api/projects/{id}/members` |
+
+…and ~95 more. The [API catalogue](https://elm1nst3r.github.io/GHOST-osint-crm/) lists every endpoint with the tool it becomes; your own instance serves an interactive version at `/api/docs`.
+
+### What is not exposed
+
+A few endpoints are documented in the spec but deliberately produce no tool: instance settings (branding, geocoding provider and API keys, update check, retention), whole-database export/import, bulk deletes and batch geocoding, health/version probes, and file uploads. They are marked `x-mcp-exclude` in the OpenAPI document, so the decision lives with the API rather than in this server. Login/logout are also skipped — the server manages its own session.
+
+### Project scoping
+
+List tools for project-scoped records (people, businesses, cases, assets, crypto wallets, transactions, properties, todos, wireless networks, locations, search) accept `project_id`. A non-admin account sees only the projects it is a member of; asking for another project returns 403.
 
 ### Duplicate protection
 
@@ -32,6 +43,8 @@ Some MCP clients spawn a fresh server process per tool call, which would mean on
 ## Setup
 
 Requires Node.js ≥ 18 and a running GHOST instance (v2.8+, which serves `/api/openapi.json`).
+
+Keep this directory in step with the GHOST instance it talks to. GHOST 2.18.0 and later document file-upload endpoints in the spec, which MCP server v1.1 and earlier cannot parse and will fail on at startup — update `mcp/` when you update GHOST.
 
 ```bash
 cd mcp

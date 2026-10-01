@@ -5,6 +5,45 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.0] - 2026-10-01
+
+### ✨ Added
+
+- **Interactive API reference at `/api/docs` (#93).** Swagger UI over the
+  instance's own OpenAPI document, for signed-in users. "Try it out" sends
+  requests with your session, so every call runs under your own role and
+  project memberships — and writes and deletes are real. There is no
+  Authorize step: GHOST authenticates with the session cookie, which the
+  browser sends by itself. Set `API_DOCS_ENABLED=false` to remove the page.
+- **Public API catalogue.** The same reference for the latest release,
+  read-only, at https://elm1nst3r.github.io/GHOST-osint-crm/ — republished
+  on every release tag. Each endpoint shows the MCP tool it becomes.
+- **MCP server v1.2.** Twelve new tools: crypto wallets (list, get, create,
+  update, delete), project members (list, add, change role, remove),
+  single-address geocode, nearby wireless networks, and the user directory.
+  Lists of project-scoped records accept `project_id`. No existing tool was
+  renamed or removed.
+
+### 🔧 Changed
+
+- **The OpenAPI document now covers the whole API** — 127 operations, up
+  from 96. Crypto wallets, project membership, export/import, the branding,
+  geocoding, update-check and retention settings, and several wireless,
+  geocoding and system endpoints had never been added to it. A new test
+  compares the document against the Express routes and fails when either
+  side has an entry the other lacks.
+- **Some endpoints are documented but deliberately not exposed as MCP
+  tools**: instance settings, whole-database export/import, bulk delete,
+  batch geocoding, health/version probes and file uploads. They carry
+  `x-mcp-exclude` in the spec.
+
+### ⚠️ Upgrade note
+
+- **Update `mcp/` when you update GHOST.** MCP server 1.1 and earlier
+  assume every request body is JSON; the spec now includes two file-upload
+  endpoints, and an old MCP server pointed at a 2.18.0 backend fails at
+  startup.
+
 ## [2.17.0] - 2026-09-16
 
 ### ✨ Added

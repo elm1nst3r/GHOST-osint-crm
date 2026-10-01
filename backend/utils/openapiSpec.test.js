@@ -21,6 +21,10 @@ describe('openapiSpec', () => {
       'TodoCreate', 'TodoUpdate', 'TravelHistoryCreate', 'TravelHistoryUpdate',
       'PropertyCreate', 'PropertyUpdate', 'AssetCreate', 'AssetUpdate',
       'TransactionCreate', 'TransactionUpdate',
+      'CryptoWalletCreate', 'CryptoWalletUpdate',
+      'ProjectMemberCreate', 'ProjectMemberUpdate',
+      'SettingsBrandingUpdate', 'SettingsGeocodingUpdate',
+      'SettingsUpdateCheck', 'SettingsProjectRetention',
       'SettingsCustomFieldCreate', 'SettingsCustomFieldUpdate',
       'SettingsModelOptionCreate', 'SettingsModelOptionUpdate',
     ];
@@ -51,6 +55,33 @@ describe('openapiSpec', () => {
         expect(operation.responses).toBeDefined();
         expect(operation.tags && operation.tags.length).toBeTruthy();
       });
+    });
+  });
+
+  test('every tag an operation uses is declared with a description', () => {
+    const declared = new Set(spec.tags.map((t) => t.name));
+    spec.tags.forEach((t) => expect(t.description).toBeTruthy());
+    Object.values(spec.paths).forEach((ops) => {
+      Object.values(ops).forEach((operation) => {
+        operation.tags.forEach((tag) => expect(declared.has(tag)).toBe(true));
+      });
+    });
+  });
+
+  // The MCP server and the published catalogue both key off these.
+  test('instance administration is kept out of the MCP toolset', () => {
+    ['/export', '/import', '/upload/logo', '/settings/geocoding', '/settings/branding'].forEach((p) => {
+      Object.values(spec.paths[p]).forEach((operation) => {
+        expect(operation['x-mcp-exclude']).toBe(true);
+      });
+    });
+    expect(spec.paths['/crypto-wallets'].get['x-mcp-exclude']).toBeUndefined();
+  });
+
+  test('project-scoped lists document the project_id filter', () => {
+    ['/people', '/businesses', '/assets', '/transactions', '/crypto-wallets', '/properties'].forEach((p) => {
+      const names = spec.paths[p].get.parameters.map((param) => param.name);
+      expect(names).toContain('project_id');
     });
   });
 

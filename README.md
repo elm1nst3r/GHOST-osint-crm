@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.17.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.18.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -114,9 +114,11 @@ If this project is ever shelved, this section will be updated and the repository
 - **Configurable taxonomies**: Transaction types, item categories, asset categories/statuses, and property types are editable in Settings → Data Model
 
 ### 🤖 API, OpenAPI & MCP Server
-- **OpenAPI 3.1 spec**: `GET /api/openapi.json` (authenticated) serves a machine-readable description of the full API — 55 paths, request schemas, auth flow, pagination, rate limits
+- **OpenAPI 3.1 spec**: `GET /api/openapi.json` (authenticated) serves a machine-readable description of the full API — 78 paths, request schemas, auth flow, pagination, rate limits. A test fails the build if a route is added without documenting it
+- **Interactive API reference**: `/api/docs` on your own instance (signed-in users) — Swagger UI over the same spec, with "Try it out" running under your own account's permissions. Disable with `API_DOCS_ENABLED=false`
+- **Public API catalogue**: the latest release's spec, read-only, at [elm1nst3r.github.io/GHOST-osint-crm](https://elm1nst3r.github.io/GHOST-osint-crm/) — each endpoint shows the MCP tool it becomes
 - **Single source of truth**: The spec is generated at startup from the same Zod schemas that validate requests — documentation can't drift from behaviour
-- **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the entire GHOST API as ~90 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
+- **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the GHOST API as ~100 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
 - **Duplicate protection**: MCP create tools check for same-name records first and refuse with a match list unless explicitly overridden
 - **Schema validation everywhere**: All POST/PUT routes validate bodies against Zod schemas and return structured field-level errors
 
@@ -197,7 +199,7 @@ up -d` will no longer start your local `db` container.
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.17.0
+GHOST_VERSION=2.18.0
 ```
 
 Without it, the containers track the latest release.
@@ -278,7 +280,7 @@ GHOST-osint-crm/
 │   ├── services/                # Geocoding services
 │   ├── utils/                   # Password policy, session revocation, project access control, transaction helpers
 │   └── public/uploads/          # File uploads
-├── mcp/                         # Bundled MCP server (~90 tools from the OpenAPI spec)
+├── mcp/                         # Bundled MCP server (~100 tools from the OpenAPI spec)
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
 ```
@@ -518,6 +520,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.18.0 (October 2026)
+- 📖 **Interactive API reference at `/api/docs`** — Swagger UI inside your instance for signed-in users, with "Try it out" running under your own account's permissions; a read-only copy for the latest release is published at [elm1nst3r.github.io/GHOST-osint-crm](https://elm1nst3r.github.io/GHOST-osint-crm/) (issue #93)
+- 🧾 **The OpenAPI spec now covers the whole API** — about 30 endpoints were missing, including all of crypto wallets, project membership and import/export; a test now fails the build when a route is added without documenting it
+- 🤖 **MCP server v1.2** — 12 new tools (crypto wallets, project members, single-address geocode, nearby wireless networks, user directory) and a `project_id` filter on every project-scoped list; update `mcp/` together with GHOST
 
 ### Version 2.17.0 (September 2026)
 - 🌍 **Five new community-translated languages** — French, German, Spanish, Chinese (Simplified) and Russian are now selectable in Settings → General, via Crowdin (issue #59)

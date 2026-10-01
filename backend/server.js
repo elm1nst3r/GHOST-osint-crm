@@ -211,6 +211,12 @@ app.get('/api/openapi.json', requireAuth, (req, res) => {
   res.json(openapiSpec);
 });
 
+// Browsable version of that document (issue #93). On by default; an operator
+// who doesn't want it reachable can switch it off.
+if (process.env.API_DOCS_ENABLED !== 'false') {
+  app.use('/api/docs', require('./routes/apiDocs'));
+}
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);

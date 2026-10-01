@@ -1,0 +1,64 @@
+# Publishes the API catalogue to GitHub Pages.
+#
+# The page is Swagger UI over the OpenAPI document generated from the backend's
+# Zod schemas (backend/scripts/build-api-docs.js) — the same document a running
+# instance serves at /api/openapi.json. It is rebuilt on every release tag, so
+# the published reference always describes the latest release rather than
+# whatever is in flight on main.
+#
+# Repository setup this depends on (not expressible in this file):
+#   - Settings → Pages → Source: "GitHub Actions"
+#   - the github-pages environment must allow deployments from v* tags; by
+#     default it only allows the default branch, and a tag-triggered run is
+#     rejected at the deploy job.
+
+name: Publish API docs
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Build catalogue
+        working-directory: backend
+        run: node scripts/build-api-docs.js ../_site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
