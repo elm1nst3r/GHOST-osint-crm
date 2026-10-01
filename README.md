@@ -150,6 +150,10 @@ docker compose up -d
 
 > Building from source instead? Use `docker compose up --build -d`. That
 > compiles both images locally and takes considerably longer.
+>
+> **ARM machines (Apple Silicon, Raspberry Pi):** the prebuilt images are
+> published for `amd64` only, so `docker compose pull` fails with
+> `no matching manifest for linux/arm64`. Build from source instead.
 
 **Create your first admin user:**
 ```bash
@@ -165,7 +169,11 @@ Password must be at least 12 characters. Common weak passwords are rejected.
 **Access the application:**
 - Frontend: http://localhost:8080
 - Backend API: http://localhost:3001
+- API reference: http://localhost:8080/api/docs (once signed in)
 - Health Check: http://localhost:3001/api/health
+
+After signing in, GHOST asks you to pick or create a **project** — every
+record belongs to one.
 
 **Using an external PostgreSQL server instead of the bundled container?**
 Set `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` in `.env` to point
@@ -186,6 +194,9 @@ git pull                      # picks up docker-compose.yml changes
 docker compose pull           # fetch the new images
 docker compose up -d          # restart onto them
 ```
+
+If you build from source (required on ARM), replace the last two lines with
+`docker compose up --build -d`.
 
 Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in a Docker volume and is not touched.
@@ -234,12 +245,16 @@ npm install
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your database credentials
+# Edit .env: set DB_PASSWORD and SESSION_SECRET (both required)
 
-# Start server
+# Start server — the backend reads its settings from the environment and
+# does not load .env by itself, so export the file into the shell first
+set -a; . ./.env; set +a
 npm start
 ```
 Backend runs on `http://localhost:3001`
+
+Run the tests with `npm test` (no database needed).
 
 ### Database
 ```bash
@@ -270,17 +285,22 @@ GHOST-osint-crm/
 │   │   │   ├── visualization/   # Graphs and diagrams
 │   │   │   └── wireless/        # WirelessNetworkDetail panels
 │   │   ├── contexts/            # AuthContext, DataContext, ProjectContext, UIContext
+│   │   ├── locales/             # Translation catalogs (en + Crowdin-managed languages)
 │   │   └── utils/               # API layer, report generators, constants
 │   ├── public/                  # Static assets
 │   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
 ├── backend/                     # Node.js/Express API
-│   ├── server.js                # App entry point (~1,000 lines)
-│   ├── routes/                  # 21 route modules (people, cases, projects, crypto wallets, assets, transactions…)
+│   ├── server.js                # App entry point
+│   ├── routes/                  # 22 route modules (people, cases, projects, crypto wallets, assets, transactions, API docs…)
 │   ├── middleware/              # Auth, audit, rate limiters, Zod schemas & validation
-│   ├── services/                # Geocoding services
-│   ├── utils/                   # Password policy, session revocation, project access control, transaction helpers
+│   ├── migrations/              # Knex schema migrations, applied automatically at startup
+│   ├── services/                # Geocoding providers, update check, archived-project retention
+│   ├── utils/                   # OpenAPI spec, password policy, session revocation, project access control
+│   ├── scripts/                 # Admin user creation, password reset, API catalogue build
 │   └── public/uploads/          # File uploads
 ├── mcp/                         # Bundled MCP server (~100 tools from the OpenAPI spec)
+├── .github/workflows/           # CI: backend tests, image publishing, API catalogue
+├── crowdin.yml                  # Translation sync configuration
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
 ```
@@ -361,6 +381,7 @@ GHOST-osint-crm/
 - 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
 - 🔒 **Request body validation** — every POST/PUT route validates against a Zod schema; unknown fields are stripped and errors are returned per-field
 - 🔒 **Error detail suppression** — raw database error messages are not exposed to clients when `NODE_ENV=production`
+- 🔒 **API reference is for signed-in users only** — `/api/docs` shows a sign-in notice to anyone without a session, and requests made from it run with the caller's own role and project memberships. Set `API_DOCS_ENABLED=false` to remove the page
 - 🔒 **Geocoding endpoints require authentication** — `/api/geocode/suggestions`, `/api/geocode/address`, and `/api/geocode/stats` reject unauthenticated requests
 - 🔒 **KML upload size-limited** — defaults to 5 MB; override with `KML_MAX_BYTES` env var (in bytes)
 - 🔒 **PostgreSQL is not exposed to the host network** by default — only available within the Docker network
@@ -379,6 +400,14 @@ Contributions welcome! Please:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+The backend test suite (`cd backend && npm test`) runs on every push and pull
+request. If you add or change an API route, add it to
+`backend/utils/openapiSpec.js` as well — the tests fail when a route, its
+query parameters or its admin requirement are missing from the spec.
+
+Translations are managed on [Crowdin](https://crowdin.com/project/ghost-osint-crm),
+not through pull requests.
 
 ## 📜 License
 
@@ -438,7 +467,29 @@ Cause: when `NODE_ENV=production` the session cookie is marked `Secure`, so it i
 
 Fix:
 - **Production:** serve the app over HTTPS (terminate TLS at a reverse proxy / load balancer in front of the container). No code change required.
-- **Local / internal HTTP-only testing:** run with `NODE_ENV` set to something other than `production` (e.g. the bundled dev compose override) so the cookie is not marked `Secure`.
+- **Local / internal HTTP-only testing:** run with `NODE_ENV` set to something other than `production` (set `NODE_ENV=development` in `.env`) so the cookie is not marked `Secure`.
+
+### Issue: `no matching manifest for linux/arm64` on `docker compose pull`
+The prebuilt images are `amd64` only. On Apple Silicon or other ARM hosts,
+build locally instead:
+```bash
+docker compose up --build -d
+```
+
+### Issue: Backend unhealthy — "The migration directory is corrupt"
+The backend image is older than the database: the database has migrations
+applied that this image doesn't know about. This happens when an update
+didn't actually replace the image (for example a failed `docker compose
+pull`). Get the current image and restart:
+```bash
+docker compose pull && docker compose up -d      # amd64
+docker compose up --build -d                     # ARM / building from source
+```
+Your data is not affected.
+
+### Issue: `/api/docs` loads as a blank page
+Fixed in v2.18.1 — update. If you run your own reverse proxy in front of an
+older version, it is routing `*.js` / `*.css` requests away from the backend.
 
 ### Issue: Permission denied errors in Docker
 The backend now runs as non-root user (nodejs:1001). Ensure upload directories have correct permissions:
@@ -492,30 +543,33 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- React 18 with Context API
+- React 18 with Context API, React Router
 - Tailwind CSS (dark mode)
+- react-i18next (translations, synced with Crowdin)
 - Leaflet + react-leaflet-cluster (maps)
-- ReactFlow (diagrams)
+- ReactFlow and D3 (diagrams, entity graph)
 - react-window (virtualised lists)
-- docx + file-saver (report export)
+- docx, jsPDF + file-saver (report export)
+- papaparse (CSV parsing)
 - Lucide Icons
 
 **Backend:**
 - Node.js / Express 5
 - PostgreSQL 15
+- Knex (schema migrations)
 - Zod (request validation + OpenAPI generation)
 - xml2js (KML parsing)
-- papaparse (CSV parsing)
 - express-rate-limit (login, geocoding & general API throttling)
 - Jest (tests)
 
 **Integrations:**
-- OpenAPI 3.1 spec at `/api/openapi.json`
+- OpenAPI 3.1 spec at `/api/openapi.json`, browsable with Swagger UI at `/api/docs`
 - MCP server (`mcp/`) via `@modelcontextprotocol/sdk`
 
 **Infrastructure:**
 - Docker & Docker Compose
 - Nginx (reverse proxy, immutable asset caching)
+- GitHub Actions (backend tests, image publishing to GHCR, API catalogue on GitHub Pages)
 
 ---
 
@@ -677,5 +731,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.14.2 (latest tagged release — `main` also includes project isolation, per-project roles, and crypto wallet tracking, pending their own release)
-**Last Updated:** August 23, 2026
+**Version:** 2.18.1
+**Last Updated:** October 2, 2026

@@ -5,6 +5,29 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed
+
+- **The app had no favicon, and its home-screen icons were broken.** The two
+  logo files had a leading space in their names, so `/logo192.png` and
+  `/logo512.png` returned the HTML page, and `favicon.ico` was an empty
+  file. The logos are renamed and the browser tab now uses the logo.
+
+### 📝 Documentation
+
+- README, QUICK-START, USER_MANAGEMENT and SECURITY brought up to date with
+  2.18: project membership and roles, the API reference, ARM hosts (the
+  prebuilt images are amd64 only), running the backend without Docker, and
+  new troubleshooting entries. QUICK-START's `.env` command was missing
+  `COMPOSE_PROFILES=local-db`, without which no database container starts.
+- The wiki text was refreshed from v2.8 to v2.18.1.
+
+### 🧹 Removed
+
+- Third-party agent skill files under `.agents/` that had been committed by
+  accident, and a design spec for a feature that shipped in 2.17.0.
+
 ## [2.18.1] - 2026-10-02
 
 ### 🐛 Fixed

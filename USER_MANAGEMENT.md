@@ -12,10 +12,27 @@ This document covers the authentication system, user roles, and admin operations
 - System settings
 
 ### User
-- Read and write access to investigation data (people, cases, tools, etc.)
+- Read and write access to investigation data (people, cases, assets, etc.) **in the projects they are a member of** — nothing else is visible to them
 - Cannot manage other users
 - Cannot view audit logs
 - Cannot export data
+- Cannot create or delete projects
+
+### Project roles
+
+Access to investigation data is granted per project. A non-admin user sees a
+project only after being added to it, with one of two roles:
+
+| Project role | Can do |
+|--------------|--------|
+| **Manager** | Everything an investigator can, plus edit the project's settings and add, change or remove its members |
+| **Investigator** | Read and write the project's records |
+
+The role belongs to the membership, not the account: the same user can be a
+manager on one project and an investigator on another. Admins bypass
+membership and can reach every project. Members are managed from the project's
+member list; these rules are enforced by the API on every project-scoped
+route, not just hidden in the interface.
 
 ---
 
@@ -47,7 +64,7 @@ Email is optional. Password requirements:
 
 ### Managing Users (Admin only)
 1. Log in as admin
-2. Go to **User Management** in the sidebar
+2. Go to **Settings → User Management**
 3. Available actions:
    - **Add User** — create a new account
    - **Edit** — update name, email, role, or reset password
@@ -65,7 +82,7 @@ Email is optional. Password requirements:
 | Active | ✅ | Inactive users cannot log in |
 
 ### Viewing Audit Logs (Admin only)
-1. Click **Audit Logs** in the sidebar
+1. Go to **Settings → Audit Logs**
 2. Filter by entity type, action, date range, or user
 
 Audit logs record: what changed, who changed it, when, and the before/after values.
@@ -93,7 +110,8 @@ Enforced at every password-setting point (login, change, admin create, admin res
 - Password change: **5 attempts per hour**
 
 ### Access Control
-- All API endpoints require authentication
+- API endpoints require authentication, apart from login, the session check, the health probe and the branding shown on the login screen
+- Project-scoped data requires membership of that project (admins excepted)
 - Admin endpoints perform a **live database lookup** on every request — stale or revoked sessions are rejected immediately
 - Users cannot escalate their own privileges
 - Admins cannot delete or demote themselves
@@ -101,6 +119,10 @@ Enforced at every password-setting point (login, change, admin create, admin res
 ---
 
 ## API Reference
+
+The tables below cover accounts and auditing. The complete, browsable
+reference is at `/api/docs` on your instance (signed-in users), and for the
+latest release at https://elm1nst3r.github.io/GHOST-osint-crm/.
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -115,10 +137,19 @@ Enforced at every password-setting point (login, change, admin create, admin res
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/users` | List all users |
+| GET | `/api/users/directory` | Active users (id, username, email) for member pickers — any signed-in user |
 | GET | `/api/users/:id` | Get user |
 | POST | `/api/users` | Create user |
 | PUT | `/api/users/:id` | Update user |
 | DELETE | `/api/users/:id` | Delete user |
+
+### Project membership
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects/:id/members` | List members — any member of the project |
+| POST | `/api/projects/:id/members` | Add a user — manager or admin |
+| PUT | `/api/projects/:id/members/:userId` | Change a member's role — manager or admin |
+| DELETE | `/api/projects/:id/members/:userId` | Remove a member — manager or admin |
 
 ### Audit Logs (Admin only)
 | Method | Endpoint | Description |
@@ -132,6 +163,7 @@ Enforced at every password-setting point (login, change, admin create, admin res
 ## Environment Variables
 
 ```env
+COMPOSE_PROFILES=local-db
 SESSION_SECRET=<generate with: openssl rand -base64 32>
 FRONTEND_URL=http://localhost:8080
 

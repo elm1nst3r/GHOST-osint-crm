@@ -293,3 +293,6 @@ backend/package-lock.json
 !backend/.env.example
 # Local build of the API catalogue (backend/scripts/build-api-docs.js)
 _site/
+
+# Locally installed agent skills (third-party; not part of the project)
+.agents/
