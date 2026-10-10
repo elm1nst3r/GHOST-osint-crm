@@ -135,6 +135,14 @@ initializeDatabase().then(() => {
   app.locals.projectRetentionService.start();
 }).catch((err) => {
   console.error('Error during database initialization:', err.stack);
+  // An unreachable database otherwise shows up only as "container is
+  // unhealthy" in `docker compose up` (issue #94), so name the likely cause.
+  if (['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ETIMEDOUT'].includes(err.code)) {
+    const target = `${process.env.DB_HOST || 'db'}:${process.env.DB_PORT || '5432'}`;
+    console.error(`Cannot reach PostgreSQL at ${target}. If you use the bundled database, check that ` +
+      'the db container is running (`docker compose ps -a`). If you use your own server, check ' +
+      'DB_HOST/DB_PORT in .env.');
+  }
   process.exit(1);
 });
 

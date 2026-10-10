@@ -75,14 +75,15 @@ services:
   # Database Service (PostgreSQL)
   #
   # Pointing GHOST at your own PostgreSQL server instead? Set DB_HOST/DB_PORT
-  # (and DB_USER/DB_PASSWORD/DB_NAME) in .env to that server, then leave
-  # COMPOSE_PROFILES unset/empty so this bundled container never starts. The
-  # `profiles` key below is what makes that skip possible — services outside
-  # an active profile are not created, and `required: false` on backend's
+  # (and DB_USER/DB_PASSWORD/DB_NAME) in .env to that server and add
+  # COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml, which keeps
+  # this bundled container from starting. `required: false` on backend's
   # depends_on above means backend won't wait on or fail over a db that was
   # never started.
+  #
+  # 2.17.0-2.18.x put this service behind a `local-db` profile instead, which
+  # silently stopped the database for anyone whose .env predated it (#94).
   db:
-    profiles: ["local-db"]
     image: postgres:15-alpine
     container_name: osint-crm-db
     environment:

@@ -14,14 +14,14 @@ git clone https://github.com/elm1nst3r/GHOST-osint-crm.git
 cd GHOST-osint-crm
 
 # Generate .env with secure random credentials
-printf "COMPOSE_PROFILES=local-db\nDB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
+printf "DB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
 ```
 
 `SESSION_SECRET` and `DB_PASSWORD` are **mandatory** — the backend refuses to
 start without them, and weak passwords (`changeme`, `password`, …) are rejected.
-`COMPOSE_PROFILES=local-db` starts the bundled PostgreSQL container; without
-that line no database is started (leave it out only if you point GHOST at your
-own PostgreSQL server).
+This uses the bundled PostgreSQL container. To point GHOST at your own
+PostgreSQL server instead, see "Using an external PostgreSQL server" in the
+README.
 
 ## 3. Start the Stack
 

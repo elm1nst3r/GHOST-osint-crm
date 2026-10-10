@@ -1,0 +1,14 @@
+# File: docker-compose.external-db.yml
+#
+# Use your own PostgreSQL server instead of the bundled `db` container.
+# Enable it by adding this line to .env:
+#
+#     COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml
+#
+# and set DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME there to your server.
+# Putting `db` behind a profile that is never activated keeps Compose from
+# creating it. GHOST still runs its migrations against your server at startup.
+
+services:
+  db:
+    profiles: ["bundled-db-disabled"]

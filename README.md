@@ -141,7 +141,7 @@ git clone <repo-url>
 cd GHOST-osint-crm
 
 # Generate .env with secure random credentials
-printf "COMPOSE_PROFILES=local-db\nDB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
+printf "DB_PASSWORD=$(openssl rand -base64 24)\nSESSION_SECRET=$(openssl rand -base64 32)\nDB_USER=postgres\nDB_NAME=osint_crm_db\nDB_HOST=db\nDB_PORT=5432\nNODE_ENV=development\nPORT=3001\nFRONTEND_URL=http://localhost:8080\n" > .env
 
 # Start all services (pulls prebuilt images — no local build needed)
 docker compose pull
@@ -177,10 +177,14 @@ record belongs to one.
 
 **Using an external PostgreSQL server instead of the bundled container?**
 Set `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` in `.env` to point
-at it, and clear `COMPOSE_PROFILES` (delete the line, or set it to an empty
-value). The bundled `db` service only starts when `COMPOSE_PROFILES=local-db`
-is set, so clearing it skips starting a local Postgres container entirely —
-you're then responsible for that server's backups and monitoring yourself.
+at it, and add this line to `.env`:
+
+```bash
+COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml
+```
+
+That keeps the bundled `db` container from starting — you're then
+responsible for that server's backups and monitoring yourself.
 GHOST still runs its own migrations against it at startup.
 
 ## 🔄 Updating
@@ -201,11 +205,12 @@ If you build from source (required on ARM), replace the last two lines with
 Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in a Docker volume and is not touched.
 
-**If your `.env` predates this update**, add `COMPOSE_PROFILES=local-db` to
-it before running `docker compose up -d`. The bundled PostgreSQL container is
-now opt-in via that profile (see [Quick Start](#-quick-start-docker)) so an
-external database can be used instead — without the line, `docker compose
-up -d` will no longer start your local `db` container.
+**Coming from 2.17.0–2.18.x with your own PostgreSQL server?** Those
+versions skipped the bundled database when `COMPOSE_PROFILES` was cleared;
+that no longer works. Add
+`COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml` to `.env`
+instead (see [Quick Start](#-quick-start-docker)). A leftover
+`COMPOSE_PROFILES=local-db` line is harmless and can stay.
 
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 

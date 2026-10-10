@@ -5,6 +5,24 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed
+
+- **Upgrading from 2.16 or earlier left the backend "unhealthy" (#94).**
+  2.17.0 put the bundled PostgreSQL container behind a `local-db` Compose
+  profile, so a `.env` without `COMPOSE_PROFILES=local-db` — every `.env`
+  created before 2.17 — started no database at all. The bundled database
+  starts by default again. Using your own PostgreSQL server is now an
+  opt-in instead: add
+  `COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml` to
+  `.env`. **If you cleared `COMPOSE_PROFILES` on 2.17/2.18 to use an
+  external server, add that line** — otherwise an idle bundled database
+  container will start alongside (GHOST keeps using the server in
+  `DB_HOST`).
+- When the backend cannot reach PostgreSQL at startup it now logs the
+  host and port it tried and what to check, instead of only a stack trace.
+
 ## [2.18.2] - 2026-10-02
 
 ### 🐛 Fixed

@@ -163,7 +163,6 @@ latest release at https://elm1nst3r.github.io/GHOST-osint-crm/.
 ## Environment Variables
 
 ```env
-COMPOSE_PROFILES=local-db
 SESSION_SECRET=<generate with: openssl rand -base64 32>
 FRONTEND_URL=http://localhost:8080
 
