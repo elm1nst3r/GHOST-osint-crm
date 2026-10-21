@@ -1845,6 +1845,7 @@
     "roleInvestigator": "Исследователь",
     "roleHint": "Исследователи имеют полный доступ к данным этого проекта. Менеджеры также могут управлять настройками проектов и членством.",
     "adminHint": "Администраторы всегда имеют доступ к каждому проекту и не перечислены здесь.",
+    "managerHint": "Only an administrator can add, change or remove managers. You can't change your own membership.",
     "confirmRemove": "Удалить этого участника из проекта?",
     "errorAdd": "Не удалось добавить участника",
     "errorUpdateRole": "Не удалось обновить роль участника.",
