@@ -83,7 +83,17 @@ Settings → User Management (admin only), or via CLI:
 docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
 ```
 Non-admin users only see projects they have been added to — add them from the
-project's member list. See [USER_MANAGEMENT.md](USER_MANAGEMENT.md).
+project's member list (the people icon in the project selector's edit view),
+with one of three project roles:
+
+- **Owner** — manages the project's managers and investigators. Only an admin
+  can appoint or remove owners.
+- **Manager** — edits project settings and adds or removes investigators.
+- **Investigator** — works with the project's data.
+
+Nobody but an admin can change their own membership. See
+[USER_MANAGEMENT.md](USER_MANAGEMENT.md#roles-and-hierarchy) for the full
+permission table.
 
 ### Export / import data
 Settings → Import / Export (admin only) — investigation data as one JSON file.
@@ -167,6 +177,6 @@ with logs, steps to reproduce, Docker version, and OS.
 - [README.md](README.md) — full feature list and documentation
 - [CHANGELOG.md](CHANGELOG.md) — version history
 - [SECURITY.md](SECURITY.md) — hardening posture and disclosure process
-- [USER_MANAGEMENT.md](USER_MANAGEMENT.md) — roles and account administration
+- [USER_MANAGEMENT.md](USER_MANAGEMENT.md) — roles, user hierarchy and account administration
 - [mcp/README.md](mcp/README.md) — MCP server setup
 - [Project Wiki](https://github.com/elm1nst3r/GHOST-osint-crm/wiki) — guided tour with screenshots

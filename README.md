@@ -80,8 +80,35 @@ If this project is ever shelved, this section will be updated and the repository
 - **Projects are the hard isolation boundary**: every person, business, asset, transaction, wireless network, and relationship belongs to exactly one project — separate investigations don't bleed into each other, including in the geocoding cache
 - **Cases nest inside a project**: a lighter grouping for different angles or hypotheses within the same investigation
 - **Cross-project linking**: off by default, an opt-in per-project setting for the rare case where the same person legitimately resurfaces in an unrelated story — linked entities stay owned by their home project and show a "from Project X" badge
-- **Per-project roles**: Administrators see and manage every project; each other user is added to specific projects as an **Owner** (also manages the project's managers), a **Manager** (also edits project settings and adds or removes investigators) or an **Investigator** (full access to that project's data only) — enforced on the backend, not just the UI
+- **Per-project roles**: Administrators see and manage every project; each other user is added to specific projects as an **Owner**, **Manager** or **Investigator** — see [Roles & Permissions](#-roles--permissions) below. Enforced on the backend, not just the UI
 - **First-run project gate**: a fresh install or a newly-added user is walked into picking or creating a project before anything else is usable
+
+### 👥 Roles & Permissions
+
+Every account is either an **Administrator** or a regular **User**. Users only
+see projects they've been added to, and hold one role per project:
+
+```
+Administrator   every project, every setting; the only one who appoints owners
+  └─ Owner      per project: manages managers and investigators
+      └─ Manager       per project: edits project settings, manages investigators
+          └─ Investigator  per project: works with the project's data
+```
+
+| | Admin | Owner | Manager | Investigator |
+|---|:---:|:---:|:---:|:---:|
+| Read and write project data | ✅ | ✅ | ✅ | ✅ |
+| Edit project settings | ✅ | ✅ | ✅ | — |
+| Add / remove investigators | ✅ | ✅ | ✅ | — |
+| Add / promote / demote / remove managers | ✅ | ✅ | — | — |
+| Appoint, change or remove owners | ✅ | — | — | — |
+| Create or delete projects | ✅ | — | — | — |
+| Users, audit logs, export/import, system settings | ✅ | — | — | — |
+
+Roles are per project, so the same person can own one project, manage
+another, investigate in a third and not see a fourth at all. Nobody but an
+administrator can change their own membership. Full details in
+[USER_MANAGEMENT.md](USER_MANAGEMENT.md#roles-and-hierarchy).
 
 ### 📊 Case Management
 - **Multi-case support**: Manage multiple investigations within a project
@@ -313,7 +340,7 @@ GHOST-osint-crm/
 ## 🎮 Usage Guide
 
 ### Starting a New Investigation
-1. **Select or create a project** — the top-bar project selector; a fresh install or a newly-added user is prompted for this before anything else is usable
+1. **Select or create a project** — the top-bar project selector; a fresh install or a newly-added user is prompted for this before anything else is usable. Working as a team? An admin adds an **owner** from the project's member list, and the owner brings in managers and investigators (see [Roles & Permissions](#-roles--permissions))
 2. **Create a case** in the Cases section (optional — a lighter grouping inside the project, for different angles on the same investigation)
 3. **Add people** with all relevant details
 4. **Map connections** in Entity Network view
@@ -382,7 +409,7 @@ GHOST-osint-crm/
 - 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
-- 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); a Manager role can edit project settings and membership, an Investigator role cannot
+- 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); membership changes are rank-checked (owner > manager > investigator), only admins appoint owners, and nobody but an admin can change their own membership — see [Roles & Permissions](#-roles--permissions)
 - 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
 - 🔒 **Request body validation** — every POST/PUT route validates against a Zod schema; unknown fields are stripped and errors are returned per-field
 - 🔒 **Error detail suppression** — raw database error messages are not exposed to clients when `NODE_ENV=production`

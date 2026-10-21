@@ -201,7 +201,7 @@ const spec = {
   security: [{ cookieAuth: [] }],
   tags: [
     { name: 'Auth', description: 'Session login/logout and the current user profile.' },
-    { name: 'Projects', description: 'Projects are the isolation boundary: every case-scoped record belongs to exactly one. Includes per-project membership and roles.' },
+    { name: 'Projects', description: 'Projects are the isolation boundary: every case-scoped record belongs to exactly one. Non-admins only reach projects they are members of, with one role per project: owner > manager > investigator. Owners and managers edit project settings; membership changes are allowed only on members ranked below the caller, never on the caller themselves, and only admins appoint or remove owners. Creating and deleting projects is admin-only.' },
     { name: 'Cases', description: 'Cases group records inside a project.' },
     { name: 'People', description: 'Person records, including their locations.' },
     { name: 'Travel History', description: 'Travel entries and pattern analysis for a person.' },

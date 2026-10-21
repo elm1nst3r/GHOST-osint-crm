@@ -2,43 +2,86 @@
 
 This document covers the authentication system, user roles, and admin operations for GHOST OSINT CRM.
 
-## User Roles
+## Roles and Hierarchy
 
-### Admin
-- Full access to all data and features
+GHOST has two kinds of role:
+
+- an **account role** (`admin` or `user`), set on the user account by an
+  administrator, which decides whether someone can run the instance;
+- a **project role** (`owner`, `manager` or `investigator`), held on each
+  project membership, which decides what a non-admin can do *inside that
+  project*.
+
+```
+Administrator          account role — every project, every setting
+  │
+  └─ User              account role — only projects they are a member of
+       │                (one project role per membership)
+       ├─ Owner        manages the project's managers and investigators
+       ├─ Manager      edits project settings, manages investigators
+       └─ Investigator works with the project's data
+```
+
+The project role belongs to the membership, not the account. The same user
+can be an owner on one project, a manager on another and an investigator on
+a third, and not a member of a fourth at all — in which case that project
+does not exist as far as they can tell. Administrators are never listed as
+members; they reach every project regardless.
+
+### Administrator
+
+- Everything in every project, without being a member
+- Create and delete projects
+- Make someone a project **owner**, and change or remove owners
 - User management (create, edit, deactivate, delete)
-- Audit log access
-- Data export / import
-- System settings
+- Audit logs, data export / import, system health
+- System settings: branding, geocoding, update checks, archived-project
+  retention, Settings → Data Model, custom fields
+- Batch geocoding and bulk deletes
 
 ### User
-- Read and write access to investigation data (people, cases, assets, etc.) **in the projects they are a member of** — nothing else is visible to them
-- Cannot manage other users
-- Cannot view audit logs
-- Cannot export data
-- Cannot create or delete projects
 
-### Project roles
+A user sees and can reach only the projects they have been added to. What
+they can do there depends on their project role.
 
-Access to investigation data is granted per project. A non-admin user sees a
-project only after being added to it, with one of three roles:
+| | Owner | Manager | Investigator |
+|---|:---:|:---:|:---:|
+| Read and write the project's records | ✅ | ✅ | ✅ |
+| See the project's member list | ✅ | ✅ | ✅ |
+| Edit project settings (name, description, icon, status, cross-project linking) | ✅ | ✅ | — |
+| Add and remove investigators | ✅ | ✅ | — |
+| Add, promote, demote and remove managers | ✅ | — | — |
+| Make someone an owner, or change / remove an owner | — | — | — |
+| Change their own membership | — | — | — |
+| Create or delete projects | — | — | — |
 
-| Project role | Can do |
-|--------------|--------|
-| **Owner** | Everything a manager can, plus add, change or remove the project's managers |
-| **Manager** | Everything an investigator can, plus edit the project's settings and add or remove investigators |
-| **Investigator** | Read and write the project's records |
+The membership rule behind the table: **a non-admin can only act on members
+ranked below themselves (owner > manager > investigator), can only grant
+roles below their own, and can never change their own membership.** Only an
+administrator can appoint, change or remove an owner, so there is always
+someone above every project role who can fix a mistake.
 
-Only an admin can make someone an owner, or change or remove an owner. Owners
-and managers can only act on members ranked below themselves, and nobody but
-an admin can change their own membership. Deleting a project stays admin-only.
+Two project settings deserve care when you hand out the manager role:
 
-The role belongs to the membership, not the account: the same user can be an
-owner on one project, a manager on another and an investigator on a third,
-and not a member of a fourth at all. Admins bypass
-membership and can reach every project. Members are managed from the project's
-member list; these rules are enforced by the API on every project-scoped
-route, not just hidden in the interface.
+- **Closing a project** (status *Closed*) starts the archived-project
+  retention clock if an administrator has enabled a retention period —
+  when it runs out, the project and all its data are deleted.
+- **Cross-project linking** allows relationships in this project to point
+  at records that belong to other projects. It is off by default.
+
+### Typical setup
+
+1. An administrator creates the user accounts (Settings → User Management),
+   all with the `user` role.
+2. The administrator creates a project and, from the project's member list,
+   adds one or more **owners**.
+3. Owners add **managers**; owners or managers add **investigators**.
+4. Day-to-day membership changes no longer need the administrator, except
+   for anything involving an owner.
+
+All of this is enforced by the API on every project-scoped route, not just
+hidden in the interface; the member list only shows each person the
+controls they are allowed to use.
 
 ---
 
@@ -84,7 +127,7 @@ Email is optional. Password requirements:
 | Password | ✅ (new users) | Must meet password policy above |
 | Email | ❌ | Optional |
 | First / Last Name | ❌ | Optional |
-| Role | ✅ | `admin` or `user` |
+| Role | ✅ | `admin` or `user` — the account role. Project roles are set per project, from that project's member list |
 | Active | ✅ | Inactive users cannot log in |
 
 ### Viewing Audit Logs (Admin only)
@@ -118,6 +161,7 @@ Enforced at every password-setting point (login, change, admin create, admin res
 ### Access Control
 - API endpoints require authentication, apart from login, the session check, the health probe and the branding shown on the login screen
 - Project-scoped data requires membership of that project (admins excepted)
+- Membership changes are rank-checked: owners and managers can only act on members below them, and nobody but an admin can change their own membership
 - Admin endpoints perform a **live database lookup** on every request — stale or revoked sessions are rejected immediately
 - Users cannot escalate their own privileges
 - Admins cannot delete or demote themselves

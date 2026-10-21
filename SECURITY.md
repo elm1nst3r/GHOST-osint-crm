@@ -42,6 +42,7 @@ replacing the images.
 
 ### Authorisation
 - ✅ Two global roles (`admin`, `user`) plus a per-project role (`owner`, `manager`, `investigator`) held on the membership
+- ✅ Membership changes are rank-checked server-side: a non-admin can only act on members ranked below them, only grant roles below their own, and never change their own membership; only admins appoint or remove owners
 - ✅ Projects are an isolation boundary: non-admins can read and write only the projects they are members of, enforced on every project-scoped API route — list endpoints are constrained to the caller's memberships even when no project is requested
 - ✅ Project membership is checked with a live query on every request, so removing a member takes effect immediately
 - ✅ Linking records across projects is off unless enabled per project

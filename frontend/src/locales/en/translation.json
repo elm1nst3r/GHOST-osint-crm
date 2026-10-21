@@ -1828,7 +1828,7 @@
     "titleFirstRun": "Create your first project",
     "descriptionFirstRun": "Projects are the isolation boundary for your data — create one to get started.",
     "titleNoMemberships": "No projects yet",
-    "descriptionNoMemberships": "You haven't been added to any projects. Ask an administrator or project manager to add you.",
+    "descriptionNoMemberships": "You haven't been added to any projects. Ask an administrator, or a project owner or manager, to add you.",
     "titlePick": "Select a project",
     "descriptionPick": "Pick a project to continue, or create a new one.",
     "namePlaceholder": "Project name...",
