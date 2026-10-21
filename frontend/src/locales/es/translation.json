@@ -1845,6 +1845,7 @@
     "roleInvestigator": "Investigator",
     "roleHint": "Investigators have full access to this project's data. Managers can also manage project settings and membership.",
     "adminHint": "Administrators always have access to every project and aren't listed here.",
+    "managerHint": "Only an administrator can add, change or remove managers. You can't change your own membership.",
     "confirmRemove": "Remove this member from the project?",
     "errorAdd": "Failed to add member",
     "errorUpdateRole": "Failed to update member role",
