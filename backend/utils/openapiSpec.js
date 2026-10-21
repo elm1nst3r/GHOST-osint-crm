@@ -408,7 +408,7 @@ const spec = {
         responseSchema: objectArray,
       }),
       post: op('Projects', 'Add a user to a project', {
-        description: 'Requires the manager role on the project, or admin. Returns 409 if the user is already a member.',
+        description: 'Requires the manager role on the project, or admin. Only an admin may add someone as a manager. Returns 409 if the user is already a member.',
         params: [idParam],
         body: ref('ProjectMemberCreate'),
         responses: {
@@ -420,13 +420,13 @@ const spec = {
     },
     '/projects/{id}/members/{userId}': {
       put: op('Projects', "Change a member's project role", {
-        description: 'Requires the manager role on the project, or admin.',
+        description: "Requires the manager role on the project, or admin. A manager may only change investigators' roles, may not grant the manager role, and may not change their own membership.",
         params: [idParam, userIdParam],
         body: ref('ProjectMemberUpdate'),
         responses: { 403: jsonResponse('Not a manager of this project', ref('Error')) },
       }),
       delete: op('Projects', 'Remove a member from a project', {
-        description: 'Requires the manager role on the project, or admin.',
+        description: 'Requires the manager role on the project, or admin. A manager may only remove investigators, and may not remove themselves.',
         params: [idParam, userIdParam],
         responses: { 403: jsonResponse('Not a manager of this project', ref('Error')) },
       }),

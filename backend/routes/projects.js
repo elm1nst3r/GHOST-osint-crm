@@ -5,7 +5,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, ProjectCreateSchema, ProjectUpdateSchema, ProjectMemberCreateSchema, ProjectMemberUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
-const { requireProjectMember, requireProjectManager } = require('../utils/projectAccess');
+const { requireProjectMember, requireProjectManager, memberChangeError, getUserProjectRole } = require('../utils/projectAccess');
 const { deleteProjectCascade, getProjectStats } = require('../utils/deleteProjectCascade');
 
 router.use(apiLimiter);
@@ -150,7 +150,8 @@ router.delete('/:id', requireAuth, requireAdmin, validateIdParam, async (req, re
 });
 
 // ── Membership (issue #84) ───────────────────────────────────────────────────
-// Read: any member (or admin) of the project. Write: manager or admin only.
+// Read: any member (or admin) of the project. Write: manager or admin only,
+// and a manager may only manage investigators — see memberChangeError (#95).
 
 router.get('/:id/members', requireAuth, validateIdParam, async (req, res) => {
   const projectId = req.params.id;
@@ -180,6 +181,11 @@ router.post('/:id/members', requireAuth, validateIdParam, validate(ProjectMember
 
   const accessErr = await requireProjectManager(req, projectId);
   if (accessErr) return res.status(403).json({ error: accessErr });
+  const ruleErr = memberChangeError({
+    isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+    targetUserId: user_id, action: 'add', targetRole: null, newRole: project_role,
+  });
+  if (ruleErr) return res.status(403).json({ error: ruleErr });
 
   try {
     const userCheck = await pool.query('SELECT id FROM users WHERE id = $1 AND is_active = TRUE', [user_id]);
@@ -210,6 +216,14 @@ router.put('/:id/members/:userId', requireAuth, validateIdParam, validate(Projec
   if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
+    const targetRole = await getUserProjectRole(userId, projectId);
+    if (!targetRole) return res.status(404).json({ error: 'Membership not found' });
+    const ruleErr = memberChangeError({
+      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+      targetUserId: userId, action: 'update', targetRole, newRole: project_role,
+    });
+    if (ruleErr) return res.status(403).json({ error: ruleErr });
+
     const result = await pool.query(
       `UPDATE project_members SET project_role = $1
        WHERE project_id = $2 AND user_id = $3
@@ -233,6 +247,14 @@ router.delete('/:id/members/:userId', requireAuth, validateIdParam, async (req, 
   if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
+    const targetRole = await getUserProjectRole(userId, projectId);
+    if (!targetRole) return res.status(404).json({ error: 'Membership not found' });
+    const ruleErr = memberChangeError({
+      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+      targetUserId: userId, action: 'remove', targetRole, newRole: null,
+    });
+    if (ruleErr) return res.status(403).json({ error: ruleErr });
+
     const result = await pool.query(
       'DELETE FROM project_members WHERE project_id = $1 AND user_id = $2 RETURNING *',
       [projectId, userId]

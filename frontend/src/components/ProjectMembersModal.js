@@ -11,9 +11,15 @@ import { useTranslation } from 'react-i18next';
 import { Users, Plus, Trash2, Shield, UserCog, User, X, AlertCircle } from 'lucide-react';
 import { projectMembersAPI } from '../utils/api';
 import { usersAPI } from '../utils/authAPI';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProjectMembersModal = ({ project, onClose }) => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
+  // Mirrors memberChangeError on the backend (issue #95): only admins manage
+  // managers; a manager manages investigators and can't edit their own row.
+  const isAdmin = project.my_role === 'admin';
+  const canEditMember = (m) => isAdmin || (m.project_role !== 'manager' && m.user_id !== currentUser?.id);
   const [members, setMembers] = useState([]);
   const [directory, setDirectory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +56,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
     setSaving(true);
     setError('');
     try {
-      await projectMembersAPI.add(project.id, { user_id: parseInt(newUserId, 10), project_role: newRole });
+      await projectMembersAPI.add(project.id, { user_id: parseInt(newUserId, 10), project_role: isAdmin ? newRole : 'investigator' });
       setNewUserId('');
       await load();
     } catch (err) {
@@ -133,6 +139,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
                         </div>
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap">
+                        {isAdmin ? (
                         <select
                           value={m.project_role}
                           onChange={e => handleRoleChange(m.user_id, e.target.value)}
@@ -141,11 +148,18 @@ const ProjectMembersModal = ({ project, onClose }) => {
                           <option value="investigator">{t('projectMembers.roleInvestigator')}</option>
                           <option value="manager">{t('projectMembers.roleManager')}</option>
                         </select>
+                        ) : (
+                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                            {m.project_role === 'manager' ? t('projectMembers.roleManager') : t('projectMembers.roleInvestigator')}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right">
-                        <button onClick={() => handleRemove(m.user_id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canEditMember(m) && (
+                          <button onClick={() => handleRemove(m.user_id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -166,6 +180,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
                 {availableUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
               </select>
             </div>
+            {isAdmin && (
             <select
               value={newRole}
               onChange={e => setNewRole(e.target.value)}
@@ -174,6 +189,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
               <option value="investigator">{t('projectMembers.roleInvestigator')}</option>
               <option value="manager">{t('projectMembers.roleManager')}</option>
             </select>
+            )}
             <button type="submit" disabled={saving || !newUserId} className="px-4 py-2 bg-accent-primary text-white rounded-lg text-sm disabled:opacity-60 flex items-center gap-1">
               <Plus className="w-4 h-4" />{t('common.add')}
             </button>
@@ -183,6 +199,12 @@ const ProjectMembersModal = ({ project, onClose }) => {
             <UserCog className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>{t('projectMembers.roleHint')}</span>
           </p>
+          {!isAdmin && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+              <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              <span>{t('projectMembers.managerHint')}</span>
+            </p>
+          )}
           <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
             <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>{t('projectMembers.adminHint')}</span>

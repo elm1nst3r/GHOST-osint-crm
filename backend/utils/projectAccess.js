@@ -42,6 +42,31 @@ async function requireProjectManager(req, projectId) {
   return null;
 }
 
+// Which membership changes a caller may make, once requireProjectManager has
+// passed (issue #95). Admins may do anything. A manager may only manage
+// investigators: they can't grant the manager role, can't touch another
+// manager's row, and can't change or remove their own membership (which
+// otherwise let a manager demote or remove themselves, or the colleague
+// who appointed them). Pure, so it's unit-tested without a database.
+//
+//   action:     'add' | 'update' | 'remove'
+//   targetRole: the target's current project_role (null for 'add')
+//   newRole:    the role being granted (null for 'remove')
+// Returns null if allowed, otherwise an error message for a 403.
+function memberChangeError({ isAdmin, actorId, targetUserId, action, targetRole, newRole }) {
+  if (isAdmin) return null;
+  if (action !== 'add' && Number(targetUserId) === Number(actorId)) {
+    return 'You cannot change your own project membership';
+  }
+  if (targetRole === 'manager') {
+    return 'Only an administrator can change or remove a project manager';
+  }
+  if (newRole === 'manager') {
+    return 'Only an administrator can assign the manager role';
+  }
+  return null;
+}
+
 // List-endpoint scoping. Mutates `where`/`params` in place (matching the
 // incremental where.push/params.push convention every route already uses)
 // and returns an error string if the request should be rejected (asked
@@ -84,5 +109,6 @@ module.exports = {
   getUserProjectRole,
   requireProjectMember,
   requireProjectManager,
+  memberChangeError,
   applyProjectScope,
 };
