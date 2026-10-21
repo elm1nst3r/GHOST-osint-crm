@@ -5,6 +5,30 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.4] - 2026-10-21
+
+### 🔒 Fixed
+
+- **Project managers could manage other managers, and themselves (#95).**
+  The membership endpoints only checked that the caller was a manager on
+  the project, never who was being changed or which role was granted. A
+  manager could add or promote managers, demote or remove other managers
+  (including whoever appointed them), and change or remove their own
+  membership. A manager can now only add and remove investigators, and
+  cannot change their own membership; only an administrator can assign,
+  change or remove a manager. Enforced by the API, and the members dialog
+  hides the controls a manager can no longer use.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+No database changes.
+
 ## [2.18.3] - 2026-10-10
 
 ### 🐛 Fixed
