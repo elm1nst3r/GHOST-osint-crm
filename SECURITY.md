@@ -41,7 +41,7 @@ replacing the images.
 - ✅ Session cookies: `HttpOnly`, `SameSite=Strict`; `secure: true` enabled automatically when `NODE_ENV=production`
 
 ### Authorisation
-- ✅ Two global roles (`admin`, `user`) plus a per-project role (`manager`, `investigator`) held on the membership
+- ✅ Two global roles (`admin`, `user`) plus a per-project role (`owner`, `manager`, `investigator`) held on the membership
 - ✅ Projects are an isolation boundary: non-admins can read and write only the projects they are members of, enforced on every project-scoped API route — list endpoints are constrained to the caller's memberships even when no project is requested
 - ✅ Project membership is checked with a live query on every request, so removing a member takes effect immediately
 - ✅ Linking records across projects is off unless enabled per project

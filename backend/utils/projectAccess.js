@@ -1,8 +1,8 @@
 // File: backend/utils/projectAccess.js
 // Project membership enforcement (issue #84). Admin bypasses membership
 // entirely (matches pre-#84 behavior); everyone else must hold a
-// project_members row to touch that project's data at all, and a
-// 'manager' row specifically to edit project settings or membership.
+// project_members row to touch that project's data at all, and an 'owner'
+// or 'manager' row to edit project settings or membership.
 //
 // Checks are always a live query, never cached on the session -- unlike
 // requireRole's trust of req.session.userRole (fine for a global role that
@@ -32,37 +32,47 @@ async function requireProjectMember(req, projectId) {
   return null;
 }
 
+// Project roles, lowest first (issue #95). Owners and managers may edit
+// project settings and membership; investigators work with the data only.
+const PROJECT_ROLE_RANK = { investigator: 1, manager: 2, owner: 3 };
+const rankOf = (role) => PROJECT_ROLE_RANK[role] || 0;
+
 // Returns null if the session user may manage projectId's settings/
-// membership (admin, or a 'manager' row); otherwise an error message.
+// membership (admin, or an 'owner' or 'manager' row); otherwise an error
+// message.
 async function requireProjectManager(req, projectId) {
   if (req.session.userRole === 'admin') return null;
   if (projectId == null) return 'project_id is required';
   const role = await getUserProjectRole(req.session.userId, projectId);
-  if (role !== 'manager') return `Manager access is required for project ${projectId}`;
+  if (rankOf(role) < PROJECT_ROLE_RANK.manager) return `Owner or manager access is required for project ${projectId}`;
   return null;
 }
 
 // Which membership changes a caller may make, once requireProjectManager has
-// passed (issue #95). Admins may do anything. A manager may only manage
-// investigators: they can't grant the manager role, can't touch another
-// manager's row, and can't change or remove their own membership (which
-// otherwise let a manager demote or remove themselves, or the colleague
-// who appointed them). Pure, so it's unit-tested without a database.
+// passed (issue #95). Admins may do anything. Everyone else may only act on
+// members ranked below themselves and grant roles ranked below their own, so
+// an owner manages managers and investigators, a manager manages
+// investigators, and only an admin appoints or removes owners. Nobody but an
+// admin may change their own membership: before 2.18.4 a manager could
+// demote or remove themselves, or the colleague who appointed them.
+// Pure, so it's unit-tested without a database.
 //
+//   actorRole:  the caller's project_role (ignored for admins)
 //   action:     'add' | 'update' | 'remove'
 //   targetRole: the target's current project_role (null for 'add')
 //   newRole:    the role being granted (null for 'remove')
 // Returns null if allowed, otherwise an error message for a 403.
-function memberChangeError({ isAdmin, actorId, targetUserId, action, targetRole, newRole }) {
+function memberChangeError({ isAdmin, actorId, actorRole, targetUserId, action, targetRole, newRole }) {
   if (isAdmin) return null;
   if (action !== 'add' && Number(targetUserId) === Number(actorId)) {
     return 'You cannot change your own project membership';
   }
-  if (targetRole === 'manager') {
-    return 'Only an administrator can change or remove a project manager';
+  const actorRank = rankOf(actorRole);
+  if (targetRole && rankOf(targetRole) >= actorRank) {
+    return `You cannot change or remove a project ${targetRole}`;
   }
-  if (newRole === 'manager') {
-    return 'Only an administrator can assign the manager role';
+  if (newRole && rankOf(newRole) >= actorRank) {
+    return `You cannot assign the ${newRole} role`;
   }
   return null;
 }
@@ -110,5 +120,6 @@ module.exports = {
   requireProjectMember,
   requireProjectManager,
   memberChangeError,
+  PROJECT_ROLE_RANK,
   applyProjectScope,
 };

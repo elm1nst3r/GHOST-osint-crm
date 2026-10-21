@@ -316,11 +316,11 @@ const ProjectUpdateSchema = z.object({
 
 const ProjectMemberCreateSchema = z.object({
   user_id: reqId('user_id'),
-  project_role: z.enum(['manager', 'investigator']),
+  project_role: z.enum(['owner', 'manager', 'investigator']),
 });
 
 const ProjectMemberUpdateSchema = z.object({
-  project_role: z.enum(['manager', 'investigator']),
+  project_role: z.enum(['owner', 'manager', 'investigator']),
 });
 
 // ── Relationships ─────────────────────────────────────────────────────────────

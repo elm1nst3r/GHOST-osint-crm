@@ -1,40 +1,76 @@
 jest.mock('../config/database', () => ({ pool: { query: jest.fn() } }));
 const { memberChangeError } = require('./projectAccess');
 
-// Issue #95: a project manager may only manage investigators.
-const manager = { isAdmin: false, actorId: 5 };
-const admin = { isAdmin: true, actorId: 1 };
+// Issue #95: owner > manager > investigator. A non-admin may only act on
+// members ranked below themselves, grant roles below their own, and never
+// change their own membership.
+const owner = { isAdmin: false, actorId: 4, actorRole: 'owner' };
+const manager = { isAdmin: false, actorId: 5, actorRole: 'manager' };
+const admin = { isAdmin: true, actorId: 1, actorRole: null };
 
-describe('memberChangeError', () => {
-  test('manager may add an investigator', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'add', targetRole: null, newRole: 'investigator' })).toBeNull();
+const add = (actor, newRole) => memberChangeError({ ...actor, targetUserId: 9, action: 'add', targetRole: null, newRole });
+const update = (actor, targetRole, newRole, targetUserId = 9) =>
+  memberChangeError({ ...actor, targetUserId, action: 'update', targetRole, newRole });
+const remove = (actor, targetRole, targetUserId = 9) =>
+  memberChangeError({ ...actor, targetUserId, action: 'remove', targetRole, newRole: null });
+
+describe('memberChangeError — manager', () => {
+  test('may add and remove investigators', () => {
+    expect(add(manager, 'investigator')).toBeNull();
+    expect(remove(manager, 'investigator')).toBeNull();
   });
 
-  test('manager may not add a manager', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'add', targetRole: null, newRole: 'manager' })).toMatch(/administrator/);
+  test('may not grant manager or owner', () => {
+    expect(add(manager, 'manager')).toMatch(/manager role/);
+    expect(add(manager, 'owner')).toMatch(/owner role/);
+    expect(update(manager, 'investigator', 'manager')).toMatch(/manager role/);
   });
 
-  test('manager may not promote an investigator to manager', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'update', targetRole: 'investigator', newRole: 'manager' })).toMatch(/administrator/);
+  test('may not change or remove managers or owners', () => {
+    expect(update(manager, 'manager', 'investigator')).toMatch(/project manager/);
+    expect(remove(manager, 'manager')).toMatch(/project manager/);
+    expect(remove(manager, 'owner')).toMatch(/project owner/);
   });
 
-  test('manager may not demote or remove another manager', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'update', targetRole: 'manager', newRole: 'investigator' })).toMatch(/administrator/);
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'remove', targetRole: 'manager', newRole: null })).toMatch(/administrator/);
+  test('may not change or remove their own membership', () => {
+    expect(remove(manager, 'manager', 5)).toMatch(/your own/);
+    expect(update(manager, 'manager', 'investigator', '5')).toMatch(/your own/);
+  });
+});
+
+describe('memberChangeError — owner', () => {
+  test('may add, promote, demote and remove managers and investigators', () => {
+    expect(add(owner, 'manager')).toBeNull();
+    expect(add(owner, 'investigator')).toBeNull();
+    expect(update(owner, 'investigator', 'manager')).toBeNull();
+    expect(update(owner, 'manager', 'investigator')).toBeNull();
+    expect(remove(owner, 'manager')).toBeNull();
+    expect(remove(owner, 'investigator')).toBeNull();
   });
 
-  test('manager may remove an investigator', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 9, action: 'remove', targetRole: 'investigator', newRole: null })).toBeNull();
+  test('may not appoint, change or remove owners', () => {
+    expect(add(owner, 'owner')).toMatch(/owner role/);
+    expect(update(owner, 'manager', 'owner')).toMatch(/owner role/);
+    expect(update(owner, 'owner', 'manager')).toMatch(/project owner/);
+    expect(remove(owner, 'owner')).toMatch(/project owner/);
   });
 
-  test('manager may not change or remove their own membership', () => {
-    expect(memberChangeError({ ...manager, targetUserId: 5, action: 'remove', targetRole: 'manager', newRole: null })).toMatch(/your own/);
-    expect(memberChangeError({ ...manager, targetUserId: '5', action: 'update', targetRole: 'manager', newRole: 'investigator' })).toMatch(/your own/);
+  test('may not change or remove their own membership', () => {
+    expect(remove(owner, 'owner', 4)).toMatch(/your own/);
+    expect(update(owner, 'owner', 'manager', 4)).toMatch(/your own/);
+  });
+});
+
+describe('memberChangeError — admin and investigator', () => {
+  test('admin may do anything, including to owners', () => {
+    expect(add(admin, 'owner')).toBeNull();
+    expect(update(admin, 'owner', 'investigator')).toBeNull();
+    expect(remove(admin, 'owner')).toBeNull();
   });
 
-  test('admin may do anything', () => {
-    expect(memberChangeError({ ...admin, targetUserId: 9, action: 'add', targetRole: null, newRole: 'manager' })).toBeNull();
-    expect(memberChangeError({ ...admin, targetUserId: 9, action: 'remove', targetRole: 'manager', newRole: null })).toBeNull();
-    expect(memberChangeError({ ...admin, targetUserId: 9, action: 'update', targetRole: 'manager', newRole: 'investigator' })).toBeNull();
+  test('investigator (or no role) may do nothing', () => {
+    const investigator = { isAdmin: false, actorId: 6, actorRole: 'investigator' };
+    expect(add(investigator, 'investigator')).not.toBeNull();
+    expect(add({ isAdmin: false, actorId: 7, actorRole: null }, 'investigator')).not.toBeNull();
   });
 });

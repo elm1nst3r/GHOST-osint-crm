@@ -1,8 +1,8 @@
 // File: frontend/src/components/ProjectMembersModal.js
 // Manage a project's membership (issue #84): who can access this project,
-// and whether they're a manager (edits project settings, manages
-// membership) or an investigator (full CRUD on the project's data, nothing
-// else). Modeled on UserManagement.js's list+role-pill+add-form pattern,
+// and whether they're an owner (also manages managers), a manager (edits
+// project settings, manages investigators) or an investigator (full CRUD on
+// the project's data, nothing else) — issue #95. Modeled on UserManagement.js's list+role-pill+add-form pattern,
 // scoped to one project instead of the whole install. Triggered from
 // ProjectSelector's inline edit form, admin/manager only.
 import React, { useState, useEffect, useCallback } from 'react';
@@ -13,13 +13,26 @@ import { projectMembersAPI } from '../utils/api';
 import { usersAPI } from '../utils/authAPI';
 import { useAuth } from '../contexts/AuthContext';
 
+// Lowest first; must match PROJECT_ROLE_RANK in backend/utils/projectAccess.js.
+const ROLES = ['investigator', 'manager', 'owner'];
+const ROLE_RANK = { investigator: 1, manager: 2, owner: 3 };
+const ROLE_LABEL_KEYS = {
+  investigator: 'projectMembers.roleInvestigator',
+  manager: 'projectMembers.roleManager',
+  owner: 'projectMembers.roleOwner',
+};
+
 const ProjectMembersModal = ({ project, onClose }) => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
-  // Mirrors memberChangeError on the backend (issue #95): only admins manage
-  // managers; a manager manages investigators and can't edit their own row.
+  // Mirrors memberChangeError on the backend (issue #95): a non-admin acts
+  // only on members ranked below themselves, grants only roles below their
+  // own, and can't edit their own row.
   const isAdmin = project.my_role === 'admin';
-  const canEditMember = (m) => isAdmin || (m.project_role !== 'manager' && m.user_id !== currentUser?.id);
+  const myRank = isAdmin ? Infinity : (ROLE_RANK[project.my_role] || 0);
+  const assignableRoles = ROLES.filter(r => ROLE_RANK[r] < myRank);
+  const canEditMember = (m) => isAdmin || (ROLE_RANK[m.project_role] < myRank && m.user_id !== currentUser?.id);
+  const roleLabel = (role) => t(ROLE_LABEL_KEYS[role] || 'projectMembers.roleInvestigator');
   const [members, setMembers] = useState([]);
   const [directory, setDirectory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +69,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
     setSaving(true);
     setError('');
     try {
-      await projectMembersAPI.add(project.id, { user_id: parseInt(newUserId, 10), project_role: isAdmin ? newRole : 'investigator' });
+      await projectMembersAPI.add(project.id, { user_id: parseInt(newUserId, 10), project_role: assignableRoles.includes(newRole) ? newRole : 'investigator' });
       setNewUserId('');
       await load();
     } catch (err) {
@@ -139,19 +152,16 @@ const ProjectMembersModal = ({ project, onClose }) => {
                         </div>
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap">
-                        {isAdmin ? (
-                        <select
-                          value={m.project_role}
-                          onChange={e => handleRoleChange(m.user_id, e.target.value)}
-                          className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="investigator">{t('projectMembers.roleInvestigator')}</option>
-                          <option value="manager">{t('projectMembers.roleManager')}</option>
-                        </select>
+                        {canEditMember(m) && assignableRoles.length > 1 ? (
+                          <select
+                            value={m.project_role}
+                            onChange={e => handleRoleChange(m.user_id, e.target.value)}
+                            className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                          >
+                            {assignableRoles.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+                          </select>
                         ) : (
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
-                            {m.project_role === 'manager' ? t('projectMembers.roleManager') : t('projectMembers.roleInvestigator')}
-                          </span>
+                          <span className="text-xs text-gray-700 dark:text-gray-300">{roleLabel(m.project_role)}</span>
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right">
@@ -180,15 +190,14 @@ const ProjectMembersModal = ({ project, onClose }) => {
                 {availableUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
               </select>
             </div>
-            {isAdmin && (
-            <select
-              value={newRole}
-              onChange={e => setNewRole(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            >
-              <option value="investigator">{t('projectMembers.roleInvestigator')}</option>
-              <option value="manager">{t('projectMembers.roleManager')}</option>
-            </select>
+            {assignableRoles.length > 1 && (
+              <select
+                value={newRole}
+                onChange={e => setNewRole(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                {assignableRoles.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              </select>
             )}
             <button type="submit" disabled={saving || !newUserId} className="px-4 py-2 bg-accent-primary text-white rounded-lg text-sm disabled:opacity-60 flex items-center gap-1">
               <Plus className="w-4 h-4" />{t('common.add')}
@@ -202,7 +211,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
           {!isAdmin && (
             <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
               <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-              <span>{t('projectMembers.managerHint')}</span>
+              <span>{t(project.my_role === 'owner' ? 'projectMembers.ownerHint' : 'projectMembers.managerHint')}</span>
             </p>
           )}
           <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">

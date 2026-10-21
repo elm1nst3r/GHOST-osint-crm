@@ -80,7 +80,7 @@ If this project is ever shelved, this section will be updated and the repository
 - **Projects are the hard isolation boundary**: every person, business, asset, transaction, wireless network, and relationship belongs to exactly one project — separate investigations don't bleed into each other, including in the geocoding cache
 - **Cases nest inside a project**: a lighter grouping for different angles or hypotheses within the same investigation
 - **Cross-project linking**: off by default, an opt-in per-project setting for the rare case where the same person legitimately resurfaces in an unrelated story — linked entities stay owned by their home project and show a "from Project X" badge
-- **Per-project roles**: Administrators see and manage every project; each other user is added to specific projects as a **Manager** (also edits project settings and membership) or an **Investigator** (full access to that project's data only) — enforced on the backend, not just the UI
+- **Per-project roles**: Administrators see and manage every project; each other user is added to specific projects as an **Owner** (also manages the project's managers), a **Manager** (also edits project settings and adds or removes investigators) or an **Investigator** (full access to that project's data only) — enforced on the backend, not just the UI
 - **First-run project gate**: a fresh install or a newly-added user is walked into picking or creating a project before anything else is usable
 
 ### 📊 Case Management

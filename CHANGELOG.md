@@ -5,6 +5,26 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ Added
+
+- **Project Owner role (#95).** Projects now have three roles: Owner >
+  Manager > Investigator. Like the others it is per project, so the same
+  person can own one project, manage another and only investigate in a
+  third. An owner can do everything a manager can, plus add, promote,
+  demote and remove managers. Only an administrator can make someone an
+  owner or change or remove one, and deleting a project stays admin-only.
+  Existing members keep their role; nobody becomes an owner until an
+  administrator makes them one. Migration `20261021000001` widens the
+  allowed roles; no data changes.
+
+### 🔒 Changed
+
+- Membership rules are now rank-based: owners and managers can only act
+  on members ranked below them and grant roles below their own, and
+  nobody but an administrator can change their own membership.
+
 ## [2.18.4] - 2026-10-21
 
 ### 🔒 Fixed

@@ -408,27 +408,27 @@ const spec = {
         responseSchema: objectArray,
       }),
       post: op('Projects', 'Add a user to a project', {
-        description: 'Requires the manager role on the project, or admin. Only an admin may add someone as a manager. Returns 409 if the user is already a member.',
+        description: 'Requires the owner or manager role on the project, or admin. Only an admin may add an owner; only an owner or admin may add a manager. Returns 409 if the user is already a member.',
         params: [idParam],
         body: ref('ProjectMemberCreate'),
         responses: {
           201: jsonResponse('Member added', anyObject),
-          403: jsonResponse('Not a manager of this project', ref('Error')),
+          403: jsonResponse('Not an owner or manager of this project, or the change is above their role', ref('Error')),
           409: jsonResponse('Already a member', ref('Error')),
         },
       }),
     },
     '/projects/{id}/members/{userId}': {
       put: op('Projects', "Change a member's project role", {
-        description: "Requires the manager role on the project, or admin. A manager may only change investigators' roles, may not grant the manager role, and may not change their own membership.",
+        description: "Requires the owner or manager role on the project, or admin. Roles rank owner > manager > investigator: a non-admin may only change members ranked below themselves, may only grant roles below their own, and may not change their own membership.",
         params: [idParam, userIdParam],
         body: ref('ProjectMemberUpdate'),
-        responses: { 403: jsonResponse('Not a manager of this project', ref('Error')) },
+        responses: { 403: jsonResponse('Not an owner or manager of this project, or the change is above their role', ref('Error')) },
       }),
       delete: op('Projects', 'Remove a member from a project', {
-        description: 'Requires the manager role on the project, or admin. A manager may only remove investigators, and may not remove themselves.',
+        description: 'Requires the owner or manager role on the project, or admin. A non-admin may only remove members ranked below themselves (owner > manager > investigator), and may not remove themselves.',
         params: [idParam, userIdParam],
-        responses: { 403: jsonResponse('Not a manager of this project', ref('Error')) },
+        responses: { 403: jsonResponse('Not an owner or manager of this project, or the change is above their role', ref('Error')) },
       }),
     },
 

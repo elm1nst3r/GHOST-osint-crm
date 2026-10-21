@@ -10,6 +10,10 @@ const { deleteProjectCascade, getProjectStats } = require('../utils/deleteProjec
 
 router.use(apiLimiter);
 
+// The caller's own project_role, for memberChangeError. Admins don't need one.
+const actorRoleOf = (req, projectId) =>
+  req.session.userRole === 'admin' ? null : getUserProjectRole(req.session.userId, projectId);
+
 // GET / — admins see every project; everyone else sees only projects they're
 // a member of. my_role lets the frontend gate manager-only UI (the members
 // button, project settings edit) without a second request per project
@@ -55,7 +59,7 @@ router.post('/', requireAuth, requireAdmin, validate(ProjectCreateSchema), async
   }
 });
 
-// PUT /:id — admin or that project's manager.
+// PUT /:id — admin, or that project's owner or manager.
 router.put('/:id', requireAuth, validateIdParam, validate(ProjectUpdateSchema), async (req, res) => {
   const projectId = req.params.id;
   const { name, description, status, allow_cross_linking, icon } = req.body;
@@ -150,8 +154,8 @@ router.delete('/:id', requireAuth, requireAdmin, validateIdParam, async (req, re
 });
 
 // ── Membership (issue #84) ───────────────────────────────────────────────────
-// Read: any member (or admin) of the project. Write: manager or admin only,
-// and a manager may only manage investigators — see memberChangeError (#95).
+// Read: any member (or admin) of the project. Write: owner, manager or admin,
+// and only on members ranked below the caller — see memberChangeError (#95).
 
 router.get('/:id/members', requireAuth, validateIdParam, async (req, res) => {
   const projectId = req.params.id;
@@ -182,7 +186,7 @@ router.post('/:id/members', requireAuth, validateIdParam, validate(ProjectMember
   const accessErr = await requireProjectManager(req, projectId);
   if (accessErr) return res.status(403).json({ error: accessErr });
   const ruleErr = memberChangeError({
-    isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+    isAdmin: req.session.userRole === 'admin', actorId: req.session.userId, actorRole: await actorRoleOf(req, projectId),
     targetUserId: user_id, action: 'add', targetRole: null, newRole: project_role,
   });
   if (ruleErr) return res.status(403).json({ error: ruleErr });
@@ -219,7 +223,7 @@ router.put('/:id/members/:userId', requireAuth, validateIdParam, validate(Projec
     const targetRole = await getUserProjectRole(userId, projectId);
     if (!targetRole) return res.status(404).json({ error: 'Membership not found' });
     const ruleErr = memberChangeError({
-      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId, actorRole: await actorRoleOf(req, projectId),
       targetUserId: userId, action: 'update', targetRole, newRole: project_role,
     });
     if (ruleErr) return res.status(403).json({ error: ruleErr });
@@ -250,7 +254,7 @@ router.delete('/:id/members/:userId', requireAuth, validateIdParam, async (req, 
     const targetRole = await getUserProjectRole(userId, projectId);
     if (!targetRole) return res.status(404).json({ error: 'Membership not found' });
     const ruleErr = memberChangeError({
-      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId,
+      isAdmin: req.session.userRole === 'admin', actorId: req.session.userId, actorRole: await actorRoleOf(req, projectId),
       targetUserId: userId, action: 'remove', targetRole, newRole: null,
     });
     if (ruleErr) return res.status(403).json({ error: ruleErr });

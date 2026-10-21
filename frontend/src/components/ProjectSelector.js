@@ -157,7 +157,7 @@ const ProjectSelector = ({ compact = false }) => {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
-                        {(p.my_role === 'admin' || p.my_role === 'manager') && (
+                        {['admin', 'owner', 'manager'].includes(p.my_role) && (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setManagingMembersFor(p); }}
@@ -200,7 +200,7 @@ const ProjectSelector = ({ compact = false }) => {
                       )}
                     </button>
                     {p.id === activeProjectId && <Check className="w-4 h-4 text-accent-primary flex-shrink-0" />}
-                    {(p.my_role === 'admin' || p.my_role === 'manager') && (
+                    {['admin', 'owner', 'manager'].includes(p.my_role) && (
                       <button
                         onClick={(e) => startEdit(e, p)}
                         className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-0 group-hover:opacity-100 flex-shrink-0"

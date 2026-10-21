@@ -21,15 +21,21 @@ This document covers the authentication system, user roles, and admin operations
 ### Project roles
 
 Access to investigation data is granted per project. A non-admin user sees a
-project only after being added to it, with one of two roles:
+project only after being added to it, with one of three roles:
 
 | Project role | Can do |
 |--------------|--------|
-| **Manager** | Everything an investigator can, plus edit the project's settings and add, change or remove its members |
+| **Owner** | Everything a manager can, plus add, change or remove the project's managers |
+| **Manager** | Everything an investigator can, plus edit the project's settings and add or remove investigators |
 | **Investigator** | Read and write the project's records |
 
-The role belongs to the membership, not the account: the same user can be a
-manager on one project and an investigator on another. Admins bypass
+Only an admin can make someone an owner, or change or remove an owner. Owners
+and managers can only act on members ranked below themselves, and nobody but
+an admin can change their own membership. Deleting a project stays admin-only.
+
+The role belongs to the membership, not the account: the same user can be an
+owner on one project, a manager on another and an investigator on a third,
+and not a member of a fourth at all. Admins bypass
 membership and can reach every project. Members are managed from the project's
 member list; these rules are enforced by the API on every project-scoped
 route, not just hidden in the interface.
@@ -147,9 +153,9 @@ latest release at https://elm1nst3r.github.io/GHOST-osint-crm/.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/projects/:id/members` | List members — any member of the project |
-| POST | `/api/projects/:id/members` | Add a user — manager or admin |
-| PUT | `/api/projects/:id/members/:userId` | Change a member's role — manager or admin |
-| DELETE | `/api/projects/:id/members/:userId` | Remove a member — manager or admin |
+| POST | `/api/projects/:id/members` | Add a user — owner, manager or admin (within their rank) |
+| PUT | `/api/projects/:id/members/:userId` | Change a member's role — owner, manager or admin (within their rank) |
+| DELETE | `/api/projects/:id/members/:userId` | Remove a member — owner, manager or admin (within their rank) |
 
 ### Audit Logs (Admin only)
 | Method | Endpoint | Description |
