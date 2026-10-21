@@ -5,7 +5,7 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.19.0] - 2026-10-21
 
 ### ✨ Added
 
@@ -24,6 +24,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Membership rules are now rank-based: owners and managers can only act
   on members ranked below them and grant roles below their own, and
   nobody but an administrator can change their own membership.
+
+### 📝 Documentation
+
+- Roles and the user hierarchy are documented in a new README section
+  (Roles & Permissions) and in full in USER_MANAGEMENT.md, with a
+  permission table for every role; QUICK-START, SECURITY.md and the API
+  catalogue are updated to match.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+The migration runs automatically at startup and changes no data. Existing
+managers keep their role; to use the new tier, an administrator adds an
+owner from the project's member list.
 
 ## [2.18.4] - 2026-10-21
 

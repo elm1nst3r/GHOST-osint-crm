@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.18.4-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.19.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -242,7 +242,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.18.4
+GHOST_VERSION=2.19.0
 ```
 
 Without it, the containers track the latest release.
@@ -607,6 +607,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.19.0 (October 2026)
+- 👥 **Project Owner role** — projects now have Owner > Manager > Investigator, all per project; owners manage managers and investigators, and only an admin appoints or removes owners (issue #95)
+- 🔒 **Rank-based membership rules** — owners and managers can only act on members ranked below them, and nobody but an admin can change their own membership
+- 📝 **Roles documented** — new [Roles & Permissions](#-roles--permissions) section and a full permission table in USER_MANAGEMENT.md
+
 ### Version 2.18.4 (October 2026)
 - 🔒 **Project managers can only manage investigators** — they can no longer assign, change or remove managers, or change their own membership; that is now admin-only (issue #95)
 
@@ -776,5 +781,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.18.4
+**Version:** 2.19.0
 **Last Updated:** October 10, 2026
