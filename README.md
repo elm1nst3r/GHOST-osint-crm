@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.21.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.22.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -68,6 +68,7 @@ If this project is ever shelved, this section will be updated and the repository
 - **Integrated tools**: GHOST searches crt.sh, Wayback Machine, Gravatar, IPinfo, urlscan.io, Have I Been Pwned, Hunter.io, Shodan and VirusTotal for you
 - **Search from a person**: run searches on a person's emails, domains, IPs and usernames, then add findings back, marked unverified with their source
 - **Community integrations**: integrations are JSON files, not code; see [`integrations/`](integrations/) to add your own
+- **Integration builder**: connect a new service step by step, testing it live and clicking the response to choose result fields; no JSON editing
 - **Central management**: admins share tools with everyone or selected projects, decide whether users may add their own, and choose shared or per-user API keys
 - **Export / import** tool lists with or without configuration; API keys travel encrypted with a passphrase
 
@@ -253,7 +254,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.21.0
+GHOST_VERSION=2.22.0
 ```
 
 Without it, the containers track the latest release.
@@ -618,6 +619,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.22.0 (November 2026)
+- 🪄 **Integration builder** — connect a new OSINT service without writing JSON: paste an example request from its docs, test it live, and click the values you want (issue #96)
+
 ### Version 2.21.0 (November 2026)
 - 🔌 **Integrated OSINT tools** — search crt.sh, Have I Been Pwned, Shodan and six more from GHOST, from the Tools page or straight from a person's OSINT data, and add findings back with their source (issue #96)
 - 🧩 **Community integrations** — JSON definitions anyone can write and share; see [`integrations/`](integrations/)
@@ -803,5 +807,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.21.0
+**Version:** 2.22.0
 **Last Updated:** November 1, 2026
