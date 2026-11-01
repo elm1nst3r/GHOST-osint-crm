@@ -69,6 +69,9 @@ export const peopleAPI = {
 
   getById: (id) => fetchAPI(`/people/${id}`),
 
+  // Appends OSINT data entries server-side (issue #96); duplicates are skipped.
+  addOsint: (id, entries) => fetchAPI(`/people/${id}/osint`, { method: 'POST', body: JSON.stringify({ entries }) }),
+
   create: (personData) => fetchAPI('/people', {
     method: 'POST',
     body: JSON.stringify(personData),
@@ -111,7 +114,17 @@ export const toolsAPI = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  getAll: () => fetchAPI('/tools'),
+  // params: { project_id, all } — all=true (admins) lists every tool.
+  getAll: (params = {}) => fetchAPI(`/tools${buildQuery(params)}`),
+  // Integrated tools (issue #96). Keys are write-only: there is no getter.
+  setKey: (id, scope, secret) => fetchAPI(`/tools/${id}/credentials`, { method: 'PUT', body: JSON.stringify({ scope, secret }) }),
+  removeKey: (id, scope) => fetchAPI(`/tools/${id}/credentials?scope=${scope}`, { method: 'DELETE' }),
+  run: (id, payload) => fetchAPI(`/tools/${id}/run`, { method: 'POST', body: JSON.stringify(payload), timeout: 90000 }),
+  test: (id) => fetchAPI(`/tools/${id}/test`, { method: 'POST', timeout: 90000 }),
+  exportFile: (payload) => fetchAPI('/tools/export', { method: 'POST', body: JSON.stringify(payload) }),
+  importFile: (payload) => fetchAPI('/tools/import', { method: 'POST', body: JSON.stringify(payload), timeout: 120000 }),
+  getSettings: () => fetchAPI('/settings/tools'),
+  updateSettings: (payload) => fetchAPI('/settings/tools', { method: 'PUT', body: JSON.stringify(payload) }),
   
   create: (toolData) => fetchAPI('/tools', {
     method: 'POST',
@@ -580,6 +593,14 @@ export const saveBlob = (blob, filename) => {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
+};
+
+// Integration manifests behind integrated tools (issue #96).
+export const integrationsAPI = {
+  getAll: () => fetchAPI('/integrations'),
+  get: (id) => fetchAPI(`/integrations/${encodeURIComponent(id)}`),
+  install: (manifest, replace = false) => fetchAPI('/integrations', { method: 'POST', body: JSON.stringify({ manifest, replace }) }),
+  remove: (id) => fetchAPI(`/integrations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
 
 // Relationships API (issue #83's write-of-record table; issue #82's wallet

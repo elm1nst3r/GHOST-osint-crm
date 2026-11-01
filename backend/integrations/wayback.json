@@ -1,0 +1,75 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "wayback",
+  "name": "Wayback Machine",
+  "version": "1.0.0",
+  "category": "Web",
+  "description": "Internet Archive: the archived snapshot of a page closest to now.",
+  "homepage": "https://web.archive.org",
+  "terms": "https://archive.org/about/terms.php",
+  "baseUrl": "https://archive.org",
+  "auth": {
+    "type": "none"
+  },
+  "minIntervalMs": 1000,
+  "operations": [
+    {
+      "id": "closest",
+      "label": "Closest archived snapshot",
+      "input": "url",
+      "cost": "free",
+      "path": "/wayback/available",
+      "query": {
+        "url": "{{input}}"
+      },
+      "results": {
+        "root": "archived_snapshots.closest",
+        "link": "url",
+        "title": "url",
+        "fields": [
+          {
+            "label": "Snapshot",
+            "path": "url"
+          },
+          {
+            "label": "Captured (YYYYMMDDhhmmss)",
+            "path": "timestamp"
+          },
+          {
+            "label": "HTTP status",
+            "path": "status"
+          }
+        ]
+      }
+    },
+    {
+      "id": "closest-domain",
+      "label": "Closest archived snapshot of a domain",
+      "input": "domain",
+      "cost": "free",
+      "path": "/wayback/available",
+      "query": {
+        "url": "{{input}}"
+      },
+      "results": {
+        "root": "archived_snapshots.closest",
+        "link": "url",
+        "title": "url",
+        "fields": [
+          {
+            "label": "Snapshot",
+            "path": "url"
+          },
+          {
+            "label": "Captured (YYYYMMDDhhmmss)",
+            "path": "timestamp"
+          },
+          {
+            "label": "HTTP status",
+            "path": "status"
+          }
+        ]
+      }
+    }
+  ]
+}

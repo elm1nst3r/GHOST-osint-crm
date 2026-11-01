@@ -5,6 +5,76 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.21.0] - 2026-11-01
+
+### ✨ Added
+
+- **Integrated OSINT tools (#96).** The Tools page now has two sections:
+  *Generic tools* (links, as before) and *Integrated tools* that GHOST
+  searches with directly. Badges show whether a tool is a link, connected,
+  needs an API key or is disabled, and who it is shared with.
+- **Nine built-in integrations:** crt.sh, Wayback Machine, Gravatar and
+  IPinfo and urlscan.io (no key needed), plus Have I Been Pwned, Hunter.io,
+  Shodan and VirusTotal (API key needed).
+- **Search from a person.** Each OSINT data entry has a search button, and
+  "Search with tools" searches several identifiers at once. Pick the
+  searches, review the results, and tick values to add to the person. Added
+  entries are marked *unverified* and show the tool, query and date.
+  Searches that use API quota say so and are not preselected.
+- **Community integrations.** An integration is a JSON file, not code. A
+  new top-level [`integrations/`](integrations/) folder documents the format,
+  holds community contributions and a template, and states what is accepted:
+  lawful, legitimate sources only, no leaked-database services. Admins
+  install one under **Settings → Tools & Integrations**, after seeing which
+  host it will send searches to.
+- **Tool management.**
+  - Central tools are managed by admins and shared with everyone or with
+    selected projects; any tool can be disabled without deleting it.
+  - Admins choose whether users may add their own tools. A user's tools
+    are private by default and can be shared with their projects.
+  - Per integration, one shared API key or each user's own key.
+- **Export and import of tool lists**, with or without configuration
+  (sharing, enabled, key mode). With a passphrase, API keys are included,
+  encrypted with it. Import can place every tool in the current project.
+
+### 🔒 Security
+
+- Integration requests run on the server: HTTPS and GET only, no redirects,
+  size and time limits, and private, loopback and link-local addresses are
+  refused at connect time (`INTEGRATIONS_ALLOW_PRIVATE=true` allows a LAN
+  service). Each provider is rate-paced; searches are audit-logged and have
+  their own per-user limit.
+- API keys are write-only: stored encrypted (AES-256-GCM, key derived from
+  `SECRETS_KEY`, or `SESSION_SECRET` when that isn't set) and never returned
+  to the browser, written to logs or recorded in the audit log.
+- Searching, testing, key management and export/import are kept out of the
+  MCP server.
+
+### ⚠️ Changed
+
+- Non-admins can no longer edit or delete central tools; before, anyone
+  could. Every existing tool becomes a central tool shared with everyone, so
+  nobody loses access.
+- Tools a non-admin adds are now private until they share them.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+Migration `20261102000001` adds the integration tables and new tool columns
+and changes no existing data.
+
+- **Changing `SESSION_SECRET` makes stored API keys unreadable.** The tools
+  then show *Needs key* until the key is entered again. To rotate the
+  session secret independently, set `SECRETS_KEY` in `.env` before adding
+  keys.
+- The full database export under Settings → Import/Export still restores
+  tools as plain links; use the Tools page export for integrated tools.
+
 ## [2.20.0] - 2026-11-01
 
 ### ✨ Added

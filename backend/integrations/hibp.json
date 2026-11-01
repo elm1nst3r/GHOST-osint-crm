@@ -1,0 +1,92 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "hibp",
+  "name": "Have I Been Pwned",
+  "version": "1.0.0",
+  "category": "Email",
+  "description": "Data breaches and pastes an email address appears in, from Troy Hunt's Have I Been Pwned.",
+  "homepage": "https://haveibeenpwned.com",
+  "terms": "https://haveibeenpwned.com/API/v3#AcceptableUse",
+  "baseUrl": "https://haveibeenpwned.com/api/v3",
+  "auth": {
+    "type": "header",
+    "name": "hibp-api-key",
+    "label": "HIBP API key",
+    "help": "A paid subscription key from haveibeenpwned.com.",
+    "signupUrl": "https://haveibeenpwned.com/API/Key"
+  },
+  "minIntervalMs": 6500,
+  "test": {
+    "path": "/subscription/status"
+  },
+  "operations": [
+    {
+      "id": "breaches",
+      "label": "Breaches for an email address",
+      "input": "email",
+      "cost": "quota",
+      "path": "/breachedaccount/{{input}}",
+      "query": {
+        "truncateResponse": "false"
+      },
+      "results": {
+        "title": "Title",
+        "fields": [
+          {
+            "label": "Breach",
+            "path": "Title"
+          },
+          {
+            "label": "Domain",
+            "path": "Domain"
+          },
+          {
+            "label": "Breach date",
+            "path": "BreachDate"
+          },
+          {
+            "label": "Data exposed",
+            "path": "DataClasses"
+          },
+          {
+            "label": "Verified",
+            "path": "IsVerified"
+          },
+          {
+            "label": "Description",
+            "path": "Description",
+            "stripHtml": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "pastes",
+      "label": "Pastes for an email address",
+      "input": "email",
+      "cost": "quota",
+      "path": "/pasteaccount/{{input}}",
+      "results": {
+        "title": "Title",
+        "fields": [
+          {
+            "label": "Source",
+            "path": "Source"
+          },
+          {
+            "label": "Paste ID",
+            "path": "Id"
+          },
+          {
+            "label": "Date",
+            "path": "Date"
+          },
+          {
+            "label": "Emails in paste",
+            "path": "EmailCount"
+          }
+        ]
+      }
+    }
+  ]
+}

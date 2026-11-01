@@ -1,0 +1,116 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "hunter",
+  "name": "Hunter.io",
+  "version": "1.0.0",
+  "category": "Email",
+  "description": "Email addresses published for a domain, and deliverability checks for a single address.",
+  "homepage": "https://hunter.io",
+  "terms": "https://hunter.io/terms-of-service",
+  "baseUrl": "https://api.hunter.io/v2",
+  "auth": {
+    "type": "query",
+    "name": "api_key",
+    "label": "Hunter API key",
+    "signupUrl": "https://hunter.io/api-keys"
+  },
+  "minIntervalMs": 500,
+  "test": {
+    "path": "/account"
+  },
+  "operations": [
+    {
+      "id": "domain-search",
+      "label": "Emails at a domain",
+      "input": "domain",
+      "cost": "quota",
+      "path": "/domain-search",
+      "query": {
+        "domain": "{{input}}",
+        "limit": "50"
+      },
+      "results": {
+        "root": "data.emails",
+        "title": "value",
+        "fields": [
+          {
+            "label": "Email",
+            "path": "value",
+            "osintType": "Email"
+          },
+          {
+            "label": "First name",
+            "path": "first_name"
+          },
+          {
+            "label": "Last name",
+            "path": "last_name"
+          },
+          {
+            "label": "Position",
+            "path": "position"
+          },
+          {
+            "label": "Confidence",
+            "path": "confidence"
+          },
+          {
+            "label": "LinkedIn",
+            "path": "linkedin",
+            "osintType": "Social Media"
+          },
+          {
+            "label": "Twitter",
+            "path": "twitter",
+            "osintType": "Social Media"
+          },
+          {
+            "label": "Phone",
+            "path": "phone_number",
+            "osintType": "Phone"
+          },
+          {
+            "label": "Sources",
+            "path": "sources[].uri"
+          }
+        ]
+      }
+    },
+    {
+      "id": "email-verifier",
+      "label": "Verify an email address",
+      "input": "email",
+      "cost": "quota",
+      "path": "/email-verifier",
+      "query": {
+        "email": "{{input}}"
+      },
+      "results": {
+        "root": "data",
+        "title": "email",
+        "fields": [
+          {
+            "label": "Status",
+            "path": "status"
+          },
+          {
+            "label": "Score",
+            "path": "score"
+          },
+          {
+            "label": "Mail server (MX)",
+            "path": "mx_records"
+          },
+          {
+            "label": "Webmail",
+            "path": "webmail"
+          },
+          {
+            "label": "Disposable",
+            "path": "disposable"
+          }
+        ]
+      }
+    }
+  ]
+}

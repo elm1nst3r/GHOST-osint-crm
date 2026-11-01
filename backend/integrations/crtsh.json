@@ -1,0 +1,53 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "crtsh",
+  "name": "crt.sh",
+  "version": "1.0.0",
+  "category": "Domain",
+  "description": "Certificate Transparency search. Finds subdomains and hostnames that appeared in publicly logged TLS certificates.",
+  "homepage": "https://crt.sh",
+  "baseUrl": "https://crt.sh",
+  "auth": {
+    "type": "none"
+  },
+  "timeoutMs": 60000,
+  "minIntervalMs": 2000,
+  "operations": [
+    {
+      "id": "subdomains",
+      "label": "Hostnames in certificates",
+      "input": "domain",
+      "cost": "free",
+      "description": "Every name on certificates issued for the domain and its subdomains. crt.sh can be slow on large domains.",
+      "path": "/",
+      "query": {
+        "q": "%.{{input}}",
+        "output": "json"
+      },
+      "results": {
+        "distinctBy": "name_value",
+        "title": "common_name",
+        "fields": [
+          {
+            "label": "Hostnames",
+            "path": "name_value",
+            "split": "\n",
+            "osintType": "Website"
+          },
+          {
+            "label": "Issuer",
+            "path": "issuer_name"
+          },
+          {
+            "label": "Valid from",
+            "path": "not_before"
+          },
+          {
+            "label": "Valid until",
+            "path": "not_after"
+          }
+        ]
+      }
+    }
+  ]
+}

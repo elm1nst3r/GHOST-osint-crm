@@ -4,7 +4,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
-const { validate, PersonCreateSchema, PersonUpdateSchema } = require('../middleware/schemas');
+const { validate, PersonCreateSchema, PersonUpdateSchema, PersonOsintAppendSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncPersonConnections } = require('./relationships');
@@ -444,6 +444,50 @@ router.delete('/:id/locations/:index', requireAuth, validateIdParam, async (req,
   } catch (err) {
     console.error('Error deleting location:', err);
     res.status(500).json({ error: 'Failed to delete location' });
+  }
+});
+
+// POST /:id/osint — add OSINT data found by an integrated tool (issue #96)
+//
+// Appends on the server rather than having the browser PUT the whole person
+// back: a full update from a modal that only knows part of the record is how
+// fields got wiped in the past. Entries the person already has (same type and
+// value) are skipped. Each new entry keeps where it came from and starts
+// unverified.
+router.post('/:id/osint', requireAuth, validateIdParam, validate(PersonOsintAppendSchema), async (req, res) => {
+  const { entries } = req.body;
+  try {
+    const existing = await pool.query('SELECT project_id, osint_data FROM people WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
+    const current = Array.isArray(existing.rows[0].osint_data) ? existing.rows[0].osint_data : [];
+    const keyOf = (e) => `${String(e.type).trim().toLowerCase()}\u0000${String(e.value).trim().toLowerCase()}`;
+    const have = new Set(current.map(keyOf));
+    const added = [];
+    for (const e of entries) {
+      if (have.has(keyOf(e))) continue;
+      have.add(keyOf(e));
+      added.push({
+        type: e.type.trim(),
+        value: e.value.trim(),
+        notes: e.notes || '',
+        ...(e.source ? { source: { ...e.source, added_by: req.session?.userId || null }, verified: false } : {}),
+      });
+    }
+
+    if (added.length) {
+      await pool.query('UPDATE people SET osint_data = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [JSON.stringify([...current, ...added]), req.params.id]);
+      await logAudit('person', req.params.id, 'update', {
+        osint_data: { oldValue: `${current.length} entries`, newValue: `+${added.length} from ${entries[0].source?.tool_name || 'import'}` },
+      }, req.session?.userId);
+    }
+    res.json({ added: added.length, skipped: entries.length - added.length, osint_data: [...current, ...added] });
+  } catch (err) {
+    console.error('Error adding OSINT data:', err.message);
+    res.status(500).json({ error: 'Failed to add OSINT data' });
   }
 });
 

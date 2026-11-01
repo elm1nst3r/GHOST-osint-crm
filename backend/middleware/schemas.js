@@ -259,14 +259,84 @@ const ToolBulkImportSchema = z.object({
   mode: z.enum(['skip', 'update']).default('skip'),
 });
 
+// Integrated tools and sharing (issue #96). All optional: a field that isn't
+// sent keeps its current value on update, so older clients (and the MCP
+// server) that only send the base fields don't reset a tool's sharing.
+// project_ids is deliberately NOT optArray: that defaults to [], which would
+// clear a tool's projects on every update that omits it.
+const toolSharingFields = {
+  kind: z.enum(['link', 'integration']).optional(),
+  integration_id: optStr(64),
+  visibility: z.enum(['all', 'projects', 'private']).optional(),
+  project_ids: z.array(z.number().int().positive()).max(500).optional(),
+  enabled: z.boolean().optional(),
+  credential_mode: z.enum(['shared', 'per_user']).optional(),
+};
+
 const ToolCreateSchema = z.object({
   name: z.string().min(1, 'Tool name is required').max(255),
   ...toolBaseFields,
+  ...toolSharingFields,
 });
 
 const ToolUpdateSchema = z.object({
   name: z.string().min(1, 'Tool name is required').max(255),
   ...toolBaseFields,
+  ...toolSharingFields,
+});
+
+// scope 'shared': the tool's key for everyone (managers of the tool only).
+// scope 'mine': the caller's own key, for tools set to per-user keys.
+const ToolCredentialSchema = z.object({
+  scope: z.enum(['shared', 'mine']),
+  secret: z.string().min(1, 'Enter the API key').max(2000),
+});
+
+const ToolRunSchema = z.object({
+  operation: z.string().min(1).max(41),
+  input: z.string().min(1, 'Enter a value to search for').max(2000),
+  person_id: optId(),
+});
+
+const ToolExportSchema = z.object({
+  include_config: z.boolean().default(false),
+  passphrase: optStr(200),
+  tool_ids: z.array(z.number().int().positive()).max(5000).optional(),
+});
+
+const ToolFileImportSchema = z.object({
+  data: z.record(z.string(), z.any()),
+  include_config: z.boolean().default(false),
+  passphrase: optStr(200),
+  mode: z.enum(['skip', 'update']).default('skip'),
+  // Assign every imported tool to this project instead of what the file says.
+  project_id: optId(),
+});
+
+const IntegrationImportSchema = z.object({
+  manifest: z.record(z.string(), z.any()),
+  replace: z.boolean().optional(),
+});
+
+const SettingsToolsSchema = z.object({
+  allow_user_tools: z.boolean(),
+});
+
+// Appending OSINT data found by an integration to a person (issue #96).
+const PersonOsintAppendSchema = z.object({
+  entries: z.array(z.object({
+    type: z.string().min(1).max(100),
+    value: z.string().min(1).max(1000),
+    notes: optStr(1000),
+    source: z.object({
+      tool_id: z.number().int().positive().optional(),
+      tool_name: z.string().max(255).optional(),
+      integration_id: z.string().max(64).optional(),
+      operation: z.string().max(100).optional(),
+      query: z.string().max(2000).optional(),
+      retrieved_at: z.string().max(40).optional(),
+    }).optional(),
+  })).min(1).max(200),
 });
 
 // ── Cases ─────────────────────────────────────────────────────────────────────
@@ -629,6 +699,13 @@ module.exports = {
   BusinessCreateSchema,
   BusinessUpdateSchema,
   ToolBulkImportSchema,
+  ToolCredentialSchema,
+  ToolRunSchema,
+  ToolExportSchema,
+  ToolFileImportSchema,
+  IntegrationImportSchema,
+  SettingsToolsSchema,
+  PersonOsintAppendSchema,
   ToolImportRowSchema,
   ToolCreateSchema,
   ToolUpdateSchema,

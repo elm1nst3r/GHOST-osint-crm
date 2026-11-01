@@ -9,6 +9,7 @@ import ImportExportTab from './settings/ImportExportTab';
 import ProfileTab from './settings/ProfileTab';
 import UserManagement from './UserManagement';
 import AuditLogs from './AuditLogs';
+import ToolsSettingsTab from './settings/ToolsSettingsTab';
 
 const SettingsPage = () => {
   const { currentUser } = useAuth();
@@ -22,6 +23,7 @@ const SettingsPage = () => {
     { id: 'data-model',     label: t('settings.tabs.dataModel') },
     { id: 'import-export',  label: t('settings.tabs.importExport') },
     ...(currentUser?.role === 'admin' ? [
+      { id: 'tools',       label: t('settings.tabs.tools') },
       { id: 'users',       label: t('settings.tabs.users') },
       { id: 'audit-logs',  label: t('settings.tabs.auditLogs') },
     ] : []),
@@ -58,6 +60,7 @@ const SettingsPage = () => {
           {activeTab === 'profile'       && <ProfileTab />}
           {activeTab === 'data-model'    && <DataModelTab />}
           {activeTab === 'import-export' && <ImportExportTab />}
+          {activeTab === 'tools'         && currentUser?.role === 'admin' && <ToolsSettingsTab />}
           {activeTab === 'users'         && currentUser?.role === 'admin' && <UserManagement />}
           {activeTab === 'audit-logs'    && currentUser?.role === 'admin' && <AuditLogs />}
         </div>

@@ -36,9 +36,11 @@ const shape = (...schemas) =>
 
 // route file → union of schema keys used by that route's POST/PUT handlers
 const ROUTE_SCHEMAS = {
-  'people.js': shape(S.PersonCreateSchema, S.PersonUpdateSchema),
+  'people.js': shape(S.PersonCreateSchema, S.PersonUpdateSchema, S.PersonOsintAppendSchema),
   'businesses.js': shape(S.BusinessCreateSchema, S.BusinessUpdateSchema),
-  'tools.js': shape(S.ToolCreateSchema, S.ToolUpdateSchema, S.ToolBulkImportSchema),
+  'tools.js': shape(S.ToolCreateSchema, S.ToolUpdateSchema, S.ToolBulkImportSchema, S.ToolCredentialSchema,
+    S.ToolRunSchema, S.ToolExportSchema, S.ToolFileImportSchema),
+  'integrations.js': shape(S.IntegrationImportSchema),
   'cases.js': shape(S.CaseCreateSchema, S.CaseUpdateSchema),
   'projects.js': shape(S.ProjectCreateSchema, S.ProjectUpdateSchema, S.ProjectMemberCreateSchema, S.ProjectMemberUpdateSchema),
   'relationships.js': shape(S.RelationshipCreateSchema, S.RelationshipUpdateSchema),
@@ -57,7 +59,8 @@ const ROUTE_SCHEMAS = {
     S.SettingsGeocodingUpdateSchema,
     S.SettingsUpdateCheckSchema,
     S.SettingsProjectRetentionSchema,
-    S.SettingsBrandingUpdateSchema
+    S.SettingsBrandingUpdateSchema,
+    S.SettingsToolsSchema
   ),
 };
 

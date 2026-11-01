@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.20.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.21.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -63,12 +63,13 @@ If this project is ever shelved, this section will be updated and the repository
 - **Location preview**: Interactive map in detail view
 - **Flexible validation**: Only SSID required, BSSID and location optional
 
-### 🛠️ Tools & Resources Arsenal
-- **OSINT tool inventory**: Catalog of investigation tools
-- **Categories**: Social Media, Background Check, Data Mining, Surveillance
-- **URL management**: One-click access to tools
-- **Usage notes**: Documentation and tips
-- **Search and filtering**: Quick tool discovery
+### 🛠️ OSINT Tools & Integrations
+- **Generic tools**: a catalogue of OSINT links with categories, tags and notes
+- **Integrated tools**: GHOST searches crt.sh, Wayback Machine, Gravatar, IPinfo, urlscan.io, Have I Been Pwned, Hunter.io, Shodan and VirusTotal for you
+- **Search from a person**: run searches on a person's emails, domains, IPs and usernames, then add findings back, marked unverified with their source
+- **Community integrations**: integrations are JSON files, not code; see [`integrations/`](integrations/) to add your own
+- **Central management**: admins share tools with everyone or selected projects, decide whether users may add their own, and choose shared or per-user API keys
+- **Export / import** tool lists with or without configuration; API keys travel encrypted with a passphrase
 
 ### ✅ Task Management
 - **Investigation todos**: Linked to cases and people
@@ -252,7 +253,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.20.0
+GHOST_VERSION=2.21.0
 ```
 
 Without it, the containers track the latest release.
@@ -617,6 +618,12 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.21.0 (November 2026)
+- 🔌 **Integrated OSINT tools** — search crt.sh, Have I Been Pwned, Shodan and six more from GHOST, from the Tools page or straight from a person's OSINT data, and add findings back with their source (issue #96)
+- 🧩 **Community integrations** — JSON definitions anyone can write and share; see [`integrations/`](integrations/)
+- 🛡️ **Central tool management** — sharing by project, user-added tools on or off, shared or per-user API keys, encrypted export/import
+- ⚠️ Non-admins can no longer edit or delete shared tools
+
 ### Version 2.20.0 (November 2026)
 - 📎 **File attachments** — upload documents and evidence to a person or a project; the project Files page lists them all with the person each belongs to, plus SHA-256 hashes and audit logging (issue #97)
 - 👁️ **In-app previews** — PDF, images, text, CSV/TSV tables and Word `.docx` open inside GHOST; Windows-1251 text is detected automatically
@@ -796,5 +803,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.20.0
+**Version:** 2.21.0
 **Last Updated:** November 1, 2026

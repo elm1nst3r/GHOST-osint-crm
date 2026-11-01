@@ -1,0 +1,97 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "shodan",
+  "name": "Shodan",
+  "version": "1.0.0",
+  "category": "Network",
+  "description": "Open ports, services and known vulnerabilities on an IP, and subdomains of a domain.",
+  "homepage": "https://www.shodan.io",
+  "terms": "https://account.shodan.io/legal",
+  "baseUrl": "https://api.shodan.io",
+  "auth": {
+    "type": "query",
+    "name": "key",
+    "label": "Shodan API key",
+    "signupUrl": "https://account.shodan.io"
+  },
+  "minIntervalMs": 1100,
+  "test": {
+    "path": "/api-info"
+  },
+  "operations": [
+    {
+      "id": "host",
+      "label": "Host details for an IP",
+      "input": "ip",
+      "cost": "quota",
+      "path": "/shodan/host/{{input}}",
+      "results": {
+        "title": "ip_str",
+        "fields": [
+          {
+            "label": "Organisation",
+            "path": "org"
+          },
+          {
+            "label": "ISP",
+            "path": "isp"
+          },
+          {
+            "label": "Country",
+            "path": "country_name"
+          },
+          {
+            "label": "City",
+            "path": "city"
+          },
+          {
+            "label": "Operating system",
+            "path": "os"
+          },
+          {
+            "label": "Open ports",
+            "path": "ports"
+          },
+          {
+            "label": "Hostnames",
+            "path": "hostnames",
+            "osintType": "Website"
+          },
+          {
+            "label": "Domains",
+            "path": "domains",
+            "osintType": "Website"
+          },
+          {
+            "label": "Known vulnerabilities",
+            "path": "vulns"
+          },
+          {
+            "label": "Last update",
+            "path": "last_update"
+          }
+        ]
+      }
+    },
+    {
+      "id": "domain",
+      "label": "Subdomains of a domain",
+      "input": "domain",
+      "cost": "quota",
+      "path": "/dns/domain/{{input}}",
+      "results": {
+        "title": "domain",
+        "fields": [
+          {
+            "label": "Subdomains",
+            "path": "subdomains"
+          },
+          {
+            "label": "Tags",
+            "path": "tags"
+          }
+        ]
+      }
+    }
+  ]
+}

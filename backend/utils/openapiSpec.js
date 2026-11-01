@@ -217,7 +217,8 @@ const spec = {
     { name: 'Locations', description: 'Aggregated mappable locations across entities.' },
     { name: 'Geocoding', description: 'Address lookup through the configured geocoding provider.' },
     { name: 'Search', description: 'Global and advanced search.' },
-    { name: 'Tools', description: 'The OSINT tool catalogue.' },
+    { name: 'Tools', description: 'The OSINT tool catalogue: links, and integrated tools GHOST calls server-side. Central tools are managed by admins and shared with everyone or with selected projects; users may add their own (when an admin allows it), private or shared with their projects. API keys are write-only and never returned.' },
+    { name: 'Integrations', description: 'Installed integration manifests: the JSON definitions behind integrated tools. Built-ins ship with GHOST; admins can install community ones.' },
     { name: 'Todos', description: 'Investigation task list.' },
     { name: 'Settings', description: 'Custom fields, model options (taxonomies) and instance configuration.' },
     { name: 'Users', description: 'User administration and the member-picker directory.' },
@@ -252,6 +253,13 @@ const spec = {
       ToolCreate: toSchema(S.ToolCreateSchema),
       ToolUpdate: toSchema(S.ToolUpdateSchema),
       ToolBulkImport: toSchema(S.ToolBulkImportSchema),
+      ToolCredential: toSchema(S.ToolCredentialSchema),
+      ToolRun: toSchema(S.ToolRunSchema),
+      ToolExport: toSchema(S.ToolExportSchema),
+      ToolFileImport: toSchema(S.ToolFileImportSchema),
+      IntegrationImport: toSchema(S.IntegrationImportSchema),
+      SettingsTools: toSchema(S.SettingsToolsSchema),
+      PersonOsintAppend: toSchema(S.PersonOsintAppendSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       ProjectCreate: toSchema(S.ProjectCreateSchema),
@@ -322,6 +330,12 @@ const spec = {
       projectScoped: true,
       listParams: [...paginationParams, caseParam],
     }),
+    '/people/{id}/osint': {
+      post: op('People', 'Add OSINT data entries to a person', {
+        params: [idParam], body: ref('PersonOsintAppend'),
+        description: 'Appends entries (skipping ones the person already has). Entries with a source are marked unverified and keep where they came from.',
+      }),
+    },
     '/people/{id}/locations': {
       post: op('People', 'Add a location to a person', { params: [idParam], body: anyObject }),
     },
@@ -365,7 +379,41 @@ const spec = {
     },
 
     // ── Tools / Todos / Cases ──
-    ...crudPaths('Tools', '/tools', 'ToolCreate', 'ToolUpdate', { getById: false }),
+    ...crudPaths('Tools', '/tools', 'ToolCreate', 'ToolUpdate', {
+      getById: false,
+      projectScoped: true,
+      listParams: [queryParam('all', 'Admins only: "true" lists every tool, including users\' private ones', { type: 'string' })],
+    }),
+    '/tools/{id}/credentials': {
+      put: op('Tools', 'Set an API key for an integrated tool', {
+        mcp: false, params: [idParam], body: ref('ToolCredential'),
+        description: 'scope "shared" sets the key everyone uses (needs the right to manage the tool); scope "mine" sets the caller\'s own key for tools using per-user keys. Keys are stored encrypted and never returned.',
+      }),
+      delete: op('Tools', 'Remove an API key', {
+        mcp: false, params: [idParam, queryParam('scope', '"shared" (default) or "mine"')],
+      }),
+    },
+    '/tools/{id}/run': {
+      post: op('Tools', 'Search with an integrated tool', {
+        mcp: false, params: [idParam], body: ref('ToolRun'),
+        description: 'Calls the integration server-side and returns its results mapped into fields. With person_id the tool must be available in that person\'s project. Rate-limited, audit-logged.',
+      }),
+    },
+    '/tools/{id}/test': {
+      post: op('Tools', 'Test an integrated tool\'s connection and key', { mcp: false, params: [idParam] }),
+    },
+    '/tools/export': {
+      post: op('Tools', 'Export the tool list', {
+        mcp: false, body: ref('ToolExport'),
+        description: 'include_config adds sharing settings for tools the caller manages; with a passphrase (8+ characters) their shared API keys are included, encrypted with it.',
+      }),
+    },
+    '/tools/import': {
+      post: op('Tools', 'Import a tool list exported by GHOST', {
+        mcp: false, body: ref('ToolFileImport'),
+        description: 'Admins import central tools, other users their own. include_config applies the file\'s sharing settings (projects matched by name) and, with the passphrase, its API keys. project_id assigns every tool to that project instead.',
+      }),
+    },
     '/tools/bulk-import': {
       post: op('Tools', 'Import many OSINT tools in one request', {
         body: ref('ToolBulkImport'),
@@ -810,6 +858,28 @@ const spec = {
       put: op('Settings', 'Enable or disable the update check', {
         admin: true, mcp: false, body: ref('SettingsUpdateCheck'),
         description: 'When disabled the server makes no outbound request at all.',
+      }),
+    },
+    '/settings/tools': {
+      get: op('Settings', 'OSINT tools policy (whether users may add their own tools)'),
+      put: op('Settings', 'Set the OSINT tools policy', { admin: true, mcp: false, body: ref('SettingsTools') }),
+    },
+    '/integrations': {
+      get: op('Integrations', 'List installed integrations', {
+        description: 'Each entry shows the host it calls, how it authenticates and its operations.',
+      }),
+      post: op('Integrations', 'Install a community integration manifest', {
+        admin: true, mcp: false, body: ref('IntegrationImport'),
+        description: 'The manifest is validated; built-in ids can\'t be replaced. replace=true updates an imported one.',
+      }),
+    },
+    '/integrations/{id}': {
+      get: op('Integrations', 'Get an integration and its full manifest', {
+        params: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+      }),
+      delete: op('Integrations', 'Remove an imported integration', {
+        admin: true, mcp: false, params: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        description: 'Refused while tools still use it. Built-ins can\'t be removed.',
       }),
     },
     '/settings/project-retention': {

@@ -1,22 +1,24 @@
 // File: frontend/src/components/PersonDetailModal.js
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Briefcase, Tag, Network, FileText, Trash2 } from 'lucide-react';
+import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Briefcase, Tag, Network, FileText, Trash2, Search } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
 import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
-import { transactionsAPI, assetsAPI } from '../utils/api';
+import { transactionsAPI, assetsAPI, toolsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 import FilesPanel from './files/FilesPanel';
+import ToolRunModal from './tools/ToolRunModal';
+import { inputKindForOsint, operationsFor, runnableTools } from '../utils/integrations';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
-  const { people, customFields } = useData();
+  const { people, setPeople, customFields } = useData();
   const { selectedPersonForDetail, setSelectedPersonForDetail, setEditingPerson } = useUI();
   const { activeProjectId, projects } = useProject();
   // Resolve full record (callers may pass a partial { id }). If the record
@@ -34,6 +36,22 @@ const PersonDetailModal = () => {
   const [locations, setLocations] = useState(person.locations || []);
   const [personTransactions, setPersonTransactions] = useState([]);
   const [personAssets, setPersonAssets] = useState([]);
+  // Integrated tools usable in this person's project (issue #96).
+  const [personTools, setPersonTools] = useState([]);
+  const [search, setSearch] = useState(null);
+
+  useEffect(() => {
+    if (!person?.project_id) return;
+    toolsAPI.getAll({ project_id: person.project_id })
+      .then((list) => setPersonTools(runnableTools(list)))
+      .catch(() => setPersonTools([]));
+  }, [person?.project_id]);
+
+  // Findings added from a search: update the open record and the list.
+  const handleOsintAdded = (osintData) => {
+    setPeople((prev) => prev.map((p) => (p.id === person.id ? { ...p, osint_data: osintData } : p)));
+    setSelectedPersonForDetail({ ...person, osint_data: osintData });
+  };
 
   useEffect(() => {
     if (!person?.id) return;
@@ -337,11 +355,18 @@ const PersonDetailModal = () => {
                 )}
 
                 {/* OSINT Data */}
-                {person.osint_data && person.osint_data.length > 0 && (
+                {((person.osint_data && person.osint_data.length > 0) || personTools.length > 0) && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('personDetailModal.osintData')}</h3>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('personDetailModal.osintData')}</h3>
+                      {personTools.length > 0 && (
+                        <button type="button" onClick={() => setSearch({ index: null })} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <Search className="w-4 h-4" />{t('tools.searchWithTools')}
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-2">
-                      {person.osint_data.map((osint, index) => (
+                      {(person.osint_data || []).map((osint, index) => (
                         <div key={index} className="flex items-center space-x-3 p-3 glass rounded-lg hover:bg-gray-100 dark:bg-gray-700 transition-all duration-300">
                           <div className="text-gray-600 dark:text-gray-400">
                             {getOsintIcon(osint.type)}
@@ -349,7 +374,18 @@ const PersonDetailModal = () => {
                           <div className="flex-1 text-gray-900 dark:text-gray-100">
                             <span className="font-medium">{osint.type}:</span> {osint.value}
                             {osint.notes && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{osint.notes}</p>}
+                            {osint.source && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {t('tools.provenance', { tool: osint.source.tool_name || osint.source.integration_id, date: (osint.source.retrieved_at || '').slice(0, 10) })}
+                                {osint.verified === false && <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
+                              </p>
+                            )}
                           </div>
+                          {operationsFor(personTools, inputKindForOsint(osint.type, osint.value)).length > 0 && (
+                            <button type="button" onClick={() => setSearch({ index })} title={t('tools.searchThis')} aria-label={t('tools.searchThis')} className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <Search className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -484,6 +520,16 @@ const PersonDetailModal = () => {
           </div>
         </div>
       </div>
+
+      {search && (
+        <ToolRunModal
+          tools={personTools}
+          person={person}
+          initialEntryIndex={search.index}
+          onClose={() => setSearch(null)}
+          onAdded={handleOsintAdded}
+        />
+      )}
 
       {/* Report Generator Modal */}
       {showReportGenerator && (
