@@ -8,8 +8,9 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
-const { validate, IntegrationImportSchema } = require('../middleware/schemas');
-const { apiLimiter } = require('../middleware/rateLimiters');
+const { validate, IntegrationImportSchema, IntegrationDraftTestSchema, IntegrationDraftMapSchema } = require('../middleware/schemas');
+const { apiLimiter, integrationLimiter } = require('../middleware/rateLimiters');
+const { testDraft, previewMapping } = require('../services/integrations/draft');
 const registry = require('../services/integrations/registry');
 const { validateManifest, publicSummary } = require('../services/integrations/manifest');
 
@@ -25,6 +26,33 @@ router.get('/', requireAuth, async (req, res) => {
     console.error('Error listing integrations:', err.message);
     res.status(500).json({ error: 'Failed to list integrations' });
   }
+});
+
+// ── Integration builder ──────────────────────────────────────────────────────
+// Admin-only: a test call reaches any public HTTPS host the draft names, so
+// it's limited to the people who can install integrations anyway. The test
+// key is used for this one request and never stored.
+router.post('/draft/test', requireAdmin, integrationLimiter, validate(IntegrationDraftTestSchema), async (req, res) => {
+  const { manifest, operation_id, input, secret } = req.body;
+  try {
+    const result = await testDraft({ draft: manifest, operationId: operation_id, input, secret });
+    if (result.invalid) return res.status(400).json({ error: 'The integration is not complete yet', details: result.errors });
+    await req.audit.log('integration', 0, 'test', 'draft', null, JSON.stringify({
+      host: (() => { try { return new URL(manifest.baseUrl).host; } catch { return null; } })(),
+      status: result.status ?? null,
+    }));
+    res.json(result);
+  } catch (err) {
+    console.error('Error testing draft integration:', err.message);
+    res.status(500).json({ error: 'The test call failed' });
+  }
+});
+
+router.post('/draft/map', requireAdmin, validate(IntegrationDraftMapSchema), async (req, res) => {
+  const { results, json } = req.body;
+  const mapped = previewMapping(results, json);
+  if (mapped.errors) return res.status(400).json({ error: 'The result fields are not complete yet', details: mapped.errors });
+  res.json(mapped);
 });
 
 // The full manifest, so anyone can see exactly what a tool sends where.

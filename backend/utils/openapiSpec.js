@@ -258,6 +258,8 @@ const spec = {
       ToolExport: toSchema(S.ToolExportSchema),
       ToolFileImport: toSchema(S.ToolFileImportSchema),
       IntegrationImport: toSchema(S.IntegrationImportSchema),
+      IntegrationDraftTest: toSchema(S.IntegrationDraftTestSchema),
+      IntegrationDraftMap: toSchema(S.IntegrationDraftMapSchema),
       SettingsTools: toSchema(S.SettingsToolsSchema),
       PersonOsintAppend: toSchema(S.PersonOsintAppendSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
@@ -871,6 +873,18 @@ const spec = {
       post: op('Integrations', 'Install a community integration manifest', {
         admin: true, mcp: false, body: ref('IntegrationImport'),
         description: 'The manifest is validated; built-in ids can\'t be replaced. replace=true updates an imported one.',
+      }),
+    },
+    '/integrations/draft/test': {
+      post: op('Integrations', 'Integration builder: test one search of an uninstalled integration', {
+        admin: true, mcp: false, body: ref('IntegrationDraftTest'),
+        description: 'Validates the draft, makes one request through the same guarded client as normal searches, and returns the (trimmed) response. The secret is used once and never stored.',
+      }),
+    },
+    '/integrations/draft/map': {
+      post: op('Integrations', 'Integration builder: preview how a response maps to results', {
+        admin: true, mcp: false, body: ref('IntegrationDraftMap'),
+        description: 'Pure mapping; makes no outbound request.',
       }),
     },
     '/integrations/{id}': {

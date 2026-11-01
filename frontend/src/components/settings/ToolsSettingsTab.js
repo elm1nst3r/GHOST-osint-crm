@@ -7,7 +7,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Plug, Upload, Trash2, Eye, X, ExternalLink, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plug, Upload, Trash2, Eye, X, ExternalLink, AlertTriangle, CheckCircle2, Wand2, Pencil, CopyPlus } from 'lucide-react';
+import IntegrationBuilder from '../tools/builder/IntegrationBuilder';
 import { toolsAPI, integrationsAPI } from '../../utils/api';
 
 const COMMUNITY_URL = 'https://github.com/elm1nst3r/GHOST-osint-crm/tree/main/integrations';
@@ -40,6 +41,17 @@ const ToolsSettingsTab = () => {
   const [viewing, setViewing] = useState(null);
   const [pending, setPending] = useState(null);
   const [message, setMessage] = useState(null);
+  // { manifest, mode } or { mode: 'new' }
+  const [builder, setBuilder] = useState(null);
+
+  const openBuilder = async (integration, mode) => {
+    try {
+      const { manifest } = await integrationsAPI.get(integration.id);
+      setBuilder({ manifest, mode });
+    } catch (err) {
+      setMessage({ ok: false, text: err.message });
+    }
+  };
 
   const load = () => integrationsAPI.getAll().then(setIntegrations).catch((err) => setMessage({ ok: false, text: err.message }));
 
@@ -114,9 +126,14 @@ const ToolsSettingsTab = () => {
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2"><Plug className="w-5 h-5" />{t('tools.integrationsTitle')}</h3>
-          <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
-            <Upload className="w-4 h-4" />{t('tools.installIntegration')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setBuilder({ mode: 'new' })} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">
+              <Wand2 className="w-4 h-4" />{t('builder.buildButton')}
+            </button>
+            <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
+              <Upload className="w-4 h-4" />{t('tools.installIntegration')}
+            </button>
+          </div>
           <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={pickFile} />
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
@@ -163,6 +180,11 @@ const ToolsSettingsTab = () => {
               </div>
               <div className="flex gap-1">
                 <button type="button" onClick={() => setViewing(i.id)} title={t('tools.viewDefinition')} aria-label={t('tools.viewDefinition')} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><Eye className="w-4 h-4" /></button>
+                {i.source === 'imported' ? (
+                  <button type="button" onClick={() => openBuilder(i, 'edit')} title={t('builder.editInBuilder')} aria-label={t('builder.editInBuilder')} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><Pencil className="w-4 h-4" /></button>
+                ) : (
+                  <button type="button" onClick={() => openBuilder(i, 'copy')} title={t('builder.copyInBuilder')} aria-label={t('builder.copyInBuilder')} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><CopyPlus className="w-4 h-4" /></button>
+                )}
                 {i.source === 'imported' && (
                   <button type="button" onClick={() => remove(i)} title={t('common.delete')} aria-label={t('common.delete')} className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-700"><Trash2 className="w-4 h-4" /></button>
                 )}
@@ -173,6 +195,18 @@ const ToolsSettingsTab = () => {
       </section>
 
       {viewing && <ManifestViewer id={viewing} onClose={() => setViewing(null)} />}
+      {builder && (
+        <IntegrationBuilder
+          initialManifest={builder.manifest || null}
+          mode={builder.mode}
+          onClose={() => setBuilder(null)}
+          onInstalled={(summary) => {
+            setBuilder(null);
+            setMessage({ ok: true, text: t('builder.installedNextStep', { name: summary.name }) });
+            load();
+          }}
+        />
+      )}
     </div>
   );
 };
