@@ -12,6 +12,7 @@ import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
+import FilesPanel from './files/FilesPanel';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
@@ -193,7 +194,7 @@ const PersonDetailModal = () => {
           {/* Tabs */}
           <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <div className="flex min-w-max">
-            {['details', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger'].map((tab) => (
+            {['details', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger', 'files'].map((tab) => (
                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -472,6 +473,12 @@ const PersonDetailModal = () => {
             {activeTab === 'ledger' && (
               <div className="p-6">
                 <EntityLedger entityType="people" entityId={person.id} />
+              </div>
+            )}
+
+            {activeTab === 'files' && (
+              <div className="p-6">
+                <FilesPanel personId={person.id} projectId={person.project_id} />
               </div>
             )}
           </div>

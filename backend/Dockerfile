@@ -17,7 +17,7 @@ COPY . .
 RUN apk add --no-cache su-exec
 
 # Create public directory for uploads
-RUN mkdir -p public/uploads/logos
+RUN mkdir -p public/uploads/logos data/files
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

@@ -54,9 +54,14 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
+      FILES_DIR: /usr/src/app/data/files
+      FILES_MAX_BYTES: ${FILES_MAX_BYTES:-52428800}
 
     volumes:
       - ./backend/public:/usr/src/app/public
+      # Uploaded person/project files (issue #97). Back this up along with
+      # the database: a database dump does not contain the files.
+      - files_data:/usr/src/app/data/files
     restart: unless-stopped
     depends_on:
       db:
@@ -109,3 +114,4 @@ networks:
 # Define a named volume for persistent PostgreSQL data
 volumes:
   postgres_data:
+  files_data:

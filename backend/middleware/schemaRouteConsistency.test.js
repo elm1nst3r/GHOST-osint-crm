@@ -47,6 +47,7 @@ const ROUTE_SCHEMAS = {
   'properties.js': shape(S.PropertyCreateSchema, S.PropertyUpdateSchema),
   'assets.js': shape(S.AssetCreateSchema, S.AssetUpdateSchema),
   'cryptoWallets.js': shape(S.CryptoWalletCreateSchema, S.CryptoWalletUpdateSchema),
+  'files.js': shape(S.FileUploadSchema, S.FileUpdateSchema),
   'transactions.js': shape(S.TransactionCreateSchema, S.TransactionUpdateSchema),
   'settings.js': shape(
     S.SettingsCustomFieldCreateSchema,

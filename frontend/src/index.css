@@ -265,3 +265,19 @@ input, select, textarea {
 .leaflet-marker-icon.custom-marker-icon {
   z-index: 600 !important;
 }
+
+/* Word document preview (issue #97). mammoth emits plain semantic HTML;
+   these give it document-like spacing. The page stays light in dark mode,
+   like a sheet of paper. */
+.docx-preview { font-size: 0.95rem; line-height: 1.6; }
+.docx-preview h1 { font-size: 1.6rem; font-weight: 700; margin: 1.2em 0 0.5em; }
+.docx-preview h2 { font-size: 1.3rem; font-weight: 700; margin: 1.1em 0 0.5em; }
+.docx-preview h3, .docx-preview h4 { font-size: 1.1rem; font-weight: 600; margin: 1em 0 0.4em; }
+.docx-preview p { margin: 0 0 0.8em; }
+.docx-preview ul { list-style: disc; padding-left: 1.6em; margin: 0 0 0.8em; }
+.docx-preview ol { list-style: decimal; padding-left: 1.6em; margin: 0 0 0.8em; }
+.docx-preview table { border-collapse: collapse; margin: 0 0 1em; max-width: 100%; }
+.docx-preview td, .docx-preview th { border: 1px solid #d1d5db; padding: 0.3em 0.6em; vertical-align: top; }
+.docx-preview img { max-width: 100%; height: auto; }
+.docx-preview a { color: #2563eb; text-decoration: underline; }
+.docx-preview td p, .docx-preview th p { margin: 0; }

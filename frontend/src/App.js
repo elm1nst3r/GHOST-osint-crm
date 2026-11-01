@@ -5,7 +5,7 @@ import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'reactflow/dist/style.css';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -43,6 +43,7 @@ import AssetDetailModal from './components/AssetDetailModal';
 import CryptoWalletsList from './components/CryptoWalletsList';
 import AddEditCryptoWalletForm from './components/AddEditCryptoWalletForm';
 import CryptoWalletDetailModal from './components/CryptoWalletDetailModal';
+import FilesPage from './components/files/FilesPage';
 import TransactionsList from './components/TransactionsList';
 import AddEditTransactionForm from './components/AddEditTransactionForm';
 import TransactionDetailModal from './components/TransactionDetailModal';
@@ -67,6 +68,7 @@ const navigationItemIds = [
   { id: 'assets',        icon: Package },
   { id: 'crypto-wallets', icon: Wallet },
   { id: 'transactions',  icon: Receipt },
+  { id: 'files',         icon: Paperclip },
   { id: 'tools',         icon: Wrench },
   { id: 'relationships', icon: Network },
   { id: 'map',           icon: Map },
@@ -350,6 +352,7 @@ const AppShell = () => {
               {activeSection === 'assets'        && <AssetsList />}
               {activeSection === 'crypto-wallets' && <CryptoWalletsList />}
               {activeSection === 'transactions'  && <TransactionsList />}
+              {activeSection === 'files'         && <FilesPage />}
               {activeSection === 'map'           && <div className="h-full"><GlobalMap /></div>}
               {activeSection === 'wireless'      && <div className="h-full"><WirelessNetworks /></div>}
               {activeSection === 'settings'      && <SettingsPage />}

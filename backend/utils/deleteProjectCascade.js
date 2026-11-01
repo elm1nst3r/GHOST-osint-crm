@@ -8,6 +8,9 @@
 // out on purpose because their FK already does the work:
 //   - project_members    -> ON DELETE CASCADE
 //   - geocoding_cache     -> project_id ON DELETE CASCADE
+// `files` rows go here like any other table; the files on disk are removed
+// afterwards by the orphan sweep (services/fileStorage.js), which callers
+// trigger once the transaction has committed.
 // audit_logs is deliberately NOT touched: it has no project_id and is an
 // append-only trail; its entity_id references becoming dangling is expected.
 //
@@ -25,6 +28,7 @@ const PROJECT_SCOPED_TABLES = [
   'assets',
   'properties',
   'crypto_wallets',
+  'files',
   'todos',
   'people',
   'businesses',

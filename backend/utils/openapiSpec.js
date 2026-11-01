@@ -210,6 +210,7 @@ const spec = {
     { name: 'Properties', description: 'Real estate and other mappable property.' },
     { name: 'Assets', description: 'Tracked items of value and who holds them.' },
     { name: 'Crypto Wallets', description: 'Wallet addresses as entities. GHOST records them; it does not do chain analysis.' },
+    { name: 'Files', description: 'Documents attached to a person or to a project. Any project member may upload, download and edit them; deleting needs the uploader, a project owner or manager, or an admin. Every upload, download and delete is audit-logged.' },
     { name: 'Transactions', description: 'Transfers of value between people, businesses and external parties.' },
     { name: 'Ledger', description: 'Read-only views derived from transactions and asset holdings.' },
     { name: 'Wireless Networks', description: 'Wi-Fi/Bluetooth/cell observations, WiGLE KML import, and person associations.' },
@@ -268,6 +269,7 @@ const spec = {
       AssetCreate: toSchema(S.AssetCreateSchema),
       AssetUpdate: toSchema(S.AssetUpdateSchema),
       CryptoWalletCreate: toSchema(S.CryptoWalletCreateSchema),
+      FileUpdate: toSchema(S.FileUpdateSchema),
       CryptoWalletUpdate: toSchema(S.CryptoWalletUpdateSchema),
       TransactionCreate: withPartyRules(toSchema(S.TransactionCreateSchema)),
       TransactionUpdate: withPartyRules(toSchema(S.TransactionUpdateSchema)),
@@ -474,6 +476,64 @@ const spec = {
         queryParam('tag', 'Wallets carrying this exact tag'),
       ],
     }),
+
+    // ── Files (issue #97) ──
+    '/files': {
+      get: op('Files', 'List files', {
+        description: 'Newest first. Returns metadata only; fetch the bytes from /files/{id}/content.',
+        params: [
+          ...paginationParams,
+          projectParam,
+          intParam('person_id', 'Only files attached to this person'),
+          intParam('uploaded_by', 'Only files uploaded by this user'),
+          queryParam('q', 'Search file name and description'),
+        ],
+        responseSchema: paginatedEnvelope,
+      }),
+      post: op('Files', 'Upload a file', {
+        mcp: false,
+        description: 'Send project_id for a project-level file, or person_id to attach it to a person ' +
+          '(the project then comes from the person). Upload limit is FILES_MAX_BYTES (default 50 MB); ' +
+          'larger files return 413. The SHA-256 of the stored bytes is returned as `sha256`.',
+        multipart: {
+          type: 'object',
+          properties: {
+            file: { type: 'string', format: 'binary' },
+            project_id: { type: 'integer' },
+            person_id: { type: 'integer' },
+            description: { type: 'string', maxLength: 2000 },
+          },
+          required: ['file'],
+        },
+        responses: {
+          201: jsonResponse('Uploaded', anyObject),
+          413: jsonResponse('File exceeds the size limit', ref('Error')),
+        },
+      }),
+    },
+    '/files/{id}': {
+      get: op('Files', 'Get file metadata', { params: [idParam] }),
+      put: op('Files', 'Edit a file\'s description or person', {
+        params: [idParam],
+        body: ref('FileUpdate'),
+        description: 'Only the fields sent change. person_id: null moves the file to project level.',
+      }),
+      delete: op('Files', 'Delete a file', {
+        params: [idParam],
+        description: 'Allowed for the uploader, the project\'s owners and managers, and admins.',
+      }),
+    },
+    '/files/{id}/content': {
+      get: op('Files', 'Download a file', {
+        mcp: false,
+        params: [idParam, queryParam('preview', 'Send 1 when the bytes are for an in-app preview; logged as a view instead of a download.')],
+        description: 'Always sent as an attachment with Content-Type application/octet-stream.',
+        responses: {
+          200: { description: 'The file', content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } } },
+          410: jsonResponse('The stored file is missing from disk', ref('Error')),
+        },
+      }),
+    },
 
     // ── Transactions ──
     ...crudPaths('Transactions', '/transactions', 'TransactionCreate', 'TransactionUpdate', {

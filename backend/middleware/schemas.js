@@ -508,6 +508,25 @@ const CryptoWalletUpdateSchema = z.object({
   ...cryptoWalletBaseFields,
 });
 
+// ── Files (issue #97) ─────────────────────────────────────────────────────────
+// The upload is multipart: multer fills req.body with these as strings before
+// validate() runs, which is why ids go through the coercing helpers. One of
+// project_id or person_id is required; with person_id the project comes from
+// the person (checked in the route).
+
+const FileUploadSchema = z.object({
+  project_id: optId(),
+  person_id: optId(),
+  description: optStr(2000),
+});
+
+// person_id: null moves a person's file to project level; a number attaches
+// it to that person (same project only).
+const FileUpdateSchema = z.object({
+  description: optStr(2000),
+  person_id: optId(),
+});
+
 // ── Transactions ──────────────────────────────────────────────────────────────
 // Complex polymorphic rules are handled by the existing validateTransactionShape()
 // in transactionHelpers.js.  Zod only enforces basic types here.
@@ -631,6 +650,8 @@ module.exports = {
   AssetUpdateSchema,
   CryptoWalletCreateSchema,
   CryptoWalletUpdateSchema,
+  FileUploadSchema,
+  FileUpdateSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,

@@ -13,7 +13,7 @@ import { projectsAPI } from '../utils/api';
 // Order shown in the dialog — roughly most-to-least significant.
 const ENTITY_ORDER = [
   'people', 'businesses', 'relationships', 'cases', 'properties', 'assets',
-  'transactions', 'crypto_wallets', 'wireless_networks', 'travel_history', 'todos',
+  'transactions', 'crypto_wallets', 'files', 'wireless_networks', 'travel_history', 'todos',
 ];
 
 const DeleteProjectModal = ({ project, onClose, onDeleted }) => {

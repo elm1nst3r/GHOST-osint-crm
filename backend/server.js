@@ -52,6 +52,11 @@ function checkFileType(file, filetypes, cb) {
   }
 }
 
+// Uploaded files (issue #97) are stored outside public/ — see
+// services/fileStorage.js. Created up front so the first upload can't fail on
+// a missing directory.
+require('./services/fileStorage').ensureDirs();
+
 // Validate critical environment variables — required in all environments
 const requiredEnvVars = ['SESSION_SECRET'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -133,6 +138,13 @@ initializeDatabase().then(() => {
   const { ProjectRetentionService } = require('./services/projectRetentionService');
   app.locals.projectRetentionService = new ProjectRetentionService(pool);
   app.locals.projectRetentionService.start();
+
+  // Uploaded files (issue #97): removes stored files whose row is gone, e.g.
+  // after a project delete.
+  const { FileSweepService } = require('./services/fileStorage');
+  app.locals.fileSweepService = new FileSweepService(pool);
+  app.locals.fileSweepService.start();
+  app.locals.projectRetentionService.onProjectDeleted = () => app.locals.fileSweepService.requestSweep();
 }).catch((err) => {
   console.error('Error during database initialization:', err.stack);
   // An unreachable database otherwise shows up only as "container is
@@ -206,6 +218,7 @@ const assetsRoutes = require('./routes/assets');
 const cryptoWalletsRoutes = require('./routes/cryptoWallets');
 const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
+const filesRoutes = require('./routes/files');
 const openapiSpec = require('./utils/openapiSpec');
 
 // Machine-readable API description generated from the Zod schemas (issue #44).
@@ -241,6 +254,7 @@ app.use('/api/assets', assetsRoutes);
 app.use('/api/crypto-wallets', cryptoWalletsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api', ledgerRoutes);
+app.use('/api/files', filesRoutes);
 
 app.get('/api', (req, res) => {
   res.json({ message: "Hello from the OSINT CRM Backend!" });
