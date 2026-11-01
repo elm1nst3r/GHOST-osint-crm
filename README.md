@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.19.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.20.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -130,6 +130,13 @@ administrator can change their own membership. Full details in
 - **Relationships**: wallet↔wallet, wallet↔person, and wallet↔business links, visible in the same relationship graph as everything else
 - **External reference field**: link out to GraphSense, a block explorer, or any other specialized analysis tool — GHOST tracks the citation and the connections, not the on-chain analysis itself
 
+### 📎 Files & Evidence
+- **Attach files** to a person or to a project: bank statements, call records, reports, screenshots, exports
+- **Project Files page** lists everything in the project, with the person each file belongs to; search and filter by person
+- **In-app previews** for PDF, images, text, CSV/TSV (as a table) and Word `.docx`; everything else downloads
+- **SHA-256 hash** recorded for every file, and every upload, download, preview and deletion is audit-logged
+- **Never public**: files are only served after a login and project-membership check
+
 ### 💸 Asset, Property & Transaction Tracking
 - **Assets**: Persistent physical goods (vehicles, devices, jewellery…) with categories, value, and status
 - **Properties**: Real estate with type, address, and geocoded map position
@@ -230,7 +237,10 @@ If you build from source (required on ARM), replace the last two lines with
 `docker compose up --build -d`.
 
 Database migrations run automatically at startup, so there's no separate
-schema step. Your data lives in a Docker volume and is not touched.
+schema step. Your data lives in Docker volumes and is not touched.
+
+**Backups:** uploaded files (since 2.20.0) live in the `files_data` volume,
+not in the database. Back up both.
 
 **Coming from 2.17.0–2.18.x with your own PostgreSQL server?** Those
 versions skipped the bundled database when `COMPOSE_PROFILES` was cleared;
@@ -242,7 +252,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.19.0
+GHOST_VERSION=2.20.0
 ```
 
 Without it, the containers track the latest release.
@@ -323,7 +333,7 @@ GHOST-osint-crm/
 │   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
 ├── backend/                     # Node.js/Express API
 │   ├── server.js                # App entry point
-│   ├── routes/                  # 22 route modules (people, cases, projects, crypto wallets, assets, transactions, API docs…)
+│   ├── routes/                  # 23 route modules (people, cases, projects, files, crypto wallets, assets, transactions, API docs…)
 │   ├── middleware/              # Auth, audit, rate limiters, Zod schemas & validation
 │   ├── migrations/              # Knex schema migrations, applied automatically at startup
 │   ├── services/                # Geocoding providers, update check, archived-project retention
@@ -607,6 +617,11 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.20.0 (November 2026)
+- 📎 **File attachments** — upload documents and evidence to a person or a project; the project Files page lists them all with the person each belongs to, plus SHA-256 hashes and audit logging (issue #97)
+- 👁️ **In-app previews** — PDF, images, text, CSV/TSV tables and Word `.docx` open inside GHOST; Windows-1251 text is detected automatically
+- 💾 **New `files_data` volume** — back it up along with the database
+
 ### Version 2.19.0 (October 2026)
 - 👥 **Project Owner role** — projects now have Owner > Manager > Investigator, all per project; owners manage managers and investigators, and only an admin appoints or removes owners (issue #95)
 - 🔒 **Rank-based membership rules** — owners and managers can only act on members ranked below them, and nobody but an admin can change their own membership
@@ -781,5 +796,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.19.0
-**Last Updated:** October 10, 2026
+**Version:** 2.20.0
+**Last Updated:** November 1, 2026

@@ -5,6 +5,56 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.20.0] - 2026-11-01
+
+### ✨ Added
+
+- **File attachments (#97).** Documents and evidence can be uploaded to a
+  person (their new Files tab) or to a project as a whole. The new Files
+  page lists every file in the project, including the ones attached to
+  people, with the person each belongs to; search by name or description
+  and filter by person. Each file records its size, uploader, upload date,
+  an optional description and a SHA-256 hash.
+- **In-app previews.** PDF, images, plain text, CSV/TSV (as a table) and
+  Word `.docx` open inside GHOST; other types download. Text and CSV saved
+  in Windows-1251 are detected automatically, with a manual encoding
+  picker. The Word preview loads only when a `.docx` is opened.
+
+### 🔒 Security
+
+- Files follow project membership and are never publicly reachable: they
+  are stored outside the served `public/` folder under random names and
+  only returned through an authenticated, membership-checked download,
+  always as an attachment (`nosniff`, sandbox CSP). Previews render those
+  bytes in the browser with a type chosen from an allowlist, so an
+  uploaded HTML or SVG file can't run as part of GHOST.
+- Any project member can upload, view and download; deleting a file is
+  limited to its uploader, the project's owners and managers, and admins.
+  Uploads, downloads, previews and deletions are audit-logged.
+- Deleting a person keeps their files as project files. Deleting a project
+  (manually or by the retention policy) removes its files from disk too.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+The migration (`20261101000001`) adds a `files` table and changes no
+existing data. Files are kept in a new Docker volume, `files_data`, which
+Compose creates automatically.
+
+- **Back up the `files_data` volume as well as the database.** A database
+  dump does not contain the files.
+- The upload limit is 50 MB per file (`FILES_MAX_BYTES` in `.env`). Above
+  100 MB, also raise `client_max_body_size` for `/api/files` in
+  `frontend/nginx.conf`.
+- Export/import does not include files yet.
+- Running without Docker: files go to `backend/data/files` unless
+  `FILES_DIR` is set.
+
 ## [2.19.0] - 2026-10-21
 
 ### ✨ Added
