@@ -43,4 +43,14 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-module.exports = { loginLimiter, geocodingLimiter, apiLimiter };
+// Searches with integrated OSINT tools (issue #96) call third-party APIs,
+// often paid ones, so they get a tighter per-client budget than the API.
+const integrationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many tool searches. Please wait a minute.' },
+});
+
+module.exports = { loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter };

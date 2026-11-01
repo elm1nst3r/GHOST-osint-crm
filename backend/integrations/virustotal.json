@@ -1,0 +1,94 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "virustotal",
+  "name": "VirusTotal",
+  "version": "1.0.0",
+  "category": "Threat intelligence",
+  "description": "Reputation, detections and registration details for a domain or IP address.",
+  "homepage": "https://www.virustotal.com",
+  "terms": "https://docs.virustotal.com/docs/terms-of-service",
+  "baseUrl": "https://www.virustotal.com/api/v3",
+  "auth": {
+    "type": "header",
+    "name": "x-apikey",
+    "label": "VirusTotal API key",
+    "signupUrl": "https://www.virustotal.com/gui/join-us"
+  },
+  "minIntervalMs": 15500,
+  "operations": [
+    {
+      "id": "domain",
+      "label": "Domain report",
+      "input": "domain",
+      "cost": "quota",
+      "path": "/domains/{{input}}",
+      "results": {
+        "root": "data",
+        "title": "id",
+        "fields": [
+          {
+            "label": "Malicious detections",
+            "path": "attributes.last_analysis_stats.malicious"
+          },
+          {
+            "label": "Suspicious detections",
+            "path": "attributes.last_analysis_stats.suspicious"
+          },
+          {
+            "label": "Reputation",
+            "path": "attributes.reputation"
+          },
+          {
+            "label": "Registrar",
+            "path": "attributes.registrar"
+          },
+          {
+            "label": "Created (unix time)",
+            "path": "attributes.creation_date"
+          },
+          {
+            "label": "Tags",
+            "path": "attributes.tags"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ip",
+      "label": "IP address report",
+      "input": "ip",
+      "cost": "quota",
+      "path": "/ip_addresses/{{input}}",
+      "results": {
+        "root": "data",
+        "title": "id",
+        "fields": [
+          {
+            "label": "Malicious detections",
+            "path": "attributes.last_analysis_stats.malicious"
+          },
+          {
+            "label": "Suspicious detections",
+            "path": "attributes.last_analysis_stats.suspicious"
+          },
+          {
+            "label": "Reputation",
+            "path": "attributes.reputation"
+          },
+          {
+            "label": "Network owner",
+            "path": "attributes.as_owner"
+          },
+          {
+            "label": "Country",
+            "path": "attributes.country"
+          },
+          {
+            "label": "Network",
+            "path": "attributes.network"
+          }
+        ]
+      }
+    }
+  ]
+}

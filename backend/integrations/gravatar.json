@@ -1,0 +1,67 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "gravatar",
+  "name": "Gravatar",
+  "version": "1.0.0",
+  "category": "Email",
+  "description": "Public Gravatar profile linked to an email address: name, location, bio and verified social accounts. The address is sent as a SHA-256 hash.",
+  "homepage": "https://gravatar.com",
+  "terms": "https://automattic.com/privacy/",
+  "baseUrl": "https://api.gravatar.com/v3",
+  "auth": {
+    "type": "bearer",
+    "optional": true,
+    "label": "API key (optional, raises rate limits)",
+    "signupUrl": "https://gravatar.com/developers"
+  },
+  "minIntervalMs": 500,
+  "operations": [
+    {
+      "id": "profile",
+      "label": "Public profile",
+      "input": "email",
+      "cost": "free",
+      "path": "/profiles/{{input|trim|lower|sha256}}",
+      "results": {
+        "title": "display_name",
+        "link": "profile_url",
+        "fields": [
+          {
+            "label": "Name",
+            "path": "display_name"
+          },
+          {
+            "label": "Location",
+            "path": "location"
+          },
+          {
+            "label": "Job title",
+            "path": "job_title"
+          },
+          {
+            "label": "Company",
+            "path": "company"
+          },
+          {
+            "label": "About",
+            "path": "description"
+          },
+          {
+            "label": "Profile",
+            "path": "profile_url",
+            "osintType": "Website"
+          },
+          {
+            "label": "Verified accounts",
+            "path": "verified_accounts[].url",
+            "osintType": "Social Media"
+          },
+          {
+            "label": "Avatar",
+            "path": "avatar_url"
+          }
+        ]
+      }
+    }
+  ]
+}

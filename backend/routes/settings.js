@@ -16,7 +16,9 @@ const {
   SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
+  SettingsToolsSchema,
 } = require('../middleware/schemas');
+const { ALLOW_USER_TOOLS_KEY, allowUserTools } = require('../utils/toolAccess');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -192,6 +194,34 @@ router.get('/project-retention', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error fetching project retention setting:', err);
     res.status(500).json({ error: 'Failed to fetch project retention setting' });
+  }
+});
+
+// ── OSINT tools policy (issue #96) ───────────────────────────────────────────
+// Readable by everyone (the Tools page needs to know whether to offer "Add"),
+// changeable by admins.
+router.get('/tools', requireAuth, async (req, res) => {
+  try {
+    res.json({ allow_user_tools: await allowUserTools(pool) });
+  } catch (err) {
+    console.error('Error fetching tools policy:', err);
+    res.status(500).json({ error: 'Failed to fetch tools settings' });
+  }
+});
+
+router.put('/tools', requireAdmin, validate(SettingsToolsSchema), async (req, res) => {
+  const { allow_user_tools } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [ALLOW_USER_TOOLS_KEY, String(allow_user_tools)]
+    );
+    await req.audit.log('settings', 0, 'update', ALLOW_USER_TOOLS_KEY, null, String(allow_user_tools));
+    res.json({ allow_user_tools });
+  } catch (err) {
+    console.error('Error saving tools policy:', err);
+    res.status(500).json({ error: 'Failed to save tools settings' });
   }
 });
 

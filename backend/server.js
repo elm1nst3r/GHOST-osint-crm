@@ -120,6 +120,10 @@ const initializeDatabase = async () => {
     await knex.destroy();
   }
   await seedDefaults(pool);
+  // Built-in OSINT tool integrations (issue #96) ship as JSON files; refresh
+  // them on every start so an upgrade brings the new versions.
+  const synced = await require('./services/integrations/registry').syncBuiltins(pool);
+  console.log(`Built-in integrations available: ${synced}`);
 };
 
 initializeDatabase().then(() => {
@@ -219,6 +223,7 @@ const cryptoWalletsRoutes = require('./routes/cryptoWallets');
 const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
 const filesRoutes = require('./routes/files');
+const integrationsRoutes = require('./routes/integrations');
 const openapiSpec = require('./utils/openapiSpec');
 
 // Machine-readable API description generated from the Zod schemas (issue #44).
@@ -255,6 +260,7 @@ app.use('/api/crypto-wallets', cryptoWalletsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api', ledgerRoutes);
 app.use('/api/files', filesRoutes);
+app.use('/api/integrations', integrationsRoutes);
 
 app.get('/api', (req, res) => {
   res.json({ message: "Hello from the OSINT CRM Backend!" });

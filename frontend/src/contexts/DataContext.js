@@ -100,12 +100,13 @@ export const DataProvider = ({ children }) => {
 
   const fetchTools = useCallback(async () => {
     try {
-      const data = await toolsAPI.getAll();
+      // Project-shared tools only show in their projects (issue #96).
+      const data = await toolsAPI.getAll({ project_id: activeProjectId });
       setTools(data);
     } catch (err) {
       console.error('Error fetching tools:', err);
     }
-  }, []);
+  }, [activeProjectId]);
 
   const fetchTodos = useCallback(async () => {
     try {

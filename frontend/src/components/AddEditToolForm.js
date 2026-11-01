@@ -1,8 +1,10 @@
 // File: frontend/src/components/AddEditToolForm.js
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Globe, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
-import { toolsAPI } from '../utils/api';
+import { X, Globe, AlertCircle, CheckCircle, ExternalLink, Plug, Link2 } from 'lucide-react';
+import { toolsAPI, integrationsAPI } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useProject } from '../contexts/ProjectContext';
 import { TOOL_CATEGORIES, TOOL_STATUSES } from '../utils/constants';
 import { translateOptions } from '../utils/optionLabels';
 
@@ -19,13 +21,36 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
     tags: [],
     notes: ''
   });
+  // Integrated tools and sharing (issue #96).
+  const { currentUser } = useAuth();
+  const { projects } = useProject();
+  const isAdmin = currentUser?.role === 'admin';
+  // Admins create central tools; everyone else their own.
+  const isCentral = tool ? tool.owner_user_id == null : isAdmin;
+  const [integrations, setIntegrations] = useState([]);
+  const [sharing, setSharing] = useState({
+    kind: 'link', integration_id: '', visibility: isCentral ? 'all' : 'private', project_ids: [], enabled: true, credential_mode: 'shared',
+  });
+  const [sharedKey, setSharedKey] = useState('');
   const [newTag, setNewTag] = useState('');
   const [urlPreview, setUrlPreview] = useState('');
   const [isValidUrl, setIsValidUrl] = useState(null);
   const [showUrlPreview, setShowUrlPreview] = useState(false);
 
   useEffect(() => {
+    integrationsAPI.getAll().then(setIntegrations).catch((err) => console.error('Error loading integrations:', err));
+  }, []);
+
+  useEffect(() => {
     if (tool) {
+      setSharing({
+        kind: tool.kind || 'link',
+        integration_id: tool.integration_id || '',
+        visibility: tool.visibility || (tool.owner_user_id == null ? 'all' : 'private'),
+        project_ids: tool.project_ids || [],
+        enabled: tool.enabled !== false,
+        credential_mode: tool.credential_mode || 'shared',
+      });
       setFormData({
         name: tool.name || '',
         link: tool.link || '',
@@ -80,11 +105,23 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
     e.preventDefault();
     
     try {
+      const payload = {
+        ...formData,
+        kind: sharing.kind,
+        integration_id: sharing.kind === 'integration' ? sharing.integration_id : null,
+        visibility: sharing.visibility,
+        project_ids: sharing.visibility === 'projects' ? sharing.project_ids : [],
+        enabled: sharing.enabled,
+        credential_mode: sharing.credential_mode,
+      };
       let savedTool;
       if (tool) {
-        savedTool = await toolsAPI.update(tool.id, formData);
+        savedTool = await toolsAPI.update(tool.id, payload);
       } else {
-        savedTool = await toolsAPI.create(formData);
+        savedTool = await toolsAPI.create(payload);
+      }
+      if (sharedKey.trim() && sharing.kind === 'integration' && sharing.credential_mode === 'shared') {
+        await toolsAPI.setKey(savedTool.id, 'shared', sharedKey.trim());
       }
       onSave(savedTool);
     } catch (error) {
@@ -140,6 +177,87 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                 required
               />
             </div>
+
+          {/* Type: link or integration (issue #96) */}
+          <div>
+            <span className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('tools.typeLabel')}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {[['link', Link2, 'tools.typeLink', 'tools.typeLinkHelp'], ['integration', Plug, 'tools.typeIntegration', 'tools.typeIntegrationHelp']].map(([value, Icon, label, help]) => (
+                <label key={value} className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer ${sharing.kind === value ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <input type="radio" className="mt-1" checked={sharing.kind === value} onChange={() => setSharing({ ...sharing, kind: value })} />
+                  <span>
+                    <span className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-slate-100"><Icon className="w-4 h-4" />{t(label)}</span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">{t(help)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {sharing.kind === 'integration' && (() => {
+            const chosen = integrations.find((i) => i.id === sharing.integration_id);
+            const needsKey = chosen && chosen.auth.type !== 'none';
+            return (
+              <div className="space-y-3 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                <label className="block">
+                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('tools.integrationLabel')}</span>
+                  <select
+                    className="input-base"
+                    value={sharing.integration_id}
+                    required
+                    onChange={(e) => {
+                      const next = integrations.find((i) => i.id === e.target.value);
+                      setSharing({ ...sharing, integration_id: e.target.value });
+                      if (next) {
+                        setFormData((f) => ({
+                          ...f,
+                          name: f.name || next.name,
+                          description: f.description || next.description || '',
+                          link: f.link || next.homepage || '',
+                        }));
+                      }
+                    }}
+                  >
+                    <option value="">{t('tools.chooseIntegration')}</option>
+                    {integrations.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name}{i.source === 'imported' ? ` (${t('tools.community')})` : ''}</option>
+                    ))}
+                  </select>
+                </label>
+                {chosen && (
+                  <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                    <p>{t('tools.sendsTo', { host: chosen.host })}</p>
+                    <p>{t('tools.operationsLine', { list: chosen.operations.map((o) => o.label).join(' · ') })}</p>
+                    <p>{chosen.auth.type === 'none' ? t('tools.noKeyNeeded') : chosen.auth.required ? t('tools.keyRequired') : t('tools.keyOptional')}</p>
+                    {chosen.terms && <a href={chosen.terms} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">{t('tools.providerTerms')}<ExternalLink className="w-3 h-3" /></a>}
+                  </div>
+                )}
+                {needsKey && (
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('tools.keyModeLabel')}</legend>
+                    <label className="flex items-start gap-2 text-sm cursor-pointer">
+                      <input type="radio" className="mt-1" checked={sharing.credential_mode === 'shared'} onChange={() => setSharing({ ...sharing, credential_mode: 'shared' })} />
+                      <span>{t('tools.keyModeSharedOption')}<span className="block text-xs text-slate-500">{t('tools.keyModeSharedHelp')}</span></span>
+                    </label>
+                    <label className="flex items-start gap-2 text-sm cursor-pointer">
+                      <input type="radio" className="mt-1" checked={sharing.credential_mode === 'per_user'} onChange={() => setSharing({ ...sharing, credential_mode: 'per_user' })} />
+                      <span>{t('tools.keyModePerUserOption')}<span className="block text-xs text-slate-500">{t('tools.keyModePerUserHelp')}</span></span>
+                    </label>
+                    {sharing.credential_mode === 'shared' && (
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        className="input-base"
+                        value={sharedKey}
+                        onChange={(e) => setSharedKey(e.target.value)}
+                        placeholder={tool?.has_shared_key ? t('tools.replaceKeyPlaceholder') : t('tools.sharedKeyPlaceholder')}
+                      />
+                    )}
+                  </fieldset>
+                )}
+              </div>
+            );
+          })()}
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -277,6 +395,42 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
               placeholder={t('toolForm.notesPlaceholder')}
             />
           </div>
+
+          {/* Who can use it (issue #96) */}
+          <fieldset className="space-y-2">
+            <legend className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('tools.sharingLabel')}</legend>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input type="radio" className="mt-1" checked={sharing.visibility !== 'projects'} onChange={() => setSharing({ ...sharing, visibility: isCentral ? 'all' : 'private' })} />
+              <span>{isCentral ? t('tools.visibilityAll') : t('tools.visibilityPrivate')}
+                <span className="block text-xs text-slate-500">{isCentral ? t('tools.visibilityAllHelp') : t('tools.visibilityPrivateHelp')}</span></span>
+            </label>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input type="radio" className="mt-1" checked={sharing.visibility === 'projects'} onChange={() => setSharing({ ...sharing, visibility: 'projects' })} />
+              <span>{isCentral ? t('tools.visibilityProjects') : t('tools.visibilityShareProjects')}
+                <span className="block text-xs text-slate-500">{isCentral ? t('tools.visibilityProjectsHelp') : t('tools.visibilityShareProjectsHelp')}</span></span>
+            </label>
+            {sharing.visibility === 'projects' && (
+              <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+                {projects.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sharing.project_ids.includes(p.id)}
+                      onChange={(e) => setSharing({
+                        ...sharing,
+                        project_ids: e.target.checked ? [...sharing.project_ids, p.id] : sharing.project_ids.filter((id) => id !== p.id),
+                      })}
+                    />
+                    {p.name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-sm cursor-pointer pt-2">
+              <input type="checkbox" checked={sharing.enabled} onChange={(e) => setSharing({ ...sharing, enabled: e.target.checked })} />
+              {t('tools.enabledLabel')}
+            </label>
+          </fieldset>
 
           <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-700">
             <button

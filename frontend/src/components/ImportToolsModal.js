@@ -8,12 +8,13 @@
 // anything is written is worth the extra click. Existing bulk entry elsewhere
 // in the app imports first and reports afterwards via an alert; this doesn't.
 
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Upload, FileText, AlertTriangle, Check } from 'lucide-react';
 import { toolsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { parseToolImport, markDuplicates } from '../utils/toolImport';
+import GhostToolsImport from './tools/GhostToolsImport';
 
 const ImportToolsModal = ({ onClose }) => {
   const { t } = useTranslation();
@@ -66,6 +67,19 @@ const ImportToolsModal = ({ onClose }) => {
       setImporting(false);
     }
   };
+
+  // A file exported from GHOST's Tools page carries sharing settings and
+  // possibly encrypted keys, so it gets its own import screen (issue #96).
+  const ghostFile = useMemo(() => {
+    if (!text.trim().startsWith('{')) return null;
+    try {
+      const data = JSON.parse(text);
+      return data && data.format === 'ghost-tools' && Array.isArray(data.tools) ? data : null;
+    } catch {
+      return null;
+    }
+  }, [text]);
+  if (ghostFile) return <GhostToolsImport file={ghostFile} onClose={onClose} onBack={() => setText('')} />;
 
   const newCount = parsed?.tools.filter((x) => !x.duplicateOfExisting && !x.duplicateInFile).length || 0;
   const existingCount = parsed?.tools.filter((x) => x.duplicateOfExisting).length || 0;

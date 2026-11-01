@@ -1,0 +1,67 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "urlscan",
+  "name": "urlscan.io",
+  "version": "1.0.0",
+  "category": "Web",
+  "description": "Public scans of websites on a domain: what the page loaded, where it was hosted, and when.",
+  "homepage": "https://urlscan.io",
+  "terms": "https://urlscan.io/terms/",
+  "baseUrl": "https://urlscan.io/api/v1",
+  "auth": {
+    "type": "header",
+    "name": "API-Key",
+    "optional": true,
+    "label": "urlscan.io API key (optional)",
+    "signupUrl": "https://urlscan.io/user/signup"
+  },
+  "minIntervalMs": 1000,
+  "operations": [
+    {
+      "id": "search-domain",
+      "label": "Scans of a domain",
+      "input": "domain",
+      "cost": "free",
+      "path": "/search/",
+      "query": {
+        "q": "domain:{{input}}",
+        "size": "50"
+      },
+      "results": {
+        "root": "results",
+        "title": "page.url",
+        "fields": [
+          {
+            "label": "Page",
+            "path": "page.url"
+          },
+          {
+            "label": "Title",
+            "path": "page.title"
+          },
+          {
+            "label": "Scanned",
+            "path": "task.time"
+          },
+          {
+            "label": "IP",
+            "path": "page.ip",
+            "osintType": "IP Address"
+          },
+          {
+            "label": "Network",
+            "path": "page.asnname"
+          },
+          {
+            "label": "Server",
+            "path": "page.server"
+          },
+          {
+            "label": "Screenshot",
+            "path": "screenshot"
+          }
+        ]
+      }
+    }
+  ]
+}

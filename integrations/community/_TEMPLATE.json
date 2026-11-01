@@ -1,0 +1,54 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "example-template",
+  "name": "Example (template)",
+  "version": "0.1.0",
+  "description": "Copy this file to start a new integration. Replace every value; it does not point at a real service.",
+  "category": "Other",
+  "homepage": "https://example.com",
+  "terms": "https://example.com/terms",
+  "baseUrl": "https://api.example.com/v1",
+  "auth": {
+    "type": "header",
+    "name": "X-Api-Key",
+    "label": "Example API key",
+    "signupUrl": "https://example.com/keys"
+  },
+  "minIntervalMs": 1000,
+  "timeoutMs": 15000,
+  "test": {
+    "path": "/account"
+  },
+  "operations": [
+    {
+      "id": "lookup",
+      "label": "Look up an email address",
+      "input": "email",
+      "cost": "quota",
+      "path": "/lookup/{{input}}",
+      "notFound": [
+        404
+      ],
+      "results": {
+        "root": "data",
+        "title": "name",
+        "link": "profile_url",
+        "fields": [
+          {
+            "label": "Name",
+            "path": "name"
+          },
+          {
+            "label": "Profiles",
+            "path": "profiles[].url",
+            "osintType": "Social Media"
+          },
+          {
+            "label": "Location",
+            "path": "location"
+          }
+        ]
+      }
+    }
+  ]
+}

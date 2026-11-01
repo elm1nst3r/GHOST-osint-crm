@@ -1,0 +1,65 @@
+{
+  "schema": "ghost-integration/v1",
+  "id": "ipinfo",
+  "name": "IPinfo",
+  "version": "1.0.0",
+  "category": "Network",
+  "description": "Location, network owner and hostname for an IP address.",
+  "homepage": "https://ipinfo.io",
+  "terms": "https://ipinfo.io/terms-of-service",
+  "baseUrl": "https://ipinfo.io",
+  "auth": {
+    "type": "bearer",
+    "optional": true,
+    "label": "IPinfo token (optional, raises limits)",
+    "signupUrl": "https://ipinfo.io/signup"
+  },
+  "minIntervalMs": 200,
+  "operations": [
+    {
+      "id": "lookup",
+      "label": "IP details",
+      "input": "ip",
+      "cost": "free",
+      "path": "/{{input}}/json",
+      "results": {
+        "title": "ip",
+        "fields": [
+          {
+            "label": "Hostname",
+            "path": "hostname",
+            "osintType": "Website"
+          },
+          {
+            "label": "Organisation",
+            "path": "org"
+          },
+          {
+            "label": "City",
+            "path": "city"
+          },
+          {
+            "label": "Region",
+            "path": "region"
+          },
+          {
+            "label": "Country",
+            "path": "country"
+          },
+          {
+            "label": "Coordinates",
+            "path": "loc"
+          },
+          {
+            "label": "Time zone",
+            "path": "timezone"
+          },
+          {
+            "label": "Anycast",
+            "path": "anycast"
+          }
+        ]
+      }
+    }
+  ]
+}
