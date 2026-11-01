@@ -56,6 +56,8 @@ services:
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
       FILES_DIR: /usr/src/app/data/files
       FILES_MAX_BYTES: ${FILES_MAX_BYTES:-52428800}
+      SECRETS_KEY: ${SECRETS_KEY:-}
+      INTEGRATIONS_ALLOW_PRIVATE: ${INTEGRATIONS_ALLOW_PRIVATE:-false}
 
     volumes:
       - ./backend/public:/usr/src/app/public
