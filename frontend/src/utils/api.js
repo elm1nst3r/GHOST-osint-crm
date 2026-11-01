@@ -523,6 +523,65 @@ export const cryptoWalletsAPI = {
   remove: (id) => fetchAPI(`/crypto-wallets/${id}`, { method: 'DELETE' }),
 };
 
+// Files API (issue #97). Uploads go through XMLHttpRequest rather than
+// fetchAPI: fetch can't report upload progress, and fetchAPI's 30 s timeout
+// would cut off a large upload.
+export const filesAPI = {
+  getAll: (params = {}) => fetchAPI(`/files${buildQuery(params)}`),
+  update: (id, data) => fetchAPI(`/files/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id) => fetchAPI(`/files/${id}`, { method: 'DELETE' }),
+
+  // fields: { project_id?, person_id?, description? }. onProgress gets 0..1.
+  upload: (file, fields = {}, onProgress) => new Promise((resolve, reject) => {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && v !== '') form.append(k, v);
+    });
+    form.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/files`);
+    xhr.withCredentials = true;
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    }
+    xhr.onload = () => {
+      let body = {};
+      try { body = JSON.parse(xhr.responseText || '{}'); } catch { /* non-JSON error page */ }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body);
+      const error = new Error(body.error || `HTTP error! status: ${xhr.status}`);
+      error.status = xhr.status;
+      error.limitBytes = body.limit_bytes;
+      reject(error);
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(form);
+  }),
+
+  // The file's bytes as a Blob. preview: true is logged as a view rather than
+  // a download. Downloads also go through here (not a plain link) so they
+  // work behind the dev-server proxy, which doesn't forward page navigations.
+  fetchContent: async (id, { preview = false } = {}) => {
+    const response = await fetchAPI(`/files/${id}/content${preview ? '?preview=1' : ''}`, {
+      responseType: 'blob',
+      timeout: 5 * 60 * 1000,
+    });
+    return response.blob();
+  },
+};
+
+// Saves a Blob to the user's computer under the given name.
+export const saveBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'file';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+};
+
 // Relationships API (issue #83's write-of-record table; issue #82's wallet
 // links are the first frontend consumer to read/write it directly rather
 // than through the person/business JSONB sync path).

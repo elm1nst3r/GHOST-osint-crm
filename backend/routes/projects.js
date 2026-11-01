@@ -139,6 +139,7 @@ router.delete('/:id', requireAuth, requireAdmin, validateIdParam, async (req, re
     await client.query('BEGIN');
     await deleteProjectCascade(client, projectId);
     await client.query('COMMIT');
+    req.app.locals.fileSweepService?.requestSweep();
 
     await req.audit.log('project', parseInt(projectId, 10), 'delete', 'cascade',
       JSON.stringify({ name: project.name, deleted: counts }), null);

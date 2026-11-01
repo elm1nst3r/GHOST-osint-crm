@@ -80,6 +80,9 @@ const AuditLogs = () => {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'delete':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'view':
+      case 'download':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
@@ -163,6 +166,7 @@ const AuditLogs = () => {
               <option value="tool">{t('settings.auditLogs.entityTool')}</option>
               <option value="case">{t('settings.auditLogs.entityCase')}</option>
               <option value="user">{t('settings.auditLogs.entityUser')}</option>
+              <option value="file">{t('settings.auditLogs.entityFile')}</option>
             </select>
           </div>
 
@@ -179,6 +183,8 @@ const AuditLogs = () => {
               <option value="create">{t('settings.auditLogs.actionCreate')}</option>
               <option value="update">{t('settings.auditLogs.actionUpdate')}</option>
               <option value="delete">{t('settings.auditLogs.actionDelete')}</option>
+              <option value="view">{t('settings.auditLogs.actionView')}</option>
+              <option value="download">{t('settings.auditLogs.actionDownload')}</option>
             </select>
           </div>
 

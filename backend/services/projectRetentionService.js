@@ -29,6 +29,8 @@ class ProjectRetentionService {
     this.timer = null;
     this.startupTimer = null;
     this.running = false;
+    // Set by server.js: runs the uploaded-files sweep after a delete (#97).
+    this.onProjectDeleted = null;
   }
 
   async getRetentionDays() {
@@ -69,6 +71,7 @@ class ProjectRetentionService {
           await deleteProjectCascade(client, project.id);
           await client.query('COMMIT');
           deleted.push(project.id);
+          this.onProjectDeleted?.(project.id);
           console.log(
             `[retention] deleted archived project ${project.id} ("${project.name}") ` +
             `after ${retentionDays}d — removed ${total} records`,

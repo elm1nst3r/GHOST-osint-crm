@@ -6,10 +6,12 @@
   "dependencies": {
     "d3": "^7.9.0",
     "docx": "^8.5.0",
+    "dompurify": "3.4.17",
     "file-saver": "^2.0.5",
     "i18next": "^23.15.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.510.0",
+    "mammoth": "1.13.0",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
