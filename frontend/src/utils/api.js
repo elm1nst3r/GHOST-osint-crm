@@ -601,6 +601,10 @@ export const integrationsAPI = {
   get: (id) => fetchAPI(`/integrations/${encodeURIComponent(id)}`),
   install: (manifest, replace = false) => fetchAPI('/integrations', { method: 'POST', body: JSON.stringify({ manifest, replace }) }),
   remove: (id) => fetchAPI(`/integrations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  // Integration builder: one test call for an uninstalled draft, and a
+  // mapping preview that makes no outbound request.
+  draftTest: (payload) => fetchAPI('/integrations/draft/test', { method: 'POST', body: JSON.stringify(payload), timeout: 90000 }),
+  draftMap: (payload) => fetchAPI('/integrations/draft/map', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
 // Relationships API (issue #83's write-of-record table; issue #82's wallet

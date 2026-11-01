@@ -5,6 +5,7 @@ import { X, Globe, AlertCircle, CheckCircle, ExternalLink, Plug, Link2 } from 'l
 import { toolsAPI, integrationsAPI } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useProject } from '../contexts/ProjectContext';
+import IntegrationBuilder from './tools/builder/IntegrationBuilder';
 import { TOOL_CATEGORIES, TOOL_STATUSES } from '../utils/constants';
 import { translateOptions } from '../utils/optionLabels';
 
@@ -32,6 +33,22 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
     kind: 'link', integration_id: '', visibility: isCentral ? 'all' : 'private', project_ids: [], enabled: true, credential_mode: 'shared',
   });
   const [sharedKey, setSharedKey] = useState('');
+  const [showBuilder, setShowBuilder] = useState(false);
+
+  // A new integration from the builder: select it and fill in the tool.
+  const handleBuilt = async (summary, testKey) => {
+    setShowBuilder(false);
+    const list = await integrationsAPI.getAll().catch(() => null);
+    if (list) setIntegrations(list);
+    setSharing((s) => ({ ...s, integration_id: summary.id, credential_mode: 'shared' }));
+    setFormData((f) => ({
+      ...f,
+      name: f.name || summary.name,
+      description: f.description || summary.description || '',
+      link: f.link || summary.homepage || '',
+    }));
+    if (testKey) setSharedKey(testKey);
+  };
   const [newTag, setNewTag] = useState('');
   const [urlPreview, setUrlPreview] = useState('');
   const [isValidUrl, setIsValidUrl] = useState(null);
@@ -206,6 +223,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                     value={sharing.integration_id}
                     required
                     onChange={(e) => {
+                      if (e.target.value === '__build__') { setShowBuilder(true); return; }
                       const next = integrations.find((i) => i.id === e.target.value);
                       setSharing({ ...sharing, integration_id: e.target.value });
                       if (next) {
@@ -222,7 +240,13 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                     {integrations.map((i) => (
                       <option key={i.id} value={i.id}>{i.name}{i.source === 'imported' ? ` (${t('tools.community')})` : ''}</option>
                     ))}
+                    {isAdmin && <option value="__build__">{t('builder.buildNewOption')}</option>}
                   </select>
+                  {isAdmin && (
+                    <button type="button" onClick={() => setShowBuilder(true)} className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                      {t('builder.buildNewLink')}
+                    </button>
+                  )}
                 </label>
                 {chosen && (
                   <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
@@ -450,6 +474,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           </form>
         </div>
       </div>
+      {showBuilder && <IntegrationBuilder onClose={() => setShowBuilder(false)} onInstalled={handleBuilt} />}
     </div>
   );
 };

@@ -318,6 +318,20 @@ const IntegrationImportSchema = z.object({
   replace: z.boolean().optional(),
 });
 
+// Integration builder: one test call for a manifest that isn't installed,
+// and a mapping preview on a response the builder already has.
+const IntegrationDraftTestSchema = z.object({
+  manifest: z.record(z.string(), z.any()),
+  operation_id: optStr(41),
+  input: z.string().min(1, 'Enter a sample value').max(2000),
+  secret: optStr(2000),
+});
+
+const IntegrationDraftMapSchema = z.object({
+  results: z.record(z.string(), z.any()),
+  json: z.any(),
+});
+
 const SettingsToolsSchema = z.object({
   allow_user_tools: z.boolean(),
 });
@@ -704,6 +718,8 @@ module.exports = {
   ToolExportSchema,
   ToolFileImportSchema,
   IntegrationImportSchema,
+  IntegrationDraftTestSchema,
+  IntegrationDraftMapSchema,
   SettingsToolsSchema,
   PersonOsintAppendSchema,
   ToolImportRowSchema,

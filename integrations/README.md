@@ -17,6 +17,25 @@ one cannot run code on your server.
   installs one under **Settings → Tools & Integrations → Install from file**,
   then adds a tool that uses it under **Tools**.
 
+## The easy way: the integration builder
+
+You don't have to write JSON by hand. In GHOST, an admin opens
+**Tools → Add Tool → Integrated → "Build a new integration"** (or
+**Settings → Tools & Integrations → Build an integration**) and answers a few
+questions:
+
+1. **About the service:** name, website, terms of use.
+2. **Connecting:** whether it needs a key, and how the documentation says
+   to send it.
+3. **Searches:** paste an example request from the service's API docs and
+   type the sample value used in it; GHOST works out the request. Run a test
+   with a real value, then **click the values in the response** that
+   investigators should see, and mark which can be added to a person.
+4. **Review:** install it, or download the file to contribute it here.
+
+Built-in integrations can be opened in the builder as a starting point, and
+community ones can be edited there.
+
 ## What belongs here
 
 Integrations for **lawful, legitimate** sources only: services that publish
@@ -111,7 +130,8 @@ for complete examples.
 
 ## Contributing
 
-1. Copy `community/_TEMPLATE.json` to `community/<id>.json`.
+1. Build it with the integration builder and download the file, or copy
+   `community/_TEMPLATE.json` to `community/<id>.json` and edit it.
 2. Install it on your own GHOST and run each operation against real data.
 3. Open a pull request saying which service it is, a link to its API
    documentation and terms, and what you tested.

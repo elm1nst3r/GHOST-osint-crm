@@ -5,6 +5,39 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.0] - 2026-11-01
+
+### ✨ Added
+
+- **Integration builder (#96).** Admins can create an integration for a new
+  OSINT service without writing JSON. Open it from **Tools → Add Tool →
+  Integrated → "Build a new integration…"** or from **Settings → Tools &
+  Integrations**. Four steps:
+  1. **About the service:** name, description, website, terms of use.
+  2. **Connecting:** whether a key is needed and how the service expects it,
+     in plain terms, plus an optional key for test calls.
+  3. **Searches:** paste an example request from the service's
+     documentation and the sample value in it, and the builder works out the
+     request. A live test call shows the response; click values to make them
+     result fields, rename them, and mark which can be added to a person. A
+     preview shows how results will look.
+  4. **Review:** install and return to the tool form with the integration
+     selected (optionally keeping the test key as the tool's shared key), or
+     copy/download the file to share in the community folder.
+- Community integrations can be edited in the builder, and built-ins can be
+  used as a starting point for a custom copy.
+
+### 🔒 Security
+
+- The builder is admin-only. Test calls go through the same guarded client
+  as searches (HTTPS only, no private addresses, no redirects, size and time
+  limits), are audit-logged and rate-limited, and the test key is never
+  stored unless you choose to keep it.
+
+### Upgrading
+
+No migration. Pull and restart as usual.
+
 ## [2.21.0] - 2026-11-01
 
 ### ✨ Added
