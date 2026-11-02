@@ -224,6 +224,7 @@ const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
 const filesRoutes = require('./routes/files');
 const integrationsRoutes = require('./routes/integrations');
+const scratchpadRoutes = require('./routes/scratchpad');
 const openapiSpec = require('./utils/openapiSpec');
 
 // Machine-readable API description generated from the Zod schemas (issue #44).
@@ -251,6 +252,7 @@ app.use('/api/people', peopleRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/todos', todosRoutes);
+app.use('/api/scratchpad', scratchpadRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api', travelHistoryRoutes);
 app.use('/api/wireless-networks', wirelessNetworksRoutes);

@@ -220,6 +220,7 @@ const spec = {
     { name: 'Tools', description: 'The OSINT tool catalogue: links, and integrated tools GHOST calls server-side. Central tools are managed by admins and shared with everyone or with selected projects; users may add their own (when an admin allows it), private or shared with their projects. API keys are write-only and never returned.' },
     { name: 'Integrations', description: 'Installed integration manifests: the JSON definitions behind integrated tools. Built-ins ship with GHOST; admins can install community ones.' },
     { name: 'Todos', description: 'Investigation task list.' },
+    { name: 'Scratchpad', description: 'The caller\'s private notepad: markdown notes and panel settings. Not project-scoped, and only ever visible to its owner.' },
     { name: 'Settings', description: 'Custom fields, model options (taxonomies) and instance configuration.' },
     { name: 'Users', description: 'User administration and the member-picker directory.' },
     { name: 'Audit Logs', description: 'Who changed what, and when.' },
@@ -272,6 +273,9 @@ const spec = {
       RelationshipUpdate: toSchema(S.RelationshipUpdateSchema),
       TodoCreate: toSchema(S.TodoCreateSchema),
       TodoUpdate: toSchema(S.TodoUpdateSchema),
+      ScratchpadEntryCreate: toSchema(S.ScratchpadEntryCreateSchema),
+      ScratchpadEntryUpdate: toSchema(S.ScratchpadEntryUpdateSchema),
+      ScratchpadSettings: toSchema(S.ScratchpadSettingsSchema),
       TravelHistoryCreate: toSchema(S.TravelHistoryCreateSchema),
       TravelHistoryUpdate: toSchema(S.TravelHistoryUpdateSchema),
       PropertyCreate: toSchema(S.PropertyCreateSchema),
@@ -432,6 +436,27 @@ const spec = {
       projectScoped: true,
       listParams: [queryParam('case_id', 'Filter by case', { type: 'integer' })],
     }),
+    // ── Scratchpad (private to the caller; kept out of the MCP toolset) ──
+    '/scratchpad': {
+      get: op('Scratchpad', 'Get the caller\'s notes and scratchpad settings', { mcp: false }),
+    },
+    '/scratchpad/entries': {
+      post: op('Scratchpad', 'Add a note', {
+        mcp: false, body: ref('ScratchpadEntryCreate'),
+        responses: { 201: jsonResponse('Created', anyObject) },
+      }),
+      delete: op('Scratchpad', 'Clear every note', {
+        mcp: false,
+        params: [queryParam('up_to_id', 'Only clear notes with an id up to and including this one', { type: 'integer' })],
+      }),
+    },
+    '/scratchpad/entries/{id}': {
+      put: op('Scratchpad', 'Edit a note', { mcp: false, params: [idParam], body: ref('ScratchpadEntryUpdate') }),
+      delete: op('Scratchpad', 'Delete a note', { mcp: false, params: [idParam] }),
+    },
+    '/scratchpad/settings': {
+      put: op('Scratchpad', 'Update scratchpad settings (only the keys sent change)', { mcp: false, body: ref('ScratchpadSettings') }),
+    },
     ...crudPaths('Cases', '/cases', 'CaseCreate', 'CaseUpdate', { getById: false, projectScoped: true }),
     ...crudPaths('Projects', '/projects', 'ProjectCreate', 'ProjectUpdate', {
       getById: false,

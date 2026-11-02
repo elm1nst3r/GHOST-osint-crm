@@ -78,6 +78,15 @@ If this project is ever shelved, this section will be updated and the repository
 - **Status tracking**: Pending, In Progress, Completed
 - **Case assignment**: Organize tasks by investigation
 
+### 📝 Scratchpad
+- **Floating notepad** in a corner of every page for pasting and quick notes; it stays put while you switch pages, projects and windows, and keeps its text when closed
+- **Markdown**, rendered: headings, lists, tables, code, links, and `- [ ]` tick boxes you can click
+- **Capture from anywhere**: select text in GHOST and click *Add to scratchpad* (or press `Alt+Shift+A`); the note records where it came from. `Alt+Shift+S` opens/closes it
+- **Dashboard to-dos** of the active project at the top, tick them off without leaving the page (can be turned off)
+- **Make it yours**: drag, resize, choose a corner, color, idle opacity and text size
+- **Private**: notes belong to your account only — not shared with other users or projects, not in the audit log or exports. Remote images in pasted markdown are never loaded
+- On by default; turn it off in **Settings → General**
+
 ### 🗂️ Projects — Data Isolation & Access Control
 - **Projects are the hard isolation boundary**: every person, business, asset, transaction, wireless network, and relationship belongs to exactly one project — separate investigations don't bleed into each other, including in the geocoding cache
 - **Cases nest inside a project**: a lighter grouping for different angles or hypotheses within the same investigation

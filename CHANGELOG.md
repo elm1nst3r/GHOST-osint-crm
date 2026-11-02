@@ -5,6 +5,41 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ Added
+
+- **Scratchpad.** A small floating notepad, on by default, for copying text
+  around and quick notes while you work. It stays open across pages and
+  projects and keeps its text when closed.
+  - Notes are markdown, shown rendered. `- [ ]` tick boxes can be clicked.
+    Notes can be edited (double-click), copied, deleted one by one or all
+    at once, with a few seconds to undo.
+  - Select text anywhere in GHOST and click **Add to scratchpad** (or press
+    `Alt+Shift+A`). The note records where it came from, e.g.
+    *Op Nightjar · People · Jane Doe*. `Alt+Shift+S` opens and closes it.
+  - The active project's open dashboard to-dos appear at the top and can be
+    ticked off there. They can be turned off in the scratchpad's settings.
+  - Its own settings (gear icon): corner, color, opacity when idle, text
+    size, to-dos on/off and the selection button on/off. It can be dragged
+    and resized; on phones it opens as a bottom sheet.
+  - Turn it off entirely in **Settings → General**.
+
+### 🔒 Security
+
+- Scratchpad notes and settings belong to the user's account only: every
+  query is scoped to the logged-in user, they're not project-scoped, and
+  they're kept out of the audit log, database export and the MCP toolset.
+- Pasted markdown is sanitised, and nothing in a note loads a remote
+  resource: images become links and inline styles are removed, so a pasted
+  tracking pixel can't reveal the analyst's IP. Links open in a new tab
+  without a referrer.
+
+### Upgrading
+
+Adds two tables (`scratchpad_entries`, `scratchpad_settings`); the migration
+runs automatically on startup.
+
 ## [2.22.0] - 2026-11-01
 
 ### ✨ Added

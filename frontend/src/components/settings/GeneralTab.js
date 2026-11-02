@@ -9,12 +9,15 @@ import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
 import GeocodingSection from './GeocodingSection';
 import ProjectRetentionSection from './ProjectRetentionSection';
 import GlobalDefaultsSection from './GlobalDefaultsSection';
+import { useScratchpad } from '../../contexts/ScratchpadContext';
+import { Toggle } from '../scratchpad/ScratchpadSettingsView';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
   const { t, i18n } = useTranslation();
+  const { settings: scratchpadSettings, updateSettings: updateScratchpadSettings } = useScratchpad();
   const [tempAppName, setTempAppName] = useState(appSettings.appName);
   const fileInputRef = useRef(null);
 
@@ -104,6 +107,15 @@ const GeneralTab = () => {
             ))}
           </select>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.languageHelp')}</p>
+        </div>
+        {/* Per-user, saved server-side with the rest of the scratchpad's settings */}
+        <div className="mt-5 max-w-md">
+          <Toggle
+            checked={scratchpadSettings.enabled}
+            onChange={(enabled) => updateScratchpadSettings({ enabled })}
+            label={t('settings.general.scratchpadToggle')}
+            description={t('settings.general.scratchpadHelp')}
+          />
         </div>
       </div>
 

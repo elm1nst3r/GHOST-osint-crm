@@ -704,6 +704,35 @@ const SettingsModelOptionUpdateSchema = z.object({
   display_order: optNum(z.number().int()),
 });
 
+// ── Scratchpad ───────────────────────────────────────────────────────────────
+// Private per-user notepad. Settings are a closed set of cosmetic/behaviour
+// keys; unknown keys are stripped so the stored JSON can't grow arbitrarily.
+
+const SCRATCHPAD_MAX_CONTENT = 20000;
+
+const ScratchpadEntryCreateSchema = z.object({
+  content: z.string().min(1, 'Content is required').max(SCRATCHPAD_MAX_CONTENT),
+  source_label: optStr(255),
+});
+
+const ScratchpadEntryUpdateSchema = z.object({
+  content: z.string().min(1, 'Content is required').max(SCRATCHPAD_MAX_CONTENT),
+});
+
+const SCRATCHPAD_CORNERS = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
+const SCRATCHPAD_COLORS = ['default', 'amber', 'emerald', 'sky', 'violet', 'rose', 'slate'];
+const SCRATCHPAD_FONT_SIZES = ['sm', 'md', 'lg'];
+
+const ScratchpadSettingsSchema = z.object({
+  enabled: z.boolean().optional(),
+  showTodos: z.boolean().optional(),
+  selectionButton: z.boolean().optional(),
+  corner: z.enum(SCRATCHPAD_CORNERS).optional(),
+  color: z.enum(SCRATCHPAD_COLORS).optional(),
+  opacity: z.number().int().min(50).max(100).optional(),
+  fontSize: z.enum(SCRATCHPAD_FONT_SIZES).optional(),
+});
+
 // ── exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -755,4 +784,7 @@ module.exports = {
   SettingsProjectRetentionSchema,
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
+  ScratchpadEntryCreateSchema,
+  ScratchpadEntryUpdateSchema,
+  ScratchpadSettingsSchema,
 };

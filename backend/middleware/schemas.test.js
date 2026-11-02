@@ -164,3 +164,35 @@ describe('schemas — form-shaped payloads', () => {
     expect(BusinessUpdateSchema.safeParse({ name: null }).success).toBe(false);
   });
 });
+
+describe('scratchpad schemas', () => {
+  const {
+    ScratchpadEntryCreateSchema,
+    ScratchpadEntryUpdateSchema,
+    ScratchpadSettingsSchema,
+  } = require('./schemas');
+
+  test('a note needs content; source label is optional', () => {
+    expect(ScratchpadEntryCreateSchema.safeParse({ content: '- [ ] check WHOIS' }).success).toBe(true);
+    expect(ScratchpadEntryCreateSchema.safeParse({ content: 'x', source_label: 'People · Jane Doe' }).success).toBe(true);
+    expect(ScratchpadEntryCreateSchema.safeParse({ content: 'x', source_label: null }).success).toBe(true);
+    expect(ScratchpadEntryCreateSchema.safeParse({ content: '' }).success).toBe(false);
+    expect(ScratchpadEntryUpdateSchema.safeParse({}).success).toBe(false);
+  });
+
+  test('oversized notes are rejected', () => {
+    expect(ScratchpadEntryCreateSchema.safeParse({ content: 'a'.repeat(20001) }).success).toBe(false);
+  });
+
+  test('settings accept known keys and strip unknown ones', () => {
+    const r = ScratchpadSettingsSchema.safeParse({ enabled: false, color: 'amber', opacity: 80, junk: 'x' });
+    expect(r.success).toBe(true);
+    expect(r.data).toEqual({ enabled: false, color: 'amber', opacity: 80 });
+  });
+
+  test('settings values are range/enum checked', () => {
+    expect(ScratchpadSettingsSchema.safeParse({ opacity: 10 }).success).toBe(false);
+    expect(ScratchpadSettingsSchema.safeParse({ color: '#ff0000' }).success).toBe(false);
+    expect(ScratchpadSettingsSchema.safeParse({ corner: 'middle' }).success).toBe(false);
+  });
+});
