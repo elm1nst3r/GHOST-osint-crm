@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.22.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.23.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -77,6 +77,15 @@ If this project is ever shelved, this section will be updated and the repository
 - **Priority levels**: Low, Medium, High, Urgent
 - **Status tracking**: Pending, In Progress, Completed
 - **Case assignment**: Organize tasks by investigation
+
+### 📝 Scratchpad
+- **Floating notepad** in a corner of every page for pasting and quick notes; it stays put while you switch pages, projects and windows, and keeps its text when closed
+- **Markdown**, rendered: headings, lists, tables, code, links, and `- [ ]` tick boxes you can click
+- **Capture from anywhere**: select text in GHOST and click *Add to scratchpad* (or press `Alt+Shift+A`); the note records where it came from. `Alt+Shift+S` opens/closes it
+- **Dashboard to-dos** of the active project at the top, tick them off without leaving the page (can be turned off)
+- **Make it yours**: drag, resize, choose a corner, color, idle opacity and text size
+- **Private**: notes belong to your account only — not shared with other users or projects, not in the audit log or exports. Remote images in pasted markdown are never loaded
+- On by default; turn it off in **Settings → General**
 
 ### 🗂️ Projects — Data Isolation & Access Control
 - **Projects are the hard isolation boundary**: every person, business, asset, transaction, wireless network, and relationship belongs to exactly one project — separate investigations don't bleed into each other, including in the geocoding cache
@@ -254,7 +263,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.22.0
+GHOST_VERSION=2.23.0
 ```
 
 Without it, the containers track the latest release.
@@ -619,6 +628,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.23.0 (November 2026)
+- 📝 **Scratchpad** — a private floating notepad on every page: select text anywhere and press `Alt+Shift+A` to keep it, with markdown, clickable tick boxes and the project's open to-dos; never shared, audit-logged or exported, and pasted images never load remotely
+
 ### Version 2.22.0 (November 2026)
 - 🪄 **Integration builder** — connect a new OSINT service without writing JSON: paste an example request from its docs, test it live, and click the values you want (issue #96)
 
@@ -807,5 +819,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.22.0
-**Last Updated:** November 1, 2026
+**Version:** 2.23.0
+**Last Updated:** November 3, 2026

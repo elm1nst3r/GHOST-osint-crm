@@ -13,6 +13,7 @@ import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
+import { ScratchpadProvider } from './contexts/ScratchpadContext';
 import { changeLanguage } from './i18n';
 
 import UpdateBanner from './components/UpdateBanner';
@@ -49,6 +50,7 @@ import AddEditTransactionForm from './components/AddEditTransactionForm';
 import TransactionDetailModal from './components/TransactionDetailModal';
 import BusinessDetailModal from './components/BusinessDetailModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import Scratchpad from './components/scratchpad/Scratchpad';
 import Login from './components/Login';
 
 // Fix default Leaflet marker icons
@@ -419,6 +421,10 @@ const AppShell = () => {
           from the resulting 403s (issue #58). The component also hides
           itself on 403 in case the role is stale. */}
       {currentUser?.role === 'admin' && <SystemHealth />}
+
+      {/* Private floating notepad. Rendered after the modals and above them
+          (z-60) so text can be copied out of an open record into it. */}
+      <Scratchpad />
     </div>
     </ProjectGate>
   );
@@ -433,7 +439,9 @@ const App = () => (
         <ProjectProvider>
           <DataProvider>
             <UIProvider>
-              <AppShell />
+              <ScratchpadProvider>
+                <AppShell />
+              </ScratchpadProvider>
             </UIProvider>
           </DataProvider>
         </ProjectProvider>

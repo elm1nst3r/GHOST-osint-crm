@@ -281,3 +281,68 @@ input, select, textarea {
 .docx-preview img { max-width: 100%; height: auto; }
 .docx-preview a { color: #2563eb; text-decoration: underline; }
 .docx-preview td p, .docx-preview th p { margin: 0; }
+
+/* ── Scratchpad ───────────────────────────────────────────────────────────
+   The panel fades to the user's chosen opacity while idle and is fully
+   opaque while hovered or focused. Notes are rendered markdown; Tailwind's
+   preflight strips list/heading styles, so they're restored here. */
+.scratchpad-panel {
+  opacity: var(--sp-idle-opacity, 1);
+  transition: opacity 150ms ease;
+  min-width: 280px;
+  min-height: 240px;
+}
+.scratchpad-panel:hover,
+.scratchpad-panel:focus-within {
+  opacity: 1;
+}
+
+.scratchpad-md { line-height: 1.5; }
+.scratchpad-md > * + * { margin-top: 0.4em; }
+.scratchpad-md h1 { font-size: 1.25em; font-weight: 700; }
+.scratchpad-md h2 { font-size: 1.12em; font-weight: 700; }
+.scratchpad-md h3, .scratchpad-md h4, .scratchpad-md h5, .scratchpad-md h6 { font-weight: 600; }
+.scratchpad-md ul { list-style: disc; padding-left: 1.25em; }
+.scratchpad-md ol { list-style: decimal; padding-left: 1.4em; }
+.scratchpad-md li > ul, .scratchpad-md li > ol { margin-top: 0.15em; }
+.scratchpad-md li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.15em; }
+.scratchpad-md input[type="checkbox"] {
+  margin-right: 0.35em;
+  vertical-align: -0.1em;
+  cursor: pointer;
+  accent-color: rgb(var(--accent));
+}
+.scratchpad-md li:has(> input[type="checkbox"]:checked) { text-decoration: line-through; opacity: 0.6; }
+.scratchpad-md a { color: rgb(var(--accent)); text-decoration: underline; word-break: break-all; }
+.scratchpad-md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  background: rgb(15 23 42 / 0.07);
+}
+.dark .scratchpad-md code { background: rgb(255 255 255 / 0.1); }
+.scratchpad-md pre {
+  padding: 0.5em 0.65em;
+  border-radius: 6px;
+  overflow-x: auto;
+  background: rgb(15 23 42 / 0.07);
+}
+.dark .scratchpad-md pre { background: rgb(255 255 255 / 0.08); }
+.scratchpad-md pre code { padding: 0; background: none; }
+.scratchpad-md blockquote { border-left: 3px solid rgb(148 163 184); padding-left: 0.6em; opacity: 0.85; }
+.scratchpad-md hr { border-color: rgb(148 163 184 / 0.4); }
+.scratchpad-md table { border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
+.scratchpad-md th, .scratchpad-md td { border: 1px solid rgb(148 163 184 / 0.5); padding: 0.15em 0.45em; }
+.scratchpad-md th { font-weight: 600; }
+
+.scratchpad-kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  padding: 0 0.3em;
+  border-radius: 3px;
+  border: 1px solid rgb(148 163 184 / 0.6);
+}
+
+@keyframes scratchpad-undo { from { width: 100%; } to { width: 0%; } }
+.scratchpad-undo-bar { animation-name: scratchpad-undo; animation-timing-function: linear; animation-fill-mode: forwards; }

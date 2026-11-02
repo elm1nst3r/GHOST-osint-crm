@@ -636,3 +636,22 @@ export const ledgerAPI = {
 };
 
 export { API_BASE_URL };
+// Scratchpad API — the caller's private notepad (not project-scoped)
+export const scratchpadAPI = {
+  get: () => fetchAPI('/scratchpad'),
+  addEntry: (content, source_label = null) => fetchAPI('/scratchpad/entries', {
+    method: 'POST',
+    body: JSON.stringify({ content, source_label }),
+  }),
+  updateEntry: (id, content) => fetchAPI(`/scratchpad/entries/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content }),
+  }),
+  // keepalive lets a delete still go out while the page is closing
+  deleteEntry: (id, keepalive = false) => fetchAPI(`/scratchpad/entries/${id}`, { method: 'DELETE', keepalive }),
+  clear: (upToId, keepalive = false) => fetchAPI(`/scratchpad/entries${buildQuery({ up_to_id: upToId })}`, { method: 'DELETE', keepalive }),
+  updateSettings: (settings) => fetchAPI('/scratchpad/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  }),
+};
