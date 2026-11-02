@@ -5,7 +5,7 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.23.0] - 2026-11-03
 
 ### ✨ Added
 
@@ -37,8 +37,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrading
 
-Adds two tables (`scratchpad_entries`, `scratchpad_settings`); the migration
-runs automatically on startup.
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+Migration `20261103000001` adds two tables (`scratchpad_entries`,
+`scratchpad_settings`) and changes no existing data. The scratchpad is on
+for everyone after upgrading; **Settings → General** turns it off.
 
 ## [2.22.0] - 2026-11-01
 
