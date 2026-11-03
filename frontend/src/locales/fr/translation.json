@@ -330,7 +330,10 @@
       "systemInformation": "System Information",
       "version": "Version:",
       "database": "Database:",
-      "apiUrl": "API URL:"
+      "apiUrl": "API URL:",
+      "scratchpad": "Scratchpad",
+      "scratchpadToggle": "Show the scratchpad",
+      "scratchpadHelp": "A floating notepad for pasting and quick notes while you work. Private to you."
     },
     "profile": {
       "title": "My Profile",
@@ -2454,5 +2457,77 @@
     "editInBuilder": "Edit in the builder",
     "copyInBuilder": "Use as a starting point in the builder",
     "installedNextStep": "Installed {{name}}. Add a tool that uses it on the Tools page."
+  },
+  "scratchpad": {
+    "title": "Scratchpad",
+    "open": "Open scratchpad",
+    "minimize": "Minimize",
+    "backToNotes": "Back to notes",
+    "copyAll": "Copy all notes (markdown)",
+    "clearAll": "Clear all notes",
+    "copyNote": "Copy text",
+    "editNote": "Edit (or double-click)",
+    "deleteNote": "Delete note",
+    "addNote": "Add note (Ctrl+Enter)",
+    "addSelection": "Add to scratchpad",
+    "composerPlaceholder": "Paste or type… Markdown works. Ctrl+Enter to add",
+    "emptyTitle": "Nothing here yet",
+    "emptyHelp": "Paste text below, or select text anywhere in GHOST and click “Add to scratchpad”. Use - [ ] for tick boxes.",
+    "noteDeleted": "Note deleted",
+    "clearedCount_one": "Cleared {{count}} note",
+    "clearedCount_other": "Cleared {{count}} notes",
+    "undo": "Undo",
+    "todos": {
+      "title": "To-dos · {{project}}",
+      "none": "No open to-dos in this project.",
+      "markDone": "Mark as done",
+      "openDashboard": "Open on the dashboard",
+      "more_one": "{{count}} more on the dashboard",
+      "more_other": "{{count}} more on the dashboard",
+      "status": {
+        "in_progress": "In progress",
+        "on_hold": "On hold",
+        "attention": "Needs attention"
+      }
+    },
+    "settings": {
+      "title": "Scratchpad settings",
+      "showTodos": "Show dashboard to-dos",
+      "showTodosHelp": "The active project's open to-dos, at the top of the pad.",
+      "selectionButton": "“Add to scratchpad” on text selection",
+      "selectionButtonHelp": "A small button appears when you select text anywhere in GHOST.",
+      "position": "Position",
+      "positionHelp": "Pick a corner. You can also drag the header to move it and the bottom-right edge to resize.",
+      "resetGeometry": "Reset position and size",
+      "corners": {
+        "top-left": "Top left",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-right": "Bottom right"
+      },
+      "color": "Color",
+      "colors": {
+        "default": "Default",
+        "amber": "Amber",
+        "emerald": "Emerald",
+        "sky": "Sky",
+        "violet": "Violet",
+        "rose": "Rose",
+        "slate": "Midnight"
+      },
+      "opacity": "Opacity when idle: {{value}}%",
+      "opacityHelp": "Fully visible while your mouse is over it or you're typing.",
+      "fontSize": "Text size",
+      "fontSizes": {
+        "sm": "Small",
+        "md": "Medium",
+        "lg": "Large"
+      },
+      "shortcuts": "Shortcuts",
+      "shortcutToggle": "open / close",
+      "shortcutCapture": "add selected text (or jump to the input)",
+      "shortcutAdd": "add the note you're typing",
+      "privacyNote": "Your notes are private to you, follow you across projects and devices, and aren't shared with anyone. To hide the scratchpad completely, go to Settings → General."
+    }
   }
 }
