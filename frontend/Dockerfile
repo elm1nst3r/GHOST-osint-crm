@@ -1,7 +1,7 @@
 # File: frontend/Dockerfile
 
 # Stage 1: Build the React application
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 
 # Install build dependencies that may be needed for native modules
 RUN apk add --no-cache python3 make g++
@@ -30,13 +30,14 @@ ENV GENERATE_SOURCEMAP=true
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.30-alpine
 
 # Copy the build output from the build stage to Nginx's web server directory
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 # Expose port 80
 EXPOSE 80

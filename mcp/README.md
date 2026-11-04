@@ -89,7 +89,7 @@ Add to `claude_desktop_config.json`:
 
 | Env var | Default | Description |
 |---|---|---|
-| `GHOST_API_URL` | `http://localhost:3001/api` | Base URL of the GHOST backend API |
+| `GHOST_API_URL` | `http://localhost:3001/api` | Base URL of the GHOST backend API. The backend port only listens on the GHOST server itself; from another machine use the app's address, e.g. `http://ghost-server:8080/api` |
 | `GHOST_API_TOKEN` | — | Personal API token (Settings → Security). Required for accounts with two-factor sign-in |
 | `GHOST_USERNAME` | — | GHOST login username, if not using a token |
 | `GHOST_PASSWORD` | — | GHOST login password, if not using a token |

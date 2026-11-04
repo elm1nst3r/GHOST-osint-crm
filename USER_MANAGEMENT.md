@@ -185,7 +185,8 @@ Enforced at every password-setting point (login, change, admin create, admin res
 
 ### Rate Limiting
 - Login: **10 attempts per 15 minutes** per IP + username — tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS`, or disabled for automated clients with `LOGIN_RATE_LIMIT_DISABLE=true`
-- Password change: **5 attempts per hour**
+- Integrated OSINT tool searches: **30 per minute**
+- Login, second-step and tool-search counts are kept in the database, so restarting the backend doesn't reset them
 - Second sign-in step: **10 attempts per 15 minutes** per account, and five wrong codes in a row end the attempt
 
 ### Access Control

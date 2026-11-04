@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const session = require('express-session');
+const helmet = require('helmet');
 const pgSession = require('connect-pg-simple')(session);
 
 // All geocoding goes through ImprovedGeocodingService (Nominatim-throttled,
@@ -164,6 +165,20 @@ initializeDatabase().then(() => {
 
 // Trust first proxy (nginx, docker network) so express-rate-limit reads real client IP
 app.set('trust proxy', 1);
+
+// Security headers on every API response (helmet). The frontend's pages get
+// theirs from nginx (frontend/security-headers.conf). The API returns JSON
+// and files, never pages, so its policy blocks everything; the API docs page
+// and file downloads set their own. HSTS is left to nginx, which sends it
+// only behind an HTTPS proxy. Referrer-Policy is no-referrer (helmet default).
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] },
+  },
+  strictTransportSecurity: false,
+  xFrameOptions: { action: 'deny' },
+}));
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
