@@ -6,7 +6,9 @@ const { pool } = require('../config/database');
 const { requireAdmin, requireAuth } = require('../middleware/auth');
 const { validatePasswordStrength } = require('../utils/passwordPolicy');
 const { revokeSessionsForUser } = require('../utils/sessions');
+const { validateIdParam } = require('../middleware/validation');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { mfaStateForAll, resetMfa } = require('../services/accountSecurity');
 
 
 router.use(apiLimiter);
@@ -19,7 +21,12 @@ router.get('/', requireAdmin, async (req, res) => {
        ORDER BY created_at DESC`
     );
 
-    res.json(result.rows);
+    // Two-factor status per user (issue #90), for the user management list.
+    const mfa = await mfaStateForAll(pool);
+    res.json(result.rows.map((u) => ({
+      ...u,
+      two_factor: mfa.get(u.id) || { totp: false, passkeys: 0, enabled: false },
+    })));
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -214,6 +221,28 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (error.constraint === 'users_email_key') {
       return res.status(400).json({ error: 'Email already exists' });
     }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reset two-factor (admin only, issue #90) for someone who lost their phone
+// or passkey: removes the authenticator app, passkeys and recovery codes, and
+// signs the user out everywhere. Not for the admin's own account; that goes
+// through Settings → Security, which asks for the password.
+router.delete('/:id/two-factor', requireAdmin, validateIdParam, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (id === req.session.userId) {
+      return res.status(400).json({ error: 'Use Settings → Security to change your own two-factor settings' });
+    }
+    const { rows } = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    await resetMfa(pool, id);
+    await revokeSessionsForUser(pool, id);
+    await req.audit.log('user', id, 'update', 'two_factor', null, 'reset_by_admin');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error resetting two-factor:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -39,6 +39,9 @@ replacing the images.
 - ✅ Session revoked immediately on password change, role change, deactivation, or account deletion
 - ✅ `requireAdmin` middleware performs a live database lookup on every admin request — stale sessions rejected in real time
 - ✅ Session cookies: `HttpOnly`, `SameSite=Strict`; `secure: true` enabled automatically when `NODE_ENV=production`
+- ✅ Optional two-step verification (v2.26): authenticator app (TOTP, RFC 6238) and passkeys (WebAuthn), with one-time recovery codes. After the password the session holds only a pending marker, not a user, until the second step passes. App secrets are encrypted at rest (AES-256-GCM, key from `SECRETS_KEY`/`SESSION_SECRET`); each code is accepted once; recovery codes and API tokens are stored as SHA-256 hashes
+- ✅ Admins can require two-step verification for everyone; users without it can reach only the setup screen
+- ✅ Personal API tokens (`Authorization: Bearer ghost_…`) act as their owner with the owner's current role, are refused for deactivated accounts, and cannot change passwords, security settings or create tokens
 
 ### Authorisation
 - ✅ Two global roles (`admin`, `user`) plus a per-project role (`owner`, `manager`, `investigator`) held on the membership
@@ -58,6 +61,7 @@ replacing the images.
 ### Rate Limiting
 - ✅ Login: 10 attempts per 15 minutes per IP + username combination (tunable via `LOGIN_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE`)
 - ✅ Password change: 5 attempts per hour
+- ✅ Second sign-in step: 10 attempts per 15 minutes per account; five wrong codes in a row require the password again
 - ✅ Geocoding endpoints: 60 requests per minute per IP
 - ✅ General API limiter: 300 requests per minute per IP on all authenticated data routes
 - ⚠️ **Multi-instance note**: limiters use in-process memory. For multi-replica deployments configure a shared store (Redis or PostgreSQL) in `backend/middleware/rateLimiters.js`

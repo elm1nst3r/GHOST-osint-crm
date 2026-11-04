@@ -2,7 +2,7 @@
 // Filename handling for uploaded files (issue #97). Pure, so it's unit-tested.
 
 // Browsers send the multipart filename as raw UTF-8 bytes, but busboy (under
-// multer 1.x) decodes it as Latin-1, so "Выписка.pdf" arrives as
+// multer 1.x and 2.x) decodes it as Latin-1, so "Выписка.pdf" arrives as
 // "Ð\u0092Ñ\u008b...". Re-encoding as Latin-1 recovers the original bytes.
 // A name that already holds characters above U+00FF was decoded correctly
 // (e.g. sent as RFC 5987 filename*), and one that isn't valid UTF-8 after

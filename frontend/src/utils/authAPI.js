@@ -2,23 +2,33 @@
 // Match the base URL pattern from api.js
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
+// JSON request that throws an Error carrying the server's `code` and the
+// HTTP status, so callers can show a translated message for known cases.
+async function request(path, { method = 'GET', body } = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    credentials: 'include',
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || `Request failed (${response.status})`);
+    error.code = data.code;
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
 export const authAPI = {
-  // Login
-  login: async (username, password) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
-    }
-
-    return response.json();
-  },
+  // Login. With two-factor on, the answer is { mfa_required, methods } and
+  // one of the mfa* calls below finishes the sign-in (issue #90).
+  login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } }),
+  mfaVerifyCode: (code) => request('/auth/mfa/verify', { method: 'POST', body: { code } }),
+  mfaVerifyRecoveryCode: (recoveryCode) => request('/auth/mfa/verify', { method: 'POST', body: { recovery_code: recoveryCode } }),
+  mfaPasskeyOptions: () => request('/auth/mfa/passkey/options', { method: 'POST' }),
+  mfaPasskeyVerify: (response) => request('/auth/mfa/passkey/verify', { method: 'POST', body: { response } }),
 
   // Logout
   logout: async () => {
@@ -80,7 +90,32 @@ export const authAPI = {
   }
 };
 
+// The signed-in user's own sign-in security (issue #90).
+export const accountAPI = {
+  getSecurity: () => request('/account/security'),
+  startTotpSetup: () => request('/account/totp/setup', { method: 'POST' }),
+  enableTotp: (code) => request('/account/totp', { method: 'POST', body: { code } }),
+  disableTotp: (password) => request('/account/totp', { method: 'DELETE', body: { password } }),
+  replaceRecoveryCodes: (password) => request('/account/recovery-codes', { method: 'POST', body: { password } }),
+  passkeyOptions: () => request('/account/passkeys/options', { method: 'POST' }),
+  addPasskey: (response, name) => request('/account/passkeys', { method: 'POST', body: { response, name } }),
+  removePasskey: (id, password) => request(`/account/passkeys/${id}`, { method: 'DELETE', body: { password } }),
+  getTokens: () => request('/account/tokens'),
+  createToken: ({ name, expiresInDays, password }) =>
+    request('/account/tokens', { method: 'POST', body: { name, expires_in_days: expiresInDays, password } }),
+  revokeToken: (id) => request(`/account/tokens/${id}`, { method: 'DELETE' }),
+};
+
+// Admin: "require two-factor for everyone".
+export const securitySettingsAPI = {
+  get: () => request('/settings/security'),
+  update: (mfaRequired) => request('/settings/security', { method: 'PUT', body: { mfa_required: mfaRequired } }),
+};
+
 export const usersAPI = {
+  // Admin: remove a user's authenticator app, passkeys and recovery codes.
+  resetTwoFactor: (id) => request(`/users/${id}/two-factor`, { method: 'DELETE' }),
+
   // Lightweight directory (any authenticated user) — id/username/email only,
   // for a Project Manager's "add member" picker (issue #84). Not admin-only,
   // unlike everything else here.

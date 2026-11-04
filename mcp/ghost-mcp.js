@@ -8,7 +8,10 @@
 // (https://github.com/elm1nst3r/GHOST-osint-crm/issues/44).
 //
 // Env: GHOST_API_URL (default http://localhost:3001/api)
-//      GHOST_USERNAME, GHOST_PASSWORD (required)
+//      GHOST_API_TOKEN          a personal API token (Settings → Security);
+//                               needed for accounts with two-factor sign-in
+//      GHOST_USERNAME, GHOST_PASSWORD   instead of a token, for accounts
+//                               without two-factor
 //      GHOST_MCP_CACHE=off      disable the on-disk session/spec cache
 //      GHOST_MCP_SPEC_TTL=600   seconds before a cached OpenAPI spec is refetched
 
@@ -25,11 +28,12 @@ import {
 import { buildTools } from './tools.js';
 
 const API_URL = process.env.GHOST_API_URL || 'http://localhost:3001/api';
+const API_TOKEN = process.env.GHOST_API_TOKEN;
 const USERNAME = process.env.GHOST_USERNAME;
 const PASSWORD = process.env.GHOST_PASSWORD;
 
-if (!USERNAME || !PASSWORD) {
-  console.error('GHOST MCP: set GHOST_USERNAME and GHOST_PASSWORD');
+if (!API_TOKEN && (!USERNAME || !PASSWORD)) {
+  console.error('GHOST MCP: set GHOST_API_TOKEN, or GHOST_USERNAME and GHOST_PASSWORD');
   process.exit(1);
 }
 
@@ -43,7 +47,9 @@ if (!USERNAME || !PASSWORD) {
 const CACHE_ENABLED = process.env.GHOST_MCP_CACHE !== 'off';
 const SPEC_TTL_MS = (Number(process.env.GHOST_MCP_SPEC_TTL) || 600) * 1000;
 const CACHE_DIR = path.join(os.homedir(), '.ghost-mcp');
-const cacheKey = crypto.createHash('sha256').update(`${API_URL}|${USERNAME}`).digest('hex').slice(0, 16);
+const cacheKey = crypto.createHash('sha256')
+  .update(API_TOKEN ? `${API_URL}|token|${API_TOKEN}` : `${API_URL}|${USERNAME}`)
+  .digest('hex').slice(0, 16);
 const CACHE_FILE = path.join(CACHE_DIR, `cache-${cacheKey}.json`);
 
 function loadCache() {
@@ -68,7 +74,9 @@ function saveCache(patch) {
 
 // ── Session handling ──────────────────────────────────────────────────────────
 
-let sessionCookie = loadCache().cookie || null;
+// With an API token there is no login and no cookie: every request carries
+// the token.
+let sessionCookie = API_TOKEN ? null : loadCache().cookie || null;
 if (sessionCookie) console.error('GHOST MCP: reusing cached session');
 
 async function login() {
@@ -81,6 +89,15 @@ async function login() {
   if (!res.ok) {
     throw new Error(`GHOST login failed (${res.status}): ${await res.text()}`);
   }
+  const body = await res.clone().json().catch(() => ({}));
+  if (body.mfa_required) {
+    throw new Error('GHOST login needs a second step: this account uses two-factor sign-in. ' +
+      'Create an API token under Settings → Security and set GHOST_API_TOKEN instead of GHOST_USERNAME/GHOST_PASSWORD.');
+  }
+  if (body.mfa_setup_required) {
+    throw new Error('GHOST requires two-factor sign-in and this account has none set up yet. ' +
+      'Sign in through the web app to set it up, then create an API token for the MCP server.');
+  }
   const setCookie = res.headers.get('set-cookie') || '';
   const match = setCookie.match(/connect\.sid=([^;]+)/);
   if (!match) throw new Error('GHOST login returned no connect.sid cookie');
@@ -91,6 +108,13 @@ async function login() {
 
 // Authenticated fetch with transparent re-login on 401.
 async function api(path, options = {}) {
+  if (API_TOKEN) {
+    const headers = { ...options.headers, Authorization: `Bearer ${API_TOKEN}` };
+    if (options.body) headers['Content-Type'] = 'application/json';
+    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    if (res.status === 401) console.error('GHOST MCP: the API token was refused (revoked, expired, or the account is deactivated)');
+    return res;
+  }
   if (!sessionCookie) await login();
   const headers = { ...options.headers, Cookie: sessionCookie };
   if (options.body) headers['Content-Type'] = 'application/json';

@@ -53,4 +53,18 @@ const integrationLimiter = rateLimit({
   message: { error: 'Too many tool searches. Please wait a minute.' },
 });
 
-module.exports = { loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter };
+// Second sign-in step (issue #90): counted per account, not per IP, so
+// guessing someone's 6-digit code from many addresses doesn't get more tries.
+// Honours LOGIN_RATE_LIMIT_DISABLE like the login limiter.
+const mfaLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
+  ? (req, res, next) => next()
+  : rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts. Please try again later.' },
+  keyGenerator: (req) => `mfa|${req.session?.pendingMfa?.userId || req.ip}`,
+});
+
+module.exports = { loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter, mfaLimiter };

@@ -1,7 +1,29 @@
 // Authentication middleware
+
+// When "require two-factor" is on, a user without it can sign in but reach
+// only the setup screen (issue #90). Their session carries mfaSetupRequired
+// until they add an authenticator app or a passkey.
+const MFA_SETUP_REQUIRED = { error: 'Set up two-factor authentication to continue', code: 'mfa_setup_required' };
+
+const signedIn = (req) => Boolean(req.session && req.session.userId);
+
 const requireAuth = (req, res, next) => {
-  if (!req.session || !req.session.userId) {
+  if (!signedIn(req)) {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+  if (req.session.mfaSetupRequired) return res.status(403).json(MFA_SETUP_REQUIRED);
+  next();
+};
+
+// For the user's own security settings (two-factor, passkeys, API tokens):
+// works while two-factor setup is still pending, and never with an API
+// token, so a leaked token can't mint more tokens or turn off two-factor.
+const requireAccountSession = (req, res, next) => {
+  if (!signedIn(req)) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  if (req.apiToken) {
+    return res.status(403).json({ error: 'Security settings cannot be changed with an API token', code: 'session_required' });
   }
   next();
 };
@@ -9,9 +31,10 @@ const requireAuth = (req, res, next) => {
 // Role-based authorization middleware
 const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.session || !req.session.userId) {
+    if (!signedIn(req)) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+    if (req.session.mfaSetupRequired) return res.status(403).json(MFA_SETUP_REQUIRED);
 
     if (!allowedRoles.includes(req.session.userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
@@ -25,9 +48,10 @@ const requireRole = (...allowedRoles) => {
 // role changes and deactivations take effect immediately (issue #32).
 // Requires pool to be available on req.app.locals.pool.
 const requireAdmin = async (req, res, next) => {
-  if (!req.session || !req.session.userId) {
+  if (!signedIn(req)) {
     return res.status(401).json({ error: 'Authentication required' });
   }
+  if (req.session.mfaSetupRequired) return res.status(403).json(MFA_SETUP_REQUIRED);
 
   try {
     const pool = req.app.locals.pool;
@@ -56,6 +80,7 @@ const requireAdmin = async (req, res, next) => {
 
 module.exports = {
   requireAuth,
+  requireAccountSession,
   requireRole,
   requireAdmin
 };

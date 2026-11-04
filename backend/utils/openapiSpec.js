@@ -191,16 +191,19 @@ const spec = {
     title: 'GHOST OSINT CRM API',
     version,
     description:
-      'REST API for GHOST. All endpoints (except login/session) require an ' +
-      'authenticated session cookie — POST /api/auth/login first and reuse the ' +
-      'cookie. Validation errors return field-level detail: ' +
+      'REST API for GHOST. All endpoints (except login/session) require either an ' +
+      'authenticated session cookie (POST /api/auth/login, then reuse the cookie) or a ' +
+      'personal API token sent as `Authorization: Bearer ghost_…` (created under ' +
+      'Settings → Security). Accounts with two-factor sign-in need the token: their ' +
+      'login is not complete until POST /api/auth/mfa/verify. Validation errors return field-level detail: ' +
       '`{ "error": "Validation failed", "fields": { "<field>": ["<message>"] } }`. ' +
       'Endpoints marked x-requires-admin need an admin-role session.',
   },
   servers: [{ url: '/api' }],
-  security: [{ cookieAuth: [] }],
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
   tags: [
-    { name: 'Auth', description: 'Session login/logout and the current user profile.' },
+    { name: 'Auth', description: 'Session login/logout and the current user profile. With two-factor on, login answers `mfa_required` and the session is signed in only after /auth/mfa/verify or the passkey step.' },
+    { name: 'Account', description: 'The caller\'s own sign-in security: authenticator app, passkeys, recovery codes and personal API tokens. Needs a browser session; API tokens are refused here.' },
     { name: 'Projects', description: 'Projects are the isolation boundary: every case-scoped record belongs to exactly one. Non-admins only reach projects they are members of, with one role per project: owner > manager > investigator. Owners and managers edit project settings; membership changes are allowed only on members ranked below the caller, never on the caller themselves, and only admins appoint or remove owners. Creating and deleting projects is admin-only.' },
     { name: 'Cases', description: 'Cases group records inside a project.' },
     { name: 'People', description: 'Person records, including their locations.' },
@@ -229,6 +232,7 @@ const spec = {
   components: {
     securitySchemes: {
       cookieAuth: { type: 'apiKey', in: 'cookie', name: 'connect.sid' },
+      bearerAuth: { type: 'http', scheme: 'bearer', description: 'Personal API token (ghost_…), created under Settings → Security.' },
     },
     schemas: {
       Error: {
@@ -295,6 +299,13 @@ const spec = {
       SettingsGeocodingUpdate: toSchema(S.SettingsGeocodingUpdateSchema),
       SettingsUpdateCheck: toSchema(S.SettingsUpdateCheckSchema),
       SettingsProjectRetention: toSchema(S.SettingsProjectRetentionSchema),
+      SettingsSecurity: toSchema(S.SettingsSecuritySchema),
+      MfaVerify: toSchema(S.MfaVerifySchema),
+      PasskeySignIn: toSchema(S.PasskeySignInSchema),
+      TotpEnable: toSchema(S.TotpEnableSchema),
+      PasswordConfirm: toSchema(S.PasswordConfirmSchema),
+      PasskeyCreate: toSchema(S.PasskeyCreateSchema),
+      ApiTokenCreate: toSchema(S.ApiTokenCreateSchema),
     },
   },
   paths: {
@@ -319,7 +330,55 @@ const spec = {
         },
       },
     },
-    '/auth/logout': { post: op('Auth', 'Log out and destroy the session') },
+    '/auth/logout': { post: { ...op('Auth', 'Log out and destroy the session'), security: [] } },
+    '/auth/mfa/verify': {
+      post: {
+        ...op('Auth', 'Second sign-in step: authenticator code or recovery code', {
+          body: ref('MfaVerify'), mcp: false,
+          description: 'After a login that answered `mfa_required`. Send `code` (6 digits) or `recovery_code`. Five wrong codes end the attempt; log in again.',
+        }),
+        security: [],
+      },
+    },
+    '/auth/mfa/passkey/options': {
+      post: { ...op('Auth', 'Second sign-in step: start a passkey check', { mcp: false }), security: [] },
+    },
+    '/auth/mfa/passkey/verify': {
+      post: { ...op('Auth', 'Second sign-in step: finish a passkey check', { body: ref('PasskeySignIn'), mcp: false }), security: [] },
+    },
+
+    // ── Account security (issue #90) ──
+    '/account/security': {
+      get: op('Account', 'Two-factor status, passkeys and where passkeys can be used', { mcp: false }),
+    },
+    '/account/totp/setup': {
+      post: op('Account', 'Start authenticator-app setup (new secret and QR code)', { mcp: false }),
+    },
+    '/account/totp': {
+      post: op('Account', 'Confirm authenticator-app setup with a code', { body: ref('TotpEnable'), mcp: false,
+        description: 'Returns `recovery_codes` when this is the first two-factor method; they are shown only once.' }),
+      delete: op('Account', 'Remove the authenticator app', { body: ref('PasswordConfirm'), mcp: false }),
+    },
+    '/account/recovery-codes': {
+      post: op('Account', 'Replace the recovery codes', { body: ref('PasswordConfirm'), mcp: false }),
+    },
+    '/account/passkeys/options': {
+      post: op('Account', 'Start adding a passkey', { mcp: false }),
+    },
+    '/account/passkeys': {
+      post: op('Account', 'Finish adding a passkey', { body: ref('PasskeyCreate'), mcp: false }),
+    },
+    '/account/passkeys/{id}': {
+      delete: op('Account', 'Remove a passkey', { params: [idParam], body: ref('PasswordConfirm'), mcp: false }),
+    },
+    '/account/tokens': {
+      get: op('Account', 'List personal API tokens', { mcp: false, responseSchema: objectArray }),
+      post: op('Account', 'Create a personal API token', { body: ref('ApiTokenCreate'), mcp: false,
+        description: 'The token is in this response only; GHOST stores a hash.' }),
+    },
+    '/account/tokens/{id}': {
+      delete: op('Account', 'Revoke a personal API token', { params: [idParam], mcp: false }),
+    },
     '/auth/session': {
       get: { ...op('Auth', 'Check current session state'), security: [] },
     },
@@ -933,6 +992,10 @@ const spec = {
       get: op('Settings', 'List model options (taxonomies: statuses, types, categories)'),
       post: op('Settings', 'Create a model option', { admin: true, body: ref('SettingsModelOptionCreate') }),
     },
+    '/settings/security': {
+      get: op('Settings', 'Get sign-in security settings', { admin: true, mcp: false }),
+      put: op('Settings', 'Require two-factor sign-in for every user', { admin: true, body: ref('SettingsSecurity'), mcp: false }),
+    },
     '/settings/model-options/{id}': {
       put: op('Settings', 'Update a model option', { admin: true, params: [idParam], body: ref('SettingsModelOptionUpdate') }),
       delete: op('Settings', 'Delete a model option', { admin: true, params: [idParam] }),
@@ -948,6 +1011,10 @@ const spec = {
         description: 'Available to any signed-in user, unlike the admin-only user list.',
         responseSchema: objectArray,
       }),
+    },
+    '/users/{id}/two-factor': {
+      delete: op('Users', 'Reset a user\'s two-factor sign-in', { admin: true, params: [idParam], mcp: false,
+        description: 'Removes their authenticator app, passkeys and recovery codes and signs them out everywhere.' }),
     },
     '/users/{id}': {
       get: op('Users', 'Get a user', { admin: true, params: [idParam] }),

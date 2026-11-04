@@ -24,7 +24,7 @@ Tool names follow the pattern `ghost_<verb>_<resource>`:
 
 ### What is not exposed
 
-A few endpoints are documented in the spec but deliberately produce no tool: instance settings (branding, geocoding provider and API keys, update check, retention), whole-database export/import, bulk deletes and batch geocoding, health/version probes, and file uploads. They are marked `x-mcp-exclude` in the OpenAPI document, so the decision lives with the API rather than in this server. Login/logout are also skipped — the server manages its own session.
+A few endpoints are documented in the spec but deliberately produce no tool: instance settings (branding, geocoding provider and API keys, update check, retention), whole-database export/import, bulk deletes and batch geocoding, health/version probes, and file uploads. They are marked `x-mcp-exclude` in the OpenAPI document, so the decision lives with the API rather than in this server. Login/logout are also skipped — the server manages its own session — and so are your own security settings (two-factor, passkeys, API tokens), which the API refuses to change with a token anyway.
 
 ### Project scoping
 
@@ -51,13 +51,18 @@ cd mcp
 npm install
 ```
 
+### Sign-in
+
+Use a personal API token: in GHOST open **Settings → Security → API tokens**, create one, and pass it as `GHOST_API_TOKEN`. The token acts as your account, with your role and project access, and can be revoked there at any time. Accounts with two-factor sign-in must use a token, since a password alone can't finish their login.
+
+`GHOST_USERNAME` / `GHOST_PASSWORD` still work for accounts without two-factor, and are the only option against a GHOST backend older than 2.26, which has no tokens.
+
 ### Claude Code
 
 ```bash
 claude mcp add ghost \
   --env GHOST_API_URL=http://localhost:3001/api \
-  --env GHOST_USERNAME=youruser \
-  --env GHOST_PASSWORD=yourpassword \
+  --env GHOST_API_TOKEN=ghost_yourtoken \
   -- node /path/to/GHOST-osint-crm/mcp/ghost-mcp.js
 ```
 
@@ -73,8 +78,7 @@ Add to `claude_desktop_config.json`:
       "args": ["/path/to/GHOST-osint-crm/mcp/ghost-mcp.js"],
       "env": {
         "GHOST_API_URL": "http://localhost:3001/api",
-        "GHOST_USERNAME": "youruser",
-        "GHOST_PASSWORD": "yourpassword"
+        "GHOST_API_TOKEN": "ghost_yourtoken"
       }
     }
   }
@@ -86,12 +90,13 @@ Add to `claude_desktop_config.json`:
 | Env var | Default | Description |
 |---|---|---|
 | `GHOST_API_URL` | `http://localhost:3001/api` | Base URL of the GHOST backend API |
-| `GHOST_USERNAME` | — (required) | GHOST login username |
-| `GHOST_PASSWORD` | — (required) | GHOST login password |
+| `GHOST_API_TOKEN` | — | Personal API token (Settings → Security). Required for accounts with two-factor sign-in |
+| `GHOST_USERNAME` | — | GHOST login username, if not using a token |
+| `GHOST_PASSWORD` | — | GHOST login password, if not using a token |
 | `GHOST_MCP_CACHE` | `on` | Set to `off` to disable the `~/.ghost-mcp` session/spec cache |
 | `GHOST_MCP_SPEC_TTL` | `600` | Seconds before a cached OpenAPI spec is refetched |
 
-Consider creating a dedicated non-admin GHOST user for the LLM: admin-only endpoints (users, audit logs, settings writes) will then return 403, which the tool descriptions flag with "(admin only)".
+Consider creating a dedicated non-admin GHOST user for the LLM, with its own token,: admin-only endpoints (users, audit logs, settings writes) will then return 403, which the tool descriptions flag with "(admin only)".
 
 ## Credits
 

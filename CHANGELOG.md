@@ -5,6 +5,50 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.26.0] - 2026-11-04
+
+Two-step sign-in and API tokens, requested by @hunterghoul1 (#90).
+
+### ✨ Added
+
+- **Two-step verification.** Under **Settings → Security**, add an
+  authenticator app (Google Authenticator, Microsoft Authenticator, Authy,
+  1Password, …: scan the QR code or type the key) or a passkey. After the
+  password, GHOST asks for a code or the passkey. Ten one-time recovery
+  codes come with the first method.
+- **Passkeys** work when GHOST runs on HTTPS with a domain name, or on
+  localhost, at the address in `FRONTEND_URL`; list extra addresses in
+  the new `PASSKEY_ORIGINS`. Elsewhere the option is hidden with a note.
+- **Require two-step for everyone** (admin, Settings → Security). Users
+  without it go to a setup screen at their next sign-in.
+- **Admin reset** in Settings → Users for someone who lost their phone,
+  plus `node scripts/resetTwoFactor.js <username>` for the only admin.
+  User management shows who has two-step on.
+- **Personal API tokens** for scripts and the MCP server
+  (`Authorization: Bearer ghost_…`). Shown once, stored as a hash,
+  optional expiry, revocable. A token acts as its owner and can't change
+  the password or security settings.
+- **MCP server 1.3**: `GHOST_API_TOKEN`. Accounts with two-step
+  verification need it; username and password still work for accounts
+  without.
+
+### 🔧 Changed
+
+- Docker images and CI run on Node 22 (Node 18 has had no security
+  fixes since April 2025). A manual setup needs Node 20 or newer.
+- Library updates. Backend: express 5.3, zod 4.6, pg 8.23,
+  express-session 1.19 and others, and multer 2 for uploads (multer 1 is
+  deprecated). MCP SDK 1.32. Frontend: react-router 6.30.6 and minor
+  updates. A `KML_MAX_BYTES` that isn't a number now falls back to 5 MB.
+
+### 🔒 Security
+
+- The backend and MCP server have no known vulnerable dependencies left
+  (`npm audit`): fixed DoS issues in body-parser, path-to-regexp, qs and
+  zod, an IP-spoofing issue in proxy-addr, and the known multer 1 issues.
+  What remains on the frontend is inside the build tools (Create React
+  App), not in the app users load.
+
 ## [2.25.0] - 2026-11-04
 
 Feedback from @hunterghoul1 on the integration builder (#96).

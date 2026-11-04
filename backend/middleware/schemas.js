@@ -737,8 +737,57 @@ const ScratchpadSettingsSchema = z.object({
 
 // ── exports ───────────────────────────────────────────────────────────────────
 
+// ── Two-factor sign-in, passkeys and API tokens (issue #90) ──────────────────
+
+// Second sign-in step: a code from the authenticator app, or a recovery code.
+const MfaVerifySchema = z.object({
+  code: z.string().max(20).optional(),
+  recovery_code: z.string().max(40).optional(),
+}).refine((b) => Boolean(b.code) !== Boolean(b.recovery_code), {
+  message: 'Send either code or recovery_code',
+});
+
+// A WebAuthn response from the browser (@simplewebauthn/browser). Its inner
+// structure is checked by @simplewebauthn/server, not here.
+const webauthnResponse = z.object({ id: z.string().max(1024) }).passthrough();
+
+const PasskeySignInSchema = z.object({
+  response: webauthnResponse,
+});
+
+const TotpEnableSchema = z.object({
+  code: z.string().max(20),
+});
+
+// Removing a sign-in method, new recovery codes: the current password again.
+const PasswordConfirmSchema = z.object({
+  password: z.string().min(1).max(1024),
+});
+
+const PasskeyCreateSchema = z.object({
+  response: webauthnResponse,
+  name: z.string().trim().min(1).max(100),
+});
+
+const ApiTokenCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  expires_in_days: z.union([z.literal(30), z.literal(90), z.literal(365)]).nullable().default(null),
+  password: z.string().min(1).max(1024),
+});
+
+const SettingsSecuritySchema = z.object({
+  mfa_required: z.boolean(),
+});
+
 module.exports = {
   validate,
+  MfaVerifySchema,
+  PasskeySignInSchema,
+  TotpEnableSchema,
+  PasswordConfirmSchema,
+  PasskeyCreateSchema,
+  ApiTokenCreateSchema,
+  SettingsSecuritySchema,
   PersonCreateSchema,
   PersonUpdateSchema,
   BusinessCreateSchema,
