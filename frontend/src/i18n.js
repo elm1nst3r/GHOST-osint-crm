@@ -6,6 +6,7 @@ import de from './locales/de/translation.json';
 import es from './locales/es/translation.json';
 import fr from './locales/fr/translation.json';
 import zh from './locales/zh/translation.json';
+import fa from './locales/fa/translation.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -13,7 +14,8 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'de', label: 'Deutsch' },
   { code: 'es', label: 'Español' },
   { code: 'fr', label: 'Français' },
-  { code: 'zh', label: '中文（简体）' }
+  { code: 'zh', label: '中文（简体）' },
+  { code: 'fa', label: 'فارسی' }
 ];
 
 const STORAGE_KEY = 'ghost_language';
@@ -38,7 +40,8 @@ i18n.use(initReactI18next).use(rtlArrows).init({
     de: { translation: de },
     es: { translation: es },
     fr: { translation: fr },
-    zh: { translation: zh }
+    zh: { translation: zh },
+    fa: { translation: fa }
   },
   lng: storedLanguage || 'en',
   fallbackLng: 'en',
