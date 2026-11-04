@@ -16,7 +16,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 import FilesPanel from './files/FilesPanel';
 import ToolRunModal from './tools/ToolRunModal';
-import { inputKindForOsint, operationsFor, runnableTools } from '../utils/integrations';
+import { inputKindForOsint, operationsForInput, runnableTools } from '../utils/integrations';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
@@ -383,7 +383,7 @@ const PersonDetailModal = () => {
                               </p>
                             )}
                           </div>
-                          {operationsFor(personTools, inputKindForOsint(osint.type, osint.value)).length > 0 && (
+                          {operationsForInput(personTools, { type: osint.type, value: osint.value, kind: inputKindForOsint(osint.type, osint.value) }).length > 0 && (
                             <button type="button" onClick={() => setSearch({ index })} title={t('tools.searchThis')} aria-label={t('tools.searchThis')} className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                               <Search className="w-4 h-4" />
                             </button>

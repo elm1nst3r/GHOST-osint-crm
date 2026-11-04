@@ -4,7 +4,7 @@
 // the provider's limit, makes the call through httpClient and maps the
 // response. Errors come back as RunError with a message fit for the user;
 // the API key never appears in one.
-const { normalizeInput, buildRequest, mapResults, requiresKey } = require('./manifest');
+const { normalizeInput, buildRequest, mapResults, requiresKey, connectionTestOperation } = require('./manifest');
 const { getJson } = require('./httpClient');
 const { decryptAtRest } = require('../../utils/secretBox');
 
@@ -90,7 +90,11 @@ async function runOperation(db, { tool, manifest, operationId, rawInput, userId 
   const request = buildRequest(manifest, op, input, secret);
   await pace(`${manifest.id}:${tool.id}`, manifest.minIntervalMs);
   const { notFound, json } = await call(manifest, request, secret, op.notFound || [404]);
-  const mapped = notFound ? { items: [], total: 0, truncated: false } : mapResults(op.results, json);
+  // A provider that echoes the request back would otherwise hand the key to
+  // whoever ran the search, including a shared key to non-admins.
+  const mapped = notFound
+    ? { items: [], total: 0, truncated: false }
+    : JSON.parse(scrub(JSON.stringify(mapResults(op.results, json)), secret));
 
   return {
     tool_id: tool.id,
@@ -110,10 +114,12 @@ async function runOperation(db, { tool, manifest, operationId, rawInput, userId 
 async function testConnection(db, { tool, manifest, userId }) {
   const { secret, needsKey, unreadable } = await resolveSecret(db, tool, manifest, userId);
   if (needsKey) return { ok: false, message: unreadable ? 'The stored API key can no longer be read. Enter it again.' : 'No API key has been added.' };
-  if (!manifest.test) {
+  // The manifest's own test, else a free search that needs no input.
+  const probe = manifest.test ? { path: manifest.test.path } : connectionTestOperation(manifest);
+  if (!probe) {
     return { ok: true, tested: false, message: manifest.auth.type === 'none' ? 'No key needed.' : 'Key stored. This integration has no connection test; run a search to check it.' };
   }
-  const request = buildRequest(manifest, { path: manifest.test.path }, '', secret);
+  const request = buildRequest(manifest, probe, '', secret);
   try {
     await pace(`${manifest.id}:${tool.id}`, manifest.minIntervalMs);
     await call(manifest, request, secret, []);

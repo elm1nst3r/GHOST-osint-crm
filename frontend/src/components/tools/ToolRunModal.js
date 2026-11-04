@@ -3,7 +3,8 @@
 // Search with integrated tools (issue #96). Opened from:
 //   - a person's OSINT data: their identifiers are the inputs, and findings
 //     can be added back to the person (marked unverified, with their source)
-//   - a tool card on the Tools page: one tool, a typed-in value
+//   - a tool card on the Tools page: one tool, a typed-in value, and the
+//     tool's searches that need no input (account balance, status)
 //
 // Searches run one after another, never in parallel, so providers' rate
 // limits hold. Nothing is sent until the user clicks Search; operations that
@@ -13,9 +14,19 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Search, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Plus, Info } from 'lucide-react';
 import { toolsAPI, peopleAPI } from '../../utils/api';
-import { inputKindForOsint, operationsFor, runnableTools, kindsAccepting, INPUT_KINDS } from '../../utils/integrations';
+import {
+  inputKindForOsint, operationsFor, operationsForInput, runnableTools, accepts, customSearchTypes, noInputOperations, INPUT_KINDS,
+} from '../../utils/integrations';
 
 const pairKey = (tool, op) => `${tool.id}:${op.id}`;
+
+// The typed-in value's kind: an identifier kind, or "custom:<search type>".
+const CUSTOM = 'custom:';
+const manualKindOf = (op) => {
+  if (!op || op.input === 'none') return '';
+  return op.input === 'text' ? `${CUSTOM}${op.input_label}` : op.input;
+};
+const NO_INPUT = { key: 'none', kind: 'none', value: '', type: null };
 
 const CostBadge = ({ cost }) => {
   const { t } = useTranslation();
@@ -34,9 +45,17 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
   // Inputs: the person's identifiers we can search for, plus a typed-in one.
   const personInputs = useMemo(() => (person?.osint_data || [])
     .map((e, index) => ({ key: `osint-${index}`, index, type: e.type, value: e.value, kind: inputKindForOsint(e.type, e.value) }))
-    .filter((e) => e.kind && operationsFor(usable, e.kind).length > 0), [person, usable]);
+    .filter((e) => operationsForInput(usable, e).length > 0), [person, usable]);
 
-  const initialKind = initialTool?.integration?.operations?.[0]?.input || 'email';
+  // What can be typed in: identifier kinds and custom search types some tool takes.
+  const manualKinds = useMemo(() => [
+    ...INPUT_KINDS.filter((k) => operationsFor(usable, k).length > 0).map((k) => ({ value: k, label: t(`tools.kind_${k}`) })),
+    ...customSearchTypes(usable).map((label) => ({ value: `${CUSTOM}${label}`, label })),
+  ], [usable, t]);
+  // Searches without input belong to a tool, not a person.
+  const noInputOps = useMemo(() => (person ? [] : noInputOperations(usable)), [person, usable]);
+
+  const initialKind = manualKindOf((initialTool?.integration?.operations || []).find((op) => op.input !== 'none')) || manualKinds[0]?.value || 'email';
   const [manual, setManual] = useState({ kind: initialKind, value: '' });
   const [selectedInputs, setSelectedInputs] = useState(() => new Set(
     initialEntryIndex != null ? [`osint-${initialEntryIndex}`] : []
@@ -56,18 +75,24 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
 
   const inputs = useMemo(() => {
     const list = personInputs.filter((i) => selectedInputs.has(i.key));
-    if (manual.value.trim()) list.push({ key: 'manual', kind: manual.kind, value: manual.value.trim(), type: null });
+    if (manual.value.trim()) {
+      list.push(manual.kind.startsWith(CUSTOM)
+        ? { key: 'manual', custom: manual.kind.slice(CUSTOM.length), value: manual.value.trim(), type: null }
+        : { key: 'manual', kind: manual.kind, value: manual.value.trim(), type: null });
+    }
     return list;
   }, [personInputs, selectedInputs, manual]);
 
-  // Operations that accept at least one selected input.
+  // Operations that accept at least one selected input, then the tool's
+  // searches that need none.
   const availableOps = useMemo(() => {
     const seen = new Map();
     for (const input of inputs) {
-      for (const pair of operationsFor(usable, input.kind)) seen.set(pairKey(pair.tool, pair.op), pair);
+      for (const pair of operationsForInput(usable, input)) seen.set(pairKey(pair.tool, pair.op), pair);
     }
+    noInputOps.forEach((pair) => seen.set(pairKey(pair.tool, pair.op), pair));
     return [...seen.values()];
-  }, [inputs, usable]);
+  }, [inputs, usable, noInputOps]);
 
   // Preselect free operations the first time they become available.
   useEffect(() => {
@@ -91,8 +116,13 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
     for (const input of inputs) {
       for (const { tool, op } of availableOps) {
         if (!selectedOps.has(pairKey(tool, op))) continue;
-        if (!kindsAccepting(input.kind).includes(op.input)) continue;
+        if (!accepts(op, input)) continue;
         out.push({ key: `${pairKey(tool, op)}|${input.key}`, tool, op, input });
+      }
+    }
+    for (const { tool, op } of availableOps) {
+      if (op.input === 'none' && selectedOps.has(pairKey(tool, op))) {
+        out.push({ key: `${pairKey(tool, op)}|none`, tool, op, input: NO_INPUT });
       }
     }
     return out;
@@ -192,12 +222,16 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                     {personInputs.map((i) => (
                       <label key={i.key} className="flex items-center gap-2 p-2 rounded border border-gray-200 dark:border-gray-700 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <input type="checkbox" checked={selectedInputs.has(i.key)} onChange={() => toggle(selectedInputs, setSelectedInputs, i.key)} disabled={running} />
-                        <span className="text-gray-500 dark:text-gray-400 text-xs w-20 flex-shrink-0 truncate" title={i.type}>{t(`tools.kind_${i.kind}`)}</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs w-20 flex-shrink-0 truncate" title={i.type}>{i.kind ? t(`tools.kind_${i.kind}`) : i.type}</span>
                         <bdi className="text-gray-900 dark:text-gray-100 break-all">{i.value}</bdi>
                       </label>
                     ))}
                   </div>
                 )}
+                {manualKinds.length === 0 && noInputOps.length > 0 && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('tools.noInputOnly')}</p>
+                )}
+                {manualKinds.length > 0 && (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={manual.kind}
@@ -206,8 +240,8 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                     aria-label={t('tools.inputKindLabel')}
                     className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
                   >
-                    {INPUT_KINDS.filter((k) => operationsFor(usable, k).length > 0).map((k) => (
-                      <option key={k} value={k}>{t(`tools.kind_${k}`)}</option>
+                    {manualKinds.map((k) => (
+                      <option key={k.value} value={k.value}>{k.label}</option>
                     ))}
                   </select>
                   <input
@@ -220,6 +254,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
                   />
                 </div>
+                )}
               </section>
 
               {/* 2. Which searches */}
@@ -233,6 +268,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                         <span>
                           <span className="font-medium text-gray-900 dark:text-gray-100">{tool.name}</span>
                           <span className="text-gray-600 dark:text-gray-300"> · {op.label}</span>
+                          {op.input === 'none' && <span className="ms-2 text-[11px] text-gray-500 dark:text-gray-400">{t('tools.noInputTag')}</span>}
                           <CostBadge cost={op.cost} />
                           <span className="block text-xs text-gray-500 dark:text-gray-400">{t('tools.sendsTo', { host: tool.integration.host })}</span>
                         </span>
@@ -263,7 +299,9 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/40 flex flex-wrap items-center gap-2 text-sm rounded-t-lg">
                         <span className="font-medium text-gray-900 dark:text-gray-100">{run.tool.name}</span>
                         <span className="text-gray-600 dark:text-gray-300">· {run.op.label}</span>
-                        <span className="text-gray-500 dark:text-gray-400 break-all">· <bdi>{run.result?.query || run.input.value}</bdi></span>
+                        {(run.result?.query || run.input.value) && (
+                          <span className="text-gray-500 dark:text-gray-400 break-all">· <bdi>{run.result?.query || run.input.value}</bdi></span>
+                        )}
                         <span className="ms-auto text-xs">
                           {run.status === 'pending' && <span className="text-gray-400">{t('tools.statusQueued')}</span>}
                           {run.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}

@@ -224,3 +224,89 @@ test('publicSummary exposes the host and operations, not request details', () =>
   expect(s.operations[0]).toMatchObject({ id: 'lookup', input: 'email', cost: 'free' });
   expect(JSON.stringify(s)).not.toContain('/lookup/');
 });
+
+// ── Issue #96 feedback: key in the URL, custom and no-input searches ─────────
+
+describe('"url" auth: the key goes where {{api_key}} is', () => {
+  const urlAuth = (opExtra = {}, extra = {}) => base({
+    auth: { type: 'url' },
+    operations: [{
+      id: 'lookup', label: 'Lookup', input: 'email', path: '/api/{{api_key}}/lookup/{{input}}',
+      results: { fields: [{ label: 'Name', path: 'name' }] }, ...opExtra,
+    }],
+    ...extra,
+  });
+
+  test('a path segment carries the key, encoded, and the logged URL hides it', () => {
+    const { manifest, errors } = validateManifest(urlAuth());
+    expect(errors).toBeUndefined();
+    const req = buildRequest(manifest, manifest.operations[0], 'a@b.co', 'k3y/+?');
+    expect(req.url).toBe('https://api.example.com/v1/api/k3y%2F%2B%3F/lookup/a%40b.co');
+    expect(req.redactedUrl).toBe('https://api.example.com/v1/api/***/lookup/a%40b.co');
+    expect(req.redactedUrl).not.toMatch(/k3y/);
+  });
+
+  test('it can sit in a query value too', () => {
+    const { manifest } = validateManifest(urlAuth({ path: '/lookup', query: { q: '{{input}}', token: 'v1-{{api_key}}' } }));
+    const req = buildRequest(manifest, manifest.operations[0], 'a@b.co', 'SECRET');
+    expect(req.url).toContain('token=v1-SECRET');
+    expect(req.redactedUrl).not.toContain('SECRET');
+  });
+
+  test('every search must place the key, and no other auth may', () => {
+    expect(validateManifest(urlAuth({ path: '/lookup/{{input}}' })).errors.join()).toMatch(/\{\{api_key\}\}/);
+    expect(validateManifest(base({
+      operations: [{ id: 'x', label: 'X', input: 'email', path: '/{{api_key}}/{{input}}', results: { fields: [{ label: 'N', path: 'n' }] } }],
+    })).errors.join()).toMatch(/needs "url" auth/);
+    expect(validateManifest(urlAuth({}, { test: { path: '/status' } })).errors.join()).toMatch(/test\.path/);
+    expect(validateManifest(urlAuth({}, { test: { path: '/{{api_key}}/status' } })).errors).toBeUndefined();
+  });
+
+  test('a required key is still required', () => {
+    const { manifest } = validateManifest(urlAuth());
+    expect(() => buildRequest(manifest, manifest.operations[0], 'a@b.co', null)).toThrow(/needs an API key/);
+  });
+
+  test('a searched-for "{{api_key}}" stays text', () => {
+    expect(renderTemplate('{{input}}', '{{api_key}}', (s) => s, 'SECRET')).toBe('{{api_key}}');
+  });
+});
+
+describe('custom ("text") and no-input ("none") searches', () => {
+  const op = (extra) => ({ id: 'op', label: 'Op', path: '/x/{{input}}', results: { fields: [{ label: 'N', path: 'n' }] }, ...extra });
+
+  test('a custom search type needs a name and may list OSINT types', () => {
+    expect(validateManifest(base({ operations: [op({ input: 'text' })] })).errors.join()).toMatch(/inputLabel/);
+    const { manifest, errors } = validateManifest(base({
+      operations: [op({ input: 'text', inputLabel: 'Vehicle registration', osintTypes: ['Vehicle'] })],
+    }));
+    expect(errors).toBeUndefined();
+    expect(publicSummary(manifest, 'imported').operations[0]).toMatchObject({
+      input: 'text', input_label: 'Vehicle registration', osint_types: ['Vehicle'],
+    });
+  });
+
+  test('custom values are trimmed, and long or control-character values refused', () => {
+    expect(normalizeInput('text', '  AB 123 CD ')).toBe('AB 123 CD');
+    expect(() => normalizeInput('text', 'x'.repeat(201))).toThrow();
+    expect(() => normalizeInput('text', 'a\nb')).toThrow();
+    expect(() => normalizeInput('text', '  ')).toThrow(/Enter a value/);
+  });
+
+  test('a no-input search takes no value and cannot use {{input}}', () => {
+    expect(normalizeInput('none', undefined)).toBe('');
+    expect(validateManifest(base({ operations: [op({ input: 'none' })] })).errors.join()).toMatch(/without input/);
+    const { manifest, errors } = validateManifest(base({ operations: [op({ input: 'none', path: '/account/balance' })] }));
+    expect(errors).toBeUndefined();
+    expect(buildRequest(manifest, manifest.operations[0], '', 'k').url).toBe('https://api.example.com/v1/account/balance');
+  });
+
+  test('a free no-input search doubles as the connection test', () => {
+    const { manifest } = validateManifest(base({
+      operations: [op({ input: 'email' }), op({ id: 'balance', input: 'none', path: '/balance' })],
+    }));
+    expect(publicSummary(manifest, 'imported').has_test).toBe(true);
+    const paid = validateManifest(base({ operations: [op({ input: 'none', path: '/balance', cost: 'paid' })] })).manifest;
+    expect(publicSummary(paid, 'imported').has_test).toBe(false);
+  });
+});

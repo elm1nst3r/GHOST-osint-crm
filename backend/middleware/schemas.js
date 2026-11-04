@@ -294,7 +294,9 @@ const ToolCredentialSchema = z.object({
 
 const ToolRunSchema = z.object({
   operation: z.string().min(1).max(41),
-  input: z.string().min(1, 'Enter a value to search for').max(2000),
+  // Empty is allowed for searches that take no input; every other kind
+  // rejects an empty value itself (normalizeInput).
+  input: z.string().max(2000).default(''),
   person_id: optId(),
 });
 
@@ -323,7 +325,7 @@ const IntegrationImportSchema = z.object({
 const IntegrationDraftTestSchema = z.object({
   manifest: z.record(z.string(), z.any()),
   operation_id: optStr(41),
-  input: z.string().min(1, 'Enter a sample value').max(2000),
+  input: z.string().max(2000).default(''),
   secret: optStr(2000),
 });
 

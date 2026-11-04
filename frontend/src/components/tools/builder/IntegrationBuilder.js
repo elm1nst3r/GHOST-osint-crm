@@ -17,12 +17,13 @@ import { X, ChevronLeft, ChevronRight, Loader2, Download, Copy, Check, Plus, Wan
 import { integrationsAPI, saveBlob } from '../../../utils/api';
 import { useModelOptions } from '../../../utils/useModelOptions';
 import { OSINT_DATA_TYPES } from '../../../utils/constants';
-import { buildManifest, emptyOperation, emptyState, slugify, stateFromManifest } from '../../../utils/integrationBuilder';
+import { buildManifest, emptyOperation, emptyState, slugify, stateFromManifest, usesKeyPlaceholder, KEY_PLACEHOLDER } from '../../../utils/integrationBuilder';
 import BuilderSearchStep from './BuilderSearchStep';
 
 const input = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm';
 
-const AUTH_CHOICES = ['none', 'header', 'query', 'bearer'];
+const AUTH_CHOICES = ['none', 'header', 'query', 'bearer', 'url'];
+const NAMED_AUTH = ['header', 'query'];
 
 // mode: 'new' | 'edit' (an imported integration, replaced on install) |
 // 'copy' (a built-in as a starting point, saved under a new id)
@@ -72,16 +73,22 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
   };
 
   const steps = [t('builder.stepAbout'), t('builder.stepConnect'), t('builder.stepSearches'), t('builder.stepReview')];
+  const keyMark = { keyMark: KEY_PLACEHOLDER };
+  // What still stops the Searches step, first problem first.
+  const searchesProblem = !state.baseUrl || state.operations.some((o) => o.fields.length === 0) ? t('builder.needFields')
+    : state.operations.some((o) => o.input === 'text' && !(o.inputLabel || '').trim()) ? t('builder.needInputLabel')
+      : state.authType === 'url' && state.operations.some((o) => !usesKeyPlaceholder(o)) ? t('builder.needKeyPlaceholder', keyMark)
+        : null;
   const canNext = [
     state.name.trim().length > 0,
-    state.authType === 'none' || state.authType === 'bearer' || state.authName.trim().length > 0,
-    state.baseUrl && state.operations.every((o) => o.fields.length > 0),
+    !NAMED_AUTH.includes(state.authType) || state.authName.trim().length > 0,
+    !searchesProblem,
     true,
   ][step];
   const blockedReason = [
     t('builder.needName'),
     t('builder.needKeyName'),
-    t('builder.needFields'),
+    searchesProblem,
     null,
   ][step];
 
@@ -107,6 +114,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
     header: t('builder.authHeaderHelp'),
     query: t('builder.authQueryHelp'),
     bearer: t('builder.authBearerHelp'),
+    url: t('builder.authUrlHelp', keyMark),
   };
 
   return createPortal(
@@ -180,7 +188,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
               </div>
               {state.authType !== 'none' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {state.authType !== 'bearer' && (
+                  {NAMED_AUTH.includes(state.authType) && (
                     <label className="block">
                       <span className="block font-medium text-gray-800 dark:text-gray-200 mb-1">
                         {state.authType === 'header' ? t('builder.headerName') : t('builder.paramName')}
@@ -247,7 +255,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
                   <li>{t('builder.reviewHost', { host: (() => { try { return new URL(manifest.baseUrl).host; } catch { return '?'; } })() })}</li>
                   <li>{manifest.auth.type === 'none' ? t('tools.noKeyNeeded') : t(`builder.auth_${manifest.auth.type}`)}</li>
                   {manifest.operations.map((o) => (
-                    <li key={o.id}>• {o.label} ({t(`tools.kind_${o.input}`)}) — {t('builder.reviewFields', { count: o.results.fields.length })}</li>
+                    <li key={o.id}>• {o.label} ({o.input === 'text' ? o.inputLabel : t(`tools.kind_${o.input}`)}) — {t('builder.reviewFields', { count: o.results.fields.length })}</li>
                   ))}
                 </ul>
                 {testKey && (
