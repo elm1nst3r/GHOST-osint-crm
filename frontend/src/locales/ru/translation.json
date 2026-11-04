@@ -230,7 +230,24 @@
     "password": "Пароль",
     "signIn": "Войти",
     "signingIn": "Вход...",
-    "genericError": "Не удалось войти. Попробуйте еще раз."
+    "genericError": "Не удалось войти. Попробуйте еще раз.",
+    "mfa": {
+      "title": "Two-step verification",
+      "codeHint": "Enter the 6-digit code from your authenticator app.",
+      "recoveryHint": "Enter one of the recovery codes you saved when you set up two-step verification. Each code works once.",
+      "passkeyHint": "Use the passkey saved on this device, your phone or your security key.",
+      "codeLabel": "Authentication code",
+      "recoveryLabel": "Recovery code",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "usePasskey": "Use a passkey",
+      "usePasskeyInstead": "Use a passkey instead",
+      "useCode": "Use a code from your authenticator app",
+      "useRecovery": "Use a recovery code",
+      "passkeyUnsupported": "This browser does not support passkeys. Use a recovery code, or sign in from another browser.",
+      "passkeyElsewhere": "Your passkeys were added at a different address of this server. Open GHOST at that address, or use a recovery code.",
+      "back": "Back to sign in"
+    }
   },
   "settings": {
     "pageTitle": "Настройки",
@@ -242,7 +259,8 @@
       "importExport": "Импорт/Экспорт",
       "users": "Управление пользователями",
       "auditLogs": "Журнал аудита",
-      "tools": "Tools & Integrations"
+      "tools": "Tools & Integrations",
+      "security": "Security"
     },
     "users": {
       "subtitle": "Управление учетными записями и разрешениями",
@@ -281,7 +299,14 @@
       "columnActions": "Действия",
       "statusActive": "Активный",
       "statusInactive": "Неактивный",
-      "never": "Никогда"
+      "never": "Никогда",
+      "columnTwoFactor": "Two-step",
+      "twoFactorOff": "Off",
+      "twoFactorApp": "App",
+      "twoFactorPasskeys_one": "{{count}} passkey",
+      "twoFactorPasskeys_other": "{{count}} passkeys",
+      "resetTwoFactor": "Reset two-step verification",
+      "confirmResetTwoFactor": "Reset two-step verification for {{username}}? This removes their authenticator app, passkeys and recovery codes and signs them out everywhere. They can sign in with their password and set it up again."
     },
     "auditLogs": {
       "subtitle": "Отслеживать все изменения и события в системе",
@@ -2545,6 +2570,118 @@
       "shortcutCapture": "add selected text (or jump to the input)",
       "shortcutAdd": "add the note you're typing",
       "privacyNote": "Your notes are private to you, follow you across projects and devices, and aren't shared with anyone. To hide the scratchpad completely, go to Settings → General."
+    }
+  },
+  "security": {
+    "twoFactorTitle": "Two-step verification",
+    "twoFactorDescription": "After your password, GHOST also asks for a code from an authenticator app or for a passkey. Someone who learns your password still cannot sign in.",
+    "statusOn": "Two-step verification is on",
+    "statusOff": "Two-step verification is off",
+    "currentPassword": "Current password",
+    "copy": "Copy",
+    "copied": "Copied",
+    "remove": "Remove",
+    "removeLastWarning": "This is your last two-step method. Removing it turns two-step verification off and deletes your recovery codes.",
+    "totp": {
+      "title": "Authenticator app",
+      "description": "Google Authenticator, Microsoft Authenticator, Authy, 1Password and other apps that show 6-digit codes.",
+      "onSince": "On since {{date}}",
+      "setUp": "Set up",
+      "setupTitle": "Set up an authenticator app",
+      "step1": "Open your authenticator app and add an account.",
+      "step2": "Scan this QR code, or type the key below.",
+      "step3": "Enter the 6-digit code the app shows.",
+      "qrAlt": "QR code for your authenticator app",
+      "manualEntry": "Can't scan it? Enter this key:",
+      "copySecret": "Copy key",
+      "manualDetails": "Time-based, 6 digits, every 30 seconds.",
+      "codeLabel": "Code from the app",
+      "turnOn": "Turn on",
+      "removeTitle": "Remove the authenticator app",
+      "removeKeepsPasskeys": "You can still sign in with your passkeys."
+    },
+    "passkeys": {
+      "title": "Passkeys",
+      "description": "Confirm sign-in with your fingerprint, face, device PIN or a security key.",
+      "add": "Add a passkey",
+      "addTitle": "Add a passkey",
+      "addIntro": "Give it a name so you can tell your passkeys apart. Your browser then asks where to save it.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Work laptop",
+      "continue": "Continue",
+      "added": "Added {{date}}",
+      "lastUsed": "last used {{date}}",
+      "neverUsed": "not used yet",
+      "removeTitle": "Remove passkey \"{{name}}\"",
+      "unsupportedBrowser": "This browser does not support passkeys.",
+      "otherAddress": "Passkeys can be added when GHOST is opened at: {{origins}}",
+      "notConfigured": "Passkeys need GHOST to run on HTTPS with a domain name (or on localhost). Your administrator sets the address in FRONTEND_URL."
+    },
+    "recovery": {
+      "title": "Recovery codes",
+      "description": "If you lose your phone or passkey, sign in with one of these. Each code works once.",
+      "remaining_one": "{{count}} code left",
+      "remaining_other": "{{count}} codes left",
+      "replace": "Get new codes",
+      "replaceTitle": "Get new recovery codes",
+      "replaceDescription": "Your old codes stop working.",
+      "dialogTitle": "Save your recovery codes",
+      "dialogIntro": "If you lose access to your authenticator app or passkey, you can sign in with one of these codes. Each works once. Keep them somewhere safe, like a password manager.",
+      "dialogWarning": "You will not see these codes again.",
+      "download": "Download",
+      "done": "I saved them",
+      "fileHeader": "GHOST recovery codes for {{username}}, created {{date}}. Each code works once."
+    },
+    "tokens": {
+      "title": "API tokens",
+      "description": "For the MCP server and scripts. A token acts as you, with your role and project access, and skips two-step verification, so keep it secret. Revoke it here when it is no longer needed.",
+      "create": "Create token",
+      "createTitle": "Create an API token",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Claude Desktop",
+      "expiryLabel": "Expires",
+      "expiresInDays_one": "After {{count}} day",
+      "expiresInDays_other": "After {{count}} days",
+      "noExpiry": "Never expires",
+      "newTitle": "Token \"{{name}}\" created",
+      "newIntro": "Copy the token now:",
+      "newWarning": "You will not see this token again. If you lose it, revoke it and create a new one.",
+      "mcpHint": "For the MCP server, set GHOST_API_TOKEN to this value.",
+      "done": "Done",
+      "none": "No tokens yet.",
+      "created": "Created {{date}}",
+      "expires": "expires {{date}}",
+      "expired": "Expired",
+      "lastUsed": "last used {{date}}",
+      "neverUsed": "not used yet",
+      "revoke": "Revoke"
+    },
+    "policy": {
+      "title": "Server policy",
+      "requireLabel": "Require two-step verification for every user",
+      "requireDescription": "Users without it are asked to set it up the next time they sign in, before they can use GHOST.",
+      "requiredNotice": "Your administrator requires two-step verification."
+    },
+    "gate": {
+      "title": "Set up two-step verification",
+      "description": "Your administrator requires two-step verification. Add an authenticator app or a passkey to continue.",
+      "signOut": "Sign out"
+    },
+    "errors": {
+      "codeInvalid": "That code is not valid. Check the time on your device and try again.",
+      "signInExpired": "Sign-in expired. Enter your password again.",
+      "passwordInvalid": "Password is incorrect.",
+      "requiredByPolicy": "Two-step verification is required on this server. Add another method before removing this one.",
+      "enableOwnFirst": "Set up two-step verification for your own account first.",
+      "passkeyOrigin": "Passkeys are not available at this address.",
+      "passkeyExpired": "The passkey request expired. Try again.",
+      "passkeyInvalid": "The passkey could not be verified.",
+      "passkeyExists": "This passkey is already registered.",
+      "passkeyNone": "None of your passkeys works at this address.",
+      "passkeyCancelled": "Passkey cancelled.",
+      "setupExpired": "Setup expired. Close this and start again.",
+      "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
+      "generic": "Something went wrong. Try again."
     }
   }
 }
