@@ -58,7 +58,7 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
             <button
               onClick={onRemove}
               disabled={saving}
-              className="ml-3 p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded transition-colors"
+              className="ms-3 p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded transition-colors"
             >
               <X className="w-4 h-4" />
             </button>

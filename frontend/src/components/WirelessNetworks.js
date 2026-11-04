@@ -193,14 +193,14 @@ const WirelessNetworks = () => {
             onClick={() => setShowAddNetworkModal(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 flex items-center"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             {t('wirelessNetworks.addNetwork')}
           </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-4 h-4 me-2" />
             {t('wirelessNetworks.importKml')}
           </button>
           <button
@@ -263,13 +263,13 @@ const WirelessNetworks = () => {
           {/* Row 1: Search and Type/Encryption */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder={t('wirelessNetworks.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
+                className="w-full ps-10 pe-4 py-2 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary dark:text-gray-100 dark:bg-slate-700"
               />
             </div>
 
@@ -384,7 +384,7 @@ const WirelessNetworks = () => {
               onClick={handleBulkDelete}
               className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm flex items-center"
             >
-              <Trash2 className="w-4 h-4 mr-1" />
+              <Trash2 className="w-4 h-4 me-1" />
               {t('wirelessNetworks.deleteSelected')}
             </button>
           </div>
@@ -417,7 +417,7 @@ const WirelessNetworks = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left">
+                    <th className="px-4 py-3 text-start">
                       <input
                         type="checkbox"
                         checked={selectedNetworks.length === filteredNetworks.length && filteredNetworks.length > 0}
@@ -425,13 +425,13 @@ const WirelessNetworks = () => {
                         className="rounded"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSsid')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnBssid')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnType')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnEncryption')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSignal')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnPerson')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnActions')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSsid')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnBssid')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnType')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnEncryption')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnSignal')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnPerson')}</th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">{t('wirelessNetworks.columnActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -452,7 +452,7 @@ const WirelessNetworks = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center">
                           {getNetworkTypeIcon(network.network_type)}
-                          <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">{network.ssid || t('wirelessNetworks.hiddenSsid')}</span>
+                          <span className="ms-2 font-medium text-gray-900 dark:text-gray-100">{network.ssid || t('wirelessNetworks.hiddenSsid')}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 font-mono">{network.bssid}</td>
@@ -460,13 +460,13 @@ const WirelessNetworks = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center">
                           {getEncryptionIcon(network.encryption)}
-                          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{network.encryption || t('wirelessNetworks.unknown')}</span>
+                          <span className="ms-2 text-sm text-gray-600 dark:text-gray-400">{network.encryption || t('wirelessNetworks.unknown')}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         {network.signal_strength && (
                           <div className="flex items-center">
-                            <Signal className={`w-4 h-4 mr-1 ${getSignalColor(network.signal_strength)}`} />
+                            <Signal className={`w-4 h-4 me-1 ${getSignalColor(network.signal_strength)}`} />
                             <span className={`text-sm ${getSignalColor(network.signal_strength)}`}>
                               {t('wirelessNetworks.signalDbm', { value: network.signal_strength, strength: getSignalStrength(network.signal_strength) })}
                             </span>
@@ -476,7 +476,7 @@ const WirelessNetworks = () => {
                       <td className="px-4 py-3">
                         {network.person_id && (
                           <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
-                            <User className="w-3 h-3 mr-1" />
+                            <User className="w-3 h-3 me-1" />
                             {t('wirelessNetworks.associated')}
                           </span>
                         )}

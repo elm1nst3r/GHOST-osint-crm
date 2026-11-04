@@ -12,7 +12,7 @@ const StatRow = ({ label, value }) => (
 
 const SectionEntry = ({ label }) => (
   <div className="flex items-center text-sm text-gray-600 dark:text-slate-400">
-    <ChevronRight className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-500 shrink-0" />
+    <ChevronRight className="rtl:-scale-x-100 w-4 h-4 me-1 text-gray-400 dark:text-slate-500 shrink-0" />
     {label}
   </div>
 );

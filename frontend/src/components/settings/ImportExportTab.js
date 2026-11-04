@@ -87,9 +87,9 @@ const ImportExportTab = () => {
           {t('settings.importExport.exportDescription')}
         </p>
         <button onClick={handleExport} disabled={isExporting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-          {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>{t('settings.importExport.exporting')}</> : <><Download className="w-4 h-4 mr-2" />{t('settings.importExport.exportAllData')}</>}
+          {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white me-2"></div>{t('settings.importExport.exporting')}</> : <><Download className="w-4 h-4 me-2" />{t('settings.importExport.exportAllData')}</>}
         </button>
-        {exportSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />{t('settings.importExport.exportSuccess')}</div>}
+        {exportSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 me-1" />{t('settings.importExport.exportSuccess')}</div>}
       </div>
 
       {/* Import */}
@@ -100,12 +100,12 @@ const ImportExportTab = () => {
         </p>
         <input ref={importInputRef} type="file" accept="application/json" onChange={handleImportPreview} className="hidden" />
         <button onClick={() => importInputRef.current?.click()} disabled={isImporting} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-          {isImporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>{t('settings.importExport.importing')}</> : <><Upload className="w-4 h-4 mr-2" />{t('settings.importExport.importData')}</>}
+          {isImporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white me-2"></div>{t('settings.importExport.importing')}</> : <><Upload className="w-4 h-4 me-2" />{t('settings.importExport.importData')}</>}
         </button>
-        {importSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 mr-1" />{t('settings.importExport.importSuccess')}</div>}
+        {importSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 me-1" />{t('settings.importExport.importSuccess')}</div>}
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <div className="flex items-start">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-600 me-2 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-amber-800 font-medium">{t('settings.importExport.importantNotes')}</p>
               <ul className="text-sm text-amber-700 mt-1 list-disc list-inside">
@@ -145,7 +145,7 @@ const ImportExportTab = () => {
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-start">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-amber-600 me-2 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-700">{t('settings.importExport.confirmMergeWarning')}</p>
                 </div>
               </div>

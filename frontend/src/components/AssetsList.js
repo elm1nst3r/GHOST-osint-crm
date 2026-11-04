@@ -66,10 +66,10 @@ const AssetsList = () => {
         </div>
       </div>
       <div className="space-y-1.5 text-sm">
-        {asset.identifier && <div className="flex items-center text-gray-700 dark:text-gray-300"><Hash className="w-4 h-4 mr-2 text-gray-400" /><span className="truncate">{asset.identifier}</span></div>}
-        <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 mr-2 text-gray-400" />{t('assetsList.holderLabel', { name: asset.current_holder ? asset.current_holder.label : t('assetsList.noHolder') })}</div>
+        {asset.identifier && <div className="flex items-center text-gray-700 dark:text-gray-300"><Hash className="w-4 h-4 me-2 text-gray-400" /><span className="truncate">{asset.identifier}</span></div>}
+        <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 me-2 text-gray-400" />{t('assetsList.holderLabel', { name: asset.current_holder ? asset.current_holder.label : t('assetsList.noHolder') })}</div>
         {asset.resolved_location && asset.resolved_location.latitude != null && (
-          <div className="flex items-center text-gray-700 dark:text-gray-300"><MapPin className="w-4 h-4 mr-2 text-gray-400" /><span className="truncate">{asset.resolved_location.label || t('assetsList.locatedFallback')} ({asset.location_mode?.replace(/_/g, ' ')})</span></div>
+          <div className="flex items-center text-gray-700 dark:text-gray-300"><MapPin className="w-4 h-4 me-2 text-gray-400" /><span className="truncate">{asset.resolved_location.label || t('assetsList.locatedFallback')} ({asset.location_mode?.replace(/_/g, ' ')})</span></div>
         )}
       </div>
     </div>
@@ -86,7 +86,7 @@ const AssetsList = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('assetsList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
-            <Package className="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" />
+            <Package className="w-5 h-5 me-2 text-orange-600 dark:text-orange-400" />
             <span className="font-medium">
               {assetsMeta.total > assets.length
                 ? t('assetsList.countTotal', { count: assets.length, total: assetsMeta.total })
@@ -95,15 +95,15 @@ const AssetsList = () => {
           </p>
         </div>
         <button onClick={() => setShowAddAssetForm(true)} className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition flex items-center active:scale-[0.97]">
-          <Plus className="w-5 h-5 mr-2" />{t('assetsList.addAsset')}
+          <Plus className="w-5 h-5 me-2" />{t('assetsList.addAsset')}
         </button>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
           <input type="text" placeholder={t('assetsList.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+            className="w-full ps-10 pe-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
         </div>
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{t('assetsList.allCategories')}</option>

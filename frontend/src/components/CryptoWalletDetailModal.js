@@ -111,7 +111,7 @@ const CryptoWalletDetailModal = ({ wallet: initial, onClose }) => {
 
           {wallet.external_reference_url && (
             <a href={wallet.external_reference_url} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 dark:text-blue-400 hover:underline">
-              <ExternalLink className="w-4 h-4 mr-1.5" />{t('cryptoWalletDetailModal.viewExternalReference')}
+              <ExternalLink className="w-4 h-4 me-1.5" />{t('cryptoWalletDetailModal.viewExternalReference')}
             </a>
           )}
 
@@ -126,9 +126,9 @@ const CryptoWalletDetailModal = ({ wallet: initial, onClose }) => {
                 {wallet.connections.map(c => (
                   <li key={c.relationship_id} className="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5">
                     <span className="truncate">
-                      <span className="text-xs uppercase text-gray-400 mr-1.5">[{ENTITY_LABEL[c.entity_type] || c.entity_type}]</span>
+                      <span className="text-xs uppercase text-gray-400 me-1.5">[{ENTITY_LABEL[c.entity_type] || c.entity_type}]</span>
                       {entityLabel(c.entity_type, c.entity_id)}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1.5">({c.type})</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ms-1.5">({c.type})</span>
                     </span>
                     <button onClick={() => handleRemoveRelationship(c.relationship_id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                   </li>

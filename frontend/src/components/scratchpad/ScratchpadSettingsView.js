@@ -7,6 +7,14 @@ import { RotateCcw, Keyboard } from 'lucide-react';
 import { SCRATCHPAD_THEMES } from './scratchpadTheme';
 
 const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+// The corner setting is stored as an LTR name but means a reading-order corner:
+// the default, bottom-right, is the corner away from the navigation and above
+// the system-health widget, and in a right-to-left UI both of those mirror. So
+// the scratchpad and this picker place and name every corner by where it
+// lands on screen (issue #99).
+export const screenCorner = (corner, dir) =>
+  dir === 'rtl' ? corner.replace(/left|right/, (side) => (side === 'left' ? 'right' : 'left')) : corner;
 const FONT_SIZES = ['sm', 'md', 'lg'];
 
 export const Toggle = ({ checked, onChange, label, description }) => (
@@ -23,7 +31,7 @@ export const Toggle = ({ checked, onChange, label, description }) => (
       onClick={() => onChange(!checked)}
       className={`relative mt-0.5 inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors ${checked ? 'bg-accent-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
     >
-      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-0.5 rtl:-translate-x-0.5'}`} />
     </button>
   </label>
 );
@@ -33,7 +41,8 @@ const SectionLabel = ({ children }) => (
 );
 
 const ScratchpadSettingsView = ({ settings, onChange, onResetGeometry, isMobile }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dir = i18n.dir(i18n.resolvedLanguage);
 
   return (
     <div className="space-y-5">
@@ -60,15 +69,16 @@ const ScratchpadSettingsView = ({ settings, onChange, onResetGeometry, isMobile 
             <div className="relative w-24 h-16 rounded-md border border-slate-300 dark:border-slate-600 bg-black/[0.03] dark:bg-white/5">
               {CORNERS.map((corner) => {
                 const active = settings.corner === corner;
-                const pos = `${corner.startsWith('top') ? 'top-1' : 'bottom-1'} ${corner.endsWith('left') ? 'left-1' : 'right-1'}`;
+                const onScreen = screenCorner(corner, dir);
+                const pos = `${onScreen.startsWith('top') ? 'top-1' : 'bottom-1'} ${onScreen.endsWith('left') ? 'left-1' : 'right-1'}`;
                 return (
                   <button
                     key={corner}
                     type="button"
                     onClick={() => onChange({ corner })}
                     className={`absolute ${pos} w-7 h-5 rounded-sm border transition-colors ${active ? 'bg-accent-primary border-accent-primary' : 'border-slate-400 dark:border-slate-500 hover:bg-accent-primary/30'}`}
-                    title={t(`scratchpad.settings.corners.${corner}`)}
-                    aria-label={t(`scratchpad.settings.corners.${corner}`)}
+                    title={t(`scratchpad.settings.corners.${onScreen}`)}
+                    aria-label={t(`scratchpad.settings.corners.${onScreen}`)}
                     aria-pressed={active}
                   />
                 );

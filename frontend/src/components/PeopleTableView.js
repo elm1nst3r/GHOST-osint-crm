@@ -493,7 +493,7 @@ const PeopleTableView = ({
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 dark:border-slate-700">
               <tr>
-                <th className="px-4 py-3 text-left">
+                <th className="px-4 py-3 text-start">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === people.length && people.length > 0}
@@ -501,12 +501,12 @@ const PeopleTableView = ({
                     className="rounded border-gray-300 dark:border-slate-600"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnName')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCategory')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnStatus')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCase')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnConnections')}</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnActions')}</th>
+                <th className="px-4 py-3 text-start text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnName')}</th>
+                <th className="px-4 py-3 text-start text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCategory')}</th>
+                <th className="px-4 py-3 text-start text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnStatus')}</th>
+                <th className="px-4 py-3 text-start text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnCase')}</th>
+                <th className="px-4 py-3 text-start text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnConnections')}</th>
+                <th className="px-4 py-3 text-end text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('peopleTableView.columnActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-slate-700">

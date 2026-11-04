@@ -26,13 +26,13 @@ const Node = ({ name, value, segs, depth, onPick, picked }) => {
   if (isScalar(value)) {
     const isPicked = picked.has(keyOf(segs));
     return (
-      <div className="flex items-start gap-1 pl-4 py-0.5">
+      <div className="flex items-start gap-1 ps-4 py-0.5">
         {label}{label && <span className="text-gray-400">:</span>}
         <button
           type="button"
           onClick={() => onPick(segs, value)}
           title={t('builder.pickHint')}
-          className={`text-left rounded px-1 -mx-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 ${isPicked ? 'bg-yellow-200 dark:bg-yellow-800/60' : ''}`}
+          className={`text-start rounded px-1 -mx-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 ${isPicked ? 'bg-yellow-200 dark:bg-yellow-800/60' : ''}`}
         >
           <Scalar value={value} />
         </button>
@@ -44,7 +44,7 @@ const Node = ({ name, value, segs, depth, onPick, picked }) => {
   const entries = isArray ? value.map((v, i) => [i, v]) : Object.entries(value);
   const scalarList = isArray && value.length > 0 && value.every(isScalar);
   return (
-    <div className="pl-4">
+    <div className="ps-4">
       <div className="flex items-center gap-1 py-0.5">
         <button type="button" onClick={() => setOpen(!open)} className="flex items-center gap-1 text-gray-600 dark:text-gray-300" aria-expanded={open}>
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -55,7 +55,7 @@ const Node = ({ name, value, segs, depth, onPick, picked }) => {
           <button
             type="button"
             onClick={() => onPick(segs, value)}
-            className={`ml-1 inline-flex items-center gap-0.5 text-xs px-1.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 ${picked.has(keyOf(segs)) ? 'bg-yellow-200 dark:bg-yellow-800/60' : ''}`}
+            className={`ms-1 inline-flex items-center gap-0.5 text-xs px-1.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 ${picked.has(keyOf(segs)) ? 'bg-yellow-200 dark:bg-yellow-800/60' : ''}`}
           >
             <Plus className="w-3 h-3" />{t('builder.pickWholeList')}
           </button>
@@ -68,10 +68,12 @@ const Node = ({ name, value, segs, depth, onPick, picked }) => {
   );
 };
 
+// A JSON tree reads left-to-right in every language, like a code block, so it
+// stays LTR inside an RTL page (issue #99).
 const JsonPicker = ({ json, onPick, picked = new Set() }) => (
-  <div className="font-mono text-xs leading-relaxed -ml-4 overflow-x-auto">
+  <div dir="ltr" className="font-mono text-xs leading-relaxed -ms-4 overflow-x-auto">
     {isScalar(json)
-      ? <div className="pl-4"><Scalar value={json} /></div>
+      ? <div className="ps-4"><Scalar value={json} /></div>
       : <Node value={json} segs={[]} depth={0} onPick={onPick} picked={picked} />}
   </div>
 );

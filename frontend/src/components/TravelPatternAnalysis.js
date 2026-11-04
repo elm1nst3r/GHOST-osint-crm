@@ -204,7 +204,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             onClick={() => setShowAddForm(true)}
             className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-4 h-4 me-1" />
             {t('travelPatternAnalysis.addTravelRecord')}
           </button>
         </div>
@@ -218,7 +218,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Calendar className="w-4 h-4 inline mr-1" />
+            <Calendar className="w-4 h-4 inline me-1" />
             {t('travelPatternAnalysis.timelineTab')}
           </button>
           <button
@@ -229,7 +229,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Globe className="w-4 h-4 inline mr-1" />
+            <Globe className="w-4 h-4 inline me-1" />
             {t('travelPatternAnalysis.mapViewTab')}
           </button>
           <button
@@ -240,7 +240,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <BarChart2 className="w-4 h-4 inline mr-1" />
+            <BarChart2 className="w-4 h-4 inline me-1" />
             {t('travelPatternAnalysis.statisticsTab')}
           </button>
         </div>
@@ -416,8 +416,8 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
           {travelData?.history?.length > 0 ? (
             <div className="space-y-4">
               {travelData.history.map((travel, index) => (
-                <div key={travel.id} className="border-l-4 border-blue-500 pl-4 pb-4 relative">
-                  <div className="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></div>
+                <div key={travel.id} className="border-s-4 border-blue-500 ps-4 pb-4 relative">
+                  <div className="absolute -start-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></div>
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
@@ -435,11 +435,11 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                       )}
                       <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-slate-400 mt-1">
                         <span className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
+                          <Calendar className="w-3 h-3 me-1" />
                           {formatDate(travel.arrival_date)} - {formatDate(travel.departure_date)}
                         </span>
                         <span className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
+                          <Clock className="w-3 h-3 me-1" />
                           {getDuration(travel.arrival_date, travel.departure_date)}
                         </span>
                         {travel.purpose && (

@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.23.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.24.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -171,6 +171,7 @@ administrator can change their own membership. Full details in
 - **Solid backgrounds**: Professional, readable interface with proper contrast
 - **Dark mode**: Full dark mode support with optimized text readability
 - **Responsive layout**: Works on desktop and tablet
+- **Right-to-left languages**: Persian, Arabic and other RTL languages get a fully mirrored interface
 - **Professional colorway**: Business-appropriate aesthetics
 - **Smooth animations**: Apple-inspired interactions
 - **Enhanced readability**: All text elements have proper contrast in both light and dark modes
@@ -263,7 +264,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.23.0
+GHOST_VERSION=2.24.0
 ```
 
 Without it, the containers track the latest release.
@@ -459,6 +460,13 @@ request. If you add or change an API route, add it to
 `backend/utils/openapiSpec.js` as well — the tests fail when a route, its
 query parameters or its admin requirement are missing from the spec.
 
+The frontend tests (`cd frontend && npm test`) run too. The interface supports
+right-to-left languages, so UI code uses logical direction classes —
+`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`,
+`border-s`/`border-e` — instead of `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`,
+`text-left`/`text-right`; they look identical in English and mirror in Persian
+or Arabic. The tests fail on a physical one.
+
 Translations are managed on [Crowdin](https://crowdin.com/project/ghost-osint-crm),
 not through pull requests.
 
@@ -627,6 +635,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 2.24.0 (November 2026)
+- 🌍 **Right-to-left languages and Persian** — the whole interface mirrors for Persian, Arabic and other RTL languages, and mixed-script case data (phone numbers, emails, `@handles`) stays readable; Persian (فارسی) is selectable in Settings → General (issues #99, #100)
 
 ### Version 2.23.0 (November 2026)
 - 📝 **Scratchpad** — a private floating notepad on every page: select text anywhere and press `Alt+Shift+A` to keep it, with markdown, clickable tick boxes and the project's open to-dos; never shared, audit-logged or exported, and pasted images never load remotely
@@ -819,5 +830,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.23.0
-**Last Updated:** November 3, 2026
+**Version:** 2.24.0
+**Last Updated:** November 4, 2026

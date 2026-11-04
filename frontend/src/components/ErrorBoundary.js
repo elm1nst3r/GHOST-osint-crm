@@ -41,7 +41,7 @@ class ErrorBoundary extends React.Component {
             onClick={() => this.setState({ error: null })}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 me-2" />
             {this.props.t('errorBoundary.tryAgain')}
           </button>
         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { isolateList } from '../../utils/bidi';
 import { optionLabel } from '../../utils/optionLabels';
 import { Search, Download, SortAsc, SortDesc, Network, Tag, Briefcase, MapPin, FileText, Database } from 'lucide-react';
 
@@ -61,7 +62,7 @@ const SearchResults = ({
               onClick={exportResults}
               className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
             >
-              <Download className="w-4 h-4 mr-1" />
+              <Download className="w-4 h-4 me-1" />
               {t('searchResults.exportCsv')}
             </button>
 
@@ -70,7 +71,7 @@ const SearchResults = ({
               disabled={selectedResultIds.length === 0}
               className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm disabled:opacity-50"
             >
-              <FileText className="w-4 h-4 mr-1" />
+              <FileText className="w-4 h-4 me-1" />
               {t('searchResults.generateReport', { count: selectedResultIds.length })}
             </button>
           </>
@@ -120,20 +121,20 @@ const SearchResults = ({
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                     {getFullName(person)}
                     {person.date_of_birth && (
-                      <span className="text-gray-500 dark:text-slate-400 font-normal text-sm ml-2">
+                      <span className="text-gray-500 dark:text-slate-400 font-normal text-sm ms-2">
                         ({new Date().getFullYear() - new Date(person.date_of_birth).getFullYear()} years old)
                       </span>
                     )}
                   </h4>
                   
                   {person.aliases && person.aliases.length > 0 && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('peopleList.akaLabel', { aliases: isolateList(person.aliases) })}</p>
                   )}
                   
                   <div className="mt-2 flex flex-wrap gap-2">
                     {person.category && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                        <Tag className="w-3 h-3 mr-1" />
+                        <Tag className="w-3 h-3 me-1" />
                         {optionLabel(t, 'person_category', person.category)}
                       </span>
                     )}
@@ -150,26 +151,26 @@ const SearchResults = ({
                     
                     {person.case_name && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                        <Briefcase className="w-3 h-3 mr-1" />
+                        <Briefcase className="w-3 h-3 me-1" />
                         {person.case_name}
                       </span>
                     )}
                     
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                      <Network className="w-3 h-3 mr-1" />
+                      <Network className="w-3 h-3 me-1" />
                       {t('peopleList.connectionsCount', { count: person.connections?.length || 0 })}
                     </span>
 
                     {person.locations && person.locations.length > 0 && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        <MapPin className="w-3 h-3 mr-1" />
+                        <MapPin className="w-3 h-3 me-1" />
                         {t('searchResults.locationsCount', { count: person.locations.length })}
                       </span>
                     )}
 
                     {person.osint_data && person.osint_data.length > 0 && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        <Database className="w-3 h-3 mr-1" />
+                        <Database className="w-3 h-3 me-1" />
                         {t('searchResults.osintCount', { count: person.osint_data.length })}
                       </span>
                     )}

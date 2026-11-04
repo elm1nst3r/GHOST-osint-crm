@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { optionLabel } from '../../utils/optionLabels';
 import { Trash2 } from 'lucide-react';
 
 const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
@@ -51,8 +52,8 @@ const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
         {osintData.map((item, i) => (
           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
             <div>
-              <span className="font-medium">{item.type}:</span> {item.value}
-              {item.notes && <span className="text-sm text-gray-600 dark:text-slate-400 ml-2">({item.notes})</span>}
+              <span className="font-medium">{optionLabel(t, 'osint_data_type', item.type)}:</span> <bdi>{item.value}</bdi>
+              {item.notes && <span className="text-sm text-gray-600 dark:text-slate-400 ms-2">({item.notes})</span>}
             </div>
             <button type="button" onClick={() => remove(i)} className="text-red-600 hover:text-red-700">
               <Trash2 className="w-4 h-4" />

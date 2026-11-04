@@ -171,7 +171,7 @@ const ToolsList = () => {
           </h1>
           <div className="flex flex-wrap items-center gap-4 mt-2">
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-              <BarChart3 className="w-4 h-4 mr-1 text-blue-600 dark:text-blue-400" />
+              <BarChart3 className="w-4 h-4 me-1 text-blue-600 dark:text-blue-400" />
               <span className="font-medium">{t('toolsList.toolsCount', { count: source.length })}</span>
             </div>
             {isAdmin && (
@@ -187,14 +187,14 @@ const ToolsList = () => {
             onClick={() => setShowExport(true)}
             className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
           >
-            <Download className="w-5 h-5 mr-2" />{t('tools.export')}
+            <Download className="w-5 h-5 me-2" />{t('tools.export')}
           </button>
           {canAdd && (
             <button
               onClick={() => setShowImport(true)}
               className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
             >
-              <Upload className="w-5 h-5 mr-2" />{t('toolsList.importTools')}
+              <Upload className="w-5 h-5 me-2" />{t('toolsList.importTools')}
             </button>
           )}
           {canAdd && (
@@ -202,7 +202,7 @@ const ToolsList = () => {
               onClick={() => setShowAddToolForm(true)}
               className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all duration-300 flex items-center group"
             >
-              <Plus className="w-5 h-5 mr-2" />{t('toolsList.addTool')}
+              <Plus className="w-5 h-5 me-2" />{t('toolsList.addTool')}
             </button>
           )}
         </div>
@@ -228,13 +228,13 @@ const ToolsList = () => {
         <div className="flex flex-col space-y-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 relative min-w-[12rem]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder={t('toolsList.searchPlaceholder')}
                 value={toolSearchTerm}
                 onChange={(e) => setToolSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
+                className="w-full ps-10 pe-4 py-3 glass border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-accent-primary focus:shadow-md transition-all duration-300"
               />
             </div>
             <button
@@ -243,7 +243,7 @@ const ToolsList = () => {
                 showFilters ? 'bg-blue-600 text-white dark:bg-blue-500' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              <Filter className="w-5 h-5 mr-2" />{t('relationshipManager.filters')}
+              <Filter className="w-5 h-5 me-2" />{t('relationshipManager.filters')}
             </button>
           </div>
 
@@ -344,7 +344,7 @@ const ToolsList = () => {
               <div className="mt-auto pt-2 flex flex-wrap gap-2">
                 {isIntegration && tool.connection_status === 'connected' && (
                   <button onClick={() => setRunTool(tool)} className="inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium">
-                    <Play className="w-4 h-4 mr-1.5" />{t('tools.search')}
+                    <Play className="w-4 h-4 me-1.5" />{t('tools.search')}
                   </button>
                 )}
                 {isIntegration && keyRequired && tool.integration && (perUser || tool.can_manage) && (
@@ -352,7 +352,7 @@ const ToolsList = () => {
                     onClick={() => setKeyDialog({ tool, scope: perUser ? 'mine' : 'shared' })}
                     className="inline-flex items-center px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
                   >
-                    <KeyRound className="w-4 h-4 mr-1.5" />
+                    <KeyRound className="w-4 h-4 me-1.5" />
                     {perUser ? (tool.has_my_key ? t('tools.yourKey') : t('tools.addYourKey')) : (tool.has_shared_key ? t('tools.sharedKey') : t('tools.addSharedKey'))}
                   </button>
                 )}
@@ -363,7 +363,7 @@ const ToolsList = () => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-700 hover:text-white transition-colors text-sm font-medium"
                   >
-                    <ExternalLink className="w-4 h-4 mr-1.5" />{t('toolsList.visitTool')}
+                    <ExternalLink className="w-4 h-4 me-1.5" />{t('toolsList.visitTool')}
                   </a>
                 )}
               </div>

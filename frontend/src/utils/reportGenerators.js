@@ -329,10 +329,17 @@ export const downloadMarkdown = (data, options) => {
 
 // ── Word generator ──────────────────────────────────────────────────────────
 
-const p = (text, heading, alignment) => new Paragraph({
+// In an RTL report language every paragraph is marked bidirectional (Word's
+// <w:bidi/>): right-aligned, right-to-left base direction, Latin names inside it
+// still read left-to-right. Run-level rightToLeft is deliberately not set; Word
+// applies it to Latin text too and can reverse the word order of English names.
+export const isRtlReport = () => i18n.dir(i18n.resolvedLanguage || 'en') === 'rtl';
+
+export const p = (text, heading, alignment) => new Paragraph({
   text,
   ...(heading && { heading }),
-  ...(alignment && { alignment })
+  ...(alignment && { alignment }),
+  ...(isRtlReport() && { bidirectional: true })
 });
 const blank = () => p('');
 

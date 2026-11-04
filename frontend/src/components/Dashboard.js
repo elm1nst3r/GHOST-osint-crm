@@ -143,12 +143,12 @@ const Dashboard = () => {
             ) : (
               activePeople.map(person => (
                 <div key={person.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group">
-                  <div className="flex-1 min-w-0 mr-4">
+                  <div className="flex-1 min-w-0 me-4">
                     <p className="font-semibold text-slate-900 dark:text-slate-100">{getFullName(person)}</p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{person.case_name || t('dashboard.noCaseAssigned')}</p>
                     <div className="flex items-center mt-2 space-x-3 text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center">
-                        <Network className="w-3 h-3 mr-1 text-blue-600 dark:text-blue-400" />
+                        <Network className="w-3 h-3 me-1 text-blue-600 dark:text-blue-400" />
                         {t('dashboard.connectionsCount', { count: getRelationshipCount(person.id) })}
                       </div>
                       {person.updated_at && (
@@ -189,7 +189,7 @@ const Dashboard = () => {
               {t('common.add')}
             </button>
           </div>
-          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-96 overflow-y-auto pe-2">
             {todos.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p className="text-sm">{t('dashboard.noTasksYet')}</p>
@@ -220,9 +220,11 @@ const Dashboard = () => {
                         const newId = editingTodoId === todo.id ? null : todo.id;
                         if (newId) {
                           const rect = e.currentTarget.getBoundingClientRect();
+                          const rtl = document.documentElement.dir === 'rtl';
                           setDropdownPosition({
                             top: rect.bottom + window.scrollY,
-                            left: rect.right + window.scrollX - 192,
+                            // Align the menu with the button's end edge
+                            left: (rtl ? rect.left : rect.right - 192) + window.scrollX,
                             width: 192
                           });
                         } else {
@@ -252,11 +254,11 @@ const Dashboard = () => {
                               setEditingTodoId(null);
                               setDropdownPosition(null);
                             }}
-                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center dark:text-slate-200 transition-colors duration-100 ${
+                            className={`w-full text-start px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center dark:text-slate-200 transition-colors duration-100 ${
                               todo.status === option.value ? 'font-medium bg-slate-50 dark:bg-slate-700' : ''
                             }`}
                           >
-                            <div className={`inline-block w-3 h-3 rounded mr-2 flex-shrink-0 ${getStatusStyle(option.value)}`} />
+                            <div className={`inline-block w-3 h-3 rounded me-2 flex-shrink-0 ${getStatusStyle(option.value)}`} />
                             {option.label}
                           </button>
                         ))}

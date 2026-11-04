@@ -179,7 +179,7 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
             <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700">
               <tr>
                 {(header || []).map((h, i) => (
-                  <th key={i} className="px-2 py-1.5 text-left font-semibold text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600 whitespace-nowrap">{h}</th>
+                  <th key={i} className="px-2 py-1.5 text-start font-semibold text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>

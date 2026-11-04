@@ -140,11 +140,11 @@ const ConnectionsSection = ({
                 <span className="font-medium">
                   {person ? `${person.first_name} ${person.last_name || ''}` : t('personForm.connections.unknownPerson')}
                 </span>
-                <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400 ms-2">
                   ({connectionTypes.find(ct => ct.value === conn.type)?.label || conn.type})
                 </span>
                 {isOtherProject && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
+                  <span className="ms-2 text-xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
                     {t('personForm.connections.fromProject', { project: otherProjectMeta?.name || t('personDetailModal.otherProjectUnknown') })}
                   </span>
                 )}

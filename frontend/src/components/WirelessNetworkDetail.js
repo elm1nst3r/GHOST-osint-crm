@@ -124,7 +124,7 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
                         <p className="font-semibold text-sm">{network.ssid}</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">{network.bssid}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                          {network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}
+                          <span dir="ltr">{network.latitude.toFixed(6)}, {network.longitude.toFixed(6)}</span>
                         </p>
                       </div>
                     </Popup>

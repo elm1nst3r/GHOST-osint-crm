@@ -69,9 +69,9 @@ const GhostToolsImport = ({ file, onClose, onBack }) => {
           {!report ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><Plug className="w-4 h-4 inline mr-1" />{t('tools.importIntegratedCount', { count: counts.integrated })}</div>
-                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><Link2 className="w-4 h-4 inline mr-1" />{t('tools.importLinkCount', { count: counts.links })}</div>
-                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><KeyRound className="w-4 h-4 inline mr-1" />{hasKeys ? t('tools.importHasKeys') : t('tools.importNoKeys')}</div>
+                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><Plug className="w-4 h-4 inline me-1" />{t('tools.importIntegratedCount', { count: counts.integrated })}</div>
+                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><Link2 className="w-4 h-4 inline me-1" />{t('tools.importLinkCount', { count: counts.links })}</div>
+                <div className="p-3 rounded-md bg-gray-50 dark:bg-slate-700/50"><KeyRound className="w-4 h-4 inline me-1" />{hasKeys ? t('tools.importHasKeys') : t('tools.importNoKeys')}</div>
               </div>
               <p className="text-xs text-gray-500 dark:text-slate-400">
                 {t('tools.importFrom', { version: file.app_version || '?', date: (file.exported_at || '').slice(0, 10) })}
@@ -122,7 +122,7 @@ const GhostToolsImport = ({ file, onClose, onBack }) => {
           ) : (
             <div className="space-y-2">
               <p className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2"><Check className="w-4 h-4" />{t('tools.importDone')}</p>
-              <ul className="list-disc pl-5 text-gray-700 dark:text-slate-300">
+              <ul className="list-disc ps-5 text-gray-700 dark:text-slate-300">
                 <li>{t('toolImport.resultCreated', { count: report.created })}</li>
                 <li>{t('toolImport.resultUpdated', { count: report.updated })}</li>
                 <li>{t('toolImport.resultSkipped', { count: report.skipped })}</li>
@@ -130,10 +130,10 @@ const GhostToolsImport = ({ file, onClose, onBack }) => {
                 {report.integrations_installed?.length > 0 && <li>{t('tools.importInstalledResult', { list: report.integrations_installed.join(', ') })}</li>}
               </ul>
               {report.warnings?.length > 0 && (
-                <ul className="text-xs text-amber-700 dark:text-amber-400 list-disc pl-5">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+                <ul className="text-xs text-amber-700 dark:text-amber-400 list-disc ps-5">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
               )}
               {report.errors?.length > 0 && (
-                <ul className="text-xs text-red-600 dark:text-red-400 list-disc pl-5">{report.errors.map((e) => <li key={`${e.index}-${e.name}`}>{e.name}: {e.message}</li>)}</ul>
+                <ul className="text-xs text-red-600 dark:text-red-400 list-disc ps-5">{report.errors.map((e) => <li key={`${e.index}-${e.name}`}>{e.name}: {e.message}</li>)}</ul>
               )}
             </div>
           )}

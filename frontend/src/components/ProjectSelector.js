@@ -104,7 +104,7 @@ const ProjectSelector = ({ compact = false }) => {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); cancelEdit(); }} aria-hidden="true" />
-          <div className="absolute left-0 mt-1 w-80 z-50 rounded-[var(--radius-card)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg py-1 max-h-96 overflow-y-auto">
+          <div className="absolute start-0 mt-1 w-80 z-50 rounded-[var(--radius-card)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg py-1 max-h-96 overflow-y-auto">
             {projects.map((p) => (
               <div key={p.id}>
                 {editingId === p.id ? (
@@ -189,7 +189,7 @@ const ProjectSelector = ({ compact = false }) => {
                   <div className="w-full flex items-center gap-1 px-2 py-1 group hover:bg-slate-50 dark:hover:bg-slate-700">
                     <button
                       onClick={() => { setActiveProjectId(p.id); setOpen(false); }}
-                      className="flex-1 min-w-0 flex items-center gap-2 px-1 py-1 text-sm text-left text-slate-700 dark:text-slate-200"
+                      className="flex-1 min-w-0 flex items-center gap-2 px-1 py-1 text-sm text-start text-slate-700 dark:text-slate-200"
                     >
                       {p.icon ? <span className="flex-shrink-0 leading-none">{p.icon}</span> : <span className="w-4 flex-shrink-0" />}
                       <span className="truncate">{p.name}</span>
@@ -242,7 +242,7 @@ const ProjectSelector = ({ compact = false }) => {
               ) : (
                 <button
                   onClick={() => setCreating(true)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-accent-primary hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-accent-primary hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
                   <Plus className="w-4 h-4" />
                   {t('projectSelector.newProject')}

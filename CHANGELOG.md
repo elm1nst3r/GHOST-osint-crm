@@ -5,6 +5,48 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.24.0] - 2026-11-04
+
+### ✨ Added
+
+- **Right-to-left languages (#99).** Persian, Arabic and other RTL
+  languages get a mirrored interface, not just translated text: the
+  navigation sits on the right, and forms, tables, tabs, menus, switches and
+  arrows run right-to-left. Word reports come out right-to-left too.
+  - Case data in mixed scripts stays readable: phone numbers, emails, URLs,
+    `@handles`, coordinates and aliases keep their own order inside Persian
+    text, and an English value typed into a Persian form is laid out
+    left-to-right. Notes take their direction from their own text.
+  - The scratchpad docks bottom-left in RTL, away from the navigation.
+  - Map and relationship-diagram overlays keep their places, next to the
+    controls those libraries draw.
+- **Persian (فارسی)** in **Settings → General**. The translation was
+  contributed by @RMA1313 (#100) and is maintained on
+  [Crowdin](https://crowdin.com/project/ghost-osint-crm) from now on. Arabic
+  is open there for translators too.
+
+### 🐛 Fixed
+
+- The person detail view showed OSINT entry types, category and status in
+  English whatever the interface language.
+
+### 🧑‍💻 For contributors
+
+- Frontend tests now run in CI. UI code uses logical direction classes
+  (`ms-`, `pe-`, `start-`, `text-start`, `border-s`, …) instead of `ml-`,
+  `pr-`, `left-`, `text-left`, `border-l`; they look identical in English and
+  mirror in RTL, and a test fails on the physical ones.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+No database changes. Nothing changes for left-to-right languages.
+
 ## [2.23.0] - 2026-11-03
 
 ### ✨ Added

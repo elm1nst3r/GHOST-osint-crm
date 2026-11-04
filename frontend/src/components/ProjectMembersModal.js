@@ -111,7 +111,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Users className="w-5 h-5 mr-2 text-accent-primary" />{t('projectMembers.title', { name: project.name })}
+            <Users className="w-5 h-5 me-2 text-accent-primary" />{t('projectMembers.title', { name: project.name })}
           </h2>
           <button onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
         </div>
@@ -131,9 +131,9 @@ const ProjectMembersModal = ({ project, onClose }) => {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('projectMembers.columnUser')}</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('projectMembers.columnRole')}</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('settings.users.columnActions')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('projectMembers.columnUser')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('projectMembers.columnRole')}</th>
+                    <th className="px-4 py-2 text-end text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('settings.users.columnActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -144,7 +144,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
                     <tr key={m.id}>
                       <td className="px-4 py-2 whitespace-nowrap">
                         <div className="flex items-center">
-                          <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <User className="w-4 h-4 me-2 text-gray-400 flex-shrink-0" />
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">{m.username}</div>
                             {m.email && <div className="text-xs text-gray-500 dark:text-gray-400">{m.email}</div>}
@@ -164,7 +164,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
                           <span className="text-xs text-gray-700 dark:text-gray-300">{roleLabel(m.project_role)}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-right">
+                      <td className="px-4 py-2 whitespace-nowrap text-end">
                         {canEditMember(m) && (
                           <button onClick={() => handleRemove(m.user_id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
                             <Trash2 className="w-4 h-4" />

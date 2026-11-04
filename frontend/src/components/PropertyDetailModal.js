@@ -53,10 +53,10 @@ const PropertyDetailModal = ({ property: initial, onClose }) => {
             {tab === 'details' && (
               <div className="space-y-4 text-sm">
                 {(property.address || property.city) && (
-                  <div className="flex items-start text-gray-700 dark:text-gray-300"><MapPin className="w-4 h-4 mr-2 mt-0.5 text-gray-400" /><span>{[property.address, property.city, property.state, property.country, property.postal_code].filter(Boolean).join(', ')}</span></div>
+                  <div className="flex items-start text-gray-700 dark:text-gray-300"><MapPin className="w-4 h-4 me-2 mt-0.5 text-gray-400" /><span>{[property.address, property.city, property.state, property.country, property.postal_code].filter(Boolean).join(', ')}</span></div>
                 )}
                 {property.owner_name && property.owner_name.trim() && (
-                  <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 mr-2 text-gray-400" />{t('propertyDetailModal.quickOwner', { name: property.owner_name })}</div>
+                  <div className="flex items-center text-gray-700 dark:text-gray-300"><User className="w-4 h-4 me-2 text-gray-400" />{t('propertyDetailModal.quickOwner', { name: property.owner_name })}</div>
                 )}
                 {property.derived_current_owner && (
                   <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">

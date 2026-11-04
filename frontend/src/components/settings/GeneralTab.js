@@ -82,7 +82,7 @@ const GeneralTab = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
+                    <Upload className="w-4 h-4 me-2" />
                     {t('settings.general.uploadLogo')}
                   </button>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.logoHelp')}</p>

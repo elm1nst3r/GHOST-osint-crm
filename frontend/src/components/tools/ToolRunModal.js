@@ -21,7 +21,7 @@ const CostBadge = ({ cost }) => {
   const { t } = useTranslation();
   if (!cost || cost === 'free') return null;
   return (
-    <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+    <span className="ms-2 text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
       {cost === 'paid' ? t('tools.costPaid') : t('tools.costQuota')}
     </span>
   );
@@ -193,7 +193,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                       <label key={i.key} className="flex items-center gap-2 p-2 rounded border border-gray-200 dark:border-gray-700 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <input type="checkbox" checked={selectedInputs.has(i.key)} onChange={() => toggle(selectedInputs, setSelectedInputs, i.key)} disabled={running} />
                         <span className="text-gray-500 dark:text-gray-400 text-xs w-20 flex-shrink-0 truncate" title={i.type}>{t(`tools.kind_${i.kind}`)}</span>
-                        <span className="text-gray-900 dark:text-gray-100 break-all">{i.value}</span>
+                        <bdi className="text-gray-900 dark:text-gray-100 break-all">{i.value}</bdi>
                       </label>
                     ))}
                   </div>
@@ -263,8 +263,8 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/40 flex flex-wrap items-center gap-2 text-sm rounded-t-lg">
                         <span className="font-medium text-gray-900 dark:text-gray-100">{run.tool.name}</span>
                         <span className="text-gray-600 dark:text-gray-300">· {run.op.label}</span>
-                        <span className="text-gray-500 dark:text-gray-400 break-all">· {run.result?.query || run.input.value}</span>
-                        <span className="ml-auto text-xs">
+                        <span className="text-gray-500 dark:text-gray-400 break-all">· <bdi>{run.result?.query || run.input.value}</bdi></span>
+                        <span className="ms-auto text-xs">
                           {run.status === 'pending' && <span className="text-gray-400">{t('tools.statusQueued')}</span>}
                           {run.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
                           {run.status === 'done' && (

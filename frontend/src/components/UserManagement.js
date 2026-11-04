@@ -303,22 +303,22 @@ const UserManagement = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnUser')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnEmail')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnRole')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnStatus')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnLastLogin')}
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnActions')}
               </th>
             </tr>
@@ -331,7 +331,7 @@ const UserManagement = () => {
                     <div className="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
                       <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </div>
-                    <div className="ml-4">
+                    <div className="ms-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {user.username}
                       </div>
@@ -371,10 +371,10 @@ const UserManagement = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {user.last_login ? new Date(user.last_login).toLocaleDateString() : t('settings.users.never')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
                   <button
                     onClick={() => startEdit(user)}
-                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
+                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 me-4"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>

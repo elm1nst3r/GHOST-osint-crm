@@ -222,7 +222,7 @@ const AppShell = () => {
       <div className="md:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-4 glass-card rounded-none border-x-0 border-t-0">
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="p-2 -ml-2 rounded-[var(--radius-control)] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="p-2 -ms-2 rounded-[var(--radius-control)] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           aria-label={t('app.openNavigation')}
           aria-expanded={mobileNavOpen}
         >
@@ -231,7 +231,7 @@ const AppShell = () => {
         <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
           {appSettings.appName}
         </span>
-        <div className="ml-auto">
+        <div className="ms-auto">
           <ProjectSelector compact />
         </div>
       </div>
@@ -251,11 +251,11 @@ const AppShell = () => {
           mobile-first system meant the sidebar was at its WIDEST on the
           narrowest screen — 288px of nav on a 375px phone (issue #64). */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] rounded-none border-y-0 border-l-0
+        className={`fixed inset-y-0 start-0 z-50 w-72 max-w-[85vw] rounded-none border-y-0 border-s-0
           flex flex-col glass-card flex-shrink-0
           transform transition-transform duration-200 ease-out
-          ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:static md:translate-x-0 md:max-w-none md:m-4 md:w-64 lg:w-72
+          ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'}
+          md:static md:translate-x-0 md:rtl:translate-x-0 md:max-w-none md:m-4 md:w-64 lg:w-72
           md:rounded-[var(--radius-card)] md:border`}
       >
         <div className="p-5 border-b border-slate-200 dark:border-slate-800">
@@ -319,7 +319,7 @@ const AppShell = () => {
             >
               <LogOut className="flex-shrink-0" style={{ width: 18, height: 18 }} />
               <span>{t('app.logout')}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">{currentUser?.username}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 ms-auto">{currentUser?.username}</span>
             </button>
           </div>
         </nav>
@@ -336,7 +336,7 @@ const AppShell = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 relative flex flex-col m-4 mt-[4.5rem] md:mt-4 md:ml-0">
+      <div className="flex-1 min-w-0 relative flex flex-col m-4 mt-[4.5rem] md:mt-4 md:ms-0">
         <div className="flex-1 glass-card overflow-hidden flex flex-col">
           <UpdateBanner />
           {/* flex-1 min-h-0 rather than h-full: the banner shares this column,

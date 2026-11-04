@@ -196,7 +196,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
         <div className="p-6 border-b dark:border-gray-600">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-              <Building2 className="w-6 h-6 mr-2" />
+              <Building2 className="w-6 h-6 me-2" />
               {business ? t('businessForm.editTitle') : t('businessForm.addTitle')}
             </h2>
             <button onClick={onCancel} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
@@ -298,7 +298,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
           {/* Location */}
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <MapPin className="w-5 h-5 mr-2" />
+              <MapPin className="w-5 h-5 me-2" />
               {t('businessForm.location')}
             </h3>
             <div className="space-y-3">
@@ -427,7 +427,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold flex items-center">
-                <Users className="w-5 h-5 mr-2" />
+                <Users className="w-5 h-5 me-2" />
                 {t('businessForm.employeesCount', { count: formData.employees.length })}
               </h3>
               <button
@@ -435,7 +435,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 onClick={() => setShowEmployeeForm(!showEmployeeForm)}
                 className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
               >
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className="w-4 h-4 me-1" />
                 {t('businessForm.addEmployee')}
               </button>
             </div>
@@ -570,7 +570,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                   <button
                     type="button"
                     onClick={() => removeEmployee(employee.id)}
-                    className="text-red-600 hover:text-red-700 transition-colors ml-3"
+                    className="text-red-600 hover:text-red-700 transition-colors ms-3"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

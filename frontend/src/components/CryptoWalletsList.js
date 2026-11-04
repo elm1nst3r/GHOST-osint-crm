@@ -68,7 +68,7 @@ const CryptoWalletsList = () => {
         <div className="text-gray-700 dark:text-gray-300 font-mono text-xs truncate">{wallet.address}</div>
         {wallet.external_reference_url && (
           <a href={wallet.external_reference_url} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 dark:text-blue-400 hover:underline">
-            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />{t('cryptoWalletsList.externalReference')}
+            <ExternalLink className="w-3.5 h-3.5 me-1.5" />{t('cryptoWalletsList.externalReference')}
           </a>
         )}
       </div>
@@ -86,7 +86,7 @@ const CryptoWalletsList = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('cryptoWalletsList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
-            <Wallet className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+            <Wallet className="w-5 h-5 me-2 text-purple-600 dark:text-purple-400" />
             <span className="font-medium">
               {cryptoWalletsMeta.total > cryptoWallets.length
                 ? t('cryptoWalletsList.countTotal', { count: cryptoWallets.length, total: cryptoWalletsMeta.total })
@@ -95,15 +95,15 @@ const CryptoWalletsList = () => {
           </p>
         </div>
         <button onClick={() => setShowAddCryptoWalletForm(true)} className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition flex items-center active:scale-[0.97]">
-          <Plus className="w-5 h-5 mr-2" />{t('cryptoWalletsList.addWallet')}
+          <Plus className="w-5 h-5 me-2" />{t('cryptoWalletsList.addWallet')}
         </button>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
           <input type="text" placeholder={t('cryptoWalletsList.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+            className="w-full ps-10 pe-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
         </div>
         <select value={filterNetwork} onChange={e => setFilterNetwork(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{t('cryptoWalletsList.allNetworks')}</option>

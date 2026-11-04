@@ -44,7 +44,7 @@ const ReportOptions = ({
   return (
     <div>
       <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-slate-100">
-        <Settings className="w-5 h-5 mr-2" />
+        <Settings className="w-5 h-5 me-2" />
         {t('reportOptions.title')}
       </h3>
 
