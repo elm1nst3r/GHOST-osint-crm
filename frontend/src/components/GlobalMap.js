@@ -9,7 +9,7 @@ import 'leaflet/dist/leaflet.css';
 import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
 import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
 import { useProject } from '../contexts/ProjectContext';
-import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
+import { OSM_TILE_URL, OSM_ATTRIBUTION, OSM_TILE_REFERRER_POLICY } from '../utils/mapConstants';
 import { optionLabel } from '../utils/optionLabels';
 import { locationColors, buildIconCache, colorForCustomType } from './map/mapUtils';
 import AddLocationModal from './map/AddLocationModal';
@@ -442,7 +442,7 @@ const GlobalMap = () => {
       <div className="flex-1 relative">
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-lg rounded-lg h-full overflow-hidden" style={{ isolation: 'isolate' }}>
           <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%', zIndex: 1 }} worldCopyJump>
-            <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+            <TileLayer url={OSM_TILE_URL} referrerPolicy={OSM_TILE_REFERRER_POLICY} attribution={OSM_ATTRIBUTION} />
             <MarkerClusterGroup chunkedLoading maxClusterRadius={60} spiderfyOnMaxZoom showCoverageOnHover={false} zoomToBoundsOnClick>
               {markers.map(marker => (
                 <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={marker.icon}>

@@ -5,6 +5,47 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.27.0] - 2026-11-04
+
+Step 0 of the dependency plan: supported runtimes, security headers and
+sturdier rate limits.
+
+### 🔒 Security
+
+- **Node.js 26 and nginx 1.30.** The images move to Node 26 LTS (security
+  fixes until April 2029; Node 22's end in April 2027) and from nginx 1.25,
+  which no longer gets security fixes, to the 1.30 stable line.
+- **Security headers** on every page and API response: no framing by other
+  sites, `nosniff`, a permissions policy that allows only passkeys, and
+  `Referrer-Policy: no-referrer`, so following a link out of GHOST doesn't
+  tell the destination where it runs (map tiles still send the origin, as
+  OpenStreetMap asks). HSTS is sent when a proxy in front reports HTTPS.
+  API responses block all content; the API docs page allows only its own
+  scripts. nginx no longer shows its version.
+- **IPv6 rate limiting.** Clients are counted per /56 block (express-rate-limit
+  8); before, someone with IPv6 could rotate addresses for unlimited login
+  attempts.
+- **The backend port (3001) listens on localhost only.** A client reaching it
+  directly could name its own address in `X-Forwarded-For` and get fresh
+  login attempts. The app and the API stay on port 8080
+  (`http://<server>:8080/api`); `BACKEND_BIND=0.0.0.0` in `.env` publishes
+  3001 on the network again.
+- **Rate limits survive restarts.** Login, second-step and tool-search
+  counts are stored in PostgreSQL (migration `20261104000002`), so a restart
+  no longer resets them, and multiple backend instances share them.
+
+### 🔧 Changed
+
+- Manual (non-Docker) setups need Node.js 22 or newer; 26 is recommended.
+- `node-fetch` removed; the backend uses Node's built-in `fetch`.
+- Rate-limit responses use the current standard `RateLimit` headers.
+
+### 📝 Docs
+
+- SECURITY.md and USER_MANAGEMENT.md listed a "5 password changes per hour"
+  limit that never existed; password changes fall under the general API
+  limit and need the current password.
+
 ## [2.26.0] - 2026-11-04
 
 Two-step sign-in and API tokens, requested by @hunterghoul1 (#90).

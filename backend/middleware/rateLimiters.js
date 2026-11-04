@@ -1,9 +1,19 @@
-// Rate limiting middleware using express-rate-limit.
-// NOTE: This uses the default in-memory store, which is per-process.
-// For multi-instance deployments, replace the `store` option with a Redis or
-// PostgreSQL store (e.g. rate-limit-redis, rate-limit-postgresql) so all
-// instances share a consistent counter.
-const rateLimit = require('express-rate-limit');
+// Rate limiting middleware using express-rate-limit (v8).
+//
+// Login, the second sign-in step and integrated tool searches keep their
+// counters in Postgres (middleware/rateLimitStore.js): a restart doesn't
+// reset them, and several backend instances share one count. The general API
+// and geocoding limiters stay in process memory; they are about load, and a
+// database write per request would cost more than they save.
+//
+// IPv6 clients are counted per /56 block (express-rate-limit's default and
+// ipKeyGenerator): an ISP hands each customer a whole block, so counting
+// single addresses would let one person rotate through millions of them.
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { pool } = require('../config/database');
+const { PostgresRateLimitStore } = require('./rateLimitStore');
+
+const dbStore = (prefix) => new PostgresRateLimitStore({ pool, prefix });
 
 // Login limiter: 10 attempts per IP+username combo per 15 minutes by default.
 // Override via env: LOGIN_RATE_LIMIT_MAX (integer), LOGIN_RATE_LIMIT_WINDOW_MS (milliseconds).
@@ -13,13 +23,14 @@ const loginLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
   ? (req, res, next) => next()
   : rateLimit({
   windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 10,
-  standardHeaders: 'draft-7',
+  limit: parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) || 10,
+  standardHeaders: 'draft-8',
   legacyHeaders: false,
+  store: dbStore('login'),
   message: { error: 'Too many login attempts. Please try again later.' },
   keyGenerator: (req) => {
     const username = (req.body && req.body.username) || '';
-    return `${req.ip}|${username.toLowerCase()}`;
+    return `${ipKeyGenerator(req.ip)}|${String(username).toLowerCase()}`;
   },
 });
 
@@ -27,8 +38,8 @@ const loginLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
 // Prevents using the instance as an anonymous geocoding proxy.
 const geocodingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
-  standardHeaders: 'draft-7',
+  limit: 60,
+  standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: 'Geocoding rate limit exceeded. Please slow down.' },
 });
@@ -37,8 +48,8 @@ const geocodingLimiter = rateLimit({
 // Applied to all authenticated data-access routes to prevent scraping/DoS.
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 300,
-  standardHeaders: 'draft-7',
+  limit: 300,
+  standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: 'Too many requests. Please slow down.' },
 });
@@ -47,9 +58,10 @@ const apiLimiter = rateLimit({
 // often paid ones, so they get a tighter per-client budget than the API.
 const integrationLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
-  standardHeaders: 'draft-7',
+  limit: 30,
+  standardHeaders: 'draft-8',
   legacyHeaders: false,
+  store: dbStore('integration'),
   message: { error: 'Too many tool searches. Please wait a minute.' },
 });
 
@@ -60,11 +72,15 @@ const mfaLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
   ? (req, res, next) => next()
   : rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: 'draft-7',
+  limit: 10,
+  standardHeaders: 'draft-8',
   legacyHeaders: false,
+  store: dbStore('mfa'),
   message: { error: 'Too many verification attempts. Please try again later.' },
-  keyGenerator: (req) => `mfa|${req.session?.pendingMfa?.userId || req.ip}`,
+  keyGenerator: (req) => {
+    const userId = req.session?.pendingMfa?.userId;
+    return userId ? `user|${userId}` : `ip|${ipKeyGenerator(req.ip)}`;
+  },
 });
 
 module.exports = { loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter, mfaLimiter };

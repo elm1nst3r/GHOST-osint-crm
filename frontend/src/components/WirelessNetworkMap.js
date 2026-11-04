@@ -6,7 +6,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Lock, Unlock, Wifi, Bluetooth, Radio, Signal } from 'lucide-react';
-import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
+import { OSM_TILE_URL, OSM_ATTRIBUTION, OSM_TILE_REFERRER_POLICY } from '../utils/mapConstants';
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -205,7 +205,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
       >
         <TileLayer
           attribution={OSM_ATTRIBUTION}
-          url={OSM_TILE_URL}
+          url={OSM_TILE_URL} referrerPolicy={OSM_TILE_REFERRER_POLICY}
         />
 
         <FitBounds networks={networks} />

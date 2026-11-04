@@ -9,6 +9,7 @@
 // Set API_DOCS_ENABLED=false to remove it entirely.
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const router = express.Router();
 const { version } = require('../package.json');
 const { renderApiDocsPage, SWAGGER_UI_DIR, SWAGGER_UI_ASSETS } = require('../utils/apiDocsPage');
@@ -28,6 +29,24 @@ const page = renderApiDocsPage({
   interactive: true,
 });
 
+// The API's default policy (server.js) blocks everything, which would blank
+// this page. It gets its own: scripts only from this server plus the page's
+// one inline script, pinned by hash. Swagger UI sets inline style attributes
+// while rendering, so styles allow 'unsafe-inline' (styles can't run code).
+const inlineScriptHashes = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  .map((m) => `'sha256-${crypto.createHash('sha256').update(m[1]).digest('base64')}'`);
+const PAGE_CSP = [
+  "default-src 'none'",
+  `script-src 'self' ${inlineScriptHashes.join(' ')}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+].join('; ');
+
 // requireAuth answers with JSON, which is the wrong thing to show someone who
 // opened a bookmark in a fresh tab.
 const SIGNED_OUT_PAGE = `<!doctype html>
@@ -42,7 +61,7 @@ router.get('/', (req, res) => {
   if (!req.session || !req.session.userId) {
     return res.status(401).type('html').send(SIGNED_OUT_PAGE);
   }
-  res.type('html').send(page);
+  res.set('Content-Security-Policy', PAGE_CSP).type('html').send(page);
 });
 
 // Stock Swagger UI files, identical for everyone — no reason to gate them.

@@ -10,7 +10,7 @@ import {
 import { travelHistoryAPI } from '../utils/api';
 import { TRAVEL_PURPOSES, TRANSPORTATION_MODES } from '../utils/constants';
 import { optionLabel, translateOptions } from '../utils/optionLabels';
-import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
+import { OSM_TILE_URL, OSM_ATTRIBUTION, OSM_TILE_REFERRER_POLICY } from '../utils/mapConstants';
 
 const TravelPatternAnalysis = ({ personId, personName }) => {
   const { t } = useTranslation();
@@ -498,7 +498,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
-                url={OSM_TILE_URL}
+                url={OSM_TILE_URL} referrerPolicy={OSM_TILE_REFERRER_POLICY}
                 attribution={OSM_ATTRIBUTION}
               />
               

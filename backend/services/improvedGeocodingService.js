@@ -1,5 +1,4 @@
 // File: backend/services/improvedGeocodingService.js
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const {
   PROVIDER_IDS, DEFAULT_PROVIDER, isValidProvider, getProvider, apiKeySettingKey,
 } = require('./geocodingProviders');

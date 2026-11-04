@@ -60,11 +60,13 @@ replacing the images.
 
 ### Rate Limiting
 - ✅ Login: 10 attempts per 15 minutes per IP + username combination (tunable via `LOGIN_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE`)
-- ✅ Password change: 5 attempts per hour
 - ✅ Second sign-in step: 10 attempts per 15 minutes per account; five wrong codes in a row require the password again
+- ✅ Integrated OSINT tool searches: 30 per minute per client
 - ✅ Geocoding endpoints: 60 requests per minute per IP
-- ✅ General API limiter: 300 requests per minute per IP on all authenticated data routes
-- ⚠️ **Multi-instance note**: limiters use in-process memory. For multi-replica deployments configure a shared store (Redis or PostgreSQL) in `backend/middleware/rateLimiters.js`
+- ✅ General API limiter: 300 requests per minute per IP on all authenticated data routes (this also covers password changes, which need the current password)
+- ✅ IPv6 clients are counted per /56 block, so rotating through an ISP-assigned range doesn't buy more attempts (v2.27)
+- ✅ Login, second-step and tool-search counts are stored in PostgreSQL (v2.27): a restart doesn't reset them, and several backend instances share them. The general API and geocoding limiters stay in memory, per instance
+- ✅ The client address comes from `X-Forwarded-For`, trusting one proxy hop (nginx). The backend's own port (3001) is published on localhost only (v2.27), since a client reaching it directly could set that header itself. `BACKEND_BIND=0.0.0.0` publishes it anyway; then put it behind your proxy too
 
 ### Input Validation & Sanitisation
 - ✅ All `/:id` route parameters validated as positive integers via `validateIdParam` middleware
@@ -95,7 +97,16 @@ replacing the images.
 - ⚠️ No virus/malware scanning — consider adding ClamAV for high-security deployments
 - ⚠️ Uploaded files are stored on the local filesystem — use object storage (S3/GCS) for production scale
 
+### Security Headers (v2.27)
+- ✅ Pages (nginx): `frame-ancestors 'none'` and `X-Frame-Options: DENY` (no clickjacking), `object-src`/`base-uri`/`form-action` locked down, `nosniff`, `Cross-Origin-Opener-Policy: same-origin`, a Permissions-Policy that allows only passkeys
+- ✅ `Referrer-Policy: no-referrer`: following a link out of GHOST doesn't tell the destination where GHOST runs. Map tiles alone send the origin, as OpenStreetMap's tile policy asks
+- ✅ HSTS is sent only when a proxy in front reports HTTPS (`X-Forwarded-Proto: https`), without `includeSubDomains`
+- ✅ API (helmet): `default-src 'none'` for JSON and files; the API docs page allows only its own scripts, pinned by hash
+- ✅ nginx doesn't reveal its version
+- ⏳ A full script Content-Security-Policy follows the move from Create React App to Vite
+
 ### Docker & Infrastructure
+- ✅ Supported base images: Node.js 26 LTS (security fixes until April 2029) and nginx 1.30 stable (v2.27)
 - ✅ Backend container runs as non-root user (`nodejs:1001`)
 - ✅ PostgreSQL not exposed to host network by default in `docker-compose.yml`
 - ✅ Exposing port 5432 to the host takes a deliberate local `docker-compose.override.yml`, which is git-ignored and not shipped

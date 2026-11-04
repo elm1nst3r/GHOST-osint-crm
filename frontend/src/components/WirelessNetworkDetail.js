@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { wirelessNetworksAPI } from '../utils/api';
-import { OSM_TILE_URL, OSM_ATTRIBUTION } from '../utils/mapConstants';
+import { OSM_TILE_URL, OSM_ATTRIBUTION, OSM_TILE_REFERRER_POLICY } from '../utils/mapConstants';
 import NetworkInfoSection from './wireless/NetworkInfoSection';
 import NetworkAssociation from './wireless/NetworkAssociation';
 
@@ -117,7 +117,7 @@ const WirelessNetworkDetail = ({ network, onClose, onUpdate, onDelete, people = 
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('wirelessNetworkDetail.locationPreview')}</h3>
               <div className="h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                 <MapContainer center={[network.latitude, network.longitude]} zoom={16} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
-                  <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
+                  <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} referrerPolicy={OSM_TILE_REFERRER_POLICY} />
                   <Marker position={[network.latitude, network.longitude]}>
                     <Popup>
                       <div className="p-2">

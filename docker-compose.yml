@@ -42,7 +42,12 @@ services:
       dockerfile: Dockerfile
     container_name: osint-crm-backend
     ports:
-      - "3001:3001"
+      # Localhost only: the app (port 8080) reaches the backend over the
+      # Docker network, and nginx there sets the client address the rate
+      # limits use. Published on the network, port 3001 would let a client
+      # name its own address in X-Forwarded-For. Set BACKEND_BIND=0.0.0.0 in
+      # .env only if something on another machine must use it directly.
+      - "${BACKEND_BIND:-127.0.0.1}:3001:3001"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001

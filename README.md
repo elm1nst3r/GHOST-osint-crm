@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.26.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.27.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -265,7 +265,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.26.0
+GHOST_VERSION=2.27.0
 ```
 
 Without it, the containers track the latest release.
@@ -279,7 +279,7 @@ run an isolated or air-gapped instance.
 
 - **Docker & Docker Compose** (recommended)
 - **OR Manual Setup:**
-  - Node.js 20+ (22 recommended)
+  - Node.js 22+ (26 recommended)
   - PostgreSQL 15+
   - npm or yarn
 
@@ -430,12 +430,13 @@ GHOST-osint-crm/
 **Production hardening:**
 - ⚠️ **Use strong DB_PASSWORD** — weak passwords (`changeme`, `password`, etc.) are rejected at startup
 - 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
+- 🔒 **Security headers** — no framing, no-referrer (clicking out to a source doesn't reveal where GHOST runs), a passkeys-only permissions policy, and HSTS when served over HTTPS behind a proxy; see [SECURITY.md](SECURITY.md#security-headers-v227)
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
 - 🔒 **Two-step verification** — authenticator app or passkey after the password, with recovery codes; admins can require it for every user. Passkeys need HTTPS with a domain name (or localhost) at the address in `FRONTEND_URL` — see [USER_MANAGEMENT.md](USER_MANAGEMENT.md#two-step-verification)
 - 🔒 **Personal API tokens** — for the MCP server and scripts; shown once, stored hashed, revocable, and unable to change security settings
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
 - 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); membership changes are rank-checked (owner > manager > investigator), only admins appoint owners, and nobody but an admin can change their own membership — see [Roles & Permissions](#-roles--permissions)
-- 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
+- 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Login, second-step and tool-search counts are stored in PostgreSQL, so restarts don't reset them and multiple instances share them; IPv6 clients are counted per /56 block
 - 🔒 **Request body validation** — every POST/PUT route validates against a Zod schema; unknown fields are stripped and errors are returned per-field
 - 🔒 **Error detail suppression** — raw database error messages are not exposed to clients when `NODE_ENV=production`
 - 🔒 **API reference is for signed-in users only** — `/api/docs` shows a sign-in notice to anyone without a session, and requests made from it run with the caller's own role and project memberships. Set `API_DOCS_ENABLED=false` to remove the page
@@ -639,6 +640,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.27.0 (November 2026)
+- 🛡️ **Security headers, supported runtimes, sturdier rate limits** — Node.js 26 and nginx 1.30 images, no-framing / no-referrer / passkeys-only permissions headers, IPv6 clients counted per address block, rate limits that survive restarts, and the backend port published on localhost only
+
 ### Version 2.26.0 (November 2026)
 - 🔐 **Two-step verification** — authenticator app or passkey after the password, one-time recovery codes, admin reset, and an admin switch to require it for everyone; plus **personal API tokens** for scripts and the MCP server (MCP 1.3, `GHOST_API_TOKEN`) (issue #90)
 - ⬆️ **Node 22 and library updates** — Docker images move to Node 22, uploads to multer 2, and the backend and MCP server have no known vulnerable dependencies left
@@ -840,5 +844,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.26.0
+**Version:** 2.27.0
 **Last Updated:** November 4, 2026
