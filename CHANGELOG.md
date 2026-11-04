@@ -5,6 +5,50 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.25.0] - 2026-11-04
+
+Feedback from @hunterghoul1 on the integration builder (#96).
+
+### ✨ Added
+
+- **API key inside the address.** For services that take the key as part
+  of the URL (`/api/your-key/lookup`), choose **Key in the address path**
+  in the builder's Connecting step and put `{{api_key}}` where the key
+  goes. A test key found in a pasted example is replaced with
+  `{{api_key}}` automatically. The key stays in the encrypted key store:
+  it's never written into the integration file, and requests shown or
+  logged have it as `***`.
+- **Searches without input**, for account balance, service status and
+  similar. They run from the tool's **Search** button on the Tools page,
+  and **Test connection** uses one when the integration has no other test.
+- **Custom search types.** Name your own kind of identifier (e.g.
+  "Vehicle registration number") and choose which OSINT data types it
+  applies to; a person's entries of those types get a search button for
+  it.
+
+### 🐛 Fixed
+
+- In the builder, testing a second search ran the first one, and the
+  integration couldn't be saved, when search names had no Latin letters
+  (e.g. Russian). Search ids are now unique in any language; saved ones are
+  kept.
+
+### 🔒 Security
+
+- API keys are removed from search results too, in case a service echoes
+  the request back; before, a shared key could be seen by investigators.
+
+### Upgrading
+
+```
+git pull
+docker compose pull && docker compose up -d     # amd64
+docker compose up -d --build                    # ARM (images are amd64-only)
+```
+
+No database changes. Community integration files gain the `url` auth type
+and the `text` and `none` input kinds (see `integrations/README.md`).
+
 ## [2.24.0] - 2026-11-04
 
 ### ✨ Added
