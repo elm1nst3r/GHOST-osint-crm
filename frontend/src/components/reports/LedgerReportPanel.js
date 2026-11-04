@@ -31,8 +31,8 @@ const LedgerReportPanel = ({ ledger }) => {
       <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
         <table className="min-w-full text-xs">
           <thead className="bg-gray-50 dark:bg-gray-700/40">
-            <tr className="text-left">
-              <th className="p-2">{t('ledgerReportPanel.columnDate')}</th><th className="p-2">{t('ledgerReportPanel.columnType')}</th><th className="p-2">{t('ledgerReportPanel.columnRole')}</th><th className="p-2">{t('ledgerReportPanel.columnCounterparty')}</th><th className="p-2 text-right">{t('ledgerReportPanel.columnValue')}</th>
+            <tr className="text-start">
+              <th className="p-2">{t('ledgerReportPanel.columnDate')}</th><th className="p-2">{t('ledgerReportPanel.columnType')}</th><th className="p-2">{t('ledgerReportPanel.columnRole')}</th><th className="p-2">{t('ledgerReportPanel.columnCounterparty')}</th><th className="p-2 text-end">{t('ledgerReportPanel.columnValue')}</th>
             </tr>
           </thead>
           <tbody>
@@ -44,7 +44,7 @@ const LedgerReportPanel = ({ ledger }) => {
                 <td className="p-2 capitalize">{prettyType(e.transaction_type)}</td>
                 <td className="p-2 capitalize">{prettyType(e.role)}</td>
                 <td className="p-2">{e.counterparty?.label || '—'}</td>
-                <td className="p-2 text-right">{e.value != null ? formatMoney(e.value, e.currency) : '—'}</td>
+                <td className="p-2 text-end">{e.value != null ? formatMoney(e.value, e.currency) : '—'}</td>
               </tr>
             ))}
           </tbody>

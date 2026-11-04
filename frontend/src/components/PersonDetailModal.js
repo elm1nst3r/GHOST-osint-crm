@@ -1,6 +1,8 @@
 // File: frontend/src/components/PersonDetailModal.js
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { optionLabel } from '../utils/optionLabels';
+import { isolateList } from '../utils/bidi';
 import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Briefcase, Tag, Network, FileText, Trash2, Search } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
@@ -166,13 +168,13 @@ const PersonDetailModal = () => {
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
                   {getFullName(person)}
                   {person.date_of_birth && (
-                    <span className="text-gray-500 dark:text-slate-400 font-normal text-lg ml-2">
+                    <span className="text-gray-500 dark:text-slate-400 font-normal text-lg ms-2">
                       ({getAge(person.date_of_birth)} years old)
                     </span>
                   )}
                 </h2>
                 {person.aliases && person.aliases.length > 0 && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('peopleList.akaLabel', { aliases: isolateList(person.aliases) })}</p>
                 )}
                 {isOtherProject && (
                   <p className="text-xs mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
@@ -224,7 +226,7 @@ const PersonDetailModal = () => {
                 >
                   {t(`personDetailModal.tab_${tab}`)}
                   {tab === 'relationships' && connectedPeople.length > 0 && (
-                    <span className="ml-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400">
+                    <span className="ms-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400">
                       {connectedPeople.length}
                     </span>
                   )}
@@ -242,25 +244,25 @@ const PersonDetailModal = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <User className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
+                        <User className="w-5 h-5 me-2 text-gray-400 dark:text-slate-500" />
                         {t('personDetailModal.basicInformation')}
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
                         <div className="flex justify-between gap-3">
                           <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.firstNameLabel')}</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.first_name || t('personDetailModal.notAvailable')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-end break-words">{person.first_name || t('personDetailModal.notAvailable')}</span>
                         </div>
                         {/* Added with the field itself in #61 but missed here,
                             so a patronymic could be entered and never shown. */}
                         {person.patronymic && (
                           <div className="flex justify-between gap-3">
                             <span className="font-medium text-gray-600 dark:text-gray-400">{t('personForm.patronymic')}</span>
-                            <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.patronymic}</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100 text-end break-words">{person.patronymic}</span>
                           </div>
                         )}
                         <div className="flex justify-between gap-3">
                           <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.lastNameLabel')}</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-right break-words">{person.last_name || t('personDetailModal.notAvailable')}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 text-end break-words">{person.last_name || t('personDetailModal.notAvailable')}</span>
                         </div>
                         {person.date_of_birth && (
                           <div className="flex justify-between">
@@ -273,14 +275,14 @@ const PersonDetailModal = () => {
 
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <Tag className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
+                        <Tag className="w-5 h-5 me-2 text-gray-400 dark:text-slate-500" />
                         {t('personDetailModal.classification')}
                       </h3>
                       <div className="space-y-3 glass rounded-lg-lg p-4">
                         <div className="flex justify-between">
                           <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.categoryLabel')}</span>
                           <span className="px-3 py-1 bg-blue-600 text-white dark:bg-blue-500 rounded-lg text-sm font-medium">
-                            {person.category || t('personDetailModal.notAvailable')}
+                            {person.category ? optionLabel(t, 'person_category', person.category) : t('personDetailModal.notAvailable')}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -291,13 +293,13 @@ const PersonDetailModal = () => {
                             person.status === 'Closed' ? 'glass text-gray-800 dark:text-slate-200' :
                             'bg-blue-600 text-white dark:bg-blue-500'
                           }`}>
-                            {person.status || t('personDetailModal.notAvailable')}
+                            {person.status ? optionLabel(t, 'person_status', person.status) : t('personDetailModal.notAvailable')}
                           </span>
                         </div>
                         {person.crm_status && (
                           <div className="flex justify-between">
                             <span className="font-medium text-gray-600 dark:text-gray-400">{t('personDetailModal.crmStatusLabel')}</span>
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{person.crm_status}</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">{optionLabel(t, 'crm_status', person.crm_status)}</span>
                           </div>
                         )}
                       </div>
@@ -309,7 +311,7 @@ const PersonDetailModal = () => {
                     {person.case_name && (
                       <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                          <Briefcase className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
+                          <Briefcase className="w-5 h-5 me-2 text-gray-400 dark:text-slate-500" />
                           {t('personDetailModal.caseInformation')}
                         </h3>
                         <div className="glass rounded-lg-lg p-4">
@@ -323,7 +325,7 @@ const PersonDetailModal = () => {
 
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
-                        <Network className="w-5 h-5 mr-2 text-gray-400 dark:text-slate-500" />
+                        <Network className="w-5 h-5 me-2 text-gray-400 dark:text-slate-500" />
                         {t('personDetailModal.connectionSummary')}
                       </h3>
                       <div className="glass rounded-lg-lg p-4">
@@ -349,7 +351,7 @@ const PersonDetailModal = () => {
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">{t('propertyDetailModal.notesLabel')}</h3>
                     <div className="glass rounded-lg-lg p-4">
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{person.notes}</p>
+                      <p dir="auto" className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{person.notes}</p>
                     </div>
                   </div>
                 )}
@@ -372,12 +374,12 @@ const PersonDetailModal = () => {
                             {getOsintIcon(osint.type)}
                           </div>
                           <div className="flex-1 text-gray-900 dark:text-gray-100">
-                            <span className="font-medium">{osint.type}:</span> {osint.value}
+                            <span className="font-medium">{optionLabel(t, 'osint_data_type', osint.type)}:</span> <bdi>{osint.value}</bdi>
                             {osint.notes && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{osint.notes}</p>}
                             {osint.source && (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {t('tools.provenance', { tool: osint.source.tool_name || osint.source.integration_id, date: (osint.source.retrieved_at || '').slice(0, 10) })}
-                                {osint.verified === false && <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
+                                {osint.verified === false && <span className="ms-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
                               </p>
                             )}
                           </div>
@@ -448,7 +450,7 @@ const PersonDetailModal = () => {
                             </div>
                             <button
                               onClick={() => handleDeleteLocation(index)}
-                              className="ml-3 p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150 flex-shrink-0"
+                              className="ms-3 p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-150 flex-shrink-0"
                               title={t('personDetailModal.removeLocationTitle')}
                             >
                               <Trash2 className="w-4 h-4" />

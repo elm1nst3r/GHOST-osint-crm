@@ -4,6 +4,8 @@ import { Users, MapPin, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 const MapStats = ({ peopleCount, markersCount, geocodingStats, missingCoordinates, loading, hasMore, totalPages, currentPage, onLoadMore }) => {
   const { t } = useTranslation();
+  // Physical left/right, not start/end: positioned around Leaflet's own
+  // controls, which don't mirror in RTL.
   return (
     <div className="absolute top-4 left-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded px-4 py-3 z-10">
       <div className="space-y-2">

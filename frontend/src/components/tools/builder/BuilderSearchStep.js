@@ -279,7 +279,7 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
                       {item.title && <div className="font-medium text-gray-900 dark:text-gray-100 break-all">{item.title}</div>}
                       {item.fields.map((f) => (
                         <div key={f.label} className="break-all"><span className="text-gray-500">{f.label}:</span> {f.values.join(', ')}
-                          {f.osintType && <span className="ml-1 text-[10px] px-1 rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{t('builder.addable', { type: f.osintType })}</span>}
+                          {f.osintType && <span className="ms-1 text-[10px] px-1 rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{t('builder.addable', { type: f.osintType })}</span>}
                         </div>
                       ))}
                     </div>

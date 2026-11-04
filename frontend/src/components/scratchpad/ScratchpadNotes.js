@@ -93,7 +93,7 @@ export const ScratchpadEntry = ({ entry, onUpdate, onDelete, theme, fontClass })
           {entry.source_label && <> · {entry.source_label}</>}
         </span>
         {!editing && (
-          <div className="ml-auto flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
+          <div className="ms-auto flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
             <button type="button" onClick={handleCopy} className={iconBtn} title={t('scratchpad.copyNote')} aria-label={t('scratchpad.copyNote')}>
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
@@ -128,6 +128,7 @@ export const ScratchpadEntry = ({ entry, onUpdate, onDelete, theme, fontClass })
         </div>
       ) : (
         <div
+          dir="auto"
           className={`scratchpad-md break-words ${fontClass}`}
           onClick={handleClick}
           onDoubleClick={(e) => { if (!e.target.closest('a, input')) startEdit(); }}

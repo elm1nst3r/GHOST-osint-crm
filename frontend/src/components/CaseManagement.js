@@ -227,7 +227,7 @@ const CaseManagement = () => {
           onClick={() => setShowNewCaseForm(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           {t('caseManagement.newCase')}
         </button>
       </div>
@@ -235,13 +235,13 @@ const CaseManagement = () => {
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
           <input
             type="text"
             placeholder={t('caseManagement.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full ps-10 pe-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -319,7 +319,7 @@ const CaseManagement = () => {
                     {expandedCases[caseItem.id] ? (
                       <ChevronDown className="w-5 h-5" />
                     ) : (
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="rtl:-scale-x-100 w-5 h-5" />
                     )}
                   </button>
                   <Folder className="w-5 h-5 text-blue-600" />
@@ -478,14 +478,14 @@ const CaseManagement = () => {
                         onClick={() => setShowAddPeopleModal(caseItem.id)}
                         className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
                       >
-                        <UserPlus className="w-4 h-4 mr-1" />
+                        <UserPlus className="w-4 h-4 me-1" />
                         {t('caseManagement.addExisting')}
                       </button>
                       <button
                         onClick={() => setShowQuickAdd(caseItem.id)}
                         className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
                       >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="w-4 h-4 me-1" />
                         {t('caseManagement.quickAdd')}
                       </button>
                     </div>
@@ -538,7 +538,7 @@ const CaseManagement = () => {
                             <p className="font-medium">
                               {getFullName(person)}
                               {person.date_of_birth && (
-                                <span className="text-gray-500 dark:text-slate-400 ml-2">
+                                <span className="text-gray-500 dark:text-slate-400 ms-2">
                                   ({getAge(person.date_of_birth)})
                                 </span>
                               )}

@@ -281,7 +281,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
             <div className="text-sm text-blue-800 space-y-2">
               <p><strong>{t('bulkRelationshipTool.interactiveModeLabel')}</strong> {t('bulkRelationshipTool.interactiveModeHelp')}</p>
               <p><strong>{t('bulkRelationshipTool.csvModeLabel')}</strong> {t('bulkRelationshipTool.csvModeHelp')}</p>
-              <ul className="list-disc list-inside ml-4 text-xs space-y-1">
+              <ul className="list-disc list-inside ms-4 text-xs space-y-1">
                 <li>{t('bulkRelationshipTool.csvColumnsExample')}</li>
                 <li>{t('bulkRelationshipTool.csvRowExample')}</li>
               </ul>

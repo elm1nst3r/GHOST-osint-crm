@@ -9,7 +9,7 @@ import { formatDate, formatMoney, partyText, subjectText, prettyType, typeBadgeC
 const Field = ({ label, children }) => (
   <div className="flex justify-between gap-4 py-1.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
     <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-    <span className="text-sm text-gray-900 dark:text-gray-100 text-right">{children}</span>
+    <span className="text-sm text-gray-900 dark:text-gray-100 text-end">{children}</span>
   </div>
 );
 
@@ -43,23 +43,23 @@ const TransactionDetailModal = ({ transaction: initial, onClose }) => {
         <div className="overflow-y-auto p-5 space-y-4">
           <div className="flex items-center justify-center text-base text-gray-900 dark:text-gray-100 py-2">
             <span>{partyText(t.resolved_from)}</span>
-            <ArrowRight className="w-4 h-4 mx-3 text-gray-400" />
+            <ArrowRight className="rtl:-scale-x-100 w-4 h-4 mx-3 text-gray-400" />
             <span className="font-semibold">{partyText(t.resolved_to)}</span>
           </div>
           <div>
-            <Field label={translate('transactionDetailModal.dateLabel')}><span className="inline-flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" />{formatDate(t.occurred_on)}</span></Field>
+            <Field label={translate('transactionDetailModal.dateLabel')}><span className="inline-flex items-center"><Calendar className="w-3.5 h-3.5 me-1 text-gray-400" />{formatDate(t.occurred_on)}</span></Field>
             <Field label={translate('transactionTable.columnValue')}>{formatMoney(t.value, t.currency)}</Field>
             <Field label={translate('transactionTable.columnSubject')}>{subjectText(t.resolved_subject)}{t.resolved_subject?.type && t.resolved_subject.type !== 'item' ? ` (${t.resolved_subject.type})` : ''}</Field>
             {t.item_category && <Field label={translate('transactionDetailModal.itemCategoryLabel')}>{prettyType(t.item_category)}</Field>}
             <Field label={translate('transactionDetailModal.locationLabel')}>
               {loc && loc.type !== 'none' ? (
-                <span className="inline-flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />{loc.label || prettyType(loc.type)}</span>
+                <span className="inline-flex items-center"><MapPin className="w-3.5 h-3.5 me-1 text-gray-400" />{loc.label || prettyType(loc.type)}</span>
               ) : '—'}
             </Field>
           </div>
           {t.notes && (
             <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><FileText className="w-3 h-3 mr-1" />{translate('propertyDetailModal.notesLabel')}</div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center"><FileText className="w-3 h-3 me-1" />{translate('propertyDetailModal.notesLabel')}</div>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{t.notes}</p>
             </div>
           )}

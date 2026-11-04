@@ -105,7 +105,7 @@ body {
   }
   /* Sidebar navigation item — padding is density-aware */
   .nav-item {
-    @apply w-full text-left px-3 py-2.5 rounded-[var(--radius-control)] flex items-center gap-3
+    @apply w-full text-start px-3 py-2.5 rounded-[var(--radius-control)] flex items-center gap-3
       text-sm font-medium
       transition-[background-color,color] duration-150 active:scale-[0.97]
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50;
@@ -274,8 +274,8 @@ input, select, textarea {
 .docx-preview h2 { font-size: 1.3rem; font-weight: 700; margin: 1.1em 0 0.5em; }
 .docx-preview h3, .docx-preview h4 { font-size: 1.1rem; font-weight: 600; margin: 1em 0 0.4em; }
 .docx-preview p { margin: 0 0 0.8em; }
-.docx-preview ul { list-style: disc; padding-left: 1.6em; margin: 0 0 0.8em; }
-.docx-preview ol { list-style: decimal; padding-left: 1.6em; margin: 0 0 0.8em; }
+.docx-preview ul { list-style: disc; padding-inline-start: 1.6em; margin: 0 0 0.8em; }
+.docx-preview ol { list-style: decimal; padding-inline-start: 1.6em; margin: 0 0 0.8em; }
 .docx-preview table { border-collapse: collapse; margin: 0 0 1em; max-width: 100%; }
 .docx-preview td, .docx-preview th { border: 1px solid #d1d5db; padding: 0.3em 0.6em; vertical-align: top; }
 .docx-preview img { max-width: 100%; height: auto; }
@@ -302,12 +302,12 @@ input, select, textarea {
 .scratchpad-md h1 { font-size: 1.25em; font-weight: 700; }
 .scratchpad-md h2 { font-size: 1.12em; font-weight: 700; }
 .scratchpad-md h3, .scratchpad-md h4, .scratchpad-md h5, .scratchpad-md h6 { font-weight: 600; }
-.scratchpad-md ul { list-style: disc; padding-left: 1.25em; }
-.scratchpad-md ol { list-style: decimal; padding-left: 1.4em; }
+.scratchpad-md ul { list-style: disc; padding-inline-start: 1.25em; }
+.scratchpad-md ol { list-style: decimal; padding-inline-start: 1.4em; }
 .scratchpad-md li > ul, .scratchpad-md li > ol { margin-top: 0.15em; }
-.scratchpad-md li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.15em; }
+.scratchpad-md li:has(> input[type="checkbox"]) { list-style: none; margin-inline-start: -1.15em; }
 .scratchpad-md input[type="checkbox"] {
-  margin-right: 0.35em;
+  margin-inline-end: 0.35em;
   vertical-align: -0.1em;
   cursor: pointer;
   accent-color: rgb(var(--accent));
@@ -330,7 +330,7 @@ input, select, textarea {
 }
 .dark .scratchpad-md pre { background: rgb(255 255 255 / 0.08); }
 .scratchpad-md pre code { padding: 0; background: none; }
-.scratchpad-md blockquote { border-left: 3px solid rgb(148 163 184); padding-left: 0.6em; opacity: 0.85; }
+.scratchpad-md blockquote { border-inline-start: 3px solid rgb(148 163 184); padding-inline-start: 0.6em; opacity: 0.85; }
 .scratchpad-md hr { border-color: rgb(148 163 184 / 0.4); }
 .scratchpad-md table { border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
 .scratchpad-md th, .scratchpad-md td { border: 1px solid rgb(148 163 184 / 0.5); padding: 0.15em 0.45em; }
@@ -346,3 +346,68 @@ input, select, textarea {
 
 @keyframes scratchpad-undo { from { width: 100%; } to { width: 0%; } }
 .scratchpad-undo-bar { animation-name: scratchpad-undo; animation-timing-function: linear; animation-fill-mode: forwards; }
+
+/* ── Right-to-left languages (issue #99) ──────────────────────────────────
+   i18n.js sets <html dir="rtl"> for Persian, Arabic and other RTL languages.
+   Layout utilities are logical (ms-/pe-/start-/text-start…), which compute to
+   the same CSS as their physical twins in LTR and mirror in RTL; rtl.test.js
+   keeps physical ones from creeping back. These rules cover what Tailwind v3
+   still does physically. :dir() is used rather than [dir="rtl"] so an element
+   marked dir="ltr" inside an RTL page is treated as LTR. */
+
+/* space-x-* puts its gap on the physical left of every child but the first.
+   In RTL the first child sits on the right, so the gap lands on the wrong
+   side; Tailwind's own fix is the -reverse flag. Specificity (0,4,0) beats the
+   utility's (0,3,0), including its responsive variants. */
+[class*="space-x-"]:dir(rtl) > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Gradients run from the reading start. */
+.bg-gradient-to-r:dir(rtl) {
+  background-image: linear-gradient(to left, var(--tw-gradient-stops));
+}
+
+/* Inline code and key names read left-to-right in every language. */
+:is(code, kbd, samp, .scratchpad-kbd):dir(rtl) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Preformatted blocks (JSON, API responses, text-file previews) and mono
+   identifiers (wallet addresses, hashes, BSSIDs, coordinates): each line takes
+   its direction from its own content, so JSON and a hash read LTR while a line
+   of Persian in a previewed text file reads RTL. Lines with no letters at all
+   (coordinates, digits, brackets) come out LTR. */
+:is(pre, .font-mono):dir(rtl) {
+  unicode-bidi: plaintext;
+}
+/* A mono value keeps the column's alignment instead of jumping to the left. */
+.font-mono:not(input, textarea, pre):dir(rtl) {
+  text-align: match-parent;
+}
+
+/* OSINT data comes in every script. Let a text field take its direction from
+   what is typed — a Latin email in a Persian form reads LTR, a Persian name
+   RTL, a phone number (no letters) LTR — instead of forcing the page's
+   direction on it. Empty fields follow the page. */
+:is(input, textarea):dir(rtl) {
+  unicode-bidi: plaintext;
+}
+
+/* The scratchpad is placed by physical screen coordinates and resized with the
+   browser's own corner grip. In RTL the grip moves to the bottom-left but still
+   resizes from the right edge, so the panel box stays LTR (grip bottom-right,
+   as in English) and everything inside it goes back to RTL. */
+.scratchpad-panel.resize:dir(rtl) {
+  direction: ltr;
+}
+.scratchpad-panel.resize:dir(rtl) > * {
+  direction: rtl;
+}
+
+/* Arabic script is joined: letter-spacing pulls the letters apart, and the
+   negative tracking used for Latin headings makes them collide. */
+:is(:lang(ar), :lang(fa), :lang(ur), :lang(ps), :lang(ckb), :lang(sd), :lang(ug)) * {
+  letter-spacing: normal;
+}

@@ -459,6 +459,13 @@ request. If you add or change an API route, add it to
 `backend/utils/openapiSpec.js` as well — the tests fail when a route, its
 query parameters or its admin requirement are missing from the spec.
 
+The frontend tests (`cd frontend && npm test`) run too. The interface supports
+right-to-left languages, so UI code uses logical direction classes —
+`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`,
+`border-s`/`border-e` — instead of `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`,
+`text-left`/`text-right`; they look identical in English and mirror in Persian
+or Arabic. The tests fail on a physical one.
+
 Translations are managed on [Crowdin](https://crowdin.com/project/ghost-osint-crm),
 not through pull requests.
 

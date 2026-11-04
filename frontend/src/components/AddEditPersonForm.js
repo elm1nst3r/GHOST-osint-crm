@@ -247,9 +247,9 @@ const AddEditPersonForm = () => {
                   className={inputClass}
                 />
                 {formData.caseName && !caseExists && (
-                  <div className="absolute right-2 top-2">
+                  <div className="absolute end-2 top-2">
                     <span className="text-xs text-orange-600 flex items-center">
-                      <AlertCircle className="w-3 h-3 mr-1" />{t('personForm.newCaseWillBeCreated')}
+                      <AlertCircle className="w-3 h-3 me-1" />{t('personForm.newCaseWillBeCreated')}
                     </span>
                   </div>
                 )}
@@ -297,7 +297,7 @@ const AddEditPersonForm = () => {
               {formData.aliases.map((alias, i) => (
                 <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-slate-700">
                   {alias}
-                  <button type="button" onClick={() => set('aliases', formData.aliases.filter((_, idx) => idx !== i))} className="ml-2 text-gray-500 dark:text-slate-400 hover:text-red-500">
+                  <button type="button" onClick={() => set('aliases', formData.aliases.filter((_, idx) => idx !== i))} className="ms-2 text-gray-500 dark:text-slate-400 hover:text-red-500">
                     <X className="w-3 h-3" />
                   </button>
                 </span>

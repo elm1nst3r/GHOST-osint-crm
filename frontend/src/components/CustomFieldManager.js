@@ -96,7 +96,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
           onClick={() => setShowAddForm(true)}
           className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center"
         >
-          <Plus className="w-4 h-4 mr-1" />
+          <Plus className="w-4 h-4 me-1" />
           {t('customFieldManager.addField')}
         </button>
       </div>
@@ -172,7 +172,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                       <button
                         type="button"
                         onClick={() => removeOption(option)}
-                        className="ml-1 text-gray-500 dark:text-slate-400 hover:text-red-500"
+                        className="ms-1 text-gray-500 dark:text-slate-400 hover:text-red-500"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -190,7 +190,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 className="h-4 w-4 text-blue-600 rounded"
               />
-              <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              <label htmlFor="is_active" className="ms-2 text-sm text-gray-700 dark:text-gray-300">
                 {t('customFieldManager.activeCheckboxLabel')}
               </label>
             </div>

@@ -11,9 +11,10 @@ jest.mock('docx', () => ({
 import i18n from 'i18next';
 import en from '../locales/en/translation.json';
 import ru from '../locales/ru/translation.json';
+import { Paragraph } from 'docx';
 import {
   getFullName, formatDate, formatDateTime, generateMarkdown, subjectsOf,
-  REPORT_TYPE_PRESETS, REPORT_SECTIONS, matchesPreset, resolveOptions,
+  REPORT_TYPE_PRESETS, REPORT_SECTIONS, matchesPreset, resolveOptions, p,
 } from './reportGenerators';
 
 // Report output is generated through i18n now (issue #63), so the suite runs
@@ -361,5 +362,23 @@ describe('report type presets', () => {
 
   test('an unknown report type is never reported as customised', () => {
     expect(matchesPreset({ reportType: 'something-else' })).toBe(true);
+  });
+});
+
+// ── Word output in right-to-left languages (issue #99) ─────────────────────
+
+describe('Word paragraphs follow the report direction', () => {
+  beforeEach(() => Paragraph.mockClear());
+
+  test('LTR reports leave paragraphs as they were', () => {
+    p('Hello');
+    expect(Paragraph.mock.calls[0][0]).toEqual({ text: 'Hello' });
+  });
+
+  test('RTL reports mark every paragraph bidirectional', async () => {
+    i18n.addResourceBundle('fa', 'translation', { report: {} });
+    await i18n.changeLanguage('fa');
+    p('گزارش', 'H1', 'center');
+    expect(Paragraph.mock.calls[0][0]).toEqual({ text: 'گزارش', heading: 'H1', alignment: 'center', bidirectional: true });
   });
 });

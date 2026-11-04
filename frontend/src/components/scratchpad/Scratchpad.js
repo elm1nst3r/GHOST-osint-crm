@@ -19,14 +19,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatPersonName } from '../../utils/personName';
 import { ScratchpadEntry, ScratchpadComposer, copyText } from './ScratchpadNotes';
 import ScratchpadTodos from './ScratchpadTodos';
-import ScratchpadSettingsView from './ScratchpadSettingsView';
+import ScratchpadSettingsView, { screenCorner } from './ScratchpadSettingsView';
 import { themeFor, FONT_SIZE_CLASS } from './scratchpadTheme';
 
 const MARGIN = 16;
 const DEFAULT_SIZE = { w: 360, h: 480 };
 const MIN_SIZE = { w: 280, h: 240 };
 const GEOMETRY_KEY = 'ghost_scratchpad_geometry';
-// Admins have the system-health widget pinned bottom-right on desktop.
+// Admins have the system-health widget pinned to the bottom end corner on
+// desktop (bottom-right; bottom-left in RTL), i.e. the default corner.
 const HEALTH_WIDGET_OFFSET = 56;
 
 const MOBILE_QUERY = '(max-width: 767px)';
@@ -154,7 +155,7 @@ const SelectionCapture = ({ panelRef, onCapture }) => {
 // ── Window (mounted once settings have loaded) ──────────────────────────────
 
 const ScratchpadWindow = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
   const {
     entries, settings, error,
@@ -176,6 +177,8 @@ const ScratchpadWindow = () => {
   const composerRef = useRef(null);
   const prevCount = useRef(entries.length);
 
+  const dir = i18n.dir(i18n.resolvedLanguage);
+  const corner = screenCorner(settings.corner, dir);
   const bottomOffset = !isMobile && currentUser?.role === 'admin' && settings.corner === 'bottom-right'
     ? HEALTH_WIDGET_OFFSET : 0;
 
@@ -183,7 +186,7 @@ const ScratchpadWindow = () => {
   const [geo, setGeo] = useState(() => {
     const saved = readGeometry();
     const { w, h } = clampSize(saved?.w ?? DEFAULT_SIZE.w, saved?.h ?? DEFAULT_SIZE.h);
-    const pos = saved?.custom ? clampPos(saved.x, saved.y, w, h) : cornerPos(settings.corner, w, h, bottomOffset);
+    const pos = saved?.custom ? clampPos(saved.x, saved.y, w, h) : cornerPos(corner, w, h, bottomOffset);
     return { ...pos, w, h, custom: !!saved?.custom };
   });
   const geoRef = useRef(geo);
@@ -192,23 +195,23 @@ const ScratchpadWindow = () => {
   const placeAtCorner = useCallback((size) => {
     setGeo((g) => {
       const { w, h } = clampSize(size?.w ?? g.w, size?.h ?? g.h);
-      const next = { ...cornerPos(settings.corner, w, h, bottomOffset), w, h, custom: false };
+      const next = { ...cornerPos(corner, w, h, bottomOffset), w, h, custom: false };
       saveGeometry(next);
       return next;
     });
-  }, [settings.corner, bottomOffset]);
+  }, [corner, bottomOffset]);
 
   // Corner setting changed: snap to it. Otherwise follow the corner only while
   // the user hasn't dragged it somewhere of their own.
-  const lastCorner = useRef(settings.corner);
+  const lastCorner = useRef(corner);
   useEffect(() => {
-    if (lastCorner.current !== settings.corner) {
-      lastCorner.current = settings.corner;
+    if (lastCorner.current !== corner) {
+      lastCorner.current = corner;
       placeAtCorner();
     } else if (!geoRef.current.custom) {
       placeAtCorner();
     }
-  }, [settings.corner, bottomOffset, placeAtCorner]);
+  }, [corner, bottomOffset, placeAtCorner]);
 
   // Keep it on screen when the window changes size.
   useEffect(() => {
@@ -325,10 +328,10 @@ const ScratchpadWindow = () => {
 
   // ── launcher ──────────────────────────────────────────────────────────────
   const launcherPos = isMobile
-    ? { right: MARGIN, bottom: MARGIN }
+    ? { [dir === 'rtl' ? 'left' : 'right']: MARGIN, bottom: MARGIN }
     : {
-        [settings.corner.endsWith('right') ? 'right' : 'left']: MARGIN,
-        [settings.corner.startsWith('bottom') ? 'bottom' : 'top']: MARGIN + (settings.corner.startsWith('bottom') ? bottomOffset : 0),
+        [corner.endsWith('right') ? 'right' : 'left']: MARGIN,
+        [corner.startsWith('bottom') ? 'bottom' : 'top']: MARGIN + (corner.startsWith('bottom') ? bottomOffset : 0),
       };
 
   const panelStyle = isMobile
@@ -344,7 +347,7 @@ const ScratchpadWindow = () => {
           type="button"
           onClick={() => setOpen(true)}
           style={launcherPos}
-          className={`fixed z-[60] inline-flex items-center gap-2 rounded-full pl-3 pr-3.5 py-2 shadow-glass-xl border text-sm font-medium
+          className={`fixed z-[60] inline-flex items-center gap-2 rounded-full ps-3 pe-3.5 py-2 shadow-glass-xl border text-sm font-medium
             transition-transform hover:scale-105 ${theme.panel} ${pulse ? 'scale-110 ring-2 ring-accent-primary' : ''}`}
           title={`${t('scratchpad.open')} (Alt+Shift+S)`}
           aria-label={t('scratchpad.open')}
@@ -369,19 +372,19 @@ const ScratchpadWindow = () => {
           {/* Header — drag handle */}
           <div
             onPointerDown={onHeaderPointerDown}
-            className={`flex items-center gap-1 pl-3 pr-1.5 py-1.5 border-b select-none ${theme.header} ${isMobile ? '' : 'cursor-move'}`}
+            className={`flex items-center gap-1 ps-3 pe-1.5 py-1.5 border-b select-none ${theme.header} ${isMobile ? '' : 'cursor-move'}`}
           >
             {view === 'settings' ? (
               <button type="button" onClick={() => setView('notes')} className={headerBtn} aria-label={t('scratchpad.backToNotes')} title={t('scratchpad.backToNotes')}>
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="rtl:-scale-x-100 w-4 h-4" />
               </button>
             ) : (
               <NotebookPen className={`w-4 h-4 flex-shrink-0 ${theme.icon}`} />
             )}
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate ml-1">
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate ms-1">
               {view === 'settings' ? t('scratchpad.settings.title') : t('scratchpad.title')}
             </span>
-            <div className="ml-auto flex items-center gap-0.5">
+            <div className="ms-auto flex items-center gap-0.5">
               {view === 'notes' && (
                 <>
                   <button type="button" onClick={handleCopyAll} disabled={!entries.length} className={headerBtn} title={t('scratchpad.copyAll')} aria-label={t('scratchpad.copyAll')}>
@@ -447,7 +450,7 @@ const ScratchpadWindow = () => {
                       </button>
                       <span
                         key={pendingDelete.ids.join(',')}
-                        className="absolute left-0 bottom-0 h-0.5 bg-accent-primary scratchpad-undo-bar"
+                        className="absolute start-0 bottom-0 h-0.5 bg-accent-primary scratchpad-undo-bar"
                         style={{ animationDuration: `${UNDO_MS}ms` }}
                       />
                     </div>

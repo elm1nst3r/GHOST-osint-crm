@@ -65,7 +65,7 @@ const ProjectGate = ({ children }) => {
               <button
                 key={p.id}
                 onClick={() => setActiveProjectId(p.id)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 {p.icon ? <span className="flex-shrink-0 leading-none">{p.icon}</span> : <FolderKanban className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                 <span className="truncate">{p.name}</span>

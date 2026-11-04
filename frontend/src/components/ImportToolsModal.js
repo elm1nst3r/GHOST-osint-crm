@@ -175,7 +175,7 @@ const ImportToolsModal = ({ onClose }) => {
                   {parsed.tools.length > 0 && (
                     <div className="border border-gray-200 dark:border-slate-700 rounded-md overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-slate-900 text-left">
+                        <thead className="bg-gray-50 dark:bg-slate-900 text-start">
                           <tr>
                             <th className="px-3 py-2 font-medium">{t('toolImport.colName')}</th>
                             <th className="px-3 py-2 font-medium">{t('toolImport.colLink')}</th>

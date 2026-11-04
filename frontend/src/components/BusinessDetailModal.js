@@ -55,7 +55,7 @@ const BusinessDetailModal = ({ business, onClose }) => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="p-3 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
-                      <div className="text-xs text-cyan-700 dark:text-cyan-400 flex items-center"><Users className="w-3 h-3 mr-1" />{t('businessDetailModal.distinctPeople')}</div>
+                      <div className="text-xs text-cyan-700 dark:text-cyan-400 flex items-center"><Users className="w-3 h-3 me-1" />{t('businessDetailModal.distinctPeople')}</div>
                       <div className="text-2xl font-bold text-cyan-700 dark:text-cyan-300">{venue.distinct_people}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
@@ -63,21 +63,21 @@ const BusinessDetailModal = ({ business, onClose }) => {
                       <div className="text-2xl font-bold text-gray-900 dark:text-white">{venue.event_count}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />{t('businessDetailModal.first')}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 me-1" />{t('businessDetailModal.first')}</div>
                       <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(venue.first_event)}</div>
                     </div>
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 mr-1" />{t('businessDetailModal.last')}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center"><Calendar className="w-3 h-3 me-1" />{t('businessDetailModal.last')}</div>
                       <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(venue.last_event)}</div>
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" />{t('businessDetailModal.associatedPeopleRanked')}</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><MapPin className="w-4 h-4 me-1 text-gray-400" />{t('businessDetailModal.associatedPeopleRanked')}</h4>
                     {venue.people && venue.people.length ? (
                       <div className="space-y-2">
                         {venue.people.map(p => (
                           <button key={p.id} onClick={() => { onClose(); setSelectedPersonForDetail({ id: p.id }); }}
-                            className="w-full flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-left">
+                            className="w-full flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-start">
                             <span className="text-gray-800 dark:text-gray-200">{p.label}</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400">{t('businessDetailModal.eventCount', { count: p.event_count })}</span>
                           </button>

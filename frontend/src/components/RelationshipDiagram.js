@@ -1,6 +1,7 @@
 // File: frontend/src/components/RelationshipDiagram.js
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { forwardArrow } from '../i18n';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -22,6 +23,8 @@ const DebugPanel = ({ people, nodes, edges, show }) => {
   const { t } = useTranslation();
   if (!show) return null;
 
+  // Physical left/right, not start/end: positioned around React Flow's
+  // controls and minimap, which don't mirror in RTL.
   return (
     <div className="absolute bottom-4 left-4 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-md max-h-96 overflow-auto">
       <h3 className="font-bold mb-2">{t('relationshipDiagram.debugInformation')}</h3>
@@ -572,6 +575,7 @@ const RelationshipDiagram = ({
   return (
     <div className="h-full w-full relative" style={{ minHeight: '400px' }}>
       {/* Toolbar */}
+      {/* Physical left/right, not start/end: positioned around React Flow's controls and minimap, which don't mirror in RTL. */}
       <div className="absolute top-4 left-4 z-10 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3 space-y-2">
         <div className="flex items-center space-x-2">
           <button
@@ -654,6 +658,7 @@ const RelationshipDiagram = ({
       </div>
 
       {/* Legend */}
+      {/* Physical left/right, not start/end: positioned around React Flow's controls and minimap, which don't mirror in RTL. */}
       <div className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-lg shadow-lg p-3">
         <h4 className="text-sm font-semibold mb-2">{t('relationshipDiagram.connectionTypesTitle')}</h4>
         <div className="space-y-1">
@@ -728,7 +733,7 @@ const RelationshipDiagram = ({
 
             <div className="mb-4">
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-                {t('relationshipDiagram.connectingLabel')} <span className="font-medium">{connectionModal.sourceName}</span> → <span className="font-medium">{connectionModal.targetName}</span>
+                {t('relationshipDiagram.connectingLabel')} <span className="font-medium">{connectionModal.sourceName}</span> {forwardArrow()} <span className="font-medium">{connectionModal.targetName}</span>
               </p>
             </div>
 

@@ -51,7 +51,7 @@ const UpdateBanner = () => {
             href={info.releaseUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 underline hover:no-underline"
+            className="ms-2 underline hover:no-underline"
           >
             {t('updateBanner.viewRelease')}
           </a>

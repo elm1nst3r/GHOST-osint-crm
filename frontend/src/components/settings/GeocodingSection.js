@@ -83,7 +83,7 @@ const GeocodingSection = () => {
     <>
       <div className="pt-6 border-t">
       <h3 className="text-lg font-semibold mb-1 flex items-center">
-        <MapPin className="w-5 h-5 mr-2" />
+        <MapPin className="w-5 h-5 me-2" />
         {t('settings.geocoding.title')}
       </h3>
       <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('settings.geocoding.description')}</p>
@@ -171,7 +171,7 @@ const GeocodingSection = () => {
           that must make no outbound connections. */}
       <div className="pt-6 mt-6 border-t">
         <h3 className="text-lg font-semibold mb-1 flex items-center">
-          <ArrowUpCircle className="w-5 h-5 mr-2" />
+          <ArrowUpCircle className="w-5 h-5 me-2" />
           {t('settings.updates.title')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('settings.updates.description')}</p>

@@ -286,21 +286,21 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               {t('toolForm.link')}
-              <span className="text-xs text-gray-500 dark:text-slate-400 ml-2">{t('toolForm.linkAutoHint')}</span>
+              <span className="text-xs text-gray-500 dark:text-slate-400 ms-2">{t('toolForm.linkAutoHint')}</span>
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={formData.link}
                 onChange={handleUrlChange}
-                className={`input-base pr-12 ${
+                className={`input-base pe-12 ${
                   isValidUrl === true ? 'border-green-400 focus:border-green-500 focus:ring-green-500/25' :
                   isValidUrl === false ? 'border-red-400 focus:border-red-500 focus:ring-red-500/25' :
                   ''
                 }`}
                 placeholder={t('toolForm.linkPlaceholder')}
               />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+              <div className="absolute inset-y-0 end-0 flex items-center pe-3">
                 {isValidUrl === true && (
                   <CheckCircle className="w-5 h-5 text-green-500" />
                 )}
@@ -312,7 +312,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                     href={formData.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-2 text-blue-500 hover:text-blue-700"
+                    className="ms-2 text-blue-500 hover:text-blue-700"
                     title={t('toolForm.testLink')}
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -323,9 +323,9 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
             {showUrlPreview && formData.link && (
               <div className="mt-3 p-3 glass rounded-[var(--radius-control)]">
                 <div className="flex items-center">
-                  <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
+                  <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 me-2" />
                   <span className="text-gray-600 dark:text-slate-400 font-medium">{t('toolForm.previewLabel')}</span>
-                  <span className={`ml-1 font-mono text-sm ${isValidUrl ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`ms-1 font-mono text-sm ${isValidUrl ? 'text-green-600' : 'text-red-600'}`}>
                     {urlPreview}
                   </span>
                 </div>
@@ -400,7 +400,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="ml-1.5 text-accent-primary/70 hover:text-accent-primary transition-colors duration-150"
+                    className="ms-1.5 text-accent-primary/70 hover:text-accent-primary transition-colors duration-150"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -434,7 +434,7 @@ const AddEditToolForm = ({ tool, onSave, onCancel }) => {
                 <span className="block text-xs text-slate-500">{isCentral ? t('tools.visibilityProjectsHelp') : t('tools.visibilityShareProjectsHelp')}</span></span>
             </label>
             {sharing.visibility === 'projects' && (
-              <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+              <div className="ms-6 grid grid-cols-1 md:grid-cols-2 gap-1 max-h-40 overflow-y-auto">
                 {projects.map((p) => (
                   <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <input

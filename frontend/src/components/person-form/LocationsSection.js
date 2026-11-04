@@ -29,7 +29,7 @@ const LocationsSection = ({ locations, locationTypes, onChange }) => {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        <MapPin className="w-4 h-4 inline mr-1" />{t('personForm.locations.label')}
+        <MapPin className="w-4 h-4 inline me-1" />{t('personForm.locations.label')}
       </label>
 
       <div className="space-y-3 mb-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-lg">
@@ -53,7 +53,7 @@ const LocationsSection = ({ locations, locationTypes, onChange }) => {
           {field('notes', t('personForm.notesOptionalPlaceholder'))}
         </div>
         <button type="button" onClick={add} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-          <Plus className="w-4 h-4 mr-2" />{t('personForm.locations.addLocation')}
+          <Plus className="w-4 h-4 me-2" />{t('personForm.locations.addLocation')}
         </button>
       </div>
 

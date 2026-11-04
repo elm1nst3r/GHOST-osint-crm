@@ -609,7 +609,7 @@ const RelationshipManager = ({
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600 dark:text-gray-400">{t('relationshipManager.loadingRelationships')}</span>
+        <span className="ms-2 text-gray-600 dark:text-gray-400">{t('relationshipManager.loadingRelationships')}</span>
       </div>
     );
   }
@@ -618,7 +618,7 @@ const RelationshipManager = ({
     return (
       <div className="flex items-center justify-center h-64">
         <AlertCircle className="w-8 h-8 text-red-500" />
-        <span className="ml-2 text-red-600">{t('relationshipManager.errorLabel', { message: error })}</span>
+        <span className="ms-2 text-red-600">{t('relationshipManager.errorLabel', { message: error })}</span>
       </div>
     );
   }
@@ -727,7 +727,7 @@ const RelationshipManager = ({
             <Filter className="w-4 h-4" />
             <span className="hidden sm:inline">{t('relationshipManager.filters')}</span>
             {activeFilterCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-blue-600 rounded-full text-xs font-medium">
+              <span className="ms-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-blue-600 rounded-full text-xs font-medium">
                 {activeFilterCount}
               </span>
             )}
@@ -798,12 +798,12 @@ const RelationshipManager = ({
             <div className="md:col-span-2 lg:col-span-1">
               <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{t('relationshipManager.searchLabel')}</label>
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-3 h-3" />
+                <Search className="absolute start-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-3 h-3" />
                 <input
                   type="text"
                   value={filters.searchTerm}
                   onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
-                  className="w-full pl-8 pr-2 py-1.5 border rounded text-sm"
+                  className="w-full ps-8 pe-2 py-1.5 border rounded text-sm"
                   placeholder={t('relationshipManager.searchPlaceholder')}
                 />
               </div>
@@ -949,7 +949,7 @@ const RelationshipManager = ({
                   {t('relationshipManager.searchFilterTag', { term: filters.searchTerm })}
                   <button
                     onClick={() => setFilters({ ...filters, searchTerm: '' })}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
+                    className="ms-1 text-blue-600 hover:text-blue-800"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -958,14 +958,14 @@ const RelationshipManager = ({
               
               {filters.selectedCases.map(caseName => (
                 <span key={caseName} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
-                  <Briefcase className="w-3 h-3 mr-1" />
+                  <Briefcase className="w-3 h-3 me-1" />
                   {caseName}
                   <button
                     onClick={() => setFilters({ 
                       ...filters, 
                       selectedCases: filters.selectedCases.filter(c => c !== caseName) 
                     })}
-                    className="ml-1 text-purple-600 hover:text-purple-800"
+                    className="ms-1 text-purple-600 hover:text-purple-800"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -974,14 +974,14 @@ const RelationshipManager = ({
               
               {filters.selectedCategories.map(category => (
                 <span key={category} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
-                  <Tag className="w-3 h-3 mr-1" />
+                  <Tag className="w-3 h-3 me-1" />
                   {category}
                   <button
                     onClick={() => setFilters({ 
                       ...filters, 
                       selectedCategories: filters.selectedCategories.filter(c => c !== category) 
                     })}
-                    className="ml-1 text-green-600 hover:text-green-800"
+                    className="ms-1 text-green-600 hover:text-green-800"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -999,7 +999,7 @@ const RelationshipManager = ({
                   })}
                   <button
                     onClick={() => setFilters({ ...filters, dateRange: 'all' })}
-                    className="ml-1 text-orange-600 hover:text-orange-800"
+                    className="ms-1 text-orange-600 hover:text-orange-800"
                   >
                     <X className="w-3 h-3" />
                   </button>

@@ -4,6 +4,8 @@ import { locationColors } from './mapUtils';
 
 const MapLegend = ({ typeColors = locationColors }) => {
   const { t } = useTranslation();
+  // Physical left/right, not start/end: positioned around Leaflet's own
+  // controls, which don't mirror in RTL.
   return (
     <div className="absolute bottom-4 right-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 shadow-lg rounded p-4 z-10 max-w-xs">
       <h4 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">{t('mapLegend.locationTypes')}</h4>

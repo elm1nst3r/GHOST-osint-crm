@@ -41,11 +41,11 @@ const SearchFilters = ({
   const getLocationTypes = () => byType('location_type');
 
   return (
-<div className="w-full md:w-96 md:border-r bg-gray-50 dark:bg-slate-900 overflow-y-auto flex-shrink-0 max-h-[50vh] md:max-h-none">
+<div className="w-full md:w-96 md:border-e bg-gray-50 dark:bg-slate-900 overflow-y-auto flex-shrink-0 max-h-[50vh] md:max-h-none">
   <div className="p-6 border-b bg-white dark:bg-slate-800">
     <div className="flex items-center justify-between">
       <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center">
-        <Search className="w-5 h-5 mr-2" />
+        <Search className="w-5 h-5 me-2" />
         {t('searchFilters.advancedSearch')}
       </h2>
       <button onClick={onClose} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
@@ -62,7 +62,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <Search className="w-4 h-4 mr-2" />
+          <Search className="w-4 h-4 me-2" />
           {t('searchFilters.basicSearch')}
         </span>
         {expandedSections.basic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -122,7 +122,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <Tag className="w-4 h-4 mr-2" />
+          <Tag className="w-4 h-4 me-2" />
           {t('searchFilters.categoriesAndStatus')}
         </span>
         {expandedSections.categories ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -256,7 +256,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <Calendar className="w-4 h-4 mr-2" />
+          <Calendar className="w-4 h-4 me-2" />
           {t('searchFilters.dateFiltersTitle')}
         </span>
         {expandedSections.dates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -311,7 +311,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <MapPin className="w-4 h-4 mr-2" />
+          <MapPin className="w-4 h-4 me-2" />
           {t('searchFilters.locationFiltersTitle')}
         </span>
         {expandedSections.locations ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -356,7 +356,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <Network className="w-4 h-4 mr-2" />
+          <Network className="w-4 h-4 me-2" />
           {t('searchFilters.connectionFiltersTitle')}
         </span>
         {expandedSections.connections ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -425,7 +425,7 @@ const SearchFilters = ({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
         <span className="font-medium flex items-center">
-          <Database className="w-4 h-4 mr-2" />
+          <Database className="w-4 h-4 me-2" />
           {t('personDetailModal.osintData')}
         </span>
         {expandedSections.osint ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -484,7 +484,7 @@ const SearchFilters = ({
           className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
         >
           <span className="font-medium flex items-center">
-            <Tag className="w-4 h-4 mr-2" />
+            <Tag className="w-4 h-4 me-2" />
             {t('personDetailModal.customFields')}
           </span>
           {expandedSections.custom ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -544,12 +544,12 @@ const SearchFilters = ({
       >
         {loading ? (
           <>
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            <RefreshCw className="w-4 h-4 me-2 animate-spin" />
             {t('searchFilters.searchingEllipsis')}
           </>
         ) : (
           <>
-            <Search className="w-4 h-4 mr-2" />
+            <Search className="w-4 h-4 me-2" />
             {t('searchFilters.searchButton')}
           </>
         )}

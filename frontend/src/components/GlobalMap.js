@@ -1,6 +1,7 @@
 // File: frontend/src/components/GlobalMap.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { forwardArrow } from '../i18n';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
@@ -363,18 +364,18 @@ const GlobalMap = () => {
                 className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-all flex items-center disabled:opacity-50"
                 title={t('globalMap.needsGeocodingTitle', { count: missingCoordinates })}
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${geocoding ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 me-2 ${geocoding ? 'animate-spin' : ''}`} />
                 {geocoding ? t('globalMap.geocoding') : t('globalMap.geocodeNLocations', { count: missingCoordinates })}
               </button>
             )}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder={t('globalMap.searchPeoplePlaceholder')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 pr-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-600 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-64"
+                className="ps-10 pe-3 py-2 bg-white dark:bg-slate-800 dark:text-gray-100 dark:placeholder-gray-600 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-64"
               />
             </div>
             <label className="flex items-center space-x-2 cursor-pointer">
@@ -384,21 +385,21 @@ const GlobalMap = () => {
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={showNetworks} onChange={e => setShowNetworks(e.target.checked)} className="h-4 w-4 text-blue-600 rounded" />
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                <Wifi className="w-4 h-4 mr-1" />
+                <Wifi className="w-4 h-4 me-1" />
                 {t('globalMap.wirelessNetworksCount', { count: wirelessNetworks.length })}
               </span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={showProperties} onChange={e => setShowProperties(e.target.checked)} className="h-4 w-4 text-emerald-600 rounded" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Landmark className="w-4 h-4 mr-1" />{t('globalMap.propertiesCount', { count: properties.length })}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Landmark className="w-4 h-4 me-1" />{t('globalMap.propertiesCount', { count: properties.length })}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={showAssets} onChange={e => setShowAssets(e.target.checked)} className="h-4 w-4 text-orange-600 rounded" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Package className="w-4 h-4 mr-1" />{t('globalMap.assetsCount', { count: assets.length })}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Package className="w-4 h-4 me-1" />{t('globalMap.assetsCount', { count: assets.length })}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={showTransactions} onChange={e => setShowTransactions(e.target.checked)} className="h-4 w-4 text-blue-600 rounded" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Receipt className="w-4 h-4 mr-1" />{t('globalMap.transactionsCount', { count: txEvents.length })}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Receipt className="w-4 h-4 me-1" />{t('globalMap.transactionsCount', { count: txEvents.length })}</span>
             </label>
           </div>
         </div>
@@ -406,7 +407,7 @@ const GlobalMap = () => {
         {/* Location type filters */}
         <div className="mt-4 flex items-center space-x-4">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            <Filter className="w-4 h-4 inline mr-1" />{t('globalMap.filterByType')}
+            <Filter className="w-4 h-4 inline me-1" />{t('globalMap.filterByType')}
           </span>
           <div className="flex flex-wrap gap-2">
             {Object.entries(allTypeColors).map(([type, color]) => (
@@ -448,22 +449,22 @@ const GlobalMap = () => {
                   <Popup>
                     {marker.kind === 'property' ? (
                       <div className="p-2 min-w-[200px]">
-                        <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center"><Landmark className="w-4 h-4 mr-2" />{marker.name}</h3>
+                        <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center"><Landmark className="w-4 h-4 me-2" />{marker.name}</h3>
                         {marker.propertyType && <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{marker.propertyType.replace(/_/g, ' ')}</p>}
                         {marker.address && <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{marker.address}</p>}
                         {marker.ownerName && marker.ownerName.trim() && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t('globalMap.popup.ownerLabel', { name: marker.ownerName })}</p>}
                       </div>
                     ) : marker.kind === 'asset' ? (
                       <div className="p-2 min-w-[200px]">
-                        <h3 className="font-semibold text-orange-600 dark:text-orange-400 flex items-center"><Package className="w-4 h-4 mr-2" />{marker.name}</h3>
+                        <h3 className="font-semibold text-orange-600 dark:text-orange-400 flex items-center"><Package className="w-4 h-4 me-2" />{marker.name}</h3>
                         {marker.assetCategory && <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{marker.assetCategory.replace(/_/g, ' ')}</p>}
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{t('globalMap.popup.holderLabel', { name: marker.holderName || t('globalMap.popup.noHolder') })}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{marker.locLabel} ({(marker.locationMode || '').replace(/_/g, ' ')})</p>
                       </div>
                     ) : marker.kind === 'transaction' ? (
                       <div className="p-2 min-w-[200px]">
-                        <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex items-center capitalize"><Receipt className="w-4 h-4 mr-2" />{(marker.txType || '').replace(/_/g, ' ')}</h3>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{marker.fromLabel || t('globalMap.popup.noHolder')} → {marker.toLabel || t('globalMap.popup.noHolder')}</p>
+                        <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex items-center capitalize"><Receipt className="w-4 h-4 me-2" />{(marker.txType || '').replace(/_/g, ' ')}</h3>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{marker.fromLabel || t('globalMap.popup.noHolder')} {forwardArrow()} {marker.toLabel || t('globalMap.popup.noHolder')}</p>
                         {marker.subjectLabel && <p className="text-xs text-gray-600 dark:text-gray-400">{t('globalMap.popup.subjectLabel', { label: marker.subjectLabel })}</p>}
                         {marker.value != null && <p className="text-xs text-gray-600 dark:text-gray-400">{t('globalMap.popup.valueLabel', { value: marker.value, currency: marker.currency || '' })}</p>}
                         {marker.locLabel && <p className="text-xs text-gray-500 dark:text-gray-400">{marker.locLabel}</p>}
@@ -471,7 +472,7 @@ const GlobalMap = () => {
                     ) : marker.type === 'wireless_network' ? (
                       <div className="p-2 min-w-[200px]">
                         <h3 className="font-semibold text-blue-600 dark:text-blue-400 flex items-center">
-                          <Wifi className="w-4 h-4 mr-2" />{marker.ssid}
+                          <Wifi className="w-4 h-4 me-2" />{marker.ssid}
                         </h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">{marker.bssid}</p>
                         <div className="mt-2 border-t dark:border-gray-600 pt-2 space-y-1">
@@ -511,7 +512,7 @@ const GlobalMap = () => {
                           </p>
                           {marker.isPartialData && (
                             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center">
-                              <AlertCircle className="w-3 h-3 mr-1" />{t('globalMap.popup.approximateLocation')}
+                              <AlertCircle className="w-3 h-3 me-1" />{t('globalMap.popup.approximateLocation')}
                             </p>
                           )}
                         </div>
@@ -538,6 +539,7 @@ const GlobalMap = () => {
           />
 
           {/* Add Location toggle */}
+          {/* Physical left/right, not start/end: positioned around Leaflet's own controls, which don't mirror in RTL. */}
           <div className="absolute top-4 right-4 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 shadow-lg rounded p-2 z-10">
             <button
               onClick={() => setShowAddLocation(true)}

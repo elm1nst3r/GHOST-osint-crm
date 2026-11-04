@@ -122,7 +122,7 @@ const SystemHealth = () => {
   if (!health) return null;
 
   return (
-    <div className="hidden md:block fixed bottom-4 right-4 z-50">
+    <div className="hidden md:block fixed bottom-4 end-4 z-50">
       <div className={`glass rounded-lg shadow-lg transition-all duration-300 ${expanded ? 'w-72' : 'w-auto'}`}>
         <div
           className="p-3 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
@@ -161,7 +161,7 @@ const SystemHealth = () => {
                   </span>
                 </div>
 
-                <div className="pl-6 text-xs text-gray-600 dark:text-gray-400">
+                <div className="ps-6 text-xs text-gray-600 dark:text-gray-400">
                   {t('systemHealth.uptimeLabel', { uptime: formatUptime(health.uptime || 0) })}
                 </div>
               </div>
@@ -179,7 +179,7 @@ const SystemHealth = () => {
                 </div>
 
                 {health.database?.status === 'connected' && (
-                  <div className="pl-6 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="ps-6 text-xs text-gray-600 dark:text-gray-400">
                     {t('systemHealth.activeConnections', { count: health.database?.connections || 0 })}
                   </div>
                 )}
@@ -196,7 +196,7 @@ const SystemHealth = () => {
                 </div>
 
                 {health.memory?.used && health.memory?.total && (
-                  <div className="pl-6">
+                  <div className="ps-6">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className="bg-purple-500 h-2 rounded-full transition-all duration-300"

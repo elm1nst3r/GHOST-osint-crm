@@ -1,4 +1,4 @@
-# Runs the backend test suite on every push and pull request.
+# Runs the backend and frontend test suites on every push and pull request.
 #
 # The suite needs no database. Besides unit tests it holds the guards that keep
 # the OpenAPI document honest (utils/openapiCoverage.test.js): every route
@@ -39,3 +39,27 @@ jobs:
       - name: Build API catalogue (checks MCP tool generation)
         working-directory: backend
         run: node scripts/build-api-docs.js "$RUNNER_TEMP/api-docs"
+
+  # Unit tests for the frontend utilities, plus the RTL guard (src/rtl.test.js):
+  # UI code must use logical direction classes (ms-/pe-/start-/text-start…) so
+  # the layout mirrors for Persian, Arabic and other right-to-left languages.
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test -- --watchAll=false
+        env:
+          CI: true

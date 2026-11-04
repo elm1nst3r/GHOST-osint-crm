@@ -370,6 +370,7 @@ const WirelessNetworkMap = ({ networks, onNetworkClick, people = [] }) => {
       </MapContainer>
 
       {/* Map Legend */}
+      {/* Physical left/right, not start/end: positioned around Leaflet's own controls, which don't mirror in RTL. */}
       <div className="absolute bottom-4 left-4 bg-white dark:bg-slate-800 rounded-lg-lg shadow-lg p-3 z-[1000] border border-gray-200 dark:border-gray-700">
         <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('wirelessNetworkMap.networkTypesLegendTitle')}</p>
         <div className="space-y-1.5">

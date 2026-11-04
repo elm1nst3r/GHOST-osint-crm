@@ -165,13 +165,13 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('files.searchPlaceholder')}
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            className="w-full ps-9 pe-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
           />
         </div>
         {showPerson && (
@@ -265,7 +265,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
                     <button
                       type="button"
                       onClick={() => (kind ? setPreviewFile(f) : download(f))}
-                      className="text-left font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 break-all"
+                      className="text-start font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 break-all"
                     >
                       {f.original_name}
                     </button>

@@ -217,7 +217,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
                       {o.label || t('builder.searchN', { n: i + 1 })}{o.fields.length ? '' : ' •'}
                     </button>
                     {state.operations.length > 1 && (
-                      <button type="button" onClick={() => removeOp(i)} aria-label={t('common.delete')} className="pr-2 text-gray-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => removeOp(i)} aria-label={t('common.delete')} className="pe-2 text-gray-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>
                     )}
                   </span>
                 ))}
@@ -279,14 +279,14 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
           <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}
             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-40">
-            <ChevronLeft className="w-4 h-4" />{t('builder.back')}
+            <ChevronLeft className="rtl:-scale-x-100 w-4 h-4" />{t('builder.back')}
           </button>
           {step < 3 && (
             <div className="flex items-center gap-3">
               {!canNext && blockedReason && <span className="text-xs text-gray-500 dark:text-gray-400">{blockedReason}</span>}
               <button type="button" onClick={() => setStep((s) => s + 1)} disabled={!canNext}
                 className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
-                {t('builder.next')}<ChevronRight className="w-4 h-4" />
+                {t('builder.next')}<ChevronRight className="rtl:-scale-x-100 w-4 h-4" />
               </button>
             </div>
           )}

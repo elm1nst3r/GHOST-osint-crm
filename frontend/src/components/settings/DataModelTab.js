@@ -100,7 +100,7 @@ const DataModelTab = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-1">
           <h3 className="text-lg font-semibold">{t('settings.dataModel.predefinedOptions')}</h3>
           <button onClick={() => setShowAddOptionForm(!showAddOptionForm)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center">
-            <Plus className="w-4 h-4 mr-1" />{t('settings.dataModel.addOption')}
+            <Plus className="w-4 h-4 me-1" />{t('settings.dataModel.addOption')}
           </button>
         </div>
         {/* Labels are shown here exactly as stored, never translated — this is
@@ -137,7 +137,7 @@ const DataModelTab = () => {
             </div>
             <div className="flex items-center mb-3">
               <input type="checkbox" id="new_is_active" checked={optionForm.is_active} onChange={(e) => setOptionForm({ ...optionForm, is_active: e.target.checked })} className="h-4 w-4 text-blue-600 rounded" />
-              <label htmlFor="new_is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">{t('settings.dataModel.activeCheckboxLabel')}</label>
+              <label htmlFor="new_is_active" className="ms-2 text-sm text-gray-700 dark:text-gray-300">{t('settings.dataModel.activeCheckboxLabel')}</label>
             </div>
             <div className="flex justify-end space-x-2">
               <button onClick={() => { setShowAddOptionForm(false); setOptionForm(EMPTY_FORM); }} className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300">{t('common.cancel')}</button>
@@ -152,7 +152,7 @@ const DataModelTab = () => {
             <div key={modelType} className="mb-4 border rounded-lg">
               <button onClick={() => toggleGroup(modelType)} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 rounded-t-lg flex items-center justify-between transition-colors">
                 <div className="flex items-center space-x-2">
-                  {expandedGroups[modelType] ? <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" /> : <ChevronRight className="w-4 h-4 text-gray-500 dark:text-slate-400" />}
+                  {expandedGroups[modelType] ? <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" /> : <ChevronRight className="rtl:-scale-x-100 w-4 h-4 text-gray-500 dark:text-slate-400" />}
                   <h4 className="font-medium text-gray-700 dark:text-gray-300">{label}</h4>
                   <span className="text-sm text-gray-500 dark:text-gray-400">({t('settings.dataModel.optionsCount', { count: typeOptions.length })})</span>
                 </div>
@@ -209,7 +209,7 @@ const DataModelTab = () => {
               </div>
               <div className="flex items-center">
                 <input type="checkbox" id="edit_is_active" checked={optionForm.is_active} onChange={(e) => setOptionForm({ ...optionForm, is_active: e.target.checked })} className="h-4 w-4 text-blue-600 rounded" />
-                <label htmlFor="edit_is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">{t('settings.dataModel.active')}</label>
+                <label htmlFor="edit_is_active" className="ms-2 text-sm text-gray-700 dark:text-gray-300">{t('settings.dataModel.active')}</label>
               </div>
             </div>
             <div className="flex justify-end space-x-2 mt-6">

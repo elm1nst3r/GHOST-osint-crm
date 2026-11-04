@@ -53,11 +53,11 @@ const TransactionsList = () => {
       <span className={`text-xs px-2 py-0.5 rounded capitalize flex-shrink-0 ${typeBadgeClass(t.transaction_type)}`}>{prettyType(t.transaction_type)}</span>
       <span className="flex items-center text-sm text-gray-800 dark:text-gray-200 min-w-0 flex-1">
         <span className="truncate">{partyText(t.resolved_from)}</span>
-        <ArrowRight className="w-3 h-3 mx-1 text-gray-400 flex-shrink-0" />
+        <ArrowRight className="rtl:-scale-x-100 w-3 h-3 mx-1 text-gray-400 flex-shrink-0" />
         <span className="truncate font-medium">{partyText(t.resolved_to)}</span>
       </span>
       <span className="text-sm text-gray-600 dark:text-gray-400 truncate hidden md:block w-40">{subjectText(t.resolved_subject)}</span>
-      <span className="text-sm text-gray-800 dark:text-gray-200 w-28 text-right flex-shrink-0">{formatMoney(t.value, t.currency)}</span>
+      <span className="text-sm text-gray-800 dark:text-gray-200 w-28 text-end flex-shrink-0">{formatMoney(t.value, t.currency)}</span>
       <span className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         <button onClick={(e) => { e.stopPropagation(); setSelectedTransactionForDetail(t); }} className="p-1.5 rounded border border-gray-200 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Eye className="w-4 h-4" /></button>
         <button onClick={(e) => { e.stopPropagation(); setEditingTransaction(t); }} className="p-1.5 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-600 hover:text-white"><Edit2 className="w-4 h-4" /></button>
@@ -77,7 +77,7 @@ const TransactionsList = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{translate('transactionsList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
-            <Receipt className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+            <Receipt className="w-5 h-5 me-2 text-blue-600 dark:text-blue-400" />
             <span className="font-medium">
               {transactionsMeta.total > transactions.length
                 ? translate('transactionsList.countTotal', { count: transactions.length, total: transactionsMeta.total })
@@ -86,15 +86,15 @@ const TransactionsList = () => {
           </p>
         </div>
         <button onClick={() => setShowAddTransactionForm(true)} className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition flex items-center active:scale-[0.97]">
-          <Plus className="w-5 h-5 mr-2" />{translate('transactionsList.addTransaction')}
+          <Plus className="w-5 h-5 me-2" />{translate('transactionsList.addTransaction')}
         </button>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
           <input type="text" placeholder={translate('transactionsList.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+            className="w-full ps-10 pe-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
         </div>
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">
           <option value="">{translate('transactionsList.allTypes')}</option>

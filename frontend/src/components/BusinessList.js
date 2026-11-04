@@ -64,7 +64,7 @@ const BusinessList = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('businessList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-slate-400 mt-1 flex items-center">
-            <Building2 className="w-4 h-4 mr-1" />
+            <Building2 className="w-4 h-4 me-1" />
             {filteredBusinesses.length === businesses.length ? (
               <span>{t('businessList.countSimple', { count: businesses.length })}</span>
             ) : (
@@ -76,7 +76,7 @@ const BusinessList = () => {
           onClick={() => setShowAddBusinessForm(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           {t('businessList.addBusiness')}
         </button>
       </div>
@@ -86,13 +86,13 @@ const BusinessList = () => {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
                 placeholder={t('businessList.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full ps-10 pe-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -163,14 +163,14 @@ const BusinessList = () => {
             <div className="space-y-2">
               {business.industry && (
                 <div className="flex items-center text-sm">
-                  <Building2 className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
+                  <Building2 className="w-4 h-4 me-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">{business.industry}</span>
                 </div>
               )}
               
               {business.owner_name && business.owner_name.trim() && (
                 <div className="flex items-center text-sm">
-                  <User className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
+                  <User className="w-4 h-4 me-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
                     {t('businessList.ownerLabel', { name: business.owner_name })}
                   </span>
@@ -179,7 +179,7 @@ const BusinessList = () => {
               
               {business.city && (
                 <div className="flex items-center text-sm">
-                  <MapPin className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
+                  <MapPin className="w-4 h-4 me-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">
                     {[business.city, business.state, business.country]
                       .filter(Boolean)
@@ -190,7 +190,7 @@ const BusinessList = () => {
               
               {Array.isArray(business.employees) && business.employees.length > 0 && (
                 <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-slate-500" />
+                  <Users className="w-4 h-4 me-2 text-gray-400 dark:text-slate-500" />
                   <span className="text-gray-600 dark:text-gray-400">{t('businessList.employeesCount', { count: business.employees.length })}</span>
                 </div>
               )}

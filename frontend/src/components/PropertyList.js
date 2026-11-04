@@ -70,13 +70,13 @@ const PropertyList = () => {
       <div className="space-y-1.5 text-sm">
         {(property.address || property.city) && (
           <div className="flex items-center text-gray-700 dark:text-gray-300">
-            <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+            <MapPin className="w-4 h-4 me-2 text-gray-400" />
             <span className="truncate">{[property.address, property.city, property.country].filter(Boolean).join(', ')}</span>
           </div>
         )}
         {property.owner_name && property.owner_name.trim() && (
           <div className="flex items-center text-gray-700 dark:text-gray-300">
-            <User className="w-4 h-4 mr-2 text-gray-400" />
+            <User className="w-4 h-4 me-2 text-gray-400" />
             <span>{t('propertyList.ownerLabel', { name: property.owner_name })}</span>
           </div>
         )}
@@ -95,7 +95,7 @@ const PropertyList = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('propertyList.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center">
-            <Landmark className="w-5 h-5 mr-2 text-emerald-600 dark:text-emerald-400" />
+            <Landmark className="w-5 h-5 me-2 text-emerald-600 dark:text-emerald-400" />
             <span className="font-medium">
               {propertiesMeta.total > properties.length
                 ? t('propertyList.countTotal', { count: properties.length, total: propertiesMeta.total })
@@ -104,15 +104,15 @@ const PropertyList = () => {
           </p>
         </div>
         <button onClick={() => setShowAddPropertyForm(true)} className="px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition flex items-center active:scale-[0.97]">
-          <Plus className="w-5 h-5 mr-2" />{t('propertyList.addProperty')}
+          <Plus className="w-5 h-5 me-2" />{t('propertyList.addProperty')}
         </button>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 w-5 h-5" />
           <input type="text" placeholder={t('propertyList.searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+            className="w-full ps-10 pe-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
         </div>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
           className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white">

@@ -1,6 +1,7 @@
 // File: frontend/src/components/PeopleList.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isolateList } from '../utils/bidi';
 import { FixedSizeList } from 'react-window';
 import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Users, Grid3x3, Table } from 'lucide-react';
 import { peopleAPI, casesAPI } from '../utils/api';
@@ -168,9 +169,9 @@ const PeopleList = () => {
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
                   {getFullName(person)}
-                  {person.date_of_birth && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({getAge(person.date_of_birth)})</span>}
+                  {person.date_of_birth && <span className="text-slate-500 dark:text-slate-400 font-normal ms-2">({getAge(person.date_of_birth)})</span>}
                 </h3>
-                {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>}
+                {person.aliases?.length > 0 && <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: isolateList(person.aliases) })}</p>}
               </div>
             </div>
             <div className="flex space-x-2 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
@@ -180,10 +181,10 @@ const PeopleList = () => {
             </div>
           </div>
           <div className="space-y-2 mt-3">
-            {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 mr-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{optionLabel(t, 'person_category', person.category)}</span></div>}
-            {person.case_name && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-2 text-accent-tertiary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span></div>}
-            <div className="flex items-center text-sm"><Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: connectionCount })}</span></div>
-            <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">{t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}</span></div>
+            {person.category && <div className="flex items-center text-sm"><Tag className="w-4 h-4 me-2 text-accent-secondary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{optionLabel(t, 'person_category', person.category)}</span></div>}
+            {person.case_name && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 me-2 text-accent-tertiary" /><span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span></div>}
+            <div className="flex items-center text-sm"><Network className="w-4 h-4 me-2 text-blue-600 dark:text-blue-400" /><span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: connectionCount })}</span></div>
+            <div className="flex items-center text-sm"><Clock className="w-4 h-4 me-2 text-gray-500 dark:text-gray-500" /><span className="text-gray-600 dark:text-gray-400">{t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}</span></div>
           </div>
           {person.status && <div className="mt-3"><span className={`inline-block px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(person.status)}`}>{optionLabel(t, 'person_status', person.status)}</span></div>}
         </div>
@@ -198,7 +199,7 @@ const PeopleList = () => {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('peopleList.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-accent-primary" />
+            <Users className="w-5 h-5 me-2 text-accent-primary" />
             {filteredPeople.length === people.length ? (
               <span className="font-medium">
                 {peopleMeta.total > people.length
@@ -250,13 +251,13 @@ const PeopleList = () => {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
               <input
                 type="text"
                 placeholder={t('peopleList.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-base pl-9"
+                className="input-base ps-9"
               />
             </div>
           </div>
@@ -353,13 +354,13 @@ const PeopleList = () => {
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {getFullName(person)}
                     {person.date_of_birth && (
-                      <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                      <span className="text-slate-500 dark:text-slate-400 font-normal ms-2">
                         ({getAge(person.date_of_birth)})
                       </span>
                     )}
                   </h3>
                   {person.aliases && person.aliases.length > 0 && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: person.aliases.join(', ') })}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('peopleList.akaLabel', { aliases: isolateList(person.aliases) })}</p>
                   )}
                 </div>
               </div>
@@ -391,22 +392,22 @@ const PeopleList = () => {
             <div className="space-y-3 mt-4">
               {person.category && (
                 <div className="flex items-center text-sm">
-                  <Tag className="w-4 h-4 mr-2 text-accent-secondary" />
+                  <Tag className="w-4 h-4 me-2 text-accent-secondary" />
                   <span className="text-gray-700 dark:text-gray-300 font-medium">{optionLabel(t, 'person_category', person.category)}</span>
                 </div>
               )}
               {person.case_name && (
                 <div className="flex items-center text-sm">
-                  <Briefcase className="w-4 h-4 mr-2 text-accent-tertiary" />
+                  <Briefcase className="w-4 h-4 me-2 text-accent-tertiary" />
                   <span className="text-gray-700 dark:text-gray-300 font-medium">{person.case_name}</span>
                 </div>
               )}
               <div className="flex items-center text-sm">
-                <Network className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
+                <Network className="w-4 h-4 me-2 text-blue-600 dark:text-blue-400" />
                 <span className="text-gray-700 dark:text-gray-300 font-medium">{t('peopleList.connectionsCount', { count: getRelationshipCount(person.id) })}</span>
               </div>
               <div className="flex items-center text-sm">
-                <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-500" />
+                <Clock className="w-4 h-4 me-2 text-gray-500 dark:text-gray-500" />
                 <span className="text-gray-600 dark:text-gray-400">
                   {t('peopleList.modifiedTimeAgo', { time: getTimeAgo(new Date(person.updated_at || person.created_at)) })}
                 </span>
