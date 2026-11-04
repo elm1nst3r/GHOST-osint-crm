@@ -6,6 +6,7 @@ import de from './locales/de/translation.json';
 import es from './locales/es/translation.json';
 import fr from './locales/fr/translation.json';
 import zh from './locales/zh/translation.json';
+import fa from './locales/fa/translation.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -26,7 +27,8 @@ i18n.use(initReactI18next).init({
     de: { translation: de },
     es: { translation: es },
     fr: { translation: fr },
-    zh: { translation: zh }
+    zh: { translation: zh },
+    fa: { translation: fa }
   },
   lng: storedLanguage || 'en',
   fallbackLng: 'en',
