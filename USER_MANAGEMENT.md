@@ -110,6 +110,33 @@ Email is optional. Password requirements:
 1. Navigate to http://localhost:8080
 2. Enter your username and password
 3. Click **Sign in**
+4. If you've turned on two-step verification, enter the code from your authenticator app, use your passkey, or enter a recovery code
+
+### Two-Step Verification
+Under **Settings → Security** every user can add a second step to their sign-in, so a stolen password alone isn't enough:
+
+- **Authenticator app**: any app that shows 6-digit codes (Google Authenticator, Microsoft Authenticator, Authy, 1Password, …). Scan the QR code, or type the key shown under it, then enter a code to confirm.
+- **Passkeys**: confirm sign-in with your fingerprint, face, device PIN or a security key. Passkeys are tied to the server's address: they only work when GHOST is opened at the address in `FRONTEND_URL` (or `PASSKEY_ORIGINS`), and only over **HTTPS with a domain name, or on localhost**. Plain HTTP on a network name, or an IP address like `https://192.168.1.10`, can't use them. If the address changes, existing passkeys stop working; sign in with the app or a recovery code and add them again.
+- **Recovery codes**: ten one-time codes, shown once when you add your first method. Keep them in a password manager. **Get new codes** replaces them.
+
+Removing a method or getting new recovery codes asks for your password. Each code from the app works once, five wrong codes in a row end the attempt, and the second step is limited to 10 tries per account per 15 minutes.
+
+**Lost your phone?** Sign in with a recovery code. If you have none left, ask an administrator to reset your two-step verification (**Settings → Users**, the shield button). If you're the only administrator:
+```bash
+docker exec -it osint-crm-backend node scripts/resetTwoFactor.js <username>
+```
+
+**Requiring it for everyone (admin):** **Settings → Security → Server policy**. Users without two-step verification are asked to set it up at their next sign-in, before they can use GHOST. You need it on your own account first.
+
+### API Tokens
+For the MCP server and scripts. Create one under **Settings → Security → API tokens** (asks for your password) and send it as `Authorization: Bearer ghost_…`. A token:
+- acts as you, with your role and project access, and skips two-step verification, so treat it like a password;
+- is shown once; GHOST stores only a hash;
+- can expire after 30, 90 or 365 days, or never, and can be revoked at any time;
+- stops working when your account is deactivated;
+- can't change your password or your security settings, or create more tokens.
+
+Accounts with two-step verification need a token for the MCP server; see [mcp/README.md](mcp/README.md).
 
 ### Managing Users (Admin only)
 1. Log in as admin
@@ -119,6 +146,7 @@ Email is optional. Password requirements:
    - **Edit** — update name, email, role, or reset password
    - **Activate / Deactivate** — toggle login access without deleting the account
    - **Delete** — permanent removal (cannot delete your own account)
+   - **Reset two-step verification** (shield button, shown for users who have it) — removes their authenticator app, passkeys and recovery codes and signs them out, for someone who lost their phone
 
 ### User Fields
 | Field | Required | Notes |
@@ -144,6 +172,7 @@ Audit logs record: what changed, who changed it, when, and the before/after valu
 - Stored in PostgreSQL via `connect-pg-simple`
 - Session ID **regenerated on every login** — prevents session fixation
 - Sessions **immediately revoked** when a user's password is changed, role is changed, account is deactivated, or account is deleted
+- Turning on two-step verification signs out the user's other sessions; an admin reset signs out all of them
 - Cookies: `HttpOnly`, `SameSite=Strict`; `Secure` flag set automatically in production
 
 ### Password Policy
@@ -157,6 +186,7 @@ Enforced at every password-setting point (login, change, admin create, admin res
 ### Rate Limiting
 - Login: **10 attempts per 15 minutes** per IP + username — tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS`, or disabled for automated clients with `LOGIN_RATE_LIMIT_DISABLE=true`
 - Password change: **5 attempts per hour**
+- Second sign-in step: **10 attempts per 15 minutes** per account, and five wrong codes in a row end the attempt
 
 ### Access Control
 - API endpoints require authentication, apart from login, the session check, the health probe and the branding shown on the login screen

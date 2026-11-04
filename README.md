@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.25.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.26.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -165,6 +165,7 @@ administrator can change their own membership. Full details in
 - **Single source of truth**: The spec is generated at startup from the same Zod schemas that validate requests — documentation can't drift from behaviour
 - **Bundled MCP server**: `mcp/ghost-mcp.js` exposes the GHOST API as ~100 Model Context Protocol tools over stdio — works with Claude Desktop, Claude Code, and any MCP client (see [mcp/README.md](mcp/README.md))
 - **Duplicate protection**: MCP create tools check for same-name records first and refuse with a match list unless explicitly overridden
+- **API tokens**: scripts and the MCP server sign in with a personal token from Settings → Security, which also works for accounts with two-step verification
 - **Schema validation everywhere**: All POST/PUT routes validate bodies against Zod schemas and return structured field-level errors
 
 ### 🌓 Modern UI/UX
@@ -264,7 +265,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.25.0
+GHOST_VERSION=2.26.0
 ```
 
 Without it, the containers track the latest release.
@@ -278,7 +279,7 @@ run an isolated or air-gapped instance.
 
 - **Docker & Docker Compose** (recommended)
 - **OR Manual Setup:**
-  - Node.js 18+
+  - Node.js 20+ (22 recommended)
   - PostgreSQL 15+
   - npm or yarn
 
@@ -430,6 +431,8 @@ GHOST-osint-crm/
 - ⚠️ **Use strong DB_PASSWORD** — weak passwords (`changeme`, `password`, etc.) are rejected at startup
 - 🔒 **Password policy enforced** — all password-setting routes require ≥12 characters, mixed case, digit, and reject common passwords
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
+- 🔒 **Two-step verification** — authenticator app or passkey after the password, with recovery codes; admins can require it for every user. Passkeys need HTTPS with a domain name (or localhost) at the address in `FRONTEND_URL` — see [USER_MANAGEMENT.md](USER_MANAGEMENT.md#two-step-verification)
+- 🔒 **Personal API tokens** — for the MCP server and scripts; shown once, stored hashed, revocable, and unable to change security settings
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
 - 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); membership changes are rank-checked (owner > manager > investigator), only admins appoint owners, and nobody but an admin can change their own membership — see [Roles & Permissions](#-roles--permissions)
 - 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Note: in-process limiter — for multi-instance deployments configure a shared store (Redis/pg) in `backend/middleware/rateLimiters.js`
@@ -636,6 +639,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 2.26.0 (November 2026)
+- 🔐 **Two-step verification** — authenticator app or passkey after the password, one-time recovery codes, admin reset, and an admin switch to require it for everyone; plus **personal API tokens** for scripts and the MCP server (MCP 1.3, `GHOST_API_TOKEN`) (issue #90)
+- ⬆️ **Node 22 and library updates** — Docker images move to Node 22, uploads to multer 2, and the backend and MCP server have no known vulnerable dependencies left
+
 ### Version 2.25.0 (November 2026)
 - 🔑 **Integration builder: key inside the address, searches without input, custom search types** — and testing a second search with a non-Latin name no longer runs the first one (issue #96)
 
@@ -833,5 +840,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.25.0
+**Version:** 2.26.0
 **Last Updated:** November 4, 2026
