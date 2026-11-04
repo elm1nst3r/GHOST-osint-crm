@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Wand2, Play, Loader2, AlertTriangle, CheckCircle2, Trash2, Info } from 'lucide-react';
 import { integrationsAPI } from '../../../utils/api';
 import {
-  templateFromExample, requestLine, parseRequestLine, interpretClick, humanizeKey, segmentsToPath,
+  templateFromExample, requestLine, parseRequestLine, interpretClick, humanizeKey, segmentsToPath, KEY_PLACEHOLDER, usesKeyPlaceholder,
 } from '../../../utils/integrationBuilder';
 import { INPUT_KINDS } from '../../../utils/integrations';
 import JsonPicker, { pickedKey } from './JsonPicker';
@@ -16,7 +16,9 @@ import JsonPicker, { pickedKey } from './JsonPicker';
 const input = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm';
 const button = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50';
 
-const EXAMPLES = { email: 'someone@example.com', domain: 'example.com', ip: '8.8.8.8', username: 'username', phone: '+15555550123', url: 'https://example.com/' };
+const EXAMPLES = { email: 'someone@example.com', domain: 'example.com', ip: '8.8.8.8', username: 'username', phone: '+15555550123', url: 'https://example.com/', text: 'AB123CD', none: '' };
+// Identifier kinds, then a search type the admin names, then no input at all.
+const BUILDER_KINDS = [...INPUT_KINDS, 'text', 'none'];
 
 // Suggest an OSINT data type for a picked value, if one fits.
 function guessOsintType(value, osintTypes) {
@@ -57,8 +59,12 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
     return () => clearTimeout(h);
   }, [resultsSpec, test, op.fields.length]);
 
+  const noInput = op.input === 'none';
+  const keyInUrl = state.authType === 'url';
+  const keyMark = { keyMark: KEY_PLACEHOLDER };
+
   const applyExample = () => {
-    const r = templateFromExample(exampleUrl, sample, { authType: state.authType, authName: state.authName });
+    const r = templateFromExample(exampleUrl, noInput ? '' : sample, { authType: state.authType, authName: state.authName, secret: testKey });
     if (r.error) { setExampleMsg({ ok: false, text: t(`builder.example_${r.error}`) }); return; }
     const otherOps = state.operations.filter((_, i) => i !== opIndex && state.operations[i].path !== '/');
     if (state.baseUrl && r.baseUrl !== state.baseUrl && otherOps.length) {
@@ -67,10 +73,18 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
     }
     setState((s) => ({ ...s, baseUrl: r.baseUrl, homepage: s.homepage || r.baseUrl.replace('//api.', '//') }));
     onChange({ path: r.path, query: r.query });
-    if (!testValue) setTestValue(sample);
-    setExampleMsg(r.found
-      ? { ok: true, text: r.removedKey ? `${t('builder.exampleFound')} ${t('builder.exampleKeyRemoved')}` : t('builder.exampleFound') }
-      : { ok: false, text: t('builder.exampleNotFound') });
+    if (!testValue && !noInput) setTestValue(sample);
+    const notes = [
+      r.removedKey && t('builder.exampleKeyRemoved'),
+      r.keyMarked && t('builder.exampleKeyMarked', keyMark),
+    ].filter(Boolean).join(' ');
+    if (keyInUrl && !usesKeyPlaceholder(r)) {
+      setExampleMsg({ ok: false, text: t('builder.keyPlaceholderMissing', keyMark) });
+    } else if (noInput || r.found) {
+      setExampleMsg({ ok: true, text: `${noInput ? t('builder.exampleApplied') : t('builder.exampleFound')}${notes ? ` ${notes}` : ''}` });
+    } else {
+      setExampleMsg({ ok: false, text: t('builder.exampleNotFound') });
+    }
   };
 
   const applyLine = () => {
@@ -78,7 +92,8 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
     if (r.error) { setExampleMsg({ ok: false, text: t('builder.example_notHttps') }); return; }
     setState((s) => ({ ...s, baseUrl: r.baseUrl }));
     onChange({ path: r.path, query: r.query });
-    setExampleMsg(r.found ? null : { ok: false, text: t('builder.lineNoInput', { input: '{{input}}' }) });
+    if (keyInUrl && !usesKeyPlaceholder(r)) setExampleMsg({ ok: false, text: t('builder.keyPlaceholderMissing', keyMark) });
+    else setExampleMsg(r.found || noInput ? null : { ok: false, text: t('builder.lineNoInput', { input: '{{input}}' }) });
   };
 
   const runTest = async () => {
@@ -87,7 +102,7 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
     setChoice(null);
     try {
       const res = await integrationsAPI.draftTest({
-        manifest, operation_id: manifest.operations[opIndex].id, input: testValue, ...(testKey ? { secret: testKey } : {}),
+        manifest, operation_id: manifest.operations[opIndex].id, input: noInput ? '' : testValue, ...(testKey ? { secret: testKey } : {}),
       });
       setTest(res);
     } catch (err) {
@@ -138,7 +153,7 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
         <div>
           <span className="block font-medium text-gray-800 dark:text-gray-200 mb-1">{t('builder.inputLabel')}</span>
           <div className="flex flex-wrap gap-2">
-            {INPUT_KINDS.map((k) => (
+            {BUILDER_KINDS.map((k) => (
               <button key={k} type="button" onClick={() => onChange({ input: k })}
                 className={`px-3 py-1.5 rounded-lg border text-sm ${op.input === k ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'}`}>
                 {t(`tools.kind_${k}`)}
@@ -146,6 +161,33 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
             ))}
           </div>
         </div>
+        {op.input === 'text' && (
+          <div className="space-y-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <label className="block max-w-md">
+              <span className="block font-medium text-gray-800 dark:text-gray-200 mb-1">{t('builder.inputCustomName')}</span>
+              <input className={input} value={op.inputLabel || ''} onChange={(e) => onChange({ inputLabel: e.target.value })}
+                placeholder={t('builder.inputCustomNamePlaceholder')} />
+            </label>
+            <div>
+              <span className="block font-medium text-gray-800 dark:text-gray-200 mb-1">{t('builder.inputCustomTypes')}</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {osintTypes.map((o) => (
+                  <label key={o.value} className="flex items-center gap-1.5 text-gray-700 dark:text-gray-200">
+                    <input type="checkbox" checked={(op.osintTypes || []).includes(o.value)}
+                      onChange={(e) => onChange((current) => ({
+                        osintTypes: e.target.checked
+                          ? [...(current.osintTypes || []), o.value]
+                          : (current.osintTypes || []).filter((v) => v !== o.value),
+                      }))} />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">{t('builder.inputCustomTypesHint')}</span>
+            </div>
+          </div>
+        )}
+        {noInput && <p className="text-xs text-gray-600 dark:text-gray-300 flex items-start gap-1"><Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{t('builder.inputNoneHelp')}</p>}
         <label className="block max-w-xs">
           <span className="block font-medium text-gray-800 dark:text-gray-200 mb-1">{t('builder.costLabel')}</span>
           <select className={input} value={op.cost} onChange={(e) => onChange({ cost: e.target.value })}>
@@ -163,9 +205,11 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
         <input className={input} value={exampleUrl} onChange={(e) => setExampleUrl(e.target.value)}
           placeholder={`https://api.example.com/v1/lookup?email=${EXAMPLES.email}`} />
         <div className="flex flex-col sm:flex-row gap-2">
-          <input className={input} value={sample} onChange={(e) => setSample(e.target.value)}
-            placeholder={t('builder.samplePlaceholder', { example: EXAMPLES[op.input] })} />
-          <button type="button" onClick={applyExample} disabled={!exampleUrl.trim() || !sample.trim()} className={button}>
+          {!noInput && (
+            <input className={input} value={sample} onChange={(e) => setSample(e.target.value)}
+              placeholder={t('builder.samplePlaceholder', { example: EXAMPLES[op.input] })} />
+          )}
+          <button type="button" onClick={applyExample} disabled={!exampleUrl.trim() || (!noInput && !sample.trim())} className={button}>
             <Wand2 className="w-4 h-4" />{t('builder.useExample')}
           </button>
         </div>
@@ -176,6 +220,7 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
         )}
         <label className="block">
           <span className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('builder.requestLine', { input: '{{input}}' })}</span>
+          {keyInUrl && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('builder.keyPlaceholderHint', keyMark)}</span>}
           <input className={`${input} font-mono text-xs`} value={line} onChange={(e) => setLine(e.target.value)} onBlur={applyLine}
             placeholder="https://api.example.com/v1/lookup/{{input}}" />
         </label>
@@ -185,9 +230,11 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
       <section className="space-y-3">
         <h4 className="font-semibold text-gray-900 dark:text-gray-100">{t('builder.tryTitle')}</h4>
         <div className="flex flex-col sm:flex-row gap-2">
-          <input className={input} value={testValue} onChange={(e) => setTestValue(e.target.value)}
-            placeholder={t('builder.tryPlaceholder', { example: EXAMPLES[op.input] })} />
-          <button type="button" onClick={runTest} disabled={testing || !testValue.trim() || !state.baseUrl}
+          {!noInput && (
+            <input className={input} value={testValue} onChange={(e) => setTestValue(e.target.value)}
+              placeholder={t('builder.tryPlaceholder', { example: EXAMPLES[op.input] })} />
+          )}
+          <button type="button" onClick={runTest} disabled={testing || (!noInput && !testValue.trim()) || !state.baseUrl}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
             {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}{t('builder.tryButton')}
           </button>

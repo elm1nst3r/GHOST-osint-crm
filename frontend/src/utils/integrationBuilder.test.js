@@ -1,6 +1,5 @@
 import {
-  slugify, humanizeKey, templateFromExample, requestLine, parseRequestLine, interpretClick, parsePath,
-  segmentsToPath, buildManifest, stateFromManifest, emptyState,
+  slugify, humanizeKey, templateFromExample, requestLine, parseRequestLine, interpretClick, parsePath, segmentsToPath, buildManifest, stateFromManifest, emptyState, emptyOperation, operationIds, usesKeyPlaceholder,
 } from './integrationBuilder';
 
 test('slugify and humanizeKey', () => {
@@ -82,4 +81,57 @@ test('buildManifest produces a manifest that stateFromManifest reads back', () =
     operations: [{ id: 'emails-at-a-domain', results: { root: 'data', title: 'value', fields: [{ label: 'Value', path: 'value', osintType: 'Email' }] } }],
   });
   expect(buildManifest(stateFromManifest(m))).toEqual(m);
+});
+
+// ── Issue #96 feedback ──────────────────────────────────────────────────────
+
+describe('search ids', () => {
+  const op = (id, label) => ({ ...emptyOperation(), id, label });
+
+  test('labels without Latin letters still give unique ids', () => {
+    expect(operationIds([op('', 'Поиск по URL'), op('', 'Поиск по телефону'), op('', 'جستجوی تلفن')]))
+      .toEqual(['url', 'search-2', 'search-3']);
+  });
+
+  test('existing ids are kept and a new search never takes one', () => {
+    expect(operationIds([op('integration', 'Поиск'), op('', 'Поиск 2'), op('', 'Phone')]))
+      .toEqual(['integration', '2', 'phone']);
+    expect(operationIds([op('phone', 'Phone'), op('', 'Phone')])).toEqual(['phone', 'phone-2']);
+  });
+
+  test('a built manifest has distinct ids for same-named searches', () => {
+    const state = { ...emptyState(), name: 'X', baseUrl: 'https://api.x.com', operations: [op('', 'Lookup'), op('', 'Lookup')] };
+    expect(buildManifest(state).operations.map((o) => o.id)).toEqual(['lookup', 'lookup-2']);
+  });
+});
+
+describe('key inside the web address', () => {
+  test('the test key in a pasted example becomes {{api_key}}', () => {
+    const r = templateFromExample('https://api.x.org/api/s3cret/phone/79001112233?full=1', '79001112233', { authType: 'url', secret: 's3cret' });
+    expect(r).toMatchObject({ path: '/api/{{api_key}}/phone/{{input}}', query: { full: '1' }, found: true, keyMarked: true });
+    expect(usesKeyPlaceholder(r)).toBe(true);
+  });
+
+  test('the file names no parameter for it', () => {
+    const m = buildManifest({ ...emptyState(), name: 'X', baseUrl: 'https://api.x.com', authType: 'url', authName: 'leftover', operations: [emptyOperation()] });
+    expect(m.auth).toEqual({ type: 'url' });
+  });
+
+  test('other auth types leave the example alone', () => {
+    const r = templateFromExample('https://api.x.org/api/s3cret/x', 'x', { authType: 'header', secret: 's3cret' });
+    expect(r.keyMarked).toBe(false);
+    expect(r.path).toBe('/api/s3cret/{{input}}');
+  });
+});
+
+test('custom search types round-trip through the file', () => {
+  const state = {
+    ...emptyState(), name: 'Plates', baseUrl: 'https://api.x.com',
+    operations: [{ ...emptyOperation(), label: 'Plate', input: 'text', inputLabel: ' Vehicle registration ', osintTypes: ['Vehicle'], fields: [{ label: 'Owner', path: 'owner' }] }],
+  };
+  const m = buildManifest(state);
+  expect(m.operations[0]).toMatchObject({ input: 'text', inputLabel: 'Vehicle registration', osintTypes: ['Vehicle'] });
+  expect(stateFromManifest(m).operations[0]).toMatchObject({ inputLabel: 'Vehicle registration', osintTypes: ['Vehicle'] });
+  const email = buildManifest({ ...state, operations: [{ ...state.operations[0], input: 'email' }] }).operations[0];
+  expect(email.inputLabel).toBeUndefined();
 });

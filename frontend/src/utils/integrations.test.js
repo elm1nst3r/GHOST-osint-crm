@@ -1,4 +1,6 @@
-import { inputKindForOsint, operationsFor, runnableTools } from './integrations';
+import {
+  inputKindForOsint, operationsFor, operationsForInput, runnableTools, accepts, customSearchTypes, noInputOperations,
+} from './integrations';
 
 test.each([
   ['Email', 'a@b.co', 'email'],
@@ -36,4 +38,34 @@ test('within one tool an exact kind match wins over a stand-in', () => {
   const wayback = tool(1, 'connected', [['closest', 'url'], ['closest-domain', 'domain']]);
   expect(operationsFor([wayback], 'domain').map((x) => x.op.id)).toEqual(['closest-domain']);
   expect(operationsFor([wayback], 'url').map((x) => x.op.id)).toEqual(['closest']);
+});
+
+// ── Custom and no-input searches (issue #96 feedback) ──────────────────────
+
+const custom = (opId, label, types) => ({ id: opId, input: 'text', input_label: label, osint_types: types });
+const withOps = (id, ops) => ({ id, kind: 'integration', connection_status: 'connected', integration: { operations: ops } });
+
+test('a custom search type matches person entries by OSINT type, any case', () => {
+  const op = custom('plate', 'Vehicle registration', ['Vehicle']);
+  expect(accepts(op, { type: 'vehicle', value: 'A123BC', kind: null })).toBe(true);
+  expect(accepts(op, { type: 'Email', value: 'a@b.co', kind: 'email' })).toBe(false);
+  expect(accepts(op, { custom: 'Vehicle registration' })).toBe(true);
+  expect(accepts(op, { kind: 'email' })).toBe(false);
+});
+
+test('a typed-in custom value never runs identifier searches', () => {
+  expect(accepts({ id: 'e', input: 'email' }, { custom: 'Tax ID' })).toBe(false);
+});
+
+test('operationsForInput combines identifier and custom searches', () => {
+  const tools = [withOps(1, [{ id: 'e', input: 'email' }, custom('reg', 'Company register', ['Email'])])];
+  expect(operationsForInput(tools, { type: 'Email', value: 'a@b.co', kind: 'email' }).map((x) => x.op.id)).toEqual(['e', 'reg']);
+  expect(operationsForInput(tools, { type: 'Vehicle', value: 'x', kind: null })).toEqual([]);
+});
+
+test('custom search types and no-input searches are listed for the run dialog', () => {
+  const tools = [withOps(1, [custom('a', 'Tax ID', []), custom('b', 'Tax ID', []), { id: 'bal', input: 'none' }])];
+  expect(customSearchTypes(tools)).toEqual(['Tax ID']);
+  expect(noInputOperations(tools).map((x) => x.op.id)).toEqual(['bal']);
+  expect(operationsFor(tools, 'email')).toEqual([]);
 });

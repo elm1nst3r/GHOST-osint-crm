@@ -18,13 +18,20 @@ const SCHEMA_ID = 'ghost-integration/v1';
 
 // ── Input kinds ──────────────────────────────────────────────────────────────
 // What an operation accepts. Each is normalised and validated before it goes
-// anywhere near a URL.
+// anywhere near a URL. Besides the identifier kinds there are two more:
+//   text  a search type the admin names (inputLabel), e.g. "Vehicle
+//         registration number"; osintTypes says which of a person's OSINT
+//         entries it can search
+//   none  no input at all: account balance, service status. Also used as the
+//         connection test when the manifest has no `test`.
 
-const INPUT_KINDS = ['email', 'domain', 'ip', 'username', 'phone', 'url'];
+const IDENTIFIER_KINDS = ['email', 'domain', 'ip', 'username', 'phone', 'url'];
+const INPUT_KINDS = [...IDENTIFIER_KINDS, 'text', 'none'];
 
 const HOSTNAME_RE = /^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/;
 
 function normalizeInput(kind, raw) {
+  if (kind === 'none') return '';
   let v = String(raw ?? '').trim();
   if (!v) throw new Error('Enter a value to search for');
   switch (kind) {
@@ -55,6 +62,10 @@ function normalizeInput(kind, raw) {
       if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Only http and https URLs can be searched');
       return u.toString();
     }
+    case 'text':
+      if (v.length > 200) throw new Error('The value is too long');
+      if (/[\u0000-\u001f\u007f]/.test(v)) throw new Error('The value contains control characters');
+      return v;
     default:
       throw new Error(`Unknown input kind: ${kind}`);
   }
@@ -79,8 +90,11 @@ function inputKindForOsint(type, value) {
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────
-// The only variable is {{input}}, optionally piped through filters:
-// {{input|lower|sha256}}. Rendered values are always URL-encoded.
+// Two variables: {{input}}, optionally piped through filters
+// ({{input|lower|sha256}}), and {{api_key}}, which marks where the stored key
+// goes for "url" auth (issue #96: services that take the key as a path
+// segment, e.g. /api/{{api_key}}/lookup). Rendered values are always
+// URL-encoded.
 
 const FILTERS = {
   lower: (s) => s.toLowerCase(),
@@ -93,6 +107,9 @@ const FILTERS = {
 };
 
 const TEMPLATE_RE = /\{\{\s*input((?:\s*\|\s*[a-z0-9]+)*)\s*\}\}/g;
+const KEY_RE = /\{\{\s*api_key\s*\}\}/g;
+const hasInput = (s) => /\{\{\s*input[\s|}]/.test(s || '');
+const hasKey = (s) => /\{\{\s*api_key\s*\}\}/.test(s || '');
 
 function templateErrors(template) {
   const errors = [];
@@ -101,13 +118,18 @@ function templateErrors(template) {
       if (!FILTERS[f]) errors.push(`unknown filter "${f}"`);
     });
     return '';
-  });
-  if (/\{\{|\}\}/.test(stripped)) errors.push('only {{input}} may be used in templates');
+  }).replace(KEY_RE, '');
+  if (/\{\{|\}\}/.test(stripped)) errors.push('only {{input}} and {{api_key}} may be used in templates');
   return errors;
 }
 
-function renderTemplate(template, input, encode = encodeURIComponent) {
-  return template.replace(TEMPLATE_RE, (m, filters) => {
+// One pass over both variables, so a substituted value is never scanned again
+// (a searched-for "{{api_key}}" stays text and never becomes the key).
+const VARIABLE_RE = /\{\{\s*(?:input((?:\s*\|\s*[a-z0-9]+)*)|api_key)\s*\}\}/g;
+
+function renderTemplate(template, input, encode = encodeURIComponent, key = '') {
+  return template.replace(VARIABLE_RE, (m, filters) => {
+    if (filters === undefined) return encode(key || '');
     let v = input;
     filters.split('|').map((f) => f.trim()).filter(Boolean).forEach((f) => { v = FILTERS[f](v); });
     return encode(v);
@@ -126,7 +148,7 @@ const FORBIDDEN_HEADERS = ['host', 'cookie', 'authorization', 'content-length', 
 const authSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('none') }),
   z.object({
-    type: z.enum(['header', 'query', 'bearer']),
+    type: z.enum(['header', 'query', 'bearer', 'url']),
     name: z.string().max(64).optional(),
     prefix: z.string().max(32).optional(),
     optional: z.boolean().optional(),
@@ -155,6 +177,8 @@ const operationSchema = z.object({
   label: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   input: z.enum(INPUT_KINDS),
+  inputLabel: z.string().min(1).max(60).optional(),
+  osintTypes: z.array(z.string().min(1).max(100)).max(10).optional(),
   path: templateString(300).refine((p) => p.startsWith('/') && !p.includes('..'), 'path must start with / and not contain ..'),
   query: z.record(z.string().regex(/^[A-Za-z0-9_.[\]-]{1,64}$/), templateString(300)).optional(),
   cost: z.enum(['free', 'quota', 'paid']).optional(),
@@ -182,14 +206,14 @@ const manifestSchema = z.object({
   headers: z.record(headerName, z.string().max(300).regex(/^[^\r\n]*$/)).optional(),
   minIntervalMs: z.number().int().min(0).max(60000).optional(),
   timeoutMs: z.number().int().min(1000).max(60000).optional(),
-  test: z.object({ path: templateString(300).refine((p) => p.startsWith('/') && !p.includes('{{'), 'test path must be fixed') }).optional(),
+  test: z.object({ path: templateString(300).refine((p) => p.startsWith('/') && !hasInput(p), 'test path must be fixed') }).optional(),
   operations: z.array(operationSchema).min(1).max(20),
 }).superRefine((m, ctx) => {
   const u = (() => { try { return new URL(m.baseUrl); } catch { return null; } })();
   if (u && (u.search || u.hash || u.username || u.password)) {
     ctx.addIssue({ code: 'custom', path: ['baseUrl'], message: 'baseUrl must not contain a query, fragment or credentials' });
   }
-  if (m.auth.type !== 'none' && m.auth.type !== 'bearer' && !m.auth.name) {
+  if ((m.auth.type === 'header' || m.auth.type === 'query') && !m.auth.name) {
     ctx.addIssue({ code: 'custom', path: ['auth', 'name'], message: `auth.name is required for "${m.auth.type}" auth` });
   }
   if (m.auth.type === 'header' && m.auth.name && FORBIDDEN_HEADERS.includes(m.auth.name.toLowerCase())) {
@@ -201,10 +225,33 @@ const manifestSchema = z.object({
     }
   });
   const ids = new Set();
+  const usesKey = (op) => hasKey(op.path) || Object.values(op.query || {}).some(hasKey);
   m.operations.forEach((op, i) => {
     if (ids.has(op.id)) ctx.addIssue({ code: 'custom', path: ['operations', i, 'id'], message: `duplicate operation id "${op.id}"` });
     ids.add(op.id);
+    // "url" auth: the key goes exactly where {{api_key}} is, so every request
+    // needs one; any other auth sends the key itself and must not place it.
+    if (m.auth.type === 'url' && !usesKey(op)) {
+      ctx.addIssue({ code: 'custom', path: ['operations', i, 'path'], message: 'mark where the API key goes with {{api_key}}' });
+    }
+    if (m.auth.type !== 'url' && usesKey(op)) {
+      ctx.addIssue({ code: 'custom', path: ['operations', i, 'path'], message: '{{api_key}} needs "url" auth' });
+    }
+    if (op.input === 'none' && (hasInput(op.path) || Object.values(op.query || {}).some(hasInput))) {
+      ctx.addIssue({ code: 'custom', path: ['operations', i, 'path'], message: 'a search without input cannot use {{input}}' });
+    }
+    if (op.input === 'text' && !op.inputLabel) {
+      ctx.addIssue({ code: 'custom', path: ['operations', i, 'inputLabel'], message: 'name the search type (inputLabel)' });
+    }
   });
+  if (m.test) {
+    if (m.auth.type === 'url' && !hasKey(m.test.path)) {
+      ctx.addIssue({ code: 'custom', path: ['test', 'path'], message: 'mark where the API key goes with {{api_key}}' });
+    }
+    if (m.auth.type !== 'url' && hasKey(m.test.path)) {
+      ctx.addIssue({ code: 'custom', path: ['test', 'path'], message: '{{api_key}} needs "url" auth' });
+    }
+  }
 });
 
 // Returns { manifest } or { errors: [string] }.
@@ -225,12 +272,17 @@ const requiresKey = (manifest) => manifest.auth.type !== 'none' && !manifest.aut
 function buildRequest(manifest, { path, query }, input, secret) {
   const base = new URL(manifest.baseUrl);
   const basePath = base.pathname.replace(/\/$/, '');
-  const url = new URL(base.origin);
-  url.pathname = basePath + renderTemplate(path, input);
-  Object.entries(query || {}).forEach(([k, v]) => url.searchParams.set(k, renderTemplate(v, input, (s) => s)));
+  const inUrl = manifest.auth.type === 'url';
+  const assemble = (key) => {
+    const u = new URL(base.origin);
+    u.pathname = basePath + renderTemplate(path, input, encodeURIComponent, key);
+    Object.entries(query || {}).forEach(([k, v]) => u.searchParams.set(k, renderTemplate(v, input, (s) => s, key)));
+    return u;
+  };
+  const url = assemble(inUrl ? secret : '');
 
-  // The input is encoded, so it can't change the host; check anyway, and that
-  // the path didn't climb out of the base path.
+  // Input and key are encoded, so they can't change the host; check anyway,
+  // and that the path didn't climb out of the base path.
   if (url.origin !== base.origin || !url.pathname.startsWith(basePath || '/')) {
     throw new Error('Request would leave the integration\'s host');
   }
@@ -245,7 +297,10 @@ function buildRequest(manifest, { path, query }, input, secret) {
     throw new Error('This integration needs an API key');
   }
 
-  const redactedUrl = secret ? url.toString().split(encodeURIComponent(secret)).join('***').split(secret).join('***') : url.toString();
+  // A key placed in the URL is redacted by building the URL again with a
+  // stand-in, so no encoding difference can leave a piece of it visible.
+  let redactedUrl = (inUrl && secret ? assemble('***') : url).toString();
+  if (secret) redactedUrl = redactedUrl.split(encodeURIComponent(secret)).join('***').split(secret).join('***');
   return { url: url.toString(), redactedUrl, headers };
 }
 
@@ -332,6 +387,11 @@ function mapResults(results, json) {
   return { items, total, truncated: total > MAX_ITEMS };
 }
 
+// With no `test` in the manifest, a free search that needs no input checks
+// the connection instead.
+const connectionTestOperation = (manifest) =>
+  manifest.operations.find((op) => op.input === 'none' && (op.cost || 'free') === 'free') || null;
+
 // What the browser needs to know about an integration: never the request
 // details beyond the host.
 function publicSummary(manifest, source) {
@@ -349,9 +409,10 @@ function publicSummary(manifest, source) {
     auth: auth.type === 'none'
       ? { type: 'none', required: false }
       : { type: auth.type, required: !auth.optional, label: auth.label || null, help: auth.help || null, signupUrl: auth.signupUrl || null },
-    has_test: Boolean(manifest.test),
+    has_test: Boolean(manifest.test || connectionTestOperation(manifest)),
     operations: manifest.operations.map((op) => ({
       id: op.id, label: op.label, description: op.description || null, input: op.input, cost: op.cost || 'free',
+      ...(op.input === 'text' ? { input_label: op.inputLabel, osint_types: op.osintTypes || [] } : {}),
     })),
   };
 }
@@ -359,12 +420,14 @@ function publicSummary(manifest, source) {
 module.exports = {
   SCHEMA_ID,
   INPUT_KINDS,
+  IDENTIFIER_KINDS,
   normalizeInput,
   inputKindForOsint,
   renderTemplate,
   validateManifest,
   requiresKey,
   buildRequest,
+  connectionTestOperation,
   getPath,
   mapResults,
   publicSummary,

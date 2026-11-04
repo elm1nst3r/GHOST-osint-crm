@@ -4,12 +4,18 @@
 // ghost-integration/v1 manifest and back. Kept free of React so it's tested
 // directly; the server validates the result again before installing.
 
-export const slugify = (name) => String(name || '')
+// Only Latin letters and digits survive, so a Russian or Persian name comes
+// out empty and gets the fallback.
+export const slugify = (name, fallback = 'integration') => String(name || '')
   .toLowerCase()
   .normalize('NFKD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
-  .slice(0, 60) || 'integration';
+  .slice(0, 60) || fallback;
+
+export const KEY_PLACEHOLDER = '{{api_key}}';
+export const usesKeyPlaceholder = (op) =>
+  [op.path, ...Object.values(op.query || {})].some((v) => String(v || '').includes(KEY_PLACEHOLDER));
 
 // "first_name" → "First name", "DataClasses" → "Data classes"
 export const humanizeKey = (key) => {
@@ -23,30 +29,35 @@ export const humanizeKey = (key) => {
 const safeDecode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
 
 // From an example request copied out of an API's documentation, plus the
-// sample value used in it, work out the request template. A key passed in the
-// URL (for "key in the web address" auth) is removed, since GHOST adds it.
-// Returns { baseUrl, path, query, found, removedKey } or { error }.
-export function templateFromExample(exampleUrl, sample, { authType, authName } = {}) {
+// sample value used in it, work out the request template. A key passed as a
+// query parameter ("key in a query parameter" auth) is removed, since GHOST
+// adds it; for "key inside the web address" auth, the test key found in the
+// example is replaced with {{api_key}}, so it never ends up in the file.
+// Returns { baseUrl, path, query, found, removedKey, keyMarked } or { error }.
+export function templateFromExample(exampleUrl, sample, { authType, authName, secret } = {}) {
   let url;
   try { url = new URL(String(exampleUrl).trim()); } catch { return { error: 'notUrl' }; }
   if (url.protocol !== 'https:') return { error: 'notHttps' };
   const value = String(sample || '').trim();
+  const key = authType === 'url' ? String(secret || '').trim() : '';
 
   let found = false;
-  const segments = url.pathname.split('/').map((seg) => {
-    const decoded = safeDecode(seg);
-    if (value && decoded.includes(value)) { found = true; return decoded.split(value).join('{{input}}'); }
-    return decoded;
-  });
-  const path = segments.join('/') || '/';
+  let keyMarked = false;
+  const fill = (text) => {
+    let out = text;
+    if (key && out.includes(key)) { keyMarked = true; out = out.split(key).join(KEY_PLACEHOLDER); }
+    if (value && out.includes(value)) { found = true; out = out.split(value).join('{{input}}'); }
+    return out;
+  };
+  const path = url.pathname.split('/').map((seg) => fill(safeDecode(seg))).join('/') || '/';
 
   const query = {};
   let removedKey = false;
   for (const [k, v] of url.searchParams.entries()) {
     if (authType === 'query' && authName && k === authName) { removedKey = true; continue; }
-    if (value && v.includes(value)) { found = true; query[k] = v.split(value).join('{{input}}'); } else query[k] = v;
+    query[k] = fill(v);
   }
-  return { baseUrl: url.origin, path, query, found, removedKey };
+  return { baseUrl: url.origin, path, query, found, removedKey, keyMarked };
 }
 
 // The request as one readable line, e.g. https://api.x.com/v1/lookup?email={{input}}
@@ -114,7 +125,8 @@ export function parsePath(path) {
 // ── Manifest assembly ────────────────────────────────────────────────────────
 
 export const emptyOperation = () => ({
-  id: '', label: '', input: 'email', cost: 'free', path: '/', query: {}, root: undefined, fields: [], title: '', link: '',
+  id: '', label: '', input: 'email', inputLabel: '', osintTypes: [], cost: 'free', path: '/', query: {},
+  root: undefined, fields: [], title: '', link: '',
 });
 
 export const emptyState = () => ({
@@ -123,18 +135,34 @@ export const emptyState = () => ({
   operations: [emptyOperation()],
 });
 
-const opId = (op, i) => op.id || slugify(op.label || `search-${i + 1}`).slice(0, 40);
+// Search ids must be unique within the file. Existing ones are kept (findings
+// added to people record the search they came from); a new search's id comes
+// from its label, or is search-N when the label has no Latin letters. Before
+// this, two searches with Russian labels both became "integration", so a test
+// of the second ran the first and the file couldn't be installed (issue #96).
+export function operationIds(operations) {
+  const used = new Set(operations.map((op) => op.id).filter(Boolean));
+  return operations.map((op, i) => {
+    if (op.id) return op.id;
+    const base = slugify(op.label, '').slice(0, 36) || `search-${i + 1}`;
+    let id = base;
+    for (let n = 2; used.has(id); n += 1) id = `${base}-${n}`;
+    used.add(id);
+    return id;
+  });
+}
 
 export function buildManifest(state) {
   const auth = state.authType === 'none'
     ? { type: 'none' }
     : {
       type: state.authType,
-      ...(state.authType !== 'bearer' ? { name: state.authName.trim() } : {}),
+      ...(['header', 'query'].includes(state.authType) ? { name: state.authName.trim() } : {}),
       ...(state.authOptional ? { optional: true } : {}),
       ...(state.authLabel.trim() ? { label: state.authLabel.trim() } : {}),
       ...(state.signupUrl.trim() ? { signupUrl: state.signupUrl.trim() } : {}),
     };
+  const ids = operationIds(state.operations);
   const manifest = {
     schema: 'ghost-integration/v1',
     id: state.id || slugify(state.name),
@@ -148,9 +176,13 @@ export function buildManifest(state) {
     auth,
     minIntervalMs: 1000,
     operations: state.operations.map((op, i) => ({
-      id: opId(op, i),
+      id: ids[i],
       label: op.label.trim() || `Search ${i + 1}`,
       input: op.input,
+      ...(op.input === 'text' ? {
+        inputLabel: (op.inputLabel || '').trim(),
+        ...((op.osintTypes || []).length ? { osintTypes: op.osintTypes } : {}),
+      } : {}),
       cost: op.cost,
       path: op.path || '/',
       ...(Object.keys(op.query || {}).length ? { query: op.query } : {}),
@@ -180,6 +212,7 @@ export function stateFromManifest(m) {
     authLabel: auth.label || '', signupUrl: auth.signupUrl || '',
     operations: (m.operations || []).map((op) => ({
       id: op.id, label: op.label || '', input: op.input || 'email', cost: op.cost || 'free',
+      inputLabel: op.inputLabel || '', osintTypes: op.osintTypes || [],
       path: op.path || '/', query: op.query || {},
       root: op.results?.root ?? '', title: op.results?.title || '', link: op.results?.link || '',
       fields: (op.results?.fields || []).map((f) => ({ label: f.label, path: f.path, osintType: f.osintType || '', split: f.split || '' })),

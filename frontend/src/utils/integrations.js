@@ -33,19 +33,48 @@ export const kindsAccepting = (kind) => COMPATIBLE[kind] || [kind];
 export const runnableTools = (tools) =>
   (tools || []).filter((t) => t.kind === 'integration' && t.connection_status === 'connected' && t.integration);
 
-// Every (tool, operation) pair that accepts an input of this kind. Within one
-// tool an exact match wins: Wayback has both a URL and a domain search, and a
-// domain should run the domain one, not both.
-export function operationsFor(tools, kind) {
-  if (!kind) return [];
+// The identifier kinds. Two more exist (issue #96 feedback): 'text', a search
+// type the admin named (op.input_label), matched to a person's OSINT entries
+// by their type (op.osint_types); and 'none', a search without input.
+export const INPUT_KINDS = ['email', 'domain', 'ip', 'username', 'phone', 'url'];
+const isIdentifier = (op) => INPUT_KINDS.includes(op.input);
+const sameType = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+
+// Does this search take this input? An input is a person's OSINT entry
+// ({ type, value, kind }), a typed-in identifier ({ kind }) or a typed-in
+// value for a custom search type ({ custom: its name }).
+export function accepts(op, input) {
+  if (op.input === 'none') return false;
+  if (op.input === 'text') {
+    if (input.custom) return sameType(input.custom, op.input_label);
+    return Boolean(input.type) && (op.osint_types || []).some((t) => sameType(t, input.type));
+  }
+  return !input.custom && Boolean(input.kind) && kindsAccepting(input.kind).includes(op.input);
+}
+
+// Every (tool, operation) pair that accepts this input. Within one tool an
+// exact identifier match wins: Wayback has both a URL and a domain search, and
+// a domain should run the domain one, not both.
+export function operationsForInput(tools, input) {
   const out = [];
   for (const tool of runnableTools(tools)) {
     const ops = tool.integration.operations;
-    const exact = ops.filter((op) => op.input === kind);
-    const chosen = exact.length ? exact : ops.filter((op) => kindsAccepting(kind).includes(op.input));
-    chosen.forEach((op) => out.push({ tool, op }));
+    const identifierOps = ops.filter(isIdentifier);
+    const exact = input.kind && !input.custom ? identifierOps.filter((op) => op.input === input.kind) : [];
+    const chosen = exact.length ? exact : identifierOps.filter((op) => accepts(op, input));
+    [...chosen, ...ops.filter((op) => op.input === 'text' && accepts(op, input))].forEach((op) => out.push({ tool, op }));
   }
   return out;
 }
 
-export const INPUT_KINDS = ['email', 'domain', 'ip', 'username', 'phone', 'url'];
+export const operationsFor = (tools, kind) => (kind ? operationsForInput(tools, { kind }) : []);
+
+// Custom search types the tools offer, for typing a value in by hand.
+export const customSearchTypes = (tools) => [...new Set(runnableTools(tools)
+  .flatMap((tool) => tool.integration.operations)
+  .filter((op) => op.input === 'text' && op.input_label)
+  .map((op) => op.input_label))];
+
+// Searches that take no input (account balance, status).
+export const noInputOperations = (tools) => runnableTools(tools)
+  .flatMap((tool) => tool.integration.operations.filter((op) => op.input === 'none').map((op) => ({ tool, op })));

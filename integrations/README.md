@@ -63,9 +63,9 @@ GHOST validates every file when it's installed and again when it's used:
 - Requests to private, loopback and link-local addresses are refused (an
   operator can allow their own LAN with `INTEGRATIONS_ALLOW_PRIVATE=true`).
 - Redirects aren't followed, responses are size- and time-limited.
-- The only template variable is `{{input}}`, validated for its kind and URL
-  encoded. API keys are stored encrypted and never shown in results, errors
-  or logs.
+- The only template variables are `{{input}}`, validated for its kind, and
+  `{{api_key}}`; both are URL-encoded. API keys are stored encrypted and never
+  shown in results, errors or logs.
 
 ## Format
 
@@ -84,7 +84,7 @@ for complete examples.
   "terms": "https://example.com/terms",  // the provider's terms of use
   "baseUrl": "https://api.example.com/v1",
   "auth": {                              // or { "type": "none" }
-    "type": "header",                    // header | query | bearer
+    "type": "header",                    // header | query | bearer | url
     "name": "X-Api-Key",                 // header or query parameter name
     "optional": false,                   // true: works without a key
     "label": "Example API key",
@@ -93,12 +93,12 @@ for complete examples.
   "headers": { "User-Agent": "GHOST-OSINT-CRM" },   // optional, static
   "minIntervalMs": 1000,                 // pause between requests
   "timeoutMs": 15000,
-  "test": { "path": "/account" },        // optional connection test
+  "test": { "path": "/account" },        // optional connection test (see below)
   "operations": [
     {
       "id": "lookup",
       "label": "Look up an email",
-      "input": "email",                  // email | domain | ip | username | phone | url
+      "input": "email",                  // email | domain | ip | username | phone | url | text | none
       "cost": "quota",                   // free | quota | paid (shown before running)
       "path": "/lookup/{{input}}",       // filters: {{input|lower|sha256}} etc.
       "query": { "full": "true" },       // optional query parameters
@@ -127,6 +127,19 @@ for complete examples.
   Media, Username, IP Address…).
 - **Filters** for `{{input}}`: `lower`, `upper`, `trim`, `md5`, `sha1`,
   `sha256`, `digits`.
+- **Key inside the address** (`"auth": { "type": "url" }`): for services that
+  take the key as part of the URL, put `{{api_key}}` where it goes, e.g.
+  `"path": "/api/{{api_key}}/phone/{{input}}"`. Every operation (and `test`)
+  must contain it; no other auth type may use it.
+- **Custom search types** (`"input": "text"`): for identifiers GHOST has no
+  kind for. Name it with `"inputLabel": "Vehicle registration number"`, and
+  list the OSINT data types it can search from a person with
+  `"osintTypes": ["Vehicle"]`; without them it searches typed-in values only.
+  The value is trimmed and limited to 200 characters.
+- **No input** (`"input": "none"`): account balance, service status and the
+  like. The path can't use `{{input}}`; the search runs from the tool on the
+  Tools page. Without a `test`, the first free no-input operation is used as
+  the connection test.
 
 ## Contributing
 
