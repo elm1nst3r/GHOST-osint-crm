@@ -173,8 +173,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+// Personal API tokens (issue #90): "Authorization: Bearer ghost_…" signs a
+// request in as the token's owner. Runs first; such requests skip the
+// session store entirely.
+const { apiTokenAuth } = require('./middleware/apiToken');
+app.use(apiTokenAuth(pool));
+
 // Session configuration
-app.use(session({
+const sessionMiddleware = session({
   store: new pgSession({
     pool: pool,
     tableName: 'user_sessions',
@@ -189,7 +195,8 @@ app.use(session({
     sameSite: 'strict',
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
   }
-}));
+});
+app.use((req, res, next) => (req.apiToken ? next() : sessionMiddleware(req, res, next)));
 
 // Import audit logging middleware
 const { auditMiddleware } = require('./middleware/auditLog');
@@ -198,6 +205,7 @@ app.use(auditMiddleware);
 
 // Import and mount routes
 const authRoutes = require('./routes/auth');
+const accountRoutes = require('./routes/account');
 const usersRoutes = require('./routes/users');
 const auditLogsRoutes = require('./routes/auditLogs');
 const businessesRoutes = require('./routes/businesses');
@@ -240,6 +248,7 @@ if (process.env.API_DOCS_ENABLED !== 'false') {
 }
 
 app.use('/api/auth', authRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api/businesses', businessesRoutes);

@@ -1,7 +1,7 @@
 # File: frontend/Dockerfile
 
 # Stage 1: Build the React application
-FROM node:18-alpine AS build
+FROM node:22-alpine AS build
 
 # Install build dependencies that may be needed for native modules
 RUN apk add --no-cache python3 make g++

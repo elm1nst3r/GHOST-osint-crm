@@ -17,8 +17,10 @@ const {
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
   SettingsToolsSchema,
+  SettingsSecuritySchema,
 } = require('../middleware/schemas');
 const { ALLOW_USER_TOOLS_KEY, allowUserTools } = require('../utils/toolAccess');
+const { MFA_REQUIRED_KEY, mfaRequiredByPolicy, setMfaRequired, mfaState } = require('../services/accountSecurity');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -222,6 +224,37 @@ router.put('/tools', requireAdmin, validate(SettingsToolsSchema), async (req, re
   } catch (err) {
     console.error('Error saving tools policy:', err);
     res.status(500).json({ error: 'Failed to save tools settings' });
+  }
+});
+
+// ── Sign-in security (issue #90) ─────────────────────────────────────────────
+// "Require two-factor": users without it are held at the setup screen from
+// their next sign-in. The admin turning it on must have two-factor already,
+// so the setting can't take effect on them by surprise.
+router.get('/security', requireAdmin, async (req, res) => {
+  try {
+    res.json({ mfa_required: await mfaRequiredByPolicy(pool) });
+  } catch (err) {
+    console.error('Error fetching security settings:', err);
+    res.status(500).json({ error: 'Failed to fetch security settings' });
+  }
+});
+
+router.put('/security', requireAdmin, validate(SettingsSecuritySchema), async (req, res) => {
+  const { mfa_required } = req.body;
+  try {
+    if (mfa_required && !(await mfaState(pool, req.session.userId)).enabled) {
+      return res.status(400).json({
+        error: 'Set up two-factor authentication for your own account first.',
+        code: 'mfa_not_enabled',
+      });
+    }
+    await setMfaRequired(pool, mfa_required);
+    await req.audit.log('settings', 0, 'update', MFA_REQUIRED_KEY, null, String(mfa_required));
+    res.json({ mfa_required });
+  } catch (err) {
+    console.error('Error saving security settings:', err);
+    res.status(500).json({ error: 'Failed to save security settings' });
   }
 });
 

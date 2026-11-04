@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, Plus, Edit2, Trash2, Shield, User, Check, X, AlertCircle } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Shield, User, Check, X, AlertCircle, ShieldCheck, ShieldOff } from 'lucide-react';
 import { usersAPI } from '../utils/authAPI';
+import { useAuth } from '../contexts/AuthContext';
+
+// "App", "2 passkeys", "App + 1 passkey" (issue #90).
+const twoFactorLabel = (t, tf) => {
+  const parts = [];
+  if (tf.totp) parts.push(t('settings.users.twoFactorApp'));
+  if (tf.passkeys) parts.push(t('settings.users.twoFactorPasskeys', { count: tf.passkeys }));
+  return parts.join(' + ');
+};
 
 const UserManagement = () => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -96,6 +106,19 @@ const UserManagement = () => {
 
     try {
       await usersAPI.delete(id);
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleResetTwoFactor = async (user) => {
+    if (!window.confirm(t('settings.users.confirmResetTwoFactor', { username: user.username }))) {
+      return;
+    }
+
+    try {
+      await usersAPI.resetTwoFactor(user.id);
       await loadUsers();
     } catch (err) {
       setError(err.message);
@@ -316,6 +339,9 @@ const UserManagement = () => {
                 {t('settings.users.columnStatus')}
               </th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                {t('settings.users.columnTwoFactor')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {t('settings.users.columnLastLogin')}
               </th>
               <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -368,10 +394,29 @@ const UserManagement = () => {
                     {user.is_active ? t('settings.users.statusActive') : t('settings.users.statusInactive')}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {user.two_factor?.enabled ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <ShieldCheck className="h-3 w-3" />{twoFactorLabel(t, user.two_factor)}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.users.twoFactorOff')}</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {user.last_login ? new Date(user.last_login).toLocaleDateString() : t('settings.users.never')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                  {user.two_factor?.enabled && user.id !== currentUser?.id && (
+                    <button
+                      onClick={() => handleResetTwoFactor(user)}
+                      title={t('settings.users.resetTwoFactor')}
+                      aria-label={t('settings.users.resetTwoFactor')}
+                      className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 me-4"
+                    >
+                      <ShieldOff className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => startEdit(user)}
                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 me-4"

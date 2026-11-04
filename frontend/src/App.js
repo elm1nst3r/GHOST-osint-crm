@@ -52,6 +52,7 @@ import BusinessDetailModal from './components/BusinessDetailModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Scratchpad from './components/scratchpad/Scratchpad';
 import Login from './components/Login';
+import TwoFactorSetupGate from './components/TwoFactorSetupGate';
 
 // Fix default Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -82,7 +83,7 @@ const navigationItemIds = [
 
 const AppShell = () => {
   const { t, i18n } = useTranslation();
-  const { authenticated, currentUser, authLoading, handleLogin, handleLogout } = useAuth();
+  const { authenticated, currentUser, authLoading, mfaSetupRequired, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
   const { refetchProjects } = useProject();
   const {
@@ -210,7 +211,7 @@ const AppShell = () => {
   }
 
   if (!authenticated) {
-    return <Login onLogin={handleLogin} />;
+    return mfaSetupRequired ? <TwoFactorSetupGate /> : <Login onLogin={handleLogin} />;
   }
 
   return (

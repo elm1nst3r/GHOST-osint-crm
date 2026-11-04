@@ -101,8 +101,20 @@ describe('openapiSpec', () => {
     });
   });
 
-  test('login endpoint is public, everything else defaults to cookieAuth', () => {
+  test('login endpoint is public, everything else takes the session cookie or an API token', () => {
     expect(spec.paths['/auth/login'].post.security).toEqual([]);
-    expect(spec.security).toEqual([{ cookieAuth: [] }]);
+    expect(spec.paths['/auth/mfa/verify'].post.security).toEqual([]);
+    expect(spec.security).toEqual([{ cookieAuth: [] }, { bearerAuth: [] }]);
+  });
+
+  test('account security and two-factor endpoints are never MCP tools', () => {
+    const securityPaths = Object.entries(spec.paths)
+      .filter(([p]) => p.startsWith('/account/') || p.startsWith('/auth/mfa') || p.endsWith('/two-factor') || p === '/settings/security');
+    expect(securityPaths.length).toBeGreaterThan(10);
+    for (const [p, ops] of securityPaths) {
+      for (const [method, operation] of Object.entries(ops)) {
+        expect([`${method} ${p}`, operation['x-mcp-exclude']]).toEqual([`${method} ${p}`, true]);
+      }
+    }
   });
 });

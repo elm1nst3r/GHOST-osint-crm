@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.25.0",
+  "version": "2.26.0",
   "main": "server.js",
   "scripts": {
     "test": "jest --forceExit",
@@ -9,26 +9,32 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "@simplewebauthn/server": "^14.0.3",
+    "bcryptjs": "^3.0.3",
     "connect-pg-simple": "^10.0.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
     "express-rate-limit": "^7.5.1",
-    "express-session": "^1.18.2",
+    "express-session": "^1.19.0",
     "knex": "^3.3.0",
-    "multer": "^1.4.5-lts.2",
-    "node-fetch": "^2.6.7",
-    "pg": "^8.16.0",
-    "swagger-ui-dist": "^5.33.1",
+    "multer": "^2.5.0",
+    "node-fetch": "^2.7.0",
+    "otpauth": "^9.6.0",
+    "pg": "^8.23.1",
+    "qrcode": "^1.5.4",
+    "swagger-ui-dist": "^5.34.1",
     "xml2js": "^0.6.2",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "scarfSettings": {
     "enabled": false
   },
   "description": "",
   "devDependencies": {
-    "jest": "^30.4.2"
+    "jest": "^30.5.2"
   }
 }

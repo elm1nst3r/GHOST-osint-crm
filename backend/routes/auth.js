@@ -4,14 +4,40 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { loginLimiter, apiLimiter } = require('../middleware/rateLimiters');
+const { loginLimiter, apiLimiter, mfaLimiter } = require('../middleware/rateLimiters');
+const { validate, MfaVerifySchema, PasskeySignInSchema } = require('../middleware/schemas');
 const { validatePasswordStrength } = require('../utils/passwordPolicy');
-const { revokeSessionsForUser } = require('../utils/sessions');
+const { revokeSessionsForUser, regenerateSession, saveSession, establishSession } = require('../utils/sessions');
+const { PENDING_MFA_TTL_MS } = require('../utils/twoFactor');
+const security = require('../services/accountSecurity');
+const passkeys = require('../services/passkeys');
 
 // /login carries its own stricter loginLimiter; everything else (in
 // particular /me, which lets a session re-check current_password before
 // changing it) still needs the general limiter so it can't be hammered.
 router.use(apiLimiter);
+
+const publicUser = (user) => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  first_name: user.first_name,
+  last_name: user.last_name,
+  role: user.role,
+  // Per-user overrides of the global defaults (issue #91). NULL means
+  // "no override" — the frontend falls back to /settings/branding.
+  language: user.language,
+  theme_mode: user.theme_mode
+});
+
+// The user is fully signed in from here: last login, session, response.
+async function finishLogin(req, res, user) {
+  const mfaSetupRequired = !(await security.mfaState(pool, user.id)).enabled
+    && await security.mfaRequiredByPolicy(pool);
+  await pool.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+  await establishSession(req, user, { mfaSetupRequired });
+  res.json({ success: true, user: publicUser(user), mfa_setup_required: mfaSetupRequired });
+}
 
 // Login — regenerate session ID on successful auth to prevent session fixation
 router.post('/login', loginLimiter, async (req, res) => {
@@ -41,49 +67,116 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Update last login timestamp
-    await pool.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
-      [user.id]
-    );
+    // Two-factor (issue #90): the password was right, but the session only
+    // remembers that it's waiting for the second step. It has no userId, so
+    // requireAuth treats it as signed out until /auth/mfa/verify.
+    const mfa = await security.mfaState(pool, user.id);
+    if (mfa.enabled) {
+      await regenerateSession(req);
+      req.session.pendingMfa = { userId: user.id, at: Date.now(), failures: 0 };
+      await saveSession(req);
+      const usable = await passkeys.usablePasskeys(req, pool, user.id);
+      return res.json({
+        mfa_required: true,
+        methods: { totp: mfa.totp, passkey: usable.length > 0, recovery_code: true },
+      });
+    }
 
-    // Regenerate session ID before setting any authenticated fields
-    // — prevents session fixation (issue #29)
-    await new Promise((resolve, reject) => {
-      req.session.regenerate(err => err ? reject(err) : resolve());
-    });
-
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.userRole = user.role;
-
-    await new Promise((resolve, reject) => {
-      req.session.save(err => err ? reject(err) : resolve());
-    });
-
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role,
-        // Per-user overrides of the global defaults (issue #91). NULL means
-        // "no override" — the frontend falls back to /settings/branding.
-        language: user.language,
-        theme_mode: user.theme_mode
-      }
-    });
+    await finishLogin(req, res, user);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Logout
-router.post('/logout', requireAuth, (req, res) => {
+// ── Second sign-in step (issue #90) ──────────────────────────────────────────
+
+// The user waiting for their second step, or null (and the reply sent).
+async function pendingUser(req, res) {
+  const pending = req.session?.pendingMfa;
+  if (!pending || Date.now() - pending.at > PENDING_MFA_TTL_MS) {
+    if (pending) delete req.session.pendingMfa;
+    res.status(401).json({ error: 'Sign-in expired. Enter your password again.', code: 'mfa_expired' });
+    return null;
+  }
+  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1 AND is_active = true', [pending.userId]);
+  if (!rows[0]) {
+    delete req.session.pendingMfa;
+    res.status(401).json({ error: 'Sign-in expired. Enter your password again.', code: 'mfa_expired' });
+    return null;
+  }
+  return rows[0];
+}
+
+// Five wrong codes and the password has to be entered again, which brings
+// the login limiter back into play.
+const MAX_MFA_FAILURES = 5;
+async function mfaFailed(req, res, message) {
+  const pending = req.session.pendingMfa;
+  pending.failures = (pending.failures || 0) + 1;
+  if (pending.failures >= MAX_MFA_FAILURES) {
+    delete req.session.pendingMfa;
+    await saveSession(req);
+    return res.status(401).json({ error: 'Too many wrong codes. Enter your password again.', code: 'mfa_expired' });
+  }
+  await saveSession(req);
+  return res.status(401).json({ error: message, code: 'mfa_invalid' });
+}
+
+router.post('/mfa/verify', mfaLimiter, validate(MfaVerifySchema), async (req, res) => {
+  try {
+    const user = await pendingUser(req, res);
+    if (!user) return;
+    const { code, recovery_code } = req.body;
+    if (code) {
+      if (!(await security.verifyTotp(pool, user.id, code))) return mfaFailed(req, res, 'That code is not valid. Check the time on your device and try again.');
+    } else {
+      if (!(await security.consumeRecoveryCode(pool, user.id, recovery_code))) return mfaFailed(req, res, 'That recovery code is not valid or was already used.');
+    }
+    await finishLogin(req, res, user);
+    // Logged after finishLogin so the entry carries the signed-in user.
+    if (recovery_code) await req.audit.log('user', user.id, 'update', 'two_factor', null, 'recovery_code_used');
+  } catch (error) {
+    console.error('Two-factor verify error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/mfa/passkey/options', mfaLimiter, async (req, res) => {
+  try {
+    const user = await pendingUser(req, res);
+    if (!user) return;
+    const options = await passkeys.authenticationOptions(req, pool, user.id);
+    await saveSession(req);
+    res.json(options);
+  } catch (error) {
+    if (error instanceof passkeys.PasskeyError) return res.status(400).json({ error: error.message, code: error.code });
+    console.error('Passkey options error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/mfa/passkey/verify', mfaLimiter, validate(PasskeySignInSchema), async (req, res) => {
+  try {
+    const user = await pendingUser(req, res);
+    if (!user) return;
+    try {
+      await passkeys.verifyAuthentication(req, pool, user.id, req.body.response);
+    } catch (error) {
+      if (error instanceof passkeys.PasskeyError) return mfaFailed(req, res, error.message);
+      throw error;
+    }
+    await finishLogin(req, res, user);
+  } catch (error) {
+    console.error('Passkey verify error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Logout. No requireAuth: it also ends a sign-in that is waiting for its
+// second step, or for two-factor setup (issue #90).
+router.post('/logout', (req, res) => {
+  if (!req.session) return res.json({ success: true });
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
@@ -117,6 +210,9 @@ router.get('/session', async (req, res) => {
 
   res.json({
     authenticated: true,
+    // "Require two-factor" is on and this account has none yet: the app shows
+    // only the setup screen until it's done (issue #90).
+    mfa_setup_required: Boolean(req.session.mfaSetupRequired),
     user: {
       id: req.session.userId,
       username: req.session.username,
@@ -168,6 +264,9 @@ router.put('/me', requireAuth, async (req, res) => {
 
     // If changing password, validate and enforce policy
     if (new_password) {
+      if (req.apiToken) {
+        return res.status(403).json({ error: 'The password cannot be changed with an API token', code: 'session_required' });
+      }
       if (!current_password) {
         return res.status(400).json({ error: 'Current password is required to set a new password' });
       }

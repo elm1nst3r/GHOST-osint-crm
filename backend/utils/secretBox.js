@@ -1,6 +1,7 @@
 // File: backend/utils/secretBox.js
 //
-// Encryption for integration API keys (issue #96).
+// Encryption for integration API keys (issue #96) and authenticator-app
+// secrets (issue #90).
 //
 // At rest: keys in tool_credentials are encrypted with AES-256-GCM under a key
 // derived from SECRETS_KEY, or SESSION_SECRET when that isn't set. A database

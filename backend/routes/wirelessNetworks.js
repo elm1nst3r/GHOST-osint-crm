@@ -139,10 +139,16 @@ router.post('/bulk-delete', requireAdmin, async (req, res) => {
 // POST /import-kml — import WiGLE KML file
 // KML upload multer instance — bounded by KML_MAX_BYTES env var (default 5 MB).
 // For very large WiGLE exports consider switching to disk storage + streaming XML parsing.
+// A value that isn't a positive whole number falls back to the default:
+// multer 2 refuses to start with a NaN limit (multer 1 silently ignored it).
+const KML_MAX_BYTES = (() => {
+  const n = parseInt(process.env.KML_MAX_BYTES || '', 10);
+  return Number.isInteger(n) && n > 0 ? n : 5 * 1024 * 1024;
+})();
 const kmlUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: parseInt(process.env.KML_MAX_BYTES || String(5 * 1024 * 1024), 10),
+    fileSize: KML_MAX_BYTES,
     files: 1,
   },
 });
@@ -150,8 +156,7 @@ const kmlUpload = multer({
 router.post('/import-kml', requireAuth, (req, res, next) => {
   kmlUpload.single('kmlFile')(req, res, (err) => {
     if (err && err.code === 'LIMIT_FILE_SIZE') {
-      const limitBytes = parseInt(process.env.KML_MAX_BYTES || String(5 * 1024 * 1024), 10);
-      return res.status(413).json({ error: 'KML file exceeds size limit', limit_bytes: limitBytes });
+      return res.status(413).json({ error: 'KML file exceeds size limit', limit_bytes: KML_MAX_BYTES });
     }
     if (err) return res.status(400).json({ error: err.message });
     next();

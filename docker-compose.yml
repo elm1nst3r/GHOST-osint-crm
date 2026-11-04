@@ -53,6 +53,7 @@ services:
       DB_PORT: ${DB_PORT:-5432}
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      PASSKEY_ORIGINS: ${PASSKEY_ORIGINS:-}
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
       FILES_DIR: /usr/src/app/data/files
       FILES_MAX_BYTES: ${FILES_MAX_BYTES:-52428800}

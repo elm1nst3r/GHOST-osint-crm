@@ -7,6 +7,7 @@ import AppearanceTab from './settings/AppearanceTab';
 import DataModelTab from './settings/DataModelTab';
 import ImportExportTab from './settings/ImportExportTab';
 import ProfileTab from './settings/ProfileTab';
+import SecurityTab from './settings/SecurityTab';
 import UserManagement from './UserManagement';
 import AuditLogs from './AuditLogs';
 import ToolsSettingsTab from './settings/ToolsSettingsTab';
@@ -20,6 +21,7 @@ const SettingsPage = () => {
     { id: 'general',        label: t('settings.tabs.general') },
     { id: 'appearance',     label: t('settings.tabs.appearance') },
     { id: 'profile',        label: t('settings.tabs.profile') },
+    { id: 'security',       label: t('settings.tabs.security') },
     { id: 'data-model',     label: t('settings.tabs.dataModel') },
     { id: 'import-export',  label: t('settings.tabs.importExport') },
     ...(currentUser?.role === 'admin' ? [
@@ -58,6 +60,7 @@ const SettingsPage = () => {
           {activeTab === 'general'       && <GeneralTab />}
           {activeTab === 'appearance'    && <AppearanceTab />}
           {activeTab === 'profile'       && <ProfileTab />}
+          {activeTab === 'security'      && <SecurityTab />}
           {activeTab === 'data-model'    && <DataModelTab />}
           {activeTab === 'import-export' && <ImportExportTab />}
           {activeTab === 'tools'         && currentUser?.role === 'admin' && <ToolsSettingsTab />}

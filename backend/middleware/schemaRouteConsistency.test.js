@@ -61,8 +61,11 @@ const ROUTE_SCHEMAS = {
     S.SettingsUpdateCheckSchema,
     S.SettingsProjectRetentionSchema,
     S.SettingsBrandingUpdateSchema,
-    S.SettingsToolsSchema
+    S.SettingsToolsSchema,
+    S.SettingsSecuritySchema
   ),
+  'auth.js': shape(S.MfaVerifySchema, S.PasskeySignInSchema),
+  'account.js': shape(S.TotpEnableSchema, S.PasswordConfirmSchema, S.PasskeyCreateSchema, S.ApiTokenCreateSchema),
 };
 
 // Identifiers that match the extraction patterns but are not body fields.
@@ -74,6 +77,10 @@ const ALLOWLIST = {
   // middleware, so the strip-then-wipe hazard this guard exists for can't
   // apply — there's no schema to declare it in.
   'projects.js': new Set(['confirm_name']),
+  // POST /auth/login and PUT /auth/me read their bodies without validate(),
+  // so nothing is stripped there; only the two-factor routes use schemas.
+  'auth.js': new Set(['username', 'password', 'email', 'first_name', 'last_name', 'current_password',
+    'new_password', 'language', 'theme_mode']),
 };
 
 // Nested body objects: parent must be in the route schema, and every child
