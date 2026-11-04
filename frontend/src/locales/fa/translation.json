@@ -2347,7 +2347,11 @@
     "viewDefinition": "مشاهده تعریف",
     "manifestTitle": "نصب: {{id}}",
     "usedByCount_one": "از ابزار {{count}} استفاده می‌شود",
-    "usedByCount_other": "از {{count}} ابزار استفاده می‌شود"
+    "usedByCount_other": "از {{count}} ابزار استفاده می‌شود",
+    "kind_text": "Custom",
+    "kind_none": "No input",
+    "noInputTag": "no input",
+    "noInputOnly": "This tool's searches need no input."
   },
   "builder": {
     "title": "ساخت یک ادغام",
@@ -2456,7 +2460,20 @@
     "buildNewLink": "در لیست نیست؟ یک یکپارچه‌سازی جدید بسازید",
     "editInBuilder": "ویرایشگر را ویرایش کنید",
     "copyInBuilder": "به عنوان نقطه شروع در سازنده استفاده کنید",
-    "installedNextStep": "{{name}} نصب شد. ابزاری که از آن استفاده می‌شود را در صفحه ابزارها اضافه کنید."
+    "installedNextStep": "{{name}} نصب شد. ابزاری که از آن استفاده می‌شود را در صفحه ابزارها اضافه کنید.",
+    "auth_url": "Key in the address path",
+    "authUrlHelp": "For services that take the key inside the address itself, such as /api/your-key/lookup. Put {{keyMark}} where the key goes; GHOST fills in the stored key and keeps it out of the file and the logs.",
+    "exampleKeyMarked": "Your test key was found in the example and replaced with {{keyMark}}.",
+    "exampleApplied": "Request taken from the example.",
+    "keyPlaceholderMissing": "Mark where the API key goes by putting {{keyMark}} in the request below.",
+    "keyPlaceholderHint": "Put {{keyMark}} where the API key goes.",
+    "needKeyPlaceholder": "Every search needs {{keyMark}} where the key goes.",
+    "needInputLabel": "Name each custom search type.",
+    "inputCustomName": "Name of this search type",
+    "inputCustomNamePlaceholder": "e.g. Vehicle registration number",
+    "inputCustomTypes": "Search button on these person entries",
+    "inputCustomTypesHint": "Entries of these OSINT data types get a search button for it. With none ticked, it searches typed-in values only.",
+    "inputNoneHelp": "Sends no value, for things like account balance or service status. It runs from the tool on the Tools page, and checks the connection when the key is tested."
   },
   "scratchpad": {
     "title": "دفترچه یادداشت",
