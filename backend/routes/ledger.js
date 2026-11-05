@@ -97,7 +97,7 @@ async function currentHoldings(entityKind, id) {
        ORDER BY tx.occurred_on DESC NULLS LAST, tx.id DESC LIMIT 1
      ) lt ON true
      WHERE lt.holder_id = $1
-     ORDER BY a.name ASC`, [id]);
+     ORDER BY a.name ASC, a.id ASC`, [id]);
   return result.rows.map(r => ({ id: r.id, name: r.name, since: r.since }));
 }
 

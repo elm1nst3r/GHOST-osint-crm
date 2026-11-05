@@ -133,7 +133,7 @@ async function passkeysFor(db, userId) {
   const { rows } = await db.query(
     `SELECT id, credential_id, public_key, counter, transports, rp_id, device_type, backed_up,
             name, created_at, last_used_at
-       FROM user_passkeys WHERE user_id = $1 ORDER BY created_at`,
+       FROM user_passkeys WHERE user_id = $1 ORDER BY created_at, id`,
     [userId]
   );
   return rows;
@@ -162,7 +162,7 @@ const publicToken = (t) => ({
 async function tokensFor(db, userId) {
   const { rows } = await db.query(
     `SELECT id, name, token_hint, expires_at, last_used_at, created_at
-       FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC`,
+       FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC, id DESC`,
     [userId]
   );
   return rows.map(publicToken);

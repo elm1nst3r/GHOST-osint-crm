@@ -96,7 +96,7 @@ router.put('/branding', requireAdmin, validate(SettingsBrandingUpdateSchema), as
 // Creating/editing/deleting definitions stays admin-only.
 router.get('/custom-fields', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM custom_person_fields ORDER BY field_label ASC');
+    const result = await pool.query('SELECT * FROM custom_person_fields ORDER BY field_label ASC, id ASC');
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching custom fields definitions:', err.message, err.stack);
@@ -357,7 +357,7 @@ router.put('/geocoding', requireAdmin, validate(SettingsGeocodingUpdateSchema), 
 // Model options
 router.get('/model-options', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM model_options ORDER BY model_type, display_order ASC');
+    const result = await pool.query('SELECT * FROM model_options ORDER BY model_type, display_order ASC, id ASC');
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching model options:', err);

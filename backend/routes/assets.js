@@ -118,7 +118,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const dataResult = await pool.query(
       `SELECT a.*, ${HOLDER_COLS} FROM assets a ${HOLDER_JOIN} ${whereSql}
-       ORDER BY a.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+       ORDER BY a.created_at DESC, a.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset]
     );
     const countResult = await pool.query(

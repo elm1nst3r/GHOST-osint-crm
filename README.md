@@ -4,11 +4,25 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.27.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
 > *"Because Excel sheets are for accountants, not investigators"*
+
+> ## 🎉 GHOST 3.0 is here!
+>
+> The biggest update yet: GHOST has been rebuilt on a modern foundation, and you'll feel it from the first click.
+>
+> - ⚡ **Faster.** The app now downloads about a quarter of what it used to on first load; maps, graphs and reports load the moment you open them, and only your language is downloaded.
+> - 🧭 **Remembers where you were.** Switch sections and come back to the same search, filters, tabs and scroll position.
+> - 📱 **Better on phones and tablets.** Long lists fit their content, and row actions are always within reach on touch screens.
+> - 🛡️ **Safer by design.** A strict content security policy, hardened headers, no third-party CDN requests, and rate limits that survive restarts.
+> - 🌍 **Your language, your formats.** Dates and numbers follow the language you choose, and Russian counts read correctly.
+> - 🍏 **Runs on ARM.** Ready-made images for Apple Silicon Macs, Raspberry Pis and ARM servers.
+> - 🧪 **Tested like never before.** Component tests in a real browser, and screenshot checks of every screen in light, dark, left-to-right and right-to-left.
+>
+> Under the hood: React 19 with the React Compiler, Vite, Tailwind CSS 4, React Router 8, i18next 26 and Node.js 26. Upgrading from 2.x? Read the **[3.0 upgrade notes](#upgrading-to-30)** first — it takes a minute and covers the few things that changed for operators.
 
 A full-stack, self-hosted OSINT investigation management system with a modern interface — built for individual investigators, researchers, and hobbyists who want structured case management without spreadsheets. See [Project Status](#-project-status) below for maintenance posture and intended use.
 
@@ -36,7 +50,7 @@ If this project is ever shelved, this section will be updated and the repository
 - **Advanced search**: Multi-parameter search with filters
 
 ### 🔗 Entity Network Visualization
-- **Interactive relationship diagrams**: Visual network mapping with ReactFlow
+- **Interactive relationship diagrams**: Visual network mapping with React Flow
 - **Multi-entity support**: People, businesses, locations, phones, emails
 - **Connection types**: Family, Business, Criminal, Social, Known Associates
 - **Drag-and-drop interface**: Intuitive node manipulation
@@ -171,7 +185,7 @@ administrator can change their own membership. Full details in
 ### 🌓 Modern UI/UX
 - **Solid backgrounds**: Professional, readable interface with proper contrast
 - **Dark mode**: Full dark mode support with optimized text readability
-- **Responsive layout**: Works on desktop and tablet
+- **Responsive layout**: Works on desktop, tablet and phone
 - **Right-to-left languages**: Persian, Arabic and other RTL languages get a fully mirrored interface
 - **Professional colorway**: Business-appropriate aesthetics
 - **Smooth animations**: Apple-inspired interactions
@@ -246,8 +260,9 @@ docker compose pull           # fetch the new images
 docker compose up -d          # restart onto them
 ```
 
-If you build from source (required on ARM), replace the last two lines with
-`docker compose up --build -d`.
+If you build from source, replace the last two lines with
+`docker compose up --build -d`. Published images run on both amd64 and arm64
+(Apple Silicon, Raspberry Pi, ARM servers) since 3.0.
 
 Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in Docker volumes and is not touched.
@@ -265,10 +280,39 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=2.27.0
+GHOST_VERSION=3.0.0
 ```
 
 Without it, the containers track the latest release.
+
+### Upgrading to 3.0
+
+3.0 is a big step for the app itself, but your data and setup carry over:
+`git pull`, `docker compose pull`, `docker compose up -d`, as always. **Back up
+first** (database and the `files_data` volume). The database stays on
+PostgreSQL 15; nothing about it changes in 3.0. Things worth knowing:
+
+- **The backend port 3001 listens on the server itself only** (since 2.27).
+  The app and API are reached through port 8080 (`/api`). If something
+  connects to `:3001` from another machine — the MCP server, a script, a
+  reverse proxy on another host — point it at `http://<host>:8080/api`, or
+  set `BACKEND_BIND=0.0.0.0` in `.env` (see the comment in
+  `docker-compose.yml` first).
+- **HSTS behind HTTPS.** When your proxy reports HTTPS
+  (`X-Forwarded-Proto: https`), GHOST tells browsers to use HTTPS only, for a
+  year. Don't move such an instance back to plain HTTP.
+- **Strict content security policy.** GHOST can no longer be embedded in a
+  frame, proxies or portals can't inject scripts into it, the frontend talks
+  only to its own server, and profile pictures load only from `https://`
+  links.
+- **Browsers from 2023 or newer**: Chrome/Edge 111+, Firefox 128+,
+  Safari 16.4+.
+- **Login lockouts survive restarts** (rate limits are stored in the
+  database since 2.27).
+- **Building from source**: Node.js 22+ (26 recommended); the frontend dev
+  server is `npm run dev`, and `REACT_APP_API_URL` is now `VITE_API_URL`.
+
+Everything else that changed is in [CHANGELOG.md](CHANGELOG.md).
 
 **Turning off the update check.** It's on by default so you hear about fixes,
 but it can be switched off completely in **Settings → General → Updates**. When
@@ -282,6 +326,7 @@ run an isolated or air-gapped instance.
   - Node.js 22+ (26 recommended)
   - PostgreSQL 15+
   - npm or yarn
+- **Browser:** Chrome/Edge 111+, Firefox 128+ or Safari 16.4+ (2023 or newer)
 
 ## 🔧 Manual Setup
 
@@ -289,9 +334,14 @@ run an isolated or air-gapped instance.
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
-Frontend runs on `http://localhost:3000`
+Frontend runs on `http://localhost:3000` (Vite dev server; `/api` is forwarded
+to the backend on port 3001, or to `GHOST_BACKEND_URL` if set).
+
+Checks: `npm run lint`, `npm test` (unit tests) and `npm run test:browser`
+(component tests in Chromium; run `npx playwright install chromium` once).
+`npm run build` writes the production files to `build/`.
 
 ### Backend
 ```bash
@@ -329,7 +379,7 @@ Make sure the DB role configured in `.env` owns the database (or the
 
 ```
 GHOST-osint-crm/
-├── frontend/                    # React frontend
+├── frontend/                    # React 19 frontend (Vite, Tailwind CSS 4)
 │   ├── src/
 │   │   ├── components/          # React components
 │   │   │   ├── map/             # GlobalMap sub-components
@@ -342,11 +392,14 @@ GHOST-osint-crm/
 │   │   ├── contexts/            # AuthContext, DataContext, ProjectContext, UIContext
 │   │   ├── locales/             # Translation catalogs (en + Crowdin-managed languages)
 │   │   └── utils/               # API layer, report generators, constants
+│   ├── e2e/                     # Playwright screenshot and request checks (npm run test:e2e)
 │   ├── public/                  # Static assets
-│   └── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
+│   ├── vite.config.js           # Build, dev server and Vitest configuration
+│   ├── nginx.conf               # Nginx (no-cache on index.html, immutable JS/CSS)
+│   └── security-headers.conf    # Content-Security-Policy and other page headers
 ├── backend/                     # Node.js/Express API
 │   ├── server.js                # App entry point
-│   ├── routes/                  # 23 route modules (people, cases, projects, files, crypto wallets, assets, transactions, API docs…)
+│   ├── routes/                  # 26 route modules (people, cases, projects, files, crypto wallets, assets, transactions, API docs…)
 │   ├── middleware/              # Auth, audit, rate limiters, Zod schemas & validation
 │   ├── migrations/              # Knex schema migrations, applied automatically at startup
 │   ├── services/                # Geocoding providers, update check, archived-project retention
@@ -354,7 +407,7 @@ GHOST-osint-crm/
 │   ├── scripts/                 # Admin user creation, password reset, API catalogue build
 │   └── public/uploads/          # File uploads
 ├── mcp/                         # Bundled MCP server (~100 tools from the OpenAPI spec)
-├── .github/workflows/           # CI: backend tests, image publishing, API catalogue
+├── .github/workflows/           # CI: tests, multi-arch image publishing, API catalogue
 ├── crowdin.yml                  # Translation sync configuration
 ├── docker-compose.yml           # Docker configuration
 └── .env.example                 # Environment template
@@ -411,9 +464,10 @@ GHOST-osint-crm/
 - Database-level geocoding cache
 - Map marker clustering with `react-leaflet-cluster`
 - Paginated people endpoint (`?limit` / `?offset`, `X-Total-Count` / `X-Has-More` headers)
-- Virtualised lists via `react-window` — lists of 150+ items render only visible rows
+- Virtualised lists via `react-window` — lists of 150+ items render only visible rows, with measured row heights
+- Sections, dialogs and translations load on demand; the React Compiler memoises components at build time
 - 30-second fetch timeout on all API calls with `AbortController`
-- Leaflet marker icons cached once per map mount
+- Leaflet marker icons bundled with the app (no CDN request)
 
 ## 🔐 Security Considerations
 
@@ -508,14 +562,6 @@ The authors are not responsible for misuse of this software.
 
 **Common Issues:**
 
-### Issue: "Table 'users' does not exist"
-This has been fixed in v2.1.0. The users table is now created automatically.
-```bash
-# Rebuild containers to apply fix
-docker compose down -v
-docker compose up --build
-```
-
 ### Issue: Application won't start in production
 Check that you've set required environment variables:
 ```bash
@@ -535,11 +581,8 @@ Fix:
 - **Local / internal HTTP-only testing:** run with `NODE_ENV` set to something other than `production` (set `NODE_ENV=development` in `.env`) so the cookie is not marked `Secure`.
 
 ### Issue: `no matching manifest for linux/arm64` on `docker compose pull`
-The prebuilt images are `amd64` only. On Apple Silicon or other ARM hosts,
-build locally instead:
-```bash
-docker compose up --build -d
-```
+Images before 3.0 were `amd64` only. Update to 3.0 or newer (multi-arch), or
+build locally with `docker compose up --build -d`.
 
 ### Issue: Backend unhealthy — "The migration directory is corrupt"
 The backend image is older than the database: the database has migrations
@@ -547,19 +590,16 @@ applied that this image doesn't know about. This happens when an update
 didn't actually replace the image (for example a failed `docker compose
 pull`). Get the current image and restart:
 ```bash
-docker compose pull && docker compose up -d      # amd64
-docker compose up --build -d                     # ARM / building from source
+docker compose pull && docker compose up -d      # or: docker compose up --build -d
 ```
 Your data is not affected.
 
-### Issue: `/api/docs` loads as a blank page
-Fixed in v2.18.1 — update. If you run your own reverse proxy in front of an
-older version, it is routing `*.js` / `*.css` requests away from the backend.
-
-### Issue: Permission denied errors in Docker
-The backend now runs as non-root user (nodejs:1001). Ensure upload directories have correct permissions:
+### Issue: Permission denied errors in Docker (logo upload)
+The backend runs as a non-root user (uid 1001), and `backend/public` is a
+folder on the host. Give that user ownership instead of opening it to
+everyone:
 ```bash
-chmod -R 777 backend/public/uploads/
+sudo chown -R 1001:1001 backend/public/uploads/
 ```
 
 ### General Troubleshooting Steps:
@@ -579,7 +619,7 @@ chmod -R 777 backend/public/uploads/
 
 3. **Check health endpoint:**
    ```bash
-   curl http://localhost:3001/api/health
+   curl http://localhost:8080/api/health
    ```
 
 4. **Verify database connection:**
@@ -587,11 +627,12 @@ chmod -R 777 backend/public/uploads/
    docker exec osint-crm-db psql -U postgres -d osint_crm_db -c "SELECT COUNT(*) FROM users;"
    ```
 
-5. **Clean restart:**
+5. **Restart and rebuild** (keeps your data):
    ```bash
-   docker compose down -v  # WARNING: Deletes all data
-   docker compose up --build
+   docker compose up --build -d
    ```
+   Only on a test install you want to wipe: `docker compose down -v` deletes
+   **all** data, including uploaded files.
 
 6. **Check browser console** for frontend errors
 
@@ -608,18 +649,20 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- React 18 with Context API, React Router
-- Tailwind CSS (dark mode)
-- react-i18next (translations, synced with Crowdin)
-- Leaflet + react-leaflet-cluster (maps)
-- ReactFlow and D3 (diagrams, entity graph)
-- react-window (virtualised lists)
-- docx + file-saver (report export)
+- React 19 with the React Compiler, React Router 8
+- Vite 8 (build and dev server)
+- Tailwind CSS 4 (dark mode, right-to-left)
+- i18next 26 / react-i18next (translations, synced with Crowdin)
+- Leaflet + react-leaflet 5 (maps)
+- React Flow 12 and D3 (diagrams, entity graph)
+- react-window 2 (virtualised lists)
+- docx 9 + file-saver (report export)
 - papaparse (CSV parsing)
 - Lucide Icons
+- Vitest 5 (unit and in-browser component tests), Playwright (screenshot and end-to-end checks), ESLint 10
 
 **Backend:**
-- Node.js / Express 5
+- Node.js 26 / Express 5
 - PostgreSQL 15
 - Knex (schema migrations)
 - Zod (request validation + OpenAPI generation)
@@ -634,209 +677,29 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 **Infrastructure:**
 - Docker & Docker Compose
 - Nginx (reverse proxy, immutable asset caching)
-- GitHub Actions (backend tests, image publishing to GHCR, API catalogue on GitHub Pages)
+- GitHub Actions (tests, multi-arch image publishing to GHCR, API catalogue on GitHub Pages)
 
 ---
 
 ## 📋 Recent Changes
 
-### Version 2.27.0 (November 2026)
-- 🛡️ **Security headers, supported runtimes, sturdier rate limits** — Node.js 26 and nginx 1.30 images, no-framing / no-referrer / passkeys-only permissions headers, IPv6 clients counted per address block, rate limits that survive restarts, and the backend port published on localhost only
+### Version 3.0.0 (November 2026)
+- 🎉 **The technology upgrade** — React 19 with the React Compiler, Vite instead of Create React App, Tailwind CSS 4, React Router 8, React Flow 12, i18next 26 and docx 9
+- ⚡ **Faster and smoother** — sections, dialogs and translations load on demand, sections remember their filters and scroll position, long lists measure their rows (issue #64)
+- 🛡️ **Strict content security policy**, no CDN requests, and a session check that waits out a busy server instead of signing you out
+- 🌍 **Dates and numbers in your language**, correct Russian plurals, Crowdin asks for every plural form
+- 📱 **Touch-friendly row actions**, ARM images, and many fixes found by the new tests (stable list order for "Load more", correct ages, nothing loaded before a project is chosen)
 
-### Version 2.26.0 (November 2026)
-- 🔐 **Two-step verification** — authenticator app or passkey after the password, one-time recovery codes, admin reset, and an admin switch to require it for everyone; plus **personal API tokens** for scripts and the MCP server (MCP 1.3, `GHOST_API_TOKEN`) (issue #90)
-- ⬆️ **Node 22 and library updates** — Docker images move to Node 22, uploads to multer 2, and the backend and MCP server have no known vulnerable dependencies left
-
-### Version 2.25.0 (November 2026)
-- 🔑 **Integration builder: key inside the address, searches without input, custom search types** — and testing a second search with a non-Latin name no longer runs the first one (issue #96)
-
-### Version 2.24.0 (November 2026)
-- 🌍 **Right-to-left languages and Persian** — the whole interface mirrors for Persian, Arabic and other RTL languages, and mixed-script case data (phone numbers, emails, `@handles`) stays readable; Persian (فارسی) is selectable in Settings → General (issues #99, #100)
-
-### Version 2.23.0 (November 2026)
-- 📝 **Scratchpad** — a private floating notepad on every page: select text anywhere and press `Alt+Shift+A` to keep it, with markdown, clickable tick boxes and the project's open to-dos; never shared, audit-logged or exported, and pasted images never load remotely
-
-### Version 2.22.0 (November 2026)
-- 🪄 **Integration builder** — connect a new OSINT service without writing JSON: paste an example request from its docs, test it live, and click the values you want (issue #96)
-
-### Version 2.21.0 (November 2026)
-- 🔌 **Integrated OSINT tools** — search crt.sh, Have I Been Pwned, Shodan and six more from GHOST, from the Tools page or straight from a person's OSINT data, and add findings back with their source (issue #96)
-- 🧩 **Community integrations** — JSON definitions anyone can write and share; see [`integrations/`](integrations/)
-- 🛡️ **Central tool management** — sharing by project, user-added tools on or off, shared or per-user API keys, encrypted export/import
-- ⚠️ Non-admins can no longer edit or delete shared tools
-
-### Version 2.20.0 (November 2026)
-- 📎 **File attachments** — upload documents and evidence to a person or a project; the project Files page lists them all with the person each belongs to, plus SHA-256 hashes and audit logging (issue #97)
-- 👁️ **In-app previews** — PDF, images, text, CSV/TSV tables and Word `.docx` open inside GHOST; Windows-1251 text is detected automatically
-- 💾 **New `files_data` volume** — back it up along with the database
-
-### Version 2.19.0 (October 2026)
-- 👥 **Project Owner role** — projects now have Owner > Manager > Investigator, all per project; owners manage managers and investigators, and only an admin appoints or removes owners (issue #95)
-- 🔒 **Rank-based membership rules** — owners and managers can only act on members ranked below them, and nobody but an admin can change their own membership
-- 📝 **Roles documented** — new [Roles & Permissions](#-roles--permissions) section and a full permission table in USER_MANAGEMENT.md
-
-### Version 2.18.4 (October 2026)
-- 🔒 **Project managers can only manage investigators** — they can no longer assign, change or remove managers, or change their own membership; that is now admin-only (issue #95)
-
-### Version 2.18.3 (October 2026)
-- 🐛 **Upgrading from 2.16 or earlier works again** — the bundled PostgreSQL container sat behind an opt-in Compose profile that older `.env` files didn't have, so the database never started and the backend reported unhealthy; it starts by default again (issue #94)
-- 🐘 **External PostgreSQL is now the opt-in** — add `COMPOSE_FILE=docker-compose.yml:docker-compose.external-db.yml` to `.env`; if you cleared `COMPOSE_PROFILES` on 2.17/2.18 for this, add that line
-- 🩺 **Clearer startup error** — when the backend can't reach the database it names the host and port it tried and what to check
-
-### Version 2.18.2 (October 2026)
-- 🐛 **App icons fixed** — the browser tab had no icon and the home-screen icons were broken (mis-named logo files, empty favicon)
-- 📝 **Documentation brought up to date** — setup on ARM hosts, running without Docker, project roles, security posture; QUICK-START's `.env` command no longer leaves the database unstarted
-- 🧹 **Dead code removed** — five unused frontend packages and unused backend leftovers, with no change in behaviour
-
-### Version 2.18.1 (October 2026)
-- 🐛 **`/api/docs` no longer renders blank behind the bundled nginx** — its script and stylesheet were being routed to the frontend's static files instead of the backend
-- 🐛 **Advanced search through the MCP server actually searches** — the spec documented a parameter the endpoint never read, so the tool returned every person in scope; filters across audit logs, assets, transactions, locations and the ledger are now documented and usable too
-
-### Version 2.18.0 (October 2026)
-- 📖 **Interactive API reference at `/api/docs`** — Swagger UI inside your instance for signed-in users, with "Try it out" running under your own account's permissions; a read-only copy for the latest release is published at [elm1nst3r.github.io/GHOST-osint-crm](https://elm1nst3r.github.io/GHOST-osint-crm/) (issue #93)
-- 🧾 **The OpenAPI spec now covers the whole API** — about 30 endpoints were missing, including all of crypto wallets, project membership and import/export; a test now catches a route added without documenting it
-- 🤖 **MCP server v1.2** — 12 new tools (crypto wallets, project members, single-address geocode, nearby wireless networks, user directory) and a `project_id` filter on every project-scoped list; update `mcp/` together with GHOST
-
-### Version 2.17.0 (September 2026)
-- 🌍 **Five new community-translated languages** — French, German, Spanish, Chinese (Simplified) and Russian are now selectable in Settings → General, via Crowdin (issue #59)
-- ⚙️ **Server-side global application settings** — app name, logo, default language and default theme mode now live in the database instead of the browser, admin-configured and shared across every user/device; each user can still override language/theme for their own account (issue #91)
-- 🐘 **External PostgreSQL server support** — the bundled Postgres container is now opt-out (`COMPOSE_PROFILES`), and `DB_HOST`/`DB_PORT` no longer get silently overridden by `docker-compose.yml`, so GHOST can point at your own PostgreSQL server without hand-editing compose files (issue #75)
-
-### Version 2.16.0 (August 2026)
-- 🗑️ **Delete a project and all its data in one step** — the delete action now shows exactly what will be destroyed (people, organizations, relationships, cases, assets, transactions, wallets, …) and removes it all in one transaction, instead of refusing until every entity was hand-deleted; requires typing the project name to confirm (issue #88)
-- ⏳ **Archived-project retention policy** — optionally auto-delete projects left in "Closed" status past a chosen window (30/90/180/365 days) via a daily background sweep; off by default (issue #88)
-
-### Version 2.15.0 (August 2026)
-- 🗂️ **Project-based data isolation** — a Project is now a hard wall around an investigation (people, orgs, locations, assets, transactions, wallets, relationships all scoped to it); Cases become an optional grouping inside a project; cross-project linking is opt-in per project; existing data migrates to a "Default Project" (issue #83)
-- 👥 **Per-project membership and roles** — each user is a `manager` or `investigator` on a given project; non-admins only see and can reach projects they're a member of, enforced server-side (issue #84)
-- 🪙 **Cryptocurrency wallet entities** — wallets (address, network, tags, external-reference URL), manual transactions and wallet relationships in the investigation graph; GHOST holds the entities and citations, specialist tools do the chain analysis (issue #82)
-- 🐛 **Project-members dialog no longer clipped to the sidebar; person/business audit entries show the actual user instead of "System"; dark-mode inputs no longer render white** (issues #84, #87)
-- 🐛 **Person-card locations keep their type/city/state/country/notes; Advanced Search closes on mobile** (issues #62, #64)
-
-### Version 2.14.2 (August 2026)
-- 🐛 **Fresh installs no longer crash-loop** — a migration introduced in 2.13.0 ran against `geocoding_cache` before that table existed on a virgin database; it's now a no-op when the table isn't there yet (issue #81)
-
-### Version 2.14.1 (August 2026)
-- 🐛 **Geocoding errors report what the provider actually said** — a rejected API key produced a generic message instead of the provider's own explanation, making a real setup problem impossible to diagnose
-- 🌍 **Russian translation is complete** — every interface string including report output, via Crowdin
-
-### Version 2.14.0 (August 2026)
-- 🧰 **Bulk import for OSINT tools** — paste or upload a CSV/TSV/JSON tool list, with a preview showing what will be added, what already exists and which rows have problems; also available to the MCP tools
-- 🗺️ **LocationIQ geocoding provider** — a third option alongside OpenStreetMap and Yandex, with a free tier that needs no payment details; providers now each keep their own API key and request queue
-- 🐛 **A Yandex API key set in 2.13.0 survives the upgrade** — keys are namespaced per provider, and the old one is migrated rather than dropped
-
-### Version 2.13.0 (August 2026)
-- 🔄 **Update notifications and prebuilt images** — GHOST tells you when a release is out (server-side check, on by default, fully switchable off), and images are published to GHCR so updating is `docker compose pull && docker compose up -d` instead of a local rebuild
-- 🗺️ **Yandex geocoding option** — selectable in Settings with your own API key, for the Russian addresses OpenStreetMap handles poorly; the address cache is now kept per provider (issue #62)
-- 🐛 **Report configuration actually works** — the section checkboxes did nothing for most report types, report scope wasn't selectable, and OSINT data never appeared in any report despite the switch being on (issue #77)
-- 🐛 **Mobile fixes from real-device testing** — case cards and person cards no longer overflow, and the person detail window can be closed again (issue #64)
-- 🐛 **Advanced Search finds people by patronymic** (issue #78), the layout selector updates correctly (issue #76), and the dashboard graph shows Fullscreen instead of a dead Close button (issue #79)
-
-### Version 2.12.0 (August 2026)
-- 🐛 **Data Model options now reach the person dropdowns** — categories and statuses rendered from a hardcoded list rather than from Settings → Data Model, so options you added never appeared anywhere (issue #67)
-- 🐛 **"Export All Data" is complete** — assets, transactions, properties and wireless networks were missing from the export, making it unusable for backup or migration; import restores them with references intact (issue #74)
-- 🌍 **Reports are translatable** — the generated .md/.docx reports and entity ledger were the last content hardcoded in English; 127 new strings, and report dates follow the report's language (issue #63)
-- 👤 **Name order follows the language** — Russian and neighbouring conventions lead with the family name (issue #61)
-- 🕸️ **Conflict-of-interest groundwork** — board members distinct from employees, employee entries linked to real person records, business-to-business ownership chains, taggable transactions, and six toggleable relationship layers in the entity network (issue #65)
-
-### Version 2.11.0 (August 2026)
-- 🌍 **Data-model labels translate** — the option labels behind every dropdown (categories, statuses, connection/location/transaction/asset types) now render in the selected language; they were previously stuck in English because they are seeded into the database rather than living in the translation catalog. Labels you rename or create yourself are left exactly as you wrote them (issue #67)
-- 👤 **Patronymic field on people** — a proper name part shown between given and family name and searchable on its own, for Russian and other conventions that use one (issue #61)
-- 📄 **Person reports scope to the person** — a report generated from someone now covers that person rather than everyone in their case, and opens on the Person Profile type; the Word export also gained its missing connections section (issue #63)
-- 📱 **Mobile: navigation and forms** — the sidebar becomes an off-canvas drawer on phones, forms stack, and dialogs stay on screen; tables, map and relationship graph are still desktop-oriented (issue #64, stages 1–2)
-- 🐛 **Advanced Search filters fixed** — the CRM-status, location-type and connection-type filters rendered blank labels and filtered on `undefined`
-
-### Version 2.10.0 (July 2026)
-- 🌍 **Community translations** — the entire frontend now runs through react-i18next (~1,380 strings) with a Crowdin integration for community-contributed languages and a language picker in Settings (issue #59)
-- 🎨 **Appearance & theming** — new Appearance settings tab for theme mode, accent color, density and surface style, backed by a runtime design-token system; quieter, accent-driven visual language
-- 🕸️ **Entity Network: employer/employee edges** — a business's employees are matched to people by name and drawn as employer→employee edges, with the employer ranked at the top in hierarchical layout
-- 🐛 **Adding a holder to an asset works** — `initial_holder` was silently stripped by validation on create, and the holder picker was missing from the edit form (now "Transfer to New Holder")
-- 🐛 **Tools list refreshes after save** — a created/edited tool now appears without a reload; removed dead unthrottled geocoding code that bypassed the Nominatim queue
-
-### Version 2.9.1 (July 2026)
-- 🐛 **Non-admin users can use the app again** — startup requests to admin-only endpoints no longer produce a false "System Offline"; custom-field definitions are readable by all authenticated users (issue #58)
-- 🐛 **Geocoding no longer rate-limits itself** — Nominatim calls are queued at 1 req/s with retry-on-429, autocomplete is debounced, and provider rate limiting gets a clear message instead of a raw 429 (issue #57)
-
-### Version 2.9.0 (July 2026)
-- 🔗 **URL routing** — every section has a URL, browser back/forward work, and `/people/:id` / `/businesses/:id` deep-link straight to an entity (issue #52)
-- 🗃️ **Knex schema migrations** — schema now lives in `backend/migrations/` and runs automatically at startup; existing databases are adopted seamlessly by an idempotent baseline (issue #48)
-- 🕸️ **Entity Network: ownership + transaction edges** — businesses connect to their owners, and a toggle draws aggregated giver→receiver edges from the transaction log; per-class edge toggles (issue #50)
-- 🐛 **Entity Network crash-loop fixed** — a person↔business connection could poison the graph data and rate-limit the app into "System Offline"; blocked, guarded, and self-healing on save (issue #56)
-- 🐛 **Business editing fixed** — white-screen on edit (DECIMAL coordinates returned as strings) plus owner/employee display and stale-list bugs (issues #53, #55)
-- 🎨 **Tool tags readable in light theme** (issue #54); **custom location types render on the map** with colors, filter chips and legend entries (issue #51)
-- 🤖 **MCP server v1.1** — respawn cache (cached session + spec make per-call process spawns instant) and duplicate detection for transactions (issues #43, #44)
-- 🛡️ **Sharper validation errors** — mutually-exclusive transaction party violations name the conflicting fields; OpenAPI spec documents the rules machine-readably (issue #43)
-- 🧯 **Section-level error boundary** — a view crash shows an inline retry instead of a white screen; production builds ship source maps
-
-### Version 2.8.0 (July 2026)
-- ⚠️ **Critical fix — upgrade from v2.7.0 immediately**: the Zod validation layer introduced in v2.7.0 silently stripped fields some routes actually read, which could **wipe a person's connections, OSINT data, attachments, and custom fields on edit** and prevented asset holders from ever saving. All schemas corrected; a static schema↔route consistency test now prevents recurrence
-- 🐛 **Validation accepts real form payloads** — `null` for cleared fields, numeric strings from selects, `''` for optional fields; case/todo status enums now match the UI vocabulary
-- 🔒 **Entity network routes locked down** — relationship graph endpoints were missing authentication
-- ✨ **Asset holder transfer** — "Transfer to New Holder" on the asset edit form records a transfer transaction
-- 🧹 **Lint cleanup** — ~90 unused imports/variables removed; frontend builds with zero warnings
-
-### Version 2.7.0 (July 2026)
-- 💸 **Asset, Property & Transaction tracking** — new first-class entities with a unified transaction event log, derived chain of custody, per-entity ledger views, an exportable Entity Ledger report, and map/graph layers (issue #43)
-- 🤖 **OpenAPI 3.1 endpoint** — `GET /api/openapi.json` describes the full API, generated from the Zod validation schemas (issue #44)
-- 🤖 **Bundled MCP server** — `mcp/` package exposes the whole API as ~86 LLM tools for Claude Desktop / Claude Code / any MCP client, generated from the live OpenAPI spec (issue #44, with credit to @zbyte64)
-- 🛡️ **Zod schema validation** — 20 schemas covering every entity, structured field-level validation errors (issue #49)
-- ✨ **API improvements** (PR #45, @zbyte64) — `GET /api/people/:id`, `GET /api/businesses/:id`, tunable login rate limiting via env vars
-- 🔒 **General API rate limiter** — 300 req/IP/min on all authenticated data routes; DB error details suppressed in production
-- 🐛 **White screen on Wireless Networks / Add Business fixed** (issue #47); `NODE_ENV`/`FRONTEND_URL` no longer silently overridden by docker-compose (issue #42)
-
-### Version 2.6.0 (June 2026)
-- 🧹 **Removed dead `backend/migrations/` directory** — schema is created on startup by `initializeDatabase()` in `server.js`; the standalone SQL files were redundant and could leave `wireless_networks` owned by `postgres` on bare-metal installs (issue #11)
-- 📖 **README updated** — bare-metal install no longer instructs running `psql ... < migrations/...sql`
-
-### Version 2.5.0 (May 2026)
-- ♻️ **Backend refactored** — `server.js` reduced from 3,052 → ~1,000 lines; all route handlers extracted into 11 dedicated modules under `backend/routes/`
-- ♻️ **Frontend architecture** — React Context (`AuthContext`, `DataContext`, `UIContext`) eliminates prop drilling; `App.js` reduced from 511 → 220 lines
-- ♻️ **Large components split** — `SettingsPage`, `AdvancedSearch`, `ReportGenerator`, `GlobalMap`, `AddEditPersonForm`, `WirelessNetworkDetail` all broken into focused sub-components; nothing over 425 lines
-- ⚡ **Pagination & virtualisation** — people list paginates in 100-record pages; lists of 150+ items use `react-window` for DOM efficiency
-- 🌙 **Dark mode completed** — comprehensive audit of 22 components; all bg/text/border/badge states consistent
-- 📊 **Report Generator reworked** — generation logic extracted to pure functions (`utils/reportGenerators.js`); report type (Comprehensive / Executive Summary / Person Profile) now actually changes what sections appear; two distinct download buttons replace the `window.confirm()` picker
-- 🧪 **Initial test suite** — 62 tests added: password policy, input validation helpers, report generation logic
-- 🐛 **Todo checkbox** — click was a no-op; fixed
-- 🐛 **D3 graph edges** — disappeared on re-render due to missing `useMemo`; fixed
-- 🐛 **Report Generator crash** — white screen caused by `peopleAPI.getAll()` returning `{data, meta}` instead of a plain array; fixed
-- 🐛 **nginx stale bundle** — `index.html` now served with `no-store` so browsers always pick up new JS after a redeploy
-
-### Version 2.4.0 (May 2026)
-- 🔒 **Security hardening** — 15 vulnerabilities addressed: unauthenticated routes locked down, SQL injection in sort parameter fixed, Docker control endpoints removed, session cookie hardened with `SameSite=Strict`
-- 🔒 **Secrets management** — `SESSION_SECRET` and `DB_PASSWORD` are now mandatory with no fallback defaults; app exits at startup if missing
-- 🔒 **Docker hardening** — production `NODE_ENV` in compose, PostgreSQL no longer exposed to host network by default
-- 🔒 **SVG upload blocked** — logo upload restricted to jpeg/png/gif only
-- 🔒 **Wireless network passwords masked** — passwords excluded from API responses and masked in map popups
-- 🐛 **Fixed wireless network route collision** — `/stats` endpoint no longer captured by `/:id` handler
-- 🐛 **Fixed alias search** — variable shadowing bug in SQL query corrected
-- 🐛 **Fixed locations pagination** — `hasMore` now correctly reflects active filters
-- 🐛 **Fixed KML re-import** — empty BSSID stored as NULL instead of empty string
-- 🐛 **Fixed business owner links after import** — `owner_person_id` now remapped correctly
-- 🐛 **Fixed CSV import** — replaced naive `split(',')` with papaparse; quoted fields and embedded commas now handled
-- 🐛 **Import resilience** — one bad record no longer rolls back the entire import
-- 🐛 **Travel history date validation** — invalid dates return 400 instead of a DB error
-- 🐛 **Geocoding timeout** — Nominatim requests now have an 8s timeout
-- ✨ **Audit log improved** — changes to locations, connections, and OSINT data fields now recorded
-- ✨ **Advanced search capped** — results limited to 500 rows to prevent memory issues
-
-### Version 2.2.0 (January 2026)
-- 🛜 **Manual wireless network entry** - Add networks manually with comprehensive forms
-- 🗺️ **Wireless networks on map** - Networks appear on global map with WiFi icons
-- 📡 **WiFi 7 support** - Full support for WiFi 7 frequency bands
-- 🔗 **Multi-entity associations** - Associate networks with multiple people and businesses
-- 🎨 **Dark mode improvements** - Fixed text readability across all components
-- 📊 **Relationship graph enhancements** - Better centering and header readability
-- ✨ **UI refinements** - Solid backgrounds for improved readability
-- 🔧 **Flexible validation** - Only SSID required for network entry
-
-### Version 2.1.0 (January 2026)
-- 🔒 **Critical security improvements** - Production environment validation
-- 🐛 **Fixed users table creation** - No more manual migrations needed
-- ⚡ **Performance optimizations** - Database indexes added
-- 🎯 **Optional email field** - Admin users don't require email
-- 🛡️ **Docker security** - Non-root user implementation
-- 🏥 **Health checks** - All services monitored for reliability
-- 📝 **Graceful shutdown** - Proper cleanup on container stop
+### Highlights of the 2.x series (January – November 2026)
+- 🔐 **Two-step verification and passkeys**, personal API tokens, security headers and sturdier rate limits (2.26–2.27)
+- 🛠️ **Integrated OSINT tools** with shareable integrations and a visual integration builder (2.21–2.25)
+- 🌍 **Translations through Crowdin** — Russian and Persian complete, with full right-to-left support (2.10–2.24)
+- 📝 **Scratchpad** and 📎 **file attachments with previews** (2.20–2.23)
+- 🗂️ **Projects as hard data boundaries** with Owner / Manager / Investigator roles, project deletion and retention (2.15–2.19)
+- 🤖 **OpenAPI spec, interactive API docs and an MCP server** for AI assistants (2.7–2.18)
+- 💸 **Assets, properties, transactions and crypto wallets**, with a chain of custody (2.7–2.15)
+- 🐘 **External PostgreSQL support**, automatic schema migrations, update notifications and prebuilt images (2.9–2.18)
+- 🎨 **Appearance settings, dark mode, mobile layout** and URL routing with deep links (2.5–2.13)
 
 See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
@@ -844,5 +707,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 2.27.0
-**Last Updated:** November 4, 2026
+**Version:** 3.0.0
+**Last Updated:** November 5, 2026

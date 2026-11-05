@@ -1,0 +1,439 @@
+// File: frontend/src/components/BulkRelationshipTool.jsx
+// Tool for bulk creating relationships between people
+
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { X, Link as LinkIcon, Upload, AlertCircle, Check, HelpCircle } from 'lucide-react';
+import { peopleAPI } from '../utils/api';
+
+const RELATIONSHIP_TYPES = [
+  'family', 'friend', 'enemy', 'associate', 'employer',
+  'suspect', 'witness', 'victim', 'other'
+];
+
+const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
+  const { t } = useTranslation();
+  const [mode, setMode] = useState('interactive'); // 'interactive' or 'csv'
+  const [csvData, setCsvData] = useState('');
+  const [relationships, setRelationships] = useState([{
+    from: '',
+    to: '',
+    type: 'associate',
+    note: ''
+  }]);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Add new relationship row
+  const addRelationship = () => {
+    setRelationships([...relationships, {
+      from: '',
+      to: '',
+      type: 'associate',
+      note: ''
+    }]);
+  };
+
+  // Remove relationship row
+  const removeRelationship = (index) => {
+    setRelationships(relationships.filter((_, i) => i !== index));
+  };
+
+  // Update relationship field
+  const updateRelationship = (index, field, value) => {
+    const updated = [...relationships];
+    updated[index][field] = value;
+    setRelationships(updated);
+  };
+
+  // Get person by name (fuzzy match)
+  const getPersonByName = (name) => {
+    const nameLower = name.trim().toLowerCase();
+    return people.find(p => {
+      const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+      return fullName === nameLower ||
+             p.first_name?.toLowerCase() === nameLower ||
+             `${p.last_name}, ${p.first_name}`.toLowerCase() === nameLower;
+    });
+  };
+
+  // Submit interactive relationships
+  const submitInteractiveRelationships = async () => {
+    const valid = relationships.filter(r => r.from && r.to);
+    if (valid.length === 0) {
+      alert(t('bulkRelationshipTool.errorAddOneRelationship'));
+      return;
+    }
+
+    let created = 0;
+    const errors = [];
+
+    for (const rel of valid) {
+      const fromPerson = getPersonByName(rel.from);
+      const toPerson = getPersonByName(rel.to);
+
+      if (!fromPerson) {
+        errors.push(t('bulkRelationshipTool.errorPersonNotFound', { name: rel.from }));
+        continue;
+      }
+
+      if (!toPerson) {
+        errors.push(t('bulkRelationshipTool.errorPersonNotFound', { name: rel.to }));
+        continue;
+      }
+
+      try {
+        // Get full person data
+        const person = people.find(p => p.id === fromPerson.id);
+
+        // Add new connection
+        const updatedConnections = [...(person.connections || [])];
+
+        // Check if connection already exists
+        const existingIndex = updatedConnections.findIndex(
+          conn => conn.person_id === toPerson.id
+        );
+
+        if (existingIndex >= 0) {
+          // Update existing
+          updatedConnections[existingIndex] = {
+            person_id: toPerson.id,
+            type: rel.type,
+            note: rel.note || '',
+            updated_at: new Date().toISOString()
+          };
+        } else {
+          // Add new
+          updatedConnections.push({
+            person_id: toPerson.id,
+            type: rel.type,
+            note: rel.note || '',
+            created_at: new Date().toISOString()
+          });
+        }
+
+        // Update person with new connection
+        await peopleAPI.update(fromPerson.id, {
+          firstName: person.first_name,
+          lastName: person.last_name,
+          aliases: person.aliases || [],
+          dateOfBirth: person.date_of_birth,
+          category: person.category,
+          status: person.status,
+          crmStatus: person.crm_status,
+          caseName: person.case_name,
+          profilePictureUrl: person.profile_picture_url,
+          notes: person.notes,
+          osintData: person.osint_data || [],
+          attachments: person.attachments || [],
+          connections: updatedConnections,
+          locations: person.locations || [],
+          custom_fields: person.custom_fields || {}
+        });
+
+        created++;
+      } catch (error) {
+        errors.push(t('bulkRelationshipTool.errorFailedToCreate', { from: rel.from, to: rel.to, message: error.message }));
+      }
+    }
+
+    alert(t('bulkRelationshipTool.bulkCreateComplete', { created, errorCount: errors.length, errorList: errors.length > 0 ? '\n' + errors.join('\n') : '' }));
+
+    if (created > 0 && onComplete) {
+      onComplete();
+    }
+
+    if (errors.length === 0) {
+      onClose();
+    }
+  };
+
+  // Parse and submit CSV relationships
+  const submitCSVRelationships = async () => {
+    const lines = csvData.trim().split('\n');
+    if (lines.length < 2) {
+      alert(t('bulkRelationshipTool.errorCsvNeedsHeaderRow'));
+      return;
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const data = lines.slice(1);
+
+    let created = 0;
+    const errors = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const values = data[i].split(',').map(v => v.trim());
+      const row = {};
+
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+
+      const fromName = row['from'] || row['source'] || row['person 1'];
+      const toName = row['to'] || row['target'] || row['person 2'];
+      const type = row['type'] || row['relationship type'] || 'associate';
+      const note = row['note'] || row['notes'] || '';
+
+      if (!fromName || !toName) {
+        errors.push(t('bulkRelationshipTool.errorRowMissingPerson', { row: i + 2 }));
+        continue;
+      }
+
+      const fromPerson = getPersonByName(fromName);
+      const toPerson = getPersonByName(toName);
+
+      if (!fromPerson) {
+        errors.push(t('bulkRelationshipTool.errorRowPersonNotFound', { row: i + 2, name: fromName }));
+        continue;
+      }
+
+      if (!toPerson) {
+        errors.push(t('bulkRelationshipTool.errorRowPersonNotFound', { row: i + 2, name: toName }));
+        continue;
+      }
+
+      try {
+        const person = people.find(p => p.id === fromPerson.id);
+        const updatedConnections = [...(person.connections || [])];
+
+        const existingIndex = updatedConnections.findIndex(
+          conn => conn.person_id === toPerson.id
+        );
+
+        if (existingIndex >= 0) {
+          updatedConnections[existingIndex] = {
+            person_id: toPerson.id,
+            type: type,
+            note: note,
+            updated_at: new Date().toISOString()
+          };
+        } else {
+          updatedConnections.push({
+            person_id: toPerson.id,
+            type: type,
+            note: note,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        await peopleAPI.update(fromPerson.id, {
+          firstName: person.first_name,
+          lastName: person.last_name,
+          aliases: person.aliases || [],
+          dateOfBirth: person.date_of_birth,
+          category: person.category,
+          status: person.status,
+          crmStatus: person.crm_status,
+          caseName: person.case_name,
+          profilePictureUrl: person.profile_picture_url,
+          notes: person.notes,
+          osintData: person.osint_data || [],
+          attachments: person.attachments || [],
+          connections: updatedConnections,
+          locations: person.locations || [],
+          custom_fields: person.custom_fields || {}
+        });
+
+        created++;
+      } catch (error) {
+        errors.push(t('bulkRelationshipTool.errorRowGeneric', { row: i + 2, message: error.message }));
+      }
+    }
+
+    alert(t('bulkRelationshipTool.csvImportComplete', { created, errorCount: errors.length, errorList: errors.length > 0 ? '\n' + errors.join('\n') : '' }));
+
+    if (created > 0 && onComplete) {
+      onComplete();
+    }
+
+    if (errors.length === 0) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 backdrop-blur-xl border border-gray-300 dark:border-gray-600 shadow-glass-lg rounded-lg-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-x-3">
+            <div className="p-2 bg-gradient-primary rounded-lg">
+              <LinkIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('bulkRelationshipTool.title')}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('bulkRelationshipTool.subtitle')}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 rounded-lg transition-all"
+            title={t('bulkRelationshipTool.helpTitle')}
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Help Panel */}
+        {showHelp && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-blue-900 mb-2">{t('bulkRelationshipTool.howToUse')}</h4>
+            <div className="text-sm text-blue-800 space-y-2">
+              <p><strong>{t('bulkRelationshipTool.interactiveModeLabel')}</strong> {t('bulkRelationshipTool.interactiveModeHelp')}</p>
+              <p><strong>{t('bulkRelationshipTool.csvModeLabel')}</strong> {t('bulkRelationshipTool.csvModeHelp')}</p>
+              <ul className="list-disc list-inside ms-4 text-xs space-y-1">
+                <li>{t('bulkRelationshipTool.csvColumnsExample')}</li>
+                <li>{t('bulkRelationshipTool.csvRowExample')}</li>
+              </ul>
+              <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                {t('bulkRelationshipTool.nameMatchHelp')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Mode Toggle */}
+        <div className="flex items-center gap-x-2 mb-6">
+          <button
+            onClick={() => setMode('interactive')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              mode === 'interactive' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {t('bulkRelationshipTool.interactiveTab')}
+          </button>
+          <button
+            onClick={() => setMode('csv')}
+            className={`px-4 py-2 rounded-lg transition-all flex items-center gap-x-2 ${
+              mode === 'csv' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            <span>{t('bulkRelationshipTool.csvImportTab')}</span>
+          </button>
+        </div>
+
+        {/* Interactive Mode */}
+        {mode === 'interactive' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2 px-2">
+              <div className="col-span-4">{t('bulkRelationshipTool.fromPersonLabel')}</div>
+              <div className="col-span-4">{t('bulkRelationshipTool.toPersonLabel')}</div>
+              <div className="col-span-2">{t('bulkRelationshipTool.typeLabel')}</div>
+              <div className="col-span-2">{t('bulkRelationshipTool.noteLabel')}</div>
+            </div>
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {relationships.map((rel, index) => (
+                <div key={index} className="grid grid-cols-12 gap-3 items-start">
+                  <select
+                    value={rel.from}
+                    onChange={(e) => updateRelationship(index, 'from', e.target.value)}
+                    className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">{t('bulkRelationshipTool.selectPersonPlaceholder')}</option>
+                    {people.map(person => (
+                      <option key={person.id} value={`${person.first_name} ${person.last_name}`}>
+                        {person.first_name} {person.last_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={rel.to}
+                    onChange={(e) => updateRelationship(index, 'to', e.target.value)}
+                    className="col-span-4 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">{t('bulkRelationshipTool.selectPersonPlaceholder')}</option>
+                    {people.map(person => (
+                      <option key={person.id} value={`${person.first_name} ${person.last_name}`}>
+                        {person.first_name} {person.last_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={rel.type}
+                    onChange={(e) => updateRelationship(index, 'type', e.target.value)}
+                    className="col-span-2 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm capitalize"
+                  >
+                    {RELATIONSHIP_TYPES.map(type => (
+                      <option key={type} value={type}>{t(`relationshipDiagram.edgeStyles.${type}`)}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    value={rel.note}
+                    onChange={(e) => updateRelationship(index, 'note', e.target.value)}
+                    placeholder={t('bulkRelationshipTool.optionalNotePlaceholder')}
+                    className="col-span-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+
+                  <button
+                    onClick={() => removeRelationship(index)}
+                    className="col-span-1 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    title={t('bulkRelationshipTool.removeTitle')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={addRelationship}
+              className="w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg text-gray-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 transition-all"
+            >
+              {t('bulkRelationshipTool.addRelationship')}
+            </button>
+          </div>
+        )}
+
+        {/* CSV Mode */}
+        {mode === 'csv' && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3 text-sm font-mono text-gray-700 dark:text-gray-300">
+              <div className="font-semibold mb-1">{t('bulkRelationshipTool.formatLabel')}</div>
+              <div>{t('bulkRelationshipTool.csvColumnsExample')}</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">{t('bulkRelationshipTool.exampleLabel')}</div>
+              <div className="text-xs">{t('bulkRelationshipTool.csvRowExampleBare')}</div>
+            </div>
+
+            <textarea
+              value={csvData}
+              onChange={(e) => setCsvData(e.target.value)}
+              className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={t('bulkRelationshipTool.csvTextareaPlaceholder')}
+            />
+
+            <div className="flex items-center gap-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <AlertCircle className="w-4 h-4" />
+              <span>{t('bulkRelationshipTool.relationshipsToCreate', { count: csvData.split('\n').filter(l => l.trim()).length - 1 })}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={mode === 'interactive' ? submitInteractiveRelationships : submitCSVRelationships}
+            className="px-6 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-all flex items-center gap-x-2"
+          >
+            <Check className="w-4 h-4" />
+            <span>{t('bulkRelationshipTool.createRelationships')}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BulkRelationshipTool;

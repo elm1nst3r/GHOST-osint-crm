@@ -94,7 +94,7 @@ router.get('/nearby', requireAuth, async (req, res) => {
     if (scopeErr) return res.status(403).json({ error: scopeErr });
 
     const result = await pool.query(
-      `SELECT * FROM wireless_networks WHERE ${where.join(' AND ')} ORDER BY scan_date DESC`,
+      `SELECT * FROM wireless_networks WHERE ${where.join(' AND ')} ORDER BY scan_date DESC, id DESC`,
       params
     );
 
@@ -327,7 +327,7 @@ router.get('/', requireAuth, async (req, res) => {
       params.push(parseInt(signal_max));
     }
 
-    query += ' ORDER BY scan_date DESC, signal_strength DESC';
+    query += ' ORDER BY scan_date DESC, signal_strength DESC, id DESC';
 
     const result = await pool.query(query, params);
     res.json(result.rows);

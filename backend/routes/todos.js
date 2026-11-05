@@ -19,7 +19,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    const result = await pool.query(`SELECT * FROM todos ${whereClause} ORDER BY created_at DESC`, params);
+    const result = await pool.query(`SELECT * FROM todos ${whereClause} ORDER BY created_at DESC, id DESC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching todos:', err.message);

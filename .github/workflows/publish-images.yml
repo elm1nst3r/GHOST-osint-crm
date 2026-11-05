@@ -7,6 +7,7 @@
 #
 # Tagged releases get an exact version tag plus `latest`; pushes to main get
 # `edge` so the bleeding edge is available without pretending to be a release.
+# Images are multi-arch (linux/amd64 + linux/arm64) since 3.0.
 
 name: Publish images
 
@@ -32,6 +33,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # arm64 as well as amd64, for Apple Silicon Macs, Raspberry Pis and ARM
+      # servers (before 3.0, `docker compose pull` failed on those).
+      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
 
@@ -59,6 +64,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.component }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

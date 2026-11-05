@@ -1,9 +1,10 @@
-// Mock browser dependencies not available in Jest/Node
-jest.mock('file-saver', () => ({ saveAs: jest.fn() }));
-jest.mock('docx', () => ({
-  Document: jest.fn(),
-  Packer: { toBlob: jest.fn().mockResolvedValue(new Blob()) },
-  Paragraph: jest.fn(),
+// Mock browser dependencies the report code pulls in (vi.mock is hoisted).
+import { vi } from 'vitest';
+vi.mock('file-saver', () => ({ saveAs: vi.fn() }));
+vi.mock('docx', () => ({
+  Document: vi.fn(),
+  Packer: { toBlob: vi.fn().mockResolvedValue(new Blob()) },
+  Paragraph: vi.fn(),
   HeadingLevel: { TITLE: 'TITLE', HEADING_1: 'H1', HEADING_2: 'H2' },
   AlignmentType: { CENTER: 'center' },
 }));

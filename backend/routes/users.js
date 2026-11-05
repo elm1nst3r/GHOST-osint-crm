@@ -18,7 +18,7 @@ router.get('/', requireAdmin, async (req, res) => {
     const result = await pool.query(
       `SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at, updated_at
        FROM users
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC, id DESC` // id: users created together keep one order
     );
 
     // Two-factor status per user (issue #90), for the user management list.

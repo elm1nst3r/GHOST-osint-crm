@@ -1,0 +1,4 @@
+/* Applied while a screenshot is taken (e2e/visual.spec.js). */
+[data-volatile] {
+  visibility: hidden !important;
+}

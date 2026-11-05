@@ -5,6 +5,144 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-11-05
+
+The technology upgrade: GHOST's frontend rebuilt on React 19, Vite and
+Tailwind CSS 4, with a strict security policy, faster loading, and the first
+browser and screenshot tests. 2.27.0 (below) was tagged but not released on
+its own; its changes ship as part of 3.0. Upgrade notes: see
+"Upgrading to 3.0" in the README.
+
+### 🔒 Security
+
+- **Strict Content-Security-Policy on every page.** Only the app's own
+  bundled scripts run (`script-src 'self'`, no inline script, no `eval`),
+  and the page can only talk to its own server (`connect-src 'self'`). If
+  hostile markup ever got into a page, for example through an imported
+  record, it could neither run code nor send data to another host.
+- **No more CDN requests.** Leaflet's map marker images loaded from cdnjs,
+  telling a third party each time an investigator opened a map. They now
+  ship with the app.
+
+- **`npm audit` is clean for everything that ships to the browser.** The
+  last finding was in React Router 6 (an open redirect through a backslash
+  in links), fixed by the move to React Router 8.
+
+### ✨ Improved
+
+- **Sections remember where you were.** Leave People, Cases, Settings or any
+  other list and come back: your search, filters, open tabs and scroll
+  position are still there (React 19 `<Activity>`). Data is still loaded
+  fresh each time a section is shown. The map, the wireless map, the entity
+  network and the dashboard (which holds the network graph) start fresh as
+  before. Nothing is kept across sign-out or a project switch.
+- **Faster first load.** Each section and dialog is downloaded the first
+  time it is opened, so the map, graph and report-export code arrive only
+  when used, and only the chosen language is downloaded (English is built
+  in as the fallback). Before, the first screen loaded 2.5 MB of script with
+  every language in it; now it loads about 0.6 MB.
+- **Dates and numbers follow the UI language**, not the browser's: a
+  Russian UI shows "4 нояб. 2026 г." and "1 234,50" even on an English
+  browser, and report percentages use the language's decimal comma. Every
+  language keeps the Gregorian calendar and Latin digits, so dates match
+  the stored data and can be searched and copied into other tools. A date
+  of birth no longer shows the day before for anyone west of UTC.
+- **Russian (and later Arabic) plurals.** Counts that need Russian's "few"
+  or "many" form (2–4, 5–20…) switched to English mid-sentence ("3 files").
+  They now use the Russian text, and Crowdin is set up to ask translators
+  for every plural form their language has.
+- **An untranslated string shows the English text** instead of an empty
+  space.
+- Settings → General shows the real version instead of "1.0.0".
+- **Three small visual fixes that came with Tailwind 4** (everything else
+  looks exactly as before, checked screen by screen): date fields are as
+  tall as the other fields; on phones the top bar and the menu drawer sit
+  flush with the screen edge instead of as slightly rounded boxes; and a
+  disabled field in dark mode (e.g. the username under My Profile) looks
+  disabled.
+- **Less work for the server at sign-in.** Before a project was chosen,
+  GHOST already loaded every list without a project filter (for an admin:
+  every project's people, businesses, assets…) behind the "Select a
+  project" screen, then loaded them all again for the chosen project. Now
+  nothing project-scoped loads until a project is chosen, and the
+  data-model dropdowns on a page share one request.
+- **Row buttons work on phones and tablets.** Edit/delete buttons that
+  appear when you hover a row (assets, wallets, properties, transactions,
+  to-dos, projects…) are now always visible on touch screens, where nothing
+  can hover, and also appear when you reach them with the keyboard.
+- **Open tabs survive an update.** A tab left open while GHOST was updated
+  reloads once by itself when it needs a part of the app that changed,
+  instead of showing an error.
+- **"Load more" can no longer skip or repeat records.** Lists that load in
+  pages (people, assets, crypto wallets, the audit log…) were sorted by
+  creation time only. Records created in the same moment, as a bulk import
+  does, had no fixed order between pages, so the next page could repeat
+  some and leave out others. Every list now has a stable order (26 queries).
+- **Ages are right in every time zone.** A date of birth was read as
+  midnight UTC, so west of UTC the age went up a day early; search results
+  also ignored whether the birthday had passed this year.
+- **No more debug output in the browser console.** The network views
+  printed names and connections to the console on every render.
+- **No more sudden sign-in screen when the server is busy.** If the session
+  check was rate-limited or the server was restarting, GHOST showed the
+  sign-in page to someone who was still signed in. It now waits and asks
+  again (as long as the server's `Retry-After` says) before giving up.
+- **Long lists fit their content** (issue #64, stage 3). With 150 or more
+  records, lists only render what is on screen; rows used a fixed height
+  and clipped cards that wrapped onto more lines on narrow screens. Rows are
+  now measured, and the list scrolls with the page instead of inside a box
+  of its own.
+- **Classic network diagram follows dark mode** (React Flow 12).
+- **Sections can't take each other down.** Each section has its own error
+  screen; a crash in one leaves the others working.
+
+### 🛠 Libraries
+
+- React 18 → **19.2** with the **React Compiler 1.0**, which memoizes
+  components at build time (all contexts and the app shell are compiled;
+  components it can't compile yet run as before).
+- React Router 6 → **8** (`react-router-dom` no longer exists), react-leaflet
+  4 → **5**, react-leaflet-cluster 2 → **4**, react-window 1 → **2**,
+  reactflow 11 → **@xyflow/react 12** (reactflow is no longer maintained),
+  lucide-react → **1.x**.
+- Tailwind CSS 3 → **4**: configuration now lives in CSS (`src/index.css`,
+  no `tailwind.config.js` or PostCSS config), built by the Tailwind Vite
+  plugin. Tailwind 4 needs Safari 16.4, Chrome 111 or Firefox 128 (2023) or
+  newer. GHOST's v3 defaults (grey borders, pointer cursor on buttons, grey
+  placeholders) are kept, and spacing between items now mirrors in
+  right-to-left languages without a workaround.
+- i18next 23 → **26**, react-i18next 15 → **17**, docx 8 → **9** (the
+  report-export code is about 25% smaller).
+- Effects that deliberately ignored some dependencies now use React 19.2's
+  `useEffectEvent` instead of disabling the lint rule; the sign-in screen
+  uses Actions (`useTransition`) for its pending state.
+
+### 🛠 Developer tooling
+
+- **Vite 8 replaces Create React App**, which is deprecated and carried a
+  stack of audit findings in its webpack toolchain. A production build takes
+  about 2 seconds. `npm run dev` starts the dev
+  server on port 3000 (proxying `/api` to the backend as before);
+  `npm run build` still writes to `build/`, so the Docker image and nginx
+  config are unchanged. Source maps are still shipped (issue #53).
+  Environment variable `REACT_APP_API_URL` is now `VITE_API_URL`.
+- **Vitest 5 replaces Jest.** `npm test` runs the unit tests;
+  `npm run test:browser` runs component tests in a real Chromium (Vitest
+  browser mode with Playwright). The first ones cover the two-step sign-in,
+  right-to-left layout measured in the browser, and the Word report export.
+  The project never had component tests before.
+- **ESLint 10** with a flat config (`npm run lint`) replaces CRA's built-in
+  lint setup. Components with JSX are now `.jsx` files; the unneeded
+  `import React` lines are gone (the new JSX transform doesn't use them).
+- CI now lints, runs the unit and browser tests, and builds the frontend.
+- **Tests against the running app** (`npm run test:e2e`, Playwright):
+  screenshots of every section and
+  the main dialogs in light/dark, English/Persian and desktop/phone,
+  compared against screenshots taken earlier on the same machine, and
+  checks of what a page load asks the server for. Run them
+  around a change that can move pixels; they need a running stack and an
+  admin account (see `frontend/playwright.config.js`).
+
 ## [2.27.0] - 2026-11-04
 
 Step 0 of the dependency plan: supported runtimes, security headers and

@@ -22,7 +22,7 @@ router.get('/people/:id/travel-history', requireAuth, validateIdParam, async (re
     const result = await pool.query(
       `SELECT * FROM travel_history
        WHERE person_id = $1
-       ORDER BY arrival_date DESC`,
+       ORDER BY arrival_date DESC, id DESC`,
       [personId]
     );
     res.json(result.rows);
@@ -144,7 +144,7 @@ router.get('/people/:id/travel-analysis', requireAuth, validateIdParam, async (r
     const travelHistory = await pool.query(
       `SELECT * FROM travel_history
        WHERE person_id = $1
-       ORDER BY arrival_date ASC`,
+       ORDER BY arrival_date ASC, id ASC`,
       [personId]
     );
 

@@ -53,7 +53,7 @@ router.get('/', requireAuth, async (req, res) => {
       pool.query(
         `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
                 ${PERSON_CONNECTIONS_SUBQUERY}
-         FROM people p ${whereClause} ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+         FROM people p ${whereClause} ORDER BY p.created_at DESC, p.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset]
       ),
       pool.query(`SELECT COUNT(*)::int AS count FROM people p ${whereClause}`, params),

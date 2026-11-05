@@ -1,18 +1,16 @@
 // File: frontend/src/utils/transactionFormat.js
 // Shared formatting helpers for the transaction-tracking feature (issue #43).
+import { formatDate as formatLocalDate, formatNumber } from './format';
 
 export const formatMoney = (value, currency) => {
   if (value === null || value === undefined || value === '') return '—';
   const num = Number(value);
   if (isNaN(num)) return '—';
-  const formatted = num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatted = formatNumber(num, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return currency ? `${formatted} ${currency}` : formatted;
 };
 
-export const formatDate = (d) => {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString(); } catch { return String(d); }
-};
+export const formatDate = (d) => formatLocalDate(d, undefined, '—');
 
 export const partyText = (party) => (party && party.label) ? party.label : '—';
 

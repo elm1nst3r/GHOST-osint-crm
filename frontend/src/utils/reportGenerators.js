@@ -2,6 +2,10 @@ import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import i18n from '../i18n';
 import { formatPersonName } from './personName';
+import { formatDate as formatLocalDate, formatDateTime as formatLocalDateTime, formatNumber } from './format';
+
+// 12.5 → "12.5" / "12,5" in the report's language.
+const fixed = (value, digits) => formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 // Report *output* was the last thing still hardcoded in English after the i18n
 // pass (issue #63 — hunterghoul1 offered to translate it). These are plain
@@ -27,14 +31,12 @@ export const formatDate = (date) => {
   if (!date) return NA();
   // Follow the report's language, not a pinned locale — a Russian report with
   // "January 15, 2024" in it would be half-translated (issue #63).
-  return new Date(date).toLocaleDateString(i18n.language || 'en', { year: 'numeric', month: 'long', day: 'numeric' });
+  return formatLocalDate(date, { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 export const formatDateTime = (date) => {
   if (!date) return NA();
-  return new Date(date).toLocaleString(i18n.language || 'en', {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+  return formatLocalDateTime(date, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 // ── Report type → section presets ─────────────────────────────────────────
@@ -150,7 +152,7 @@ export const generateMarkdown = (data, options) => {
       md += `- ${t('insightCategories', { count: categories.length })}\n`;
     }
     if (totalConnections > 0) {
-      md += `- ${t('insightAvgConnections', { value: (totalConnections / people.length).toFixed(1) })}\n`;
+      md += `- ${t('insightAvgConnections', { value: fixed(totalConnections / people.length, 1) })}\n`;
     }
     if (businesses.length > 0) {
       md += `- ${t('insightBusinesses', { count: businesses.length })}\n`;
@@ -282,7 +284,7 @@ export const generateMarkdown = (data, options) => {
     });
     md += `### ${t('peopleByCategory')}\n\n| ${t('colCategory')} | ${t('colCount')} | ${t('colPercentage')} |\n|----------|-------|------------|\n`;
     Object.entries(byCategory).forEach(([cat, count]) => {
-      md += `| ${cat} | ${count} | ${((count / people.length) * 100).toFixed(1)}% |\n`;
+      md += `| ${cat} | ${count} | ${fixed((count / people.length) * 100, 1)}% |\n`;
     });
     md += `\n`;
 
@@ -290,17 +292,17 @@ export const generateMarkdown = (data, options) => {
       const open = todos.filter(t => t.status === 'open').length;
       const inProg = todos.filter(t => t.status === 'in_progress').length;
       const done = todos.filter(t => t.status === 'done').length;
-      const rate = ((done / todos.length) * 100).toFixed(1);
+      const rate = fixed((done / todos.length) * 100, 1);
       md += `### ${t('taskProgress')}\n\n**${t('overallCompletionRate')}:** ${rate}%\n\n`;
       md += `\`\`\`\n${t('taskDistribution')}:\n`;
-      md += `├─ ${t('taskOpen')}: ${open} (${((open / todos.length) * 100).toFixed(1)}%)\n`;
-      md += `├─ ${t('taskInProgress')}: ${inProg} (${((inProg / todos.length) * 100).toFixed(1)}%)\n`;
-      md += `└─ ${t('taskCompleted')}: ${done} (${((done / todos.length) * 100).toFixed(1)}%)\n\`\`\`\n\n`;
+      md += `├─ ${t('taskOpen')}: ${open} (${fixed((open / todos.length) * 100, 1)}%)\n`;
+      md += `├─ ${t('taskInProgress')}: ${inProg} (${fixed((inProg / todos.length) * 100, 1)}%)\n`;
+      md += `└─ ${t('taskCompleted')}: ${done} (${fixed((done / todos.length) * 100, 1)}%)\n\`\`\`\n\n`;
     }
 
     if (totalConnections > 0) {
       md += `### ${t('networkAnalysis')}\n\n`;
-      md += `**${t('avgConnectionsPerPerson')}:** ${(totalConnections / people.length).toFixed(2)}\n\n`;
+      md += `**${t('avgConnectionsPerPerson')}:** ${fixed(totalConnections / people.length, 2)}\n\n`;
       md += `**${t('mostConnectedIndividuals')}:**\n\n`;
       people
         .map(p => ({ name: getFullName(p), connections: p.connections?.length || 0 }))
@@ -476,20 +478,20 @@ export const downloadWord = async (data, options) => {
     people.forEach(x => { const c = x.category || t('unknown'); byCategory[c] = (byCategory[c] || 0) + 1; });
     children.push(p(`${t('peopleByCategory')}:`, HeadingLevel.HEADING_2));
     Object.entries(byCategory).forEach(([cat, count]) => {
-      children.push(p(`   ${cat}: ${count} (${((count / people.length) * 100).toFixed(1)}%)`));
+      children.push(p(`   ${cat}: ${count} (${fixed((count / people.length) * 100, 1)}%)`));
     });
     children.push(blank());
 
     if (todos.length > 0) {
       const done = todos.filter(t => t.status === 'done').length;
       children.push(p(`${t('taskProgress')}:`, HeadingLevel.HEADING_2));
-      children.push(p(`${t('overallCompletionRate')}: ${((done / todos.length) * 100).toFixed(1)}%`));
+      children.push(p(`${t('overallCompletionRate')}: ${fixed((done / todos.length) * 100, 1)}%`));
       children.push(blank());
     }
 
     if (totalConnections > 0) {
       children.push(p(`${t('networkAnalysis')}:`, HeadingLevel.HEADING_2));
-      children.push(p(`${t('avgConnectionsPerPerson')}: ${(totalConnections / people.length).toFixed(2)}`));
+      children.push(p(`${t('avgConnectionsPerPerson')}: ${fixed(totalConnections / people.length, 2)}`));
       people
         .map(p => ({ name: getFullName(p), connections: p.connections?.length || 0 }))
         .sort((a, b) => b.connections - a.connections)
@@ -520,7 +522,7 @@ const money = (v, currency) => {
   if (v === null || v === undefined) return '—';
   const n = Number(v);
   if (isNaN(n)) return '—';
-  const f = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const f = formatNumber(n, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return currency ? `${f} ${currency}` : f;
 };
 const pretty = (t) => (t || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

@@ -10,27 +10,28 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import i18n, { applyDocumentLanguage, forwardArrow } from './i18n';
 import { screenCorner } from './components/scratchpad/ScratchpadSettingsView';
 
-const SRC = __dirname;
+const SRC = path.dirname(fileURLToPath(import.meta.url));
 
 // Exact occurrence counts per file, so a new physical class in one of these
 // files is still caught.
 const ALLOWED = {
   // left-1/2 + -translate-x-1/2 centers; the translate is physical, so
-  // start-1/2 would push it off-center in RTL.
-  'components/visualization/ObsidianGraph.js': { 'left-1/2': 1 },
+  // inset-s-1/2 would push it off-center in RTL.
+  'components/visualization/ObsidianGraph.jsx': { 'left-1/2': 1 },
   // The corner picker draws each corner where it lands on screen; it maps the
   // stored corner through screenCorner() itself.
-  'components/scratchpad/ScratchpadSettingsView.js': { 'left-1': 1, 'right-1': 1 },
+  'components/scratchpad/ScratchpadSettingsView.jsx': { 'left-1': 1, 'right-1': 1 },
   // Map and diagram overlays sit around Leaflet's and React Flow's own
   // controls, which are placed physically and don't mirror.
-  'components/GlobalMap.js': { 'right-4': 1 },
-  'components/WirelessNetworkMap.js': { 'left-4': 1 },
-  'components/map/MapLegend.js': { 'right-4': 1 },
-  'components/map/MapStats.js': { 'left-4': 1 },
-  'components/RelationshipDiagram.js': { 'left-4': 2, 'right-4': 1 },
+  'components/GlobalMap.jsx': { 'right-4': 1 },
+  'components/WirelessNetworkMap.jsx': { 'left-4': 1 },
+  'components/map/MapLegend.jsx': { 'right-4': 1 },
+  'components/map/MapStats.jsx': { 'left-4': 1 },
+  'components/RelationshipDiagram.jsx': { 'left-4': 2, 'right-4': 1 },
 };
 
 // A class token starts after whitespace, a quote, a backtick, `{`, or a
@@ -43,7 +44,7 @@ const sourceFiles = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) return e.name === 'locales' ? [] : sourceFiles(p);
-    return /\.(js|css)$/.test(e.name) && !/\.test\.js$/.test(e.name) ? [p] : [];
+    return /\.(js|jsx|css)$/.test(e.name) && !/\.test\.jsx?$/.test(e.name) ? [p] : [];
   });
 
 const strip = (src, isCss) => {
