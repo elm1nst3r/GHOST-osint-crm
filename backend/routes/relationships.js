@@ -193,7 +193,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) add('case_id = ?', parseInt(req.query.case_id, 10));
 
-    const sql = `SELECT * FROM relationships${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC`;
+    const sql = `SELECT * FROM relationships${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC, id DESC`;
     const result = await pool.query(sql, params);
     res.json(result.rows);
   } catch (err) {

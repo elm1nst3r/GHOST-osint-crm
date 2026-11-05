@@ -1,5 +1,5 @@
 // File: frontend/src/utils/api.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
@@ -55,7 +55,7 @@ const fetchAPI = async (endpoint, options = {}) => {
     if (error.name === 'AbortError') {
       const msg = `Request timed out (${endpoint})`;
       console.error(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: error });
     }
     console.error(`API Error (${endpoint}):`, error);
     throw error;

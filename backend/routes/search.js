@@ -132,7 +132,7 @@ router.get('/advanced', requireAuth, async (req, res) => {
     const sortBy = allowedSortColumns.includes(req.query.sortBy) ? req.query.sortBy : 'updated_at';
     const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-    query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT $${++paramCount}`;
+    query += ` ORDER BY ${sortBy} ${sortOrder}, id ${sortOrder} LIMIT $${++paramCount}`;
     queryParams.push(limit);
 
     const result = await pool.query(query, queryParams);

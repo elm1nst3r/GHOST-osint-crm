@@ -17,7 +17,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (scopeErr) return res.status(403).json({ error: scopeErr });
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    const result = await pool.query(`SELECT * FROM cases ${whereClause} ORDER BY case_name ASC`, params);
+    const result = await pool.query(`SELECT * FROM cases ${whereClause} ORDER BY case_name ASC, id ASC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching cases:', err);

@@ -11,6 +11,16 @@ build/
 dist/
 frontend/build/
 frontend/dist/
+# Vitest browser mode: screenshots of failed component tests
+frontend/.vitest/
+# Screenshot tests (playwright.config.js): screenshots, session, reports
+frontend/e2e/__screenshots__/
+frontend/e2e/.results/
+frontend/e2e/.report/
+frontend/e2e/.auth.json
+frontend/e2e/.prefs.json
+frontend/e2e/.api-calls.json
+frontend/e2e/*.log
 backend/dist/
 backend/build/
 client/build/

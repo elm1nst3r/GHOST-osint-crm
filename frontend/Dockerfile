@@ -1,7 +1,10 @@
 # File: frontend/Dockerfile
 
-# Stage 1: Build the React application
-FROM node:26-alpine AS build
+# Stage 1: Build the React application (Vite)
+# The build output (static files) is the same on every architecture, so it
+# runs on the build machine's own platform; only the nginx stage below is
+# built per target (amd64, arm64) when publishing multi-arch images.
+FROM --platform=$BUILDPLATFORM node:26-alpine AS build
 
 # Install build dependencies that may be needed for native modules
 RUN apk add --no-cache python3 make g++
@@ -13,8 +16,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Copy configuration files
-COPY tailwind.config.js ./
-COPY postcss.config.js ./
+COPY vite.config.js ./
 
 # Install dependencies using npm ci for reproducible builds
 # Fall back to npm install if package-lock.json is missing
@@ -23,10 +25,9 @@ RUN if [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit; else n
 # Copy the rest of the application code
 COPY . .
 
-# Build the application with production environment.
-# Source maps are shipped on purpose (issue #53) so browser consoles show
-# real component names and line numbers instead of minified frames.
-ENV GENERATE_SOURCEMAP=true
+# Build with Vite into build/. Source maps are shipped on purpose (issue #53,
+# `build.sourcemap` in vite.config.js) so browser consoles show real
+# component names and line numbers instead of minified frames.
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx

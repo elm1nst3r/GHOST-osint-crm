@@ -49,7 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
       LEFT JOIN people p ON b.owner_person_id = p.id
       LEFT JOIN businesses ob ON b.owner_business_id = ob.id
       ${whereClause}
-      ORDER BY b.created_at DESC
+      ORDER BY b.created_at DESC, b.id DESC
     `, params);
     res.json(result.rows);
   } catch (err) {

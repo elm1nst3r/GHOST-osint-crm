@@ -55,7 +55,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const dataResult = await pool.query(
       `SELECT w.* FROM crypto_wallets w ${whereSql}
-       ORDER BY w.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+       ORDER BY w.created_at DESC, w.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset]
     );
     const countResult = await pool.query(`SELECT COUNT(*)::int AS count FROM crypto_wallets w ${whereSql}`, params);

@@ -1,63 +1,57 @@
 {
   "name": "osint-crm",
-  "version": "2.27.0",
+  "version": "3.0.0",
   "private": true,
-  "proxy": "http://localhost:3001",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "lint": "eslint src",
+    "test:e2e": "playwright test"
+  },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
+    "@xyflow/react": "^12.12.1",
     "d3": "^7.9.2",
-    "docx": "^8.5.0",
+    "docx": "^9.15.2",
     "dompurify": "3.4.17",
     "file-saver": "^2.0.5",
-    "i18next": "^23.16.8",
+    "i18next": "^26.7.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.510.0",
+    "lucide-react": "^1.68.0",
     "mammoth": "1.13.0",
     "marked": "^18.1.3",
     "papaparse": "^5.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-i18next": "15.5.0",
-    "react-leaflet": "^4.2.1",
-    "react-leaflet-cluster": "^2.1.0",
-    "react-router-dom": "^6.30.6",
-    "react-scripts": "5.0.1",
-    "react-window": "^1.8.11",
-    "reactflow": "^11.11.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.12",
+    "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.1.3",
+    "react-router": "^8.5.1",
+    "react-window": "^2.5.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.7",
-    "autoprefixer": "^10.6.2",
-    "postcss": "^8.5.32",
-    "tailwindcss": "^3.4.19"
-  },
-  "jest": {
-    "transformIgnorePatterns": [
-      "node_modules/(?!(marked)/)"
-    ]
+    "@babel/core": "^7.29.13",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@rolldown/plugin-babel": "^0.3.0",
+    "@tailwindcss/vite": "^4.3.4",
+    "@vitejs/plugin-react": "^6.2.1",
+    "@vitest/browser": "^5.1.0",
+    "@vitest/browser-playwright": "^5.1.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "jsdom": "^30.1.3",
+    "playwright": "^1.64.1",
+    "tailwindcss": "^4.3.4",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0",
+    "vitest-browser-react": "^2.3.0"
   }
 }

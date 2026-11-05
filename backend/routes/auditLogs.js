@@ -64,7 +64,7 @@ router.get('/', requireAdmin, async (req, res) => {
       values.push(end_date);
     }
 
-    query += ` ORDER BY al.created_at DESC LIMIT $${valueIndex++} OFFSET $${valueIndex++}`;
+    query += ` ORDER BY al.created_at DESC, al.id DESC LIMIT $${valueIndex++} OFFSET $${valueIndex++}`;
     values.push(limit, offset);
 
     const result = await pool.query(query, values);
@@ -133,7 +133,7 @@ router.get('/entity/:entity_type/:entity_id', requireAdmin, async (req, res) => 
        FROM audit_logs al
        LEFT JOIN users u ON al.user_id = u.id
        WHERE al.entity_type = $1 AND al.entity_id = $2
-       ORDER BY al.created_at DESC
+       ORDER BY al.created_at DESC, al.id DESC
        LIMIT $3 OFFSET $4`,
       [entity_type, entity_id, limit, offset]
     );
@@ -221,7 +221,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
        FROM audit_logs al
        LEFT JOIN users u ON al.user_id = u.id
        WHERE 1=1 ${dateFilter}
-       ORDER BY al.created_at DESC
+       ORDER BY al.created_at DESC, al.id DESC
        LIMIT 20`,
       values
     );

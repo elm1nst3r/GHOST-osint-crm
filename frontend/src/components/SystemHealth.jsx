@@ -1,0 +1,280 @@
+// File: frontend/src/components/SystemHealth.jsx
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Activity, 
+  Database, 
+  HardDrive, 
+  Clock, 
+  Users, 
+  Building2, 
+  Wrench, 
+  CheckSquare,
+  AlertTriangle,
+  Server,
+  Wifi,
+  WifiOff
+} from 'lucide-react';
+import { systemAPI } from '../utils/api';
+import { formatTime } from '../utils/format';
+
+const SystemHealth = () => {
+  const { t } = useTranslation();
+  const [health, setHealth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // 403 = the endpoint is admin-only and this user isn't an admin. That is
+  // not an outage — hide the widget and stop polling (issue #58).
+  const [forbidden, setForbidden] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetchHealth = async () => {
+    try {
+      const data = await systemAPI.getHealth();
+      setHealth(data);
+      setError(null);
+    } catch (err) {
+      if (err.status === 403) {
+        setForbidden(true);
+        setError(null);
+        return;
+      }
+      console.error('Error fetching system health:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatUptime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return t('systemHealth.uptimeHoursMinutes', { hours, minutes });
+    }
+    return t('systemHealth.uptimeMinutes', { minutes });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'healthy':
+        return 'text-green-500';
+      case 'degraded':
+        return 'text-yellow-500';
+      case 'unhealthy':
+        return 'text-red-500';
+      default:
+        return 'text-gray-500 dark:text-slate-400';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'healthy':
+        return <Wifi className="w-3 h-3 text-green-500" />;
+      case 'degraded':
+        return <AlertTriangle className="w-3 h-3 text-yellow-500" />;
+      case 'unhealthy':
+        return <WifiOff className="w-3 h-3 text-red-500" />;
+      default:
+        return <Activity className="w-3 h-3 text-gray-500 dark:text-slate-400" />;
+    }
+  };
+
+  useEffect(() => {
+    if (forbidden) return undefined;
+    fetchHealth();
+
+    // Refresh health data every 30 seconds
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+     
+  }, [forbidden]);
+
+  if (forbidden) return null;
+
+  if (loading) {
+    return (
+      <div className="p-3 glass rounded-lg">
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div className="flex items-center justify-center gap-x-1">
+            <Activity className="w-3 h-3 animate-pulse" />
+            <span>{t('common.loadingEllipsis')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-3 glass rounded-lg">
+        <div className="text-xs text-red-500 text-center">
+          <div className="flex items-center justify-center gap-x-1">
+            <WifiOff className="w-3 h-3" />
+            <span>{t('systemHealth.systemOffline')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!health) return null;
+
+  return (
+    // data-volatile: live figures; the screenshot tests (e2e/visual.spec.js) mask it.
+    <div data-volatile className="hidden md:block fixed bottom-4 inset-e-4 z-50">
+      <div className={`glass rounded-lg shadow-lg transition-all duration-300 ${expanded ? 'w-72' : 'w-auto'}`}>
+        <div
+          className="p-3 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {/* Basic Status - Always Visible */}
+          <div className="flex items-center justify-between gap-x-3">
+            <div className="flex items-center gap-x-2">
+              {getStatusIcon(health.status)}
+              <span className={`font-medium ${getStatusColor(health.status)}`}>
+                {health.status === 'healthy' ? t('systemHealth.systemOnline') :
+                 health.status === 'degraded' ? t('systemHealth.systemDegraded') :
+                 t('systemHealth.systemOffline')}
+              </span>
+            </div>
+            {!expanded && (
+              <div className="flex items-center gap-x-1 text-gray-500 dark:text-gray-400">
+                <HardDrive className="w-3 h-3" />
+                <span>{health.memory?.used || 0}MB</span>
+              </div>
+            )}
+          </div>
+
+          {/* Expanded Details */}
+          {expanded && (
+            <div className="mt-3 space-y-3 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700 pt-3">
+              {/* System Info */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-x-2">
+                    <Server className="w-4 h-4 text-blue-500" />
+                    <span className="font-medium">{t('systemHealth.backend')}</span>
+                  </div>
+                  <span className="text-green-500 font-medium">
+                    {health.status === 'healthy' ? t('systemHealth.online') : t('systemHealth.offline')}
+                  </span>
+                </div>
+
+                <div className="ps-6 text-xs text-gray-600 dark:text-gray-400">
+                  {t('systemHealth.uptimeLabel', { uptime: formatUptime(health.uptime || 0) })}
+                </div>
+              </div>
+
+              {/* Database Status */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-x-2">
+                    <Database className={`w-4 h-4 ${health.database?.status === 'connected' ? 'text-green-500' : 'text-red-500'}`} />
+                    <span className="font-medium">{t('systemHealth.database')}</span>
+                  </div>
+                  <span className={health.database?.status === 'connected' ? 'text-green-500' : 'text-red-500'}>
+                    {health.database?.status === 'connected' ? t('systemHealth.connected') : t('systemHealth.disconnected')}
+                  </span>
+                </div>
+
+                {health.database?.status === 'connected' && (
+                  <div className="ps-6 text-xs text-gray-600 dark:text-gray-400">
+                    {t('systemHealth.activeConnections', { count: health.database?.connections || 0 })}
+                  </div>
+                )}
+              </div>
+
+              {/* Memory Usage */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-x-2">
+                    <HardDrive className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium">{t('systemHealth.memory')}</span>
+                  </div>
+                  <span>{t('systemHealth.memoryUsage', { used: health.memory?.used || 0, total: health.memory?.total || 0 })}</span>
+                </div>
+
+                {health.memory?.used && health.memory?.total && (
+                  <div className="ps-6">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(health.memory.used / health.memory.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Data Counts */}
+              <div className="space-y-2">
+                <div className="font-medium">{t('systemHealth.dataSummary')}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-sm">
+                    <div className="flex items-center gap-x-1">
+                      <Users className="w-3 h-3 text-blue-500" />
+                      <span>{t('systemHealth.peopleLabel')}</span>
+                    </div>
+                    <span className="font-medium">{health.counts?.people || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-sm">
+                    <div className="flex items-center gap-x-1">
+                      <Building2 className="w-3 h-3 text-green-500" />
+                      <span>{t('systemHealth.businessLabel')}</span>
+                    </div>
+                    <span className="font-medium">{health.counts?.businesses || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded-sm">
+                    <div className="flex items-center gap-x-1">
+                      <Wrench className="w-3 h-3 text-orange-500" />
+                      <span>{t('systemHealth.toolsLabel')}</span>
+                    </div>
+                    <span className="font-medium">{health.counts?.tools || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-2 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-sm">
+                    <div className="flex items-center gap-x-1">
+                      <CheckSquare className="w-3 h-3 text-purple-500" />
+                      <span>{t('systemHealth.todosLabel')}</span>
+                    </div>
+                    <span className="font-medium">{health.counts?.activeTodos || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity */}
+              <div className="flex items-center justify-between p-2 bg-accent-primary/10 rounded-sm">
+                <div className="flex items-center gap-x-2">
+                  <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="font-medium">{t('systemHealth.activity24h')}</span>
+                </div>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{health.counts?.recentActivity || 0}</span>
+              </div>
+
+              {/* Last Updated */}
+              <div className="flex items-center justify-center gap-x-1 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700">
+                <Clock className="w-3 h-3" />
+                <span>{t('systemHealth.updatedAt', { time: formatTime(health.timestamp) })}</span>
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fetchHealth();
+                }}
+                className="w-full px-3 py-2 text-xs bg-accent-primary text-white rounded-lg hover:bg-accent-primary/80 transition-colors font-medium"
+              >
+                {t('systemHealth.refreshStatus')}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SystemHealth;

@@ -1,3 +1,8 @@
 files:
   - source: /frontend/src/locales/en/translation.json
     translation: /frontend/src/locales/%two_letters_code%/translation.json
+    # i18next JSON, not plain JSON: Crowdin then knows `key_one` / `key_other`
+    # are plural forms and asks translators for every form their language
+    # has (Russian: one, few, many, other; Arabic: six), instead of copying
+    # the two English ones.
+    type: i18next_json

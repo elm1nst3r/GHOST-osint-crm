@@ -65,7 +65,7 @@ router.get('/', requireAuth, async (req, res) => {
         p.updated_at
       FROM people p
       ${where}
-      ORDER BY p.updated_at DESC
+      ORDER BY p.updated_at DESC, p.id DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
     params.push(parseInt(limit), parseInt(offset));

@@ -1,12 +1,42 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './locales/en/translation.json';
-import ru from './locales/ru/translation.json';
-import de from './locales/de/translation.json';
-import es from './locales/es/translation.json';
-import fr from './locales/fr/translation.json';
-import zh from './locales/zh/translation.json';
-import fa from './locales/fa/translation.json';
+
+// English ships in the main bundle: it is the source language and the
+// fallback for any string a catalog doesn't have. Every other catalog is a
+// separate file, downloaded only when someone picks that language.
+const catalogs = import.meta.glob(['./locales/*/translation.json', '!./locales/en/translation.json']);
+
+// Plural forms a language needs but its catalog doesn't have are filled from
+// the same language's `_other` text. Russian needs one/few/many/other, and
+// Crowdin's plain-JSON setup only ever produced _one and _other, so "3 files"
+// fell back to English mid-sentence. A real _few/_many in the catalog wins.
+const PLURAL = /_(zero|one|two|few|many|other)$/;
+export function fillPluralForms(catalog, language) {
+  const forms = new Intl.PluralRules(language).resolvedOptions().pluralCategories;
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return node;
+    const out = {};
+    for (const [key, value] of Object.entries(node)) out[key] = walk(value);
+    for (const key of Object.keys(out)) {
+      if (!key.endsWith('_other') || typeof out[key] !== 'string') continue;
+      const base = key.replace(PLURAL, '');
+      for (const form of forms) if (!(`${base}_${form}` in out)) out[`${base}_${form}`] = out[key];
+    }
+    return out;
+  };
+  return walk(catalog);
+}
+
+const lazyCatalogs = {
+  type: 'backend',
+  callbackApi: false, // read() returns a promise (the i18next v27 style)
+  init() {},
+  async read(language) {
+    const load = catalogs[`./locales/${language}/translation.json`];
+    return load ? fillPluralForms((await load()).default, language) : {};
+  },
+};
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -33,18 +63,14 @@ export const rtlArrows = {
   }
 };
 
-i18n.use(initReactI18next).use(rtlArrows).init({
-  resources: {
-    en: { translation: en },
-    ru: { translation: ru },
-    de: { translation: de },
-    es: { translation: es },
-    fr: { translation: fr },
-    zh: { translation: zh },
-    fa: { translation: fa }
-  },
+i18n.use(initReactI18next).use(lazyCatalogs).use(rtlArrows).init({
+  resources: { en: { translation: en } },
+  partialBundledLanguages: true, // the others come from lazyCatalogs
   lng: storedLanguage || 'en',
   fallbackLng: 'en',
+  // An empty string in a catalog (untranslated in Crowdin) shows the English
+  // text instead of nothing; i18next v27 makes this the default.
+  returnEmptyString: false,
   postProcess: ['rtlArrows'],
   interpolation: {
     escapeValue: false // React already escapes output

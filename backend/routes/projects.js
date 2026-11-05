@@ -21,14 +21,14 @@ const actorRoleOf = (req, projectId) =>
 router.get('/', requireAuth, async (req, res) => {
   try {
     if (req.session.userRole === 'admin') {
-      const result = await pool.query(`SELECT p.*, 'admin' AS my_role FROM projects p ORDER BY p.name ASC`);
+      const result = await pool.query(`SELECT p.*, 'admin' AS my_role FROM projects p ORDER BY p.name ASC, p.id ASC`);
       return res.json(result.rows);
     }
     const result = await pool.query(
       `SELECT p.*, pm.project_role AS my_role
        FROM projects p
        JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = $1
-       ORDER BY p.name ASC`,
+       ORDER BY p.name ASC, p.id ASC`,
       [req.session.userId]
     );
     res.json(result.rows);

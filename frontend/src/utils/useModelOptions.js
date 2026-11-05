@@ -8,7 +8,7 @@
 // person form or any filter — the "Data Model changes do nothing" report in
 // issue #67. Every dropdown backed by a model_type should go through here.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useEffectEvent } from 'react';
 import { modelOptionsAPI } from './api';
 
 // Fallback entries carry presentation metadata the database doesn't (notably
@@ -20,13 +20,22 @@ export const mergeOptionMeta = (dbOptions, fallback = []) =>
     return known ? { ...known, ...opt } : opt;
   });
 
+// Dropdowns that mount together (People has four: list filters + table)
+// share one request instead of each fetching every option. Only the
+// in-flight request is shared, so a later mount still gets fresh options
+// after an edit in Settings → Data Model.
+let inFlight = null;
+const loadAllOptions = () => {
+  inFlight ??= modelOptionsAPI.getAll().finally(() => { inFlight = null; });
+  return inFlight;
+};
+
 export const useModelOptions = (modelType, fallback = []) => {
   const [options, setOptions] = useState(fallback);
 
-  useEffect(() => {
+  const onModelTypeChange = useEffectEvent(() => {
     let cancelled = false;
-    modelOptionsAPI
-      .getAll()
+    loadAllOptions()
       .then((all) => {
         if (cancelled || !Array.isArray(all)) return;
         const picked = all
@@ -39,8 +48,8 @@ export const useModelOptions = (modelType, fallback = []) => {
       })
       .catch(() => {});
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelType]);
+  });
+  useEffect(() => onModelTypeChange(), [modelType]);
 
   return options;
 };

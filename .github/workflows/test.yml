@@ -40,9 +40,12 @@ jobs:
         working-directory: backend
         run: node scripts/build-api-docs.js "$RUNNER_TEMP/api-docs"
 
-  # Unit tests for the frontend utilities, plus the RTL guard (src/rtl.test.js):
-  # UI code must use logical direction classes (ms-/pe-/start-/text-start…) so
-  # the layout mirrors for Persian, Arabic and other right-to-left languages.
+  # Frontend: lint, unit tests (jsdom) and component tests in a real Chromium
+  # (Vitest browser mode). The unit tests include the RTL guard
+  # (src/rtl.test.js): UI code must use logical direction classes
+  # (ms-/pe-/start-/text-start…) so the layout mirrors for right-to-left
+  # languages. The production build runs too, so a broken import fails here
+  # instead of in the Docker image.
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -58,8 +61,22 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run tests
+      - name: Lint
         working-directory: frontend
-        run: npm test -- --watchAll=false
-        env:
-          CI: true
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Install Chromium for component tests
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Component tests (browser)
+        working-directory: frontend
+        run: npm run test:browser
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build

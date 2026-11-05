@@ -43,7 +43,7 @@ router.get('/', requireAuth, async (req, res) => {
        FROM properties p
        LEFT JOIN people o ON p.owner_person_id = o.id
        ${whereSql}
-       ORDER BY p.created_at DESC
+       ORDER BY p.created_at DESC, p.id DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       dataParams
     );

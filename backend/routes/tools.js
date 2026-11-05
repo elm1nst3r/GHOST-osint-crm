@@ -187,7 +187,7 @@ router.get('/', requireAuth, async (req, res) => {
     const all = req.query.all === 'true' && user.isAdmin;
     const params = [user.userId];
     const cond = visibilityCondition(user, { projectId, all }, params);
-    const { rows } = await pool.query(`${TOOL_SELECT('$1')} WHERE ${cond} ORDER BY t.name ASC`, params);
+    const { rows } = await pool.query(`${TOOL_SELECT('$1')} WHERE ${cond} ORDER BY t.name ASC, t.id ASC`, params);
     const [manifests, myProjects] = await Promise.all([manifestMap(), memberProjectIds(user.userId)]);
     res.json(rows.map((r) => decorate(r, user, manifests, myProjects)));
   } catch (err) {
@@ -356,7 +356,7 @@ router.post('/export', requireAuth, validate(ToolExportSchema), async (req, res)
       params.push(tool_ids);
       sql += ` AND t.id = ANY($${params.length})`;
     }
-    const { rows } = await pool.query(`${sql} ORDER BY t.name ASC`, params);
+    const { rows } = await pool.query(`${sql} ORDER BY t.name ASC, t.id ASC`, params);
 
     const projectNames = new Map((await pool.query('SELECT id, name FROM projects')).rows.map((p) => [p.id, p.name]));
     const manifests = await manifestMap();

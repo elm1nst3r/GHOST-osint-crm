@@ -103,7 +103,8 @@ replacing the images.
 - ✅ HSTS is sent only when a proxy in front reports HTTPS (`X-Forwarded-Proto: https`), without `includeSubDomains`
 - ✅ API (helmet): `default-src 'none'` for JSON and files; the API docs page allows only its own scripts, pinned by hash
 - ✅ nginx doesn't reveal its version
-- ⏳ A full script Content-Security-Policy follows the move from Create React App to Vite
+- ✅ Pages: a strict Content-Security-Policy (v3.0). Only the app's own bundled scripts run (`script-src 'self'`, no inline script), and the page can only talk to its own server (`connect-src 'self'`), so injected markup can neither run code nor send data elsewhere. Images may come from `https:` (map tiles, linked profile pictures)
+- ✅ Leaflet's marker images ship with the app instead of loading from a CDN (v3.0)
 
 ### Docker & Infrastructure
 - ✅ Supported base images: Node.js 26 LTS (security fixes until April 2029) and nginx 1.30 stable (v2.27)
@@ -145,9 +146,7 @@ replacing the images.
 
 ## Known npm Audit Findings
 
-The frontend uses `react-scripts` (Create React App), which carries several audit findings in its bundled webpack toolchain. **These affect the development server only** — they are not present in the production nginx build.
-
-Running `npm audit fix --force` will likely break the CRA build. The recommendation is to monitor for a CRA upgrade or migration to Vite/Next.js if this becomes a concern.
+Since v3.0 the frontend builds with Vite instead of Create React App, which removed the webpack toolchain and its audit findings. `npm audit --omit=dev` lists what ships to the browser; findings in development tools (ESLint, Vitest) don't reach the production build.
 
 ---
 

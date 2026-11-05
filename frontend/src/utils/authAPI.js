@@ -1,6 +1,6 @@
 // Authentication API utilities
 // Match the base URL pattern from api.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // JSON request that throws an Error carrying the server's `code` and the
 // HTTP status, so callers can show a translated message for known cases.
@@ -52,7 +52,12 @@ export const authAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get session');
+      // Not "signed out": the server couldn't say (rate limit, restart…).
+      const error = new Error('Failed to get session');
+      error.status = response.status;
+      const retryAfter = Number(response.headers.get('Retry-After'));
+      if (Number.isFinite(retryAfter) && response.headers.has('Retry-After')) error.retryAfter = retryAfter;
+      throw error;
     }
 
     return response.json();
