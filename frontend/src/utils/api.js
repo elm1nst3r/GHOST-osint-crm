@@ -71,6 +71,11 @@ export const peopleAPI = {
 
   // Appends OSINT data entries server-side (issue #96); duplicates are skipped.
   addOsint: (id, entries) => fetchAPI(`/people/${id}/osint`, { method: 'POST', body: JSON.stringify({ entries }) }),
+  // People whose name, patronymic or alias contains the text, in a project.
+  search: (text, projectId, limit = 10) => fetchAPI(`/search/advanced?${new URLSearchParams([
+    ['searchText', text], ['searchIn[]', 'name'], ['searchIn[]', 'aliases'], ['limit', String(limit)],
+    ...(projectId ? [['project_id', String(projectId)]] : []),
+  ])}`),
 
   create: (personData) => fetchAPI('/people', {
     method: 'POST',

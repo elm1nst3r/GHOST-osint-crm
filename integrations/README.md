@@ -107,7 +107,8 @@ for complete examples.
         "root": "data.items",            // where the list (or object) is
         "title": "name",
         "link": "url",                   // shown as a link if it's http(s)
-        "distinctBy": "id",
+        "distinctBy": "id",              // drop items whose id was already seen
+        "mergeDuplicates": true,         // show identical results once, counted
         "fields": [
           { "label": "Name", "path": "name" },
           { "label": "Profiles", "path": "profiles[].url", "osintType": "Social Media" },
@@ -122,6 +123,12 @@ for complete examples.
 
 - **Paths** are dotted: `a.b`, `list[0].name`, and `list[].name` to take a
   field from every item of a list.
+- **Repeated values are counted.** A field that collects a value from every
+  item (`list[].email`) keeps each value once with how often it occurred,
+  shown as `×27`. With `"mergeDuplicates": true`, results that come out
+  identical are shown once with their count, instead of one row each.
+  `distinctBy` drops repeats by a key without counting them. When a counted
+  value is added to a person, the count is kept with where it came from.
 - **`osintType`** marks a value the investigator can add to a person; it
   should match one of your OSINT data types (Email, Phone, Website, Social
   Media, Username, IP Address…).

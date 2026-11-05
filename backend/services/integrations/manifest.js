@@ -188,6 +188,9 @@ const operationSchema = z.object({
     title: pathString.optional(),
     link: pathString.optional(),
     distinctBy: pathString.optional(),
+    // Results that come out identical are shown once, with how many times
+    // they occurred (issue #96).
+    mergeDuplicates: z.boolean().optional(),
     fields: z.array(fieldSchema).min(1).max(30),
   }),
 });
@@ -309,6 +312,9 @@ function buildRequest(manifest, { path, query }, input, secret) {
 const MAX_ITEMS = 200;
 const MAX_VALUES = 50;
 const MAX_VALUE_LENGTH = 1000;
+// Items looked at when merging duplicates (all of them are mapped first, so
+// the counts cover the whole response, not just the first page).
+const MAX_MERGE_ITEMS = 10000;
 
 // Dotted path with array support: "a.b[0].c", and "list[].name" maps over a
 // list. An empty path is the value itself.
@@ -338,9 +344,12 @@ function getPath(obj, path) {
 
 const stripTags = (s) => s.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
-function toValues(raw, field) {
+// The values a field yields, each once, with how many times it occurred:
+// [{ value, count }]. A value already in the list keeps being counted after
+// MAX_VALUES distinct values; only new ones stop being added.
+function countValues(raw, field) {
   const list = Array.isArray(raw) ? raw.flat(2) : [raw];
-  const out = [];
+  const counts = new Map();
   for (const item of list) {
     if (item === null || item === undefined || item === '') continue;
     let s = typeof item === 'object' ? JSON.stringify(item) : String(item);
@@ -348,15 +357,22 @@ function toValues(raw, field) {
     const parts = field.split ? s.split(field.split) : [s];
     for (const p of parts) {
       const v = p.trim().slice(0, MAX_VALUE_LENGTH);
-      if (v && !out.includes(v)) out.push(v);
-      if (out.length >= MAX_VALUES) return out;
+      if (!v) continue;
+      if (counts.has(v)) counts.set(v, counts.get(v) + 1);
+      else if (counts.size < MAX_VALUES) counts.set(v, 1);
     }
   }
-  return out;
+  return [...counts].map(([value, count]) => ({ value, count }));
 }
 
+const toValues = (raw, field) => countValues(raw, field).map((c) => c.value);
+
 // Turns a JSON response into display rows:
-//   { items: [{ title, link, fields: [{ label, values, osintType }] }], total, truncated }
+//   { items: [{ title, link, count?, fields: [{ label, values, counts?, osintType }] }], total, truncated }
+// `counts` (parallel to `values`) is present when a value occurred more than
+// once in what the field collected; `count` on an item when identical items
+// were merged (results.mergeDuplicates). Both are occurrence counts, so an
+// investigator can tell a value seen once from one seen dozens of times.
 function mapResults(results, json) {
   let root = getPath(json, results.root || '');
   if (root === null || root === undefined) root = [];
@@ -373,17 +389,46 @@ function mapResults(results, json) {
     });
   }
 
-  const total = list.length;
-  const items = list.slice(0, MAX_ITEMS).map((item) => {
+  const mapItem = (item) => {
     const title = results.title ? toValues(getPath(item, results.title), {})[0] : undefined;
     const linkValue = results.link ? toValues(getPath(item, results.link), {})[0] : undefined;
     const link = linkValue && /^https?:\/\//i.test(linkValue) ? linkValue : undefined;
     const fields = results.fields
-      .map((f) => ({ label: f.label, osintType: f.osintType, values: toValues(getPath(item, f.path), f) }))
+      .map((f) => {
+        const counted = countValues(getPath(item, f.path), f);
+        return {
+          label: f.label,
+          osintType: f.osintType,
+          values: counted.map((c) => c.value),
+          ...(counted.some((c) => c.count > 1) ? { counts: counted.map((c) => c.count) } : {}),
+        };
+      })
       .filter((f) => f.values.length > 0);
     return { title, link, fields };
-  }).filter((it) => it.fields.length > 0 || it.title);
+  };
+  const shown = (it) => it.fields.length > 0 || it.title;
 
+  if (results.mergeDuplicates) {
+    const merged = new Map();
+    const scanned = list.slice(0, MAX_MERGE_ITEMS);
+    for (const raw of scanned) {
+      const item = mapItem(raw);
+      if (!shown(item)) continue;
+      const key = JSON.stringify(item);
+      const entry = merged.get(key);
+      if (entry) entry.count += 1;
+      else merged.set(key, { item, count: 1 });
+    }
+    const unique = [...merged.values()].map(({ item, count }) => (count > 1 ? { ...item, count } : item));
+    return {
+      items: unique.slice(0, MAX_ITEMS),
+      total: unique.length,
+      truncated: unique.length > MAX_ITEMS || list.length > MAX_MERGE_ITEMS,
+    };
+  }
+
+  const total = list.length;
+  const items = list.slice(0, MAX_ITEMS).map(mapItem).filter(shown);
   return { items, total, truncated: total > MAX_ITEMS };
 }
 

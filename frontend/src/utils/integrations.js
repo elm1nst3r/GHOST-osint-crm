@@ -78,3 +78,41 @@ export const customSearchTypes = (tools) => [...new Set(runnableTools(tools)
 // Searches that take no input (account balance, status).
 export const noInputOperations = (tools) => runnableTools(tools)
   .flatMap((tool) => tool.integration.operations.filter((op) => op.input === 'none').map((op) => ({ tool, op })));
+
+// ── Repeated values in results (issue #96) ─────────────────────────────────
+// A value is identified by its OSINT type (or, for display-only fields, its
+// field label) and its text, so the same email in 27 rows is one value.
+const valueKind = (f) => (f.osintType ? `type:${String(f.osintType).toLowerCase()}` : `field:${f.label}`);
+export const occurrenceKey = (f, value) => `${valueKind(f)}\u0000${value}`;
+
+// How many times each value occurred in one search's results, across all of
+// its rows: counts collected within a field (`counts`), times identical rows
+// merged into one (`count`), summed over every row the value appears in.
+export function occurrenceTotals(result) {
+  const totals = new Map();
+  for (const item of result?.items || []) {
+    for (const f of item.fields || []) {
+      f.values.forEach((value, i) => {
+        const key = occurrenceKey(f, value);
+        totals.set(key, (totals.get(key) || 0) + (f.counts?.[i] ?? 1) * (item.count ?? 1));
+      });
+    }
+  }
+  return totals;
+}
+
+// The values of one search's results that can be added to a person, once
+// each, in the order they first appear: [{ key, osintType, value, label }].
+export function addableValues(result) {
+  const out = new Map();
+  for (const item of result?.items || []) {
+    for (const f of item.fields || []) {
+      if (!f.osintType) continue;
+      for (const value of f.values) {
+        const key = occurrenceKey(f, value);
+        if (!out.has(key)) out.set(key, { key, osintType: f.osintType, value, label: f.label });
+      }
+    }
+  }
+  return [...out.values()];
+}

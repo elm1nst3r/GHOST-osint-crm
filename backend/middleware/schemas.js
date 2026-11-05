@@ -351,6 +351,8 @@ const PersonOsintAppendSchema = z.object({
       operation: z.string().max(100).optional(),
       query: z.string().max(2000).optional(),
       retrieved_at: z.string().max(40).optional(),
+      // How many times the value occurred in that search's results (#96).
+      occurrences: z.number().int().min(1).max(1000000000).optional(),
     }).optional(),
   })).min(1).max(200),
 });

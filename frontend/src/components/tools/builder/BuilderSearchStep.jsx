@@ -288,6 +288,20 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
                   {op.root ? t('builder.rootPerItem', { list: op.root }) : t('builder.rootWhole')}
                 </p>
               )}
+              {op.root && op.fields.length > 0 && (
+                <label className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300 mb-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={Boolean(op.mergeDuplicates)}
+                    onChange={(e) => onChange({ mergeDuplicates: e.target.checked })}
+                  />
+                  <span>
+                    <span className="font-medium">{t('builder.mergeDuplicates')}</span>
+                    <span className="block text-gray-500 dark:text-gray-400">{t('builder.mergeDuplicatesHelp')}</span>
+                  </span>
+                </label>
+              )}
               {op.fields.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t('builder.noFields')}</p>}
               <div className="space-y-2">
                 {op.fields.map((f, i) => (
@@ -325,7 +339,11 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
                     <div key={idx} className="p-2 text-xs">
                       {item.title && <div className="font-medium text-gray-900 dark:text-gray-100 break-all">{item.title}</div>}
                       {item.fields.map((f) => (
-                        <div key={f.label} className="break-all"><span className="text-gray-500">{f.label}:</span> {f.values.join(', ')}
+                        <div key={f.label} className="break-all"><span className="text-gray-500">{f.label}:</span>{' '}
+                          {f.values.map((v, i) => {
+                            const n = (f.counts?.[i] ?? 1) * (item.count ?? 1);
+                            return `${v}${n > 1 ? ` ${t('tools.occurrences', { count: n })}` : ''}`;
+                          }).join(', ')}
                           {f.osintType && <span className="ms-1 text-[10px] px-1 rounded-sm bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{t('builder.addable', { type: f.osintType })}</span>}
                         </div>
                       ))}

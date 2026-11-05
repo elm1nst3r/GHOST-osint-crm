@@ -17,6 +17,10 @@ import { formatPersonName } from '../utils/personName';
 import FilesPanel from './files/FilesPanel';
 import ToolRunModal from './tools/ToolRunModal';
 import { inputKindForOsint, operationsForInput, runnableTools } from '../utils/integrations';
+
+// Every tool finding of an OSINT entry; entries saved before 3.1 have only `source` (#96).
+const findingsOf = (osint) => (Array.isArray(osint.sources) ? osint.sources : (osint.source ? [osint.source] : []));
+const SHOWN_SOURCES = 5;
 import { formatDate, ageFrom } from '../utils/format';
 
 const PersonDetailModal = () => {
@@ -367,11 +371,17 @@ const PersonDetailModal = () => {
                           <div className="flex-1 text-gray-900 dark:text-gray-100">
                             <span className="font-medium">{optionLabel(t, 'osint_data_type', osint.type)}:</span> <bdi>{osint.value}</bdi>
                             {osint.notes && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{osint.notes}</p>}
-                            {osint.source && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {t('tools.provenance', { tool: osint.source.tool_name || osint.source.integration_id, date: (osint.source.retrieved_at || '').slice(0, 10) })}
-                                {osint.verified === false && <span className="ms-2 px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
-                              </p>
+                            {findingsOf(osint).length > 0 && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
+                                {findingsOf(osint).slice(0, SHOWN_SOURCES).map((s, i) => (
+                                  <p key={i}>
+                                    {t('tools.provenance', { tool: s.tool_name || s.integration_id, date: (s.retrieved_at || '').slice(0, 10) })}
+                                    {s.occurrences > 1 && <> · {t('tools.occurrencesTitle', { count: s.occurrences })}</>}
+                                    {i === 0 && osint.verified === false && <span className="ms-2 px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
+                                  </p>
+                                ))}
+                                {findingsOf(osint).length > SHOWN_SOURCES && <p>{t('tools.moreSources', { count: findingsOf(osint).length - SHOWN_SOURCES })}</p>}
+                              </div>
                             )}
                           </div>
                           {operationsForInput(personTools, { type: osint.type, value: osint.value, kind: inputKindForOsint(osint.type, osint.value) }).length > 0 && (

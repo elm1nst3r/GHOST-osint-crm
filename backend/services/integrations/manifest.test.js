@@ -210,6 +210,66 @@ describe('getPath / mapResults', () => {
     expect(r.items[1].link).toBe('https://ok');
   });
 
+  // Issue #96: the same value returned many times (27 entries with one email).
+  describe('repeated values', () => {
+    const json = { result: [
+      ...Array.from({ length: 27 }, () => ({ email: 'vovk@yandex.ru' })),
+      ...Array.from({ length: 8 }, () => ({ email: 'test@example.com' })),
+      ...Array.from({ length: 3 }, () => ({ email: 'admin@example.com' })),
+    ] };
+
+    test('collecting from every item keeps each value once, with how often it occurred', () => {
+      const r = mapResults({ fields: [{ label: 'Email', path: 'result[].email', osintType: 'Email' }] }, json);
+      expect(r.items).toHaveLength(1);
+      expect(r.items[0].fields[0]).toEqual({
+        label: 'Email', osintType: 'Email',
+        values: ['vovk@yandex.ru', 'test@example.com', 'admin@example.com'],
+        counts: [27, 8, 3],
+      });
+    });
+
+    test('values that occur once carry no counts (output unchanged for them)', () => {
+      const r = mapResults({ fields: [{ label: 'Email', path: 'e[]' }] }, { e: ['a@x.co', 'b@x.co'] });
+      expect(r.items[0].fields[0]).toEqual({ label: 'Email', osintType: undefined, values: ['a@x.co', 'b@x.co'] });
+    });
+
+    test('each item a separate result: without mergeDuplicates every item is a row, as before', () => {
+      const r = mapResults({ root: 'result', fields: [{ label: 'Email', path: 'email' }] }, json);
+      expect(r.items).toHaveLength(38);
+      expect(r.total).toBe(38);
+      expect(r.items[0].count).toBeUndefined();
+    });
+
+    test('mergeDuplicates shows identical results once, with their count', () => {
+      const r = mapResults({ root: 'result', mergeDuplicates: true, fields: [{ label: 'Email', path: 'email', osintType: 'Email' }] }, json);
+      expect(r.items.map((i) => [i.fields[0].values[0], i.count])).toEqual([
+        ['vovk@yandex.ru', 27], ['test@example.com', 8], ['admin@example.com', 3],
+      ]);
+      expect(r.total).toBe(3);
+      expect(r.truncated).toBe(false);
+    });
+
+    test('mergeDuplicates only merges results that are identical in every shown field', () => {
+      const r = mapResults({ root: 'r', mergeDuplicates: true, fields: [{ label: 'Email', path: 'e' }, { label: 'Site', path: 's' }] },
+        { r: [{ e: 'a@x.co', s: 'one' }, { e: 'a@x.co', s: 'two' }, { e: 'a@x.co', s: 'one' }] });
+      expect(r.items.map((i) => [i.fields[1].values[0], i.count])).toEqual([['one', 2], ['two', undefined]]);
+    });
+
+    test('a value keeps being counted after the distinct-value limit is reached', () => {
+      const many = [...Array.from({ length: 60 }, (_, i) => `v${i}`), 'v0', 'v0'];
+      const f = mapResults({ fields: [{ label: 'x', path: 'x[]' }] }, { x: many }).items[0].fields[0];
+      expect(f.values).toHaveLength(50);
+      expect(f.counts[0]).toBe(3);
+    });
+
+    test('the manifest accepts mergeDuplicates', () => {
+      const b = base();
+      const m = validateManifest({ ...b, operations: [{ ...b.operations[0], results: { root: 'r', mergeDuplicates: true, fields: [{ label: 'x', path: 'x' }] } }] });
+      expect(m.errors).toBeUndefined();
+      expect(m.manifest.operations[0].results.mergeDuplicates).toBe(true);
+    });
+  });
+
   test('caps the number of items', () => {
     const r = mapResults({ fields: [{ label: 'x', path: 'x' }] }, Array.from({ length: 250 }, (_, i) => ({ x: i })));
     expect(r.items).toHaveLength(200);

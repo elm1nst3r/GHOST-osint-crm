@@ -83,6 +83,21 @@ test('buildManifest produces a manifest that stateFromManifest reads back', () =
   expect(buildManifest(stateFromManifest(m))).toEqual(m);
 });
 
+test('merging identical results: on for new searches, kept when editing, only with a results list', () => {
+  expect(emptyOperation().mergeDuplicates).toBe(true);
+  const op = { ...emptyOperation(), label: 'Breaches', input: 'email', path: '/b/{{input}}', root: 'result', fields: [{ label: 'Email', path: 'email', osintType: 'Email', split: '' }] };
+  const m = buildManifest({ ...emptyState(), name: 'X', baseUrl: 'https://x.example', operations: [op] });
+  expect(m.operations[0].results.mergeDuplicates).toBe(true);
+  expect(buildManifest(stateFromManifest(m))).toEqual(m);
+  // An integration saved before this option keeps showing every item.
+  const old = { ...m, operations: [{ ...m.operations[0], results: { root: 'result', fields: m.operations[0].results.fields } }] };
+  expect(stateFromManifest(old).operations[0].mergeDuplicates).toBe(false);
+  expect(buildManifest(stateFromManifest(old)).operations[0].results.mergeDuplicates).toBeUndefined();
+  // Collecting from every item (no results list) has nothing to merge.
+  const collected = buildManifest({ ...emptyState(), name: 'X', baseUrl: 'https://x.example', operations: [{ ...op, root: '' }] });
+  expect(collected.operations[0].results.mergeDuplicates).toBeUndefined();
+});
+
 // ── Issue #96 feedback ──────────────────────────────────────────────────────
 
 describe('search ids', () => {
