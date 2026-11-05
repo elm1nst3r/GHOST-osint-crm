@@ -5,6 +5,31 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-11-05
+
+### ✨ Improved
+
+- **Repeated values in integration results are counted** (issue #96). When
+  a service returns the same value many times (27 entries with one email
+  address), GHOST shows it once per search with how often it occurred, as
+  `×27`, across all results of that search. Ticking it adds it once. For
+  searches that show each list item as a separate result, a new **Merge
+  identical results** option in the integration builder (on for new
+  searches; manifests: `mergeDuplicates`) shows identical results once with
+  their count.
+- **Results can be added to any person in the project** (issue #96). A
+  search started from the OSINT Tools page now has an "Add to" person
+  search under its results; before, only searches started from a person
+  could add anything. Each search also has a **Select all** button.
+- **The same value from several sources** (issue #96). Adding a value the
+  person already has no longer skips it: the new search is recorded as
+  another source of that entry, so the person shows every tool that found
+  it, with dates and counts ("via Breach search · 2026-11-05 · found 27
+  times"). Running the same search again updates its count and date
+  instead of adding a duplicate. Values typed in by hand keep their status
+  and gain the tool sources. Entries keep `source` (the first finding) as
+  before and gain a `sources` list.
+
 ## [3.0.0] - 2026-11-05
 
 The technology upgrade: GHOST's frontend rebuilt on React 19, Vite and

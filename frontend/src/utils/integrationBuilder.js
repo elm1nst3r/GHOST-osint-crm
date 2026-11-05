@@ -127,6 +127,8 @@ export function parsePath(path) {
 export const emptyOperation = () => ({
   id: '', label: '', input: 'email', inputLabel: '', osintTypes: [], cost: 'free', path: '/', query: {},
   root: undefined, fields: [], title: '', link: '',
+  // Each list item a separate result: show identical ones once, counted (#96).
+  mergeDuplicates: true,
 });
 
 export const emptyState = () => ({
@@ -188,6 +190,7 @@ export function buildManifest(state) {
       ...(Object.keys(op.query || {}).length ? { query: op.query } : {}),
       results: {
         ...(op.root ? { root: op.root } : {}),
+        ...(op.root && op.mergeDuplicates ? { mergeDuplicates: true } : {}),
         ...(op.title ? { title: op.title } : {}),
         ...(op.link ? { link: op.link } : {}),
         fields: op.fields.map((f) => ({
@@ -215,6 +218,7 @@ export function stateFromManifest(m) {
       inputLabel: op.inputLabel || '', osintTypes: op.osintTypes || [],
       path: op.path || '/', query: op.query || {},
       root: op.results?.root ?? '', title: op.results?.title || '', link: op.results?.link || '',
+      mergeDuplicates: Boolean(op.results?.mergeDuplicates),
       fields: (op.results?.fields || []).map((f) => ({ label: f.label, path: f.path, osintType: f.osintType || '', split: f.split || '' })),
     })),
   };

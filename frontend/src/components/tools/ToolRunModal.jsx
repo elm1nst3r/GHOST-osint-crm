@@ -16,7 +16,10 @@ import { X, Search, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Plus, In
 import { toolsAPI, peopleAPI } from '../../utils/api';
 import {
   inputKindForOsint, operationsFor, operationsForInput, runnableTools, accepts, customSearchTypes, noInputOperations, INPUT_KINDS,
+  occurrenceTotals, occurrenceKey, addableValues,
 } from '../../utils/integrations';
+import { useProject } from '../../contexts/ProjectContext';
+import { formatPersonName } from '../../utils/personName';
 
 const pairKey = (tool, op) => `${tool.id}:${op.id}`;
 
@@ -27,6 +30,62 @@ const manualKindOf = (op) => {
   return op.input === 'text' ? `${CUSTOM}${op.input_label}` : op.input;
 };
 const NO_INPUT = { key: 'none', kind: 'none', value: '', type: null };
+
+// Which person results go to when the dialog was opened without one (from
+// the Tools page): a search over the active project's people.
+const PersonPicker = ({ value, onChange }) => {
+  const { t } = useTranslation();
+  const { activeProjectId } = useProject();
+  const [query, setQuery] = useState('');
+  const [hits, setHits] = useState([]);
+  const text = query.trim();
+  useEffect(() => {
+    if (text.length < 2) return undefined;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      peopleAPI.search(text, activeProjectId)
+        .then((rows) => { if (!cancelled) setHits(Array.isArray(rows) ? rows : []); })
+        .catch(() => { if (!cancelled) setHits([]); });
+    }, 250);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [text, activeProjectId]);
+  const shown = text.length < 2 ? [] : hits;
+
+  if (value) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-gray-600 dark:text-gray-300">{t('tools.addTarget')}</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100"><bdi>{formatPersonName(value, t('tools.unnamedPerson'))}</bdi></span>
+        <button type="button" onClick={() => onChange(null)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">{t('tools.changeTarget')}</button>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1 w-full sm:w-80">
+      <label className="block text-xs text-gray-600 dark:text-gray-300" htmlFor="tool-run-target">{t('tools.addTarget')}</label>
+      <input
+        id="tool-run-target"
+        className="w-full px-2 py-1.5 text-sm rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+        placeholder={t('tools.findPerson')}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        autoComplete="off"
+      />
+      {shown.length > 0 && (
+        <ul className="max-h-40 overflow-y-auto rounded-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+          {shown.map((p) => (
+            <li key={p.id}>
+              <button type="button" onClick={() => { onChange(p); setQuery(''); }} className="w-full text-start px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <bdi>{formatPersonName(p, t('tools.unnamedPerson'))}</bdi>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {text.length >= 2 && shown.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t('tools.noPersonFound')}</p>}
+    </div>
+  );
+};
 
 const CostBadge = ({ cost }) => {
   const { t } = useTranslation();
@@ -66,6 +125,10 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
   const [picks, setPicks] = useState(() => new Set());
   const [adding, setAdding] = useState(false);
   const [addResult, setAddResult] = useState(null);
+  // Opened from a person: results go to them. From the Tools page: to the
+  // person picked below.
+  const [chosenTarget, setChosenTarget] = useState(null);
+  const target = person || chosenTarget;
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape' && !running) onClose(); };
@@ -156,18 +219,30 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
     setRunning(false);
   };
 
-  // Every value a manifest marked as OSINT data, so it can be added to the person.
-  const pickKey = (run, itemIdx, label, value) => `${run.key}|${itemIdx}|${label}|${value}`;
+  // Every value a manifest marked as OSINT data can be added to the person,
+  // once per search: ticking it ticks every row it appears in (#96).
+  const pickKey = (run, f, value) => `${run.key}|${occurrenceKey(f, value)}`;
+  // How many times each value occurred in each search's results (#96).
+  const totalsByRun = useMemo(() => new Map(runs.filter((r) => r.status === 'done').map((r) => [r.key, occurrenceTotals(r.result)])), [runs]);
+  const occurrencesOf = (run, f, value) => totalsByRun.get(run.key)?.get(occurrenceKey(f, value)) ?? 1;
+  const addableOf = (run) => (run.status === 'done' ? addableValues(run.result) : []);
+  const toggleAll = (run) => {
+    const keys = addableOf(run).map((v) => `${run.key}|${v.key}`);
+    const all = keys.every((k) => picks.has(k));
+    const next = new Set(picks);
+    keys.forEach((k) => (all ? next.delete(k) : next.add(k)));
+    setPicks(next);
+  };
   const addPicked = async () => {
     const entries = [];
     for (const run of runs) {
-      if (run.status !== 'done') continue;
-      run.result.items.forEach((item, itemIdx) => item.fields.forEach((f) => f.values.forEach((value) => {
-        if (!f.osintType || !picks.has(pickKey(run, itemIdx, f.label, value))) return;
+      for (const v of addableOf(run)) {
+        if (!picks.has(`${run.key}|${v.key}`)) continue;
+        const occurrences = totalsByRun.get(run.key)?.get(v.key) ?? 1;
         entries.push({
-          type: f.osintType,
-          value,
-          notes: t('tools.foundNote', { field: f.label, tool: run.tool.name, query: run.result.query }),
+          type: v.osintType,
+          value: v.value,
+          notes: t('tools.foundNote', { field: v.label, tool: run.tool.name, query: run.result.query }),
           source: {
             tool_id: run.tool.id,
             tool_name: run.tool.name,
@@ -175,17 +250,18 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
             operation: run.op.id,
             query: run.result.query,
             retrieved_at: run.result.retrieved_at,
+            ...(occurrences > 1 ? { occurrences } : {}),
           },
         });
-      })));
+      }
     }
-    if (!entries.length) return;
+    if (!entries.length || !target) return;
     setAdding(true);
     try {
-      const res = await peopleAPI.addOsint(person.id, entries);
-      setAddResult({ ok: true, added: res.added, skipped: res.skipped });
+      const res = await peopleAPI.addOsint(target.id, entries);
+      setAddResult({ ok: true, added: res.added, updated: res.updated ?? 0, unchanged: res.unchanged ?? res.skipped, name: formatPersonName(target, t('tools.unnamedPerson')) });
       setPicks(new Set());
-      onAdded?.(res.osint_data);
+      if (person) onAdded?.(res.osint_data);
     } catch (err) {
       setAddResult({ ok: false, message: err.message });
     } finally {
@@ -302,6 +378,11 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                         {(run.result?.query || run.input.value) && (
                           <span className="text-gray-500 dark:text-gray-400 break-all">· <bdi>{run.result?.query || run.input.value}</bdi></span>
                         )}
+                        {addableOf(run).length > 1 && (
+                          <button type="button" onClick={() => toggleAll(run)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                            {addableOf(run).every((v) => picks.has(`${run.key}|${v.key}`)) ? t('tools.clearSelection') : t('tools.selectAll', { count: addableOf(run).length })}
+                          </button>
+                        )}
                         <span className="ms-auto text-xs">
                           {run.status === 'pending' && <span className="text-gray-400">{t('tools.statusQueued')}</span>}
                           {run.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
@@ -337,16 +418,24 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                                     <dd className="text-gray-800 dark:text-gray-200 break-all">
                                       {f.values.map((value) => (
                                         <div key={value} className="flex items-start gap-1.5">
-                                          {person && f.osintType && (
+                                          {f.osintType && (
                                             <input
                                               type="checkbox"
                                               className="mt-1"
                                               aria-label={t('tools.pickValue', { value })}
-                                              checked={picks.has(pickKey(run, itemIdx, f.label, value))}
-                                              onChange={() => toggle(picks, setPicks, pickKey(run, itemIdx, f.label, value))}
+                                              checked={picks.has(pickKey(run, f, value))}
+                                              onChange={() => toggle(picks, setPicks, pickKey(run, f, value))}
                                             />
                                           )}
                                           <span>{value}</span>
+                                          {occurrencesOf(run, f, value) > 1 && (
+                                            <span
+                                              className="shrink-0 px-1.5 rounded-sm bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 text-xs tabular-nums"
+                                              title={t('tools.occurrencesTitle', { count: occurrencesOf(run, f, value) })}
+                                            >
+                                              {t('tools.occurrences', { count: occurrencesOf(run, f, value) })}
+                                            </span>
+                                          )}
                                         </div>
                                       ))}
                                     </dd>
@@ -366,12 +455,13 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
           )}
         </div>
 
-        {person && runs.some((r) => r.status === 'done' && r.result.items.length > 0) && (
+        {runs.some((r) => addableOf(r).length > 0) && (
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-3">
+            {!person && <PersonPicker value={chosenTarget} onChange={(p) => { setChosenTarget(p); setAddResult(null); }} />}
             <button
               type="button"
               onClick={addPicked}
-              disabled={adding || picks.size === 0}
+              disabled={adding || picks.size === 0 || !target}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
             >
               {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -380,7 +470,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
             <span className="text-xs text-gray-500 dark:text-gray-400">{t('tools.addPickedHint')}</span>
             {addResult?.ok && (
               <span className="text-sm text-green-700 dark:text-green-400 flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />{t('tools.addedResult', { added: addResult.added, skipped: addResult.skipped })}
+                <CheckCircle2 className="w-4 h-4" />{t('tools.addedToPerson', { name: addResult.name, added: addResult.added, updated: addResult.updated, unchanged: addResult.unchanged })}
               </span>
             )}
             {addResult && !addResult.ok && <span className="text-sm text-red-600 dark:text-red-400">{addResult.message}</span>}

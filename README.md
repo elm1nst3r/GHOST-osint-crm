@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.0.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.1-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -280,7 +280,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.0.0
+GHOST_VERSION=3.0.1
 ```
 
 Without it, the containers track the latest release.
@@ -683,6 +683,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.0.1 (November 2026)
+- 🔁 **Integration results: repeated values and sources** — a value returned many times shows once with its count (×27), results from the OSINT Tools page can be added to any person, and a value found by several tools keeps every source (issue #96)
+
 ### Version 3.0.0 (November 2026)
 - 🎉 **The technology upgrade** — React 19 with the React Compiler, Vite instead of Create React App, Tailwind CSS 4, React Router 8, React Flow 12, i18next 26 and docx 9
 - ⚡ **Faster and smoother** — sections, dialogs and translations load on demand, sections remember their filters and scroll position, long lists measure their rows (issue #64)
@@ -707,5 +710,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.0.0
+**Version:** 3.0.1
 **Last Updated:** November 5, 2026
