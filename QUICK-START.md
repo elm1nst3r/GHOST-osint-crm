@@ -26,7 +26,7 @@ README.
 ## 3. Start the Stack
 
 ```bash
-docker compose pull      # prebuilt images (amd64 only)
+docker compose pull      # prebuilt images (amd64 and arm64)
 docker compose up -d
 ```
 
@@ -151,7 +151,8 @@ docker compose down -v && docker compose up --build -d
 ```
 
 ### `docker compose pull` fails with "no matching manifest for linux/arm64"
-The prebuilt images are amd64 only. Use `docker compose up --build -d`.
+Images before 3.0 were amd64 only. Use 3.0 or newer, or build locally with
+`docker compose up --build -d`.
 
 ### Backend unhealthy: "The migration directory is corrupt"
 The backend image is older than your database, usually because an update did
