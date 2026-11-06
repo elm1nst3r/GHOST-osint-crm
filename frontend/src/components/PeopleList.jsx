@@ -144,9 +144,9 @@ const PeopleList = () => {
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-x-3">
               {person.profile_picture_url ? (
-                <img src={person.profile_picture_url} alt={getFullName(person)} className="w-12 h-12 rounded-full object-cover" />
+                <img src={person.profile_picture_url} alt={getFullName(person)} className="w-12 h-12 shrink-0 rounded-full object-cover" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
+                <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
                   <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               )}
@@ -322,10 +322,10 @@ const PeopleList = () => {
                   <img
                     src={person.profile_picture_url}
                     alt={getFullName(person)}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 shrink-0 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
+                  <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
                     <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                 )}

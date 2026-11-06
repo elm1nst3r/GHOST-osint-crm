@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.0.2-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.3-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -26,7 +26,7 @@
 
 A full-stack, self-hosted OSINT investigation management system with a modern interface — built for individual investigators, researchers, and hobbyists who want structured case management without spreadsheets. See [Project Status](#-project-status) below for maintenance posture and intended use.
 
-<img width="1680" alt="GHOST People view: person cards with category, case, connections and status" src="docs/images/people.png" />
+<img width="1680" alt="GHOST People view with the Middle-earth test data: person cards with aliases, category, case, connections and status" src="docs/images/people.png" />
 
 
 ## 📌 Project Status
@@ -283,7 +283,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.0.2
+GHOST_VERSION=3.0.3
 ```
 
 Without it, the containers track the latest release.
@@ -410,6 +410,7 @@ GHOST-osint-crm/
 │   ├── scripts/                 # Admin user creation, password reset, API catalogue build
 │   └── public/uploads/          # File uploads
 ├── mcp/                         # Bundled MCP server (~100 tools from the OpenAPI spec)
+├── test-data/                   # Middle-earth test data set (import it under Settings)
 ├── .github/workflows/           # CI: tests, multi-arch image publishing, API catalogue
 ├── crowdin.yml                  # Translation sync configuration
 ├── docker-compose.yml           # Docker configuration
@@ -417,6 +418,9 @@ GHOST-osint-crm/
 ```
 
 ## 🎮 Usage Guide
+
+### Trying it out with test data
+[`test-data/middle-earth.json`](test-data/) is a ready-made investigation themed on *The Lord of the Rings*: 22 people with relationships, locations on the map, travel, businesses, properties, assets, transactions, wireless networks and saved records. Create an empty project, then import the file under **Settings → Import / Export**.
 
 ### Starting a New Investigation
 1. **Select or create a project** — the top-bar project selector; a fresh install or a newly-added user is prompted for this before anything else is usable. Working as a team? An admin adds an **owner** from the project's member list, and the owner brings in managers and investigators (see [Roles & Permissions](#-roles--permissions))
@@ -686,6 +690,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.0.3 (November 2026)
+- 🧙 **Middle-earth test data** — a ready-made Lord of the Rings themed investigation to import and explore, plus import fixes (people keep their cases, a second import no longer touches another project)
+
 ### Version 3.0.2 (November 2026)
 - 🗃️ **Saved records** — integrations can keep each result exactly as the service returned it; save it on a person, see every field in the new Records tab, add any value from it to the OSINT data later, and search inside saved records (issue #96)
 
@@ -716,5 +723,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.0.2
+**Version:** 3.0.3
 **Last Updated:** November 5, 2026
