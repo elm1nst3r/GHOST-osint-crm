@@ -511,7 +511,8 @@
       "description": "برای هر کاربری که زبان یا تم خود را در تنظیمات حساب شخصی‌اش انتخاب نکرده است.",
       "language": "زبان پیش‌فرض",
       "themeMode": "تم پیش‌فرض",
-      "overrideHint": "انتخاب زبان یا تم توسط کاربر (تنظیمات → عمومی/ظاهر) همیشه بر این پیش‌فرض غلبه می‌کند."
+      "overrideHint": "انتخاب زبان یا تم توسط کاربر (تنظیمات → عمومی/ظاهر) همیشه بر این پیش‌فرض غلبه می‌کند.",
+      "theme": "Default colour theme"
     },
     "modules": {
       "title": "Modules",
@@ -1850,11 +1851,24 @@
     "surfaceAriaLabel": "سبک سطح",
     "solid": "سولید",
     "glass": "شیشه",
-    "preferencesStoredNote": "حالت تم برای حساب کاربری شما ذخیره شده و در دستگاه‌های دیگر دنبال می‌شود. تاکید، تراکم و سبک سطح فقط در این مرورگر ذخیره می‌شوند."
+    "preferencesStoredNote": "حالت تم برای حساب کاربری شما ذخیره شده و در دستگاه‌های دیگر دنبال می‌شود. تاکید، تراکم و سبک سطح فقط در این مرورگر ذخیره می‌شوند.",
+    "colourThemeTitle": "Colour theme",
+    "colourThemeDescription": "Recolours the whole interface. Light themes follow the mode below; dark-only themes stay dark.",
+    "usingDefault": "You are using the instance default ({{name}}) until you pick one.",
+    "ghostTheme": "Standard, light and dark",
+    "lightAndDark": "Light and dark",
+    "darkOnly": "Dark only",
+    "darkFlavour": "Dark flavour",
+    "lightIs": "Light mode uses {{name}}.",
+    "paletteBy": "Palette:",
+    "darkOnlyHint": "{{name}} is dark only, so the mode doesn’t change it.",
+    "themeAccent": "The accent of {{name}}",
+    "themeAccentShort": "Theme"
   },
   "darkModeToggle": {
     "switchToLight": "تغییر به حالت روشن",
-    "switchToDark": "تغییر به حالت تاریک"
+    "switchToDark": "تغییر به حالت تاریک",
+    "darkOnly": "{{name}} is dark only"
   },
   "projectSelector": {
     "title": "پروژه فعال",
