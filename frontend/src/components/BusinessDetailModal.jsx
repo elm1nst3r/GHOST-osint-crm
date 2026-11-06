@@ -7,6 +7,7 @@ import { useUI } from '../contexts/UIContext';
 import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
+import { useModules } from '../contexts/ModulesContext';
 import { formatDate } from '../utils/transactionFormat';
 
 const BusinessDetailModal = ({ business, onClose }) => {
@@ -22,7 +23,9 @@ const BusinessDetailModal = ({ business, onClose }) => {
     ledgerAPI.venueStats(business.id).then(setVenue).catch(err => console.error(err));
   }, [business.id]);
 
-  const tabs = ['venue', 'transactions', 'ledger'];
+  const { isOn: moduleOn } = useModules();
+  // Transactions and the ledger go when the Transactions module is off.
+  const tabs = moduleOn('transactions') ? ['venue', 'transactions', 'ledger'] : ['venue'];
 
   return (
     <>

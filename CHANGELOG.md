@@ -5,7 +5,33 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.4] - 2026-11-06
+
+### ✨ New
+
+- **Grouped menu.** The sidebar sorts its sections under four headings:
+  Investigation (Cases, People, Businesses), Money & property
+  (Transactions, Assets, Properties, Crypto Wallets), Analysis (Entity
+  Network, Locations, Wireless Networks) and Sources (OSINT Tools, Files).
+  Advanced Search moved up under the project selector, and Settings and
+  Logout are pinned under the menu so they are always in view.
+- **Modules** (Settings → General, admins). Switch off sections nobody on
+  the instance uses: Transactions, Assets, Properties, Crypto Wallets,
+  Entity Network, Locations, Wireless Networks, OSINT Tools, Files. A
+  switched-off module leaves the menu for everyone, its address opens the
+  dashboard, and its tabs (person and business dialogs), map layers and
+  dashboard graph are hidden. Its data stays, the API and MCP server still
+  reach it, and switching it back on brings everything back. Everything is
+  on by default, so nothing changes on upgrade. Dashboard, Cases, People,
+  Businesses and Settings are always on.
+
+### 🐛 Fixed
+
+- **The whole page scrolled instead of the content panel.** Since 2.5 the
+  app frame grew with long lists, so the sidebar's bottom (Advanced Search,
+  now Settings) ended up far below the window, and sections didn't return
+  to their scroll position. The frame is the window's height again; the
+  menu and the content each scroll on their own.
 
 ### 🔧 Changed
 

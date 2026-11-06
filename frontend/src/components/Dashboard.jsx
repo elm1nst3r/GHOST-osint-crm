@@ -9,10 +9,12 @@ import { todosAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useProject } from '../contexts/ProjectContext';
 import { useUI } from '../contexts/UIContext';
+import { useModules } from '../contexts/ModulesContext';
 import { formatDate } from '../utils/format';
 
 const Dashboard = () => {
   const { t } = useTranslation();
+  const { isOn: moduleOn } = useModules();
   const { people, todos, setTodos } = useData();
   const { setSelectedPersonForDetail, setActiveSection } = useUI();
   const { activeProjectId } = useProject();
@@ -282,7 +284,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Global Relationship Overview */}
+      {/* Global Relationship Overview (part of the Entity Network module) */}
+      {moduleOn('relationships') && (
       <div className="glass-card overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('dashboard.globalRelationshipOverview')}</h3>
@@ -300,6 +303,7 @@ const Dashboard = () => {
           <RelationshipManager showInModal={false} />
         </div>
       </div>
+      )}
 
       {/* Report Generator Modal */}
       {showReportGenerator && (
