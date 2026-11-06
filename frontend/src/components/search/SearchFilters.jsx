@@ -84,7 +84,8 @@ const SearchFilters = ({
                 { value: 'name', label: t('searchFilters.searchInNames') },
                 { value: 'aliases', label: t('searchFilters.searchInAliases') },
                 { value: 'notes', label: t('propertyDetailModal.notesLabel') },
-                { value: 'osint', label: t('personDetailModal.osintData') }
+                { value: 'osint', label: t('personDetailModal.osintData') },
+                { value: 'records', label: t('records.title') }
               ].map(option => (
                 <label key={option.value} className="flex items-center gap-x-2">
                   <input

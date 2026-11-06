@@ -129,6 +129,10 @@ export const emptyOperation = () => ({
   root: undefined, fields: [], title: '', link: '',
   // Each list item a separate result: show identical ones once, counted (#96).
   mergeDuplicates: true,
+  // Keep each result as the provider sent it, so it can be saved on a person
+  // in full; recordSource names the field that says where a record is from.
+  keepRecords: true,
+  recordSource: '',
 });
 
 export const emptyState = () => ({
@@ -191,6 +195,8 @@ export function buildManifest(state) {
       results: {
         ...(op.root ? { root: op.root } : {}),
         ...(op.root && op.mergeDuplicates ? { mergeDuplicates: true } : {}),
+        ...(op.keepRecords ? { keepRecords: true } : {}),
+        ...(op.keepRecords && op.recordSource ? { recordSource: op.recordSource } : {}),
         ...(op.title ? { title: op.title } : {}),
         ...(op.link ? { link: op.link } : {}),
         fields: op.fields.map((f) => ({
@@ -219,7 +225,40 @@ export function stateFromManifest(m) {
       path: op.path || '/', query: op.query || {},
       root: op.results?.root ?? '', title: op.results?.title || '', link: op.results?.link || '',
       mergeDuplicates: Boolean(op.results?.mergeDuplicates),
+      keepRecords: Boolean(op.results?.keepRecords),
+      recordSource: op.results?.recordSource || '',
       fields: (op.results?.fields || []).map((f) => ({ label: f.label, path: f.path, osintType: f.osintType || '', split: f.split || '' })),
     })),
   };
+}
+
+// ── Full records (#96) ───────────────────────────────────────────────────────
+
+// Lists of records in a sample response: arrays whose items are objects, as
+// [{ path, count }], the shortest paths first. '' is the response itself.
+export function recordLists(json, maxDepth = 4) {
+  const out = [];
+  const walk = (v, path, depth) => {
+    if (depth > maxDepth || v === null || typeof v !== 'object') return;
+    if (Array.isArray(v)) {
+      if (v.some((x) => x && typeof x === 'object' && !Array.isArray(x))) out.push({ path, count: v.length });
+      return;
+    }
+    for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k, depth + 1);
+  };
+  walk(json, '', 0);
+  return out.sort((a, b) => a.path.split('.').length - b.path.split('.').length);
+}
+
+// Fields of the records in a list that could name where a record comes from:
+// text values present in at least one item (a provider's `database` field).
+export function recordSourceCandidates(json, root) {
+  let list = root ? root.split('.').reduce((o, k) => (o == null ? o : o[k]), json) : json;
+  if (!Array.isArray(list)) list = [list];
+  const keys = new Set();
+  for (const item of list.slice(0, 50)) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    for (const [k, v] of Object.entries(item)) if (typeof v === 'string' && /^[A-Za-z_$][\w$]*$/.test(k)) keys.add(k);
+  }
+  return [...keys];
 }

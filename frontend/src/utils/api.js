@@ -544,6 +544,15 @@ export const cryptoWalletsAPI = {
 // Files API (issue #97). Uploads go through XMLHttpRequest rather than
 // fetchAPI: fetch can't report upload progress, and fetchAPI's 30 s timeout
 // would cut off a large upload.
+// Saved integration records on people (issue #96).
+export const osintRecordsAPI = {
+  // params: { person_id?, project_id?, q?, integration_id?, limit?, offset? } → { data, meta }
+  list: (params = {}) => fetchAPI(`/records${buildQuery(params)}`),
+  // records: [{ data, record_source?, occurrences?, source? }]
+  add: (personId, records) => fetchAPI('/records', { method: 'POST', body: JSON.stringify({ person_id: personId, records }) }),
+  remove: (id) => fetchAPI(`/records/${id}`, { method: 'DELETE' }),
+};
+
 export const filesAPI = {
   getAll: (params = {}) => fetchAPI(`/files${buildQuery(params)}`),
   update: (id, data) => fetchAPI(`/files/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

@@ -246,6 +246,7 @@ const cryptoWalletsRoutes = require('./routes/cryptoWallets');
 const transactionsRoutes = require('./routes/transactions');
 const ledgerRoutes = require('./routes/ledger');
 const filesRoutes = require('./routes/files');
+const osintRecordsRoutes = require('./routes/osintRecords');
 const integrationsRoutes = require('./routes/integrations');
 const scratchpadRoutes = require('./routes/scratchpad');
 const openapiSpec = require('./utils/openapiSpec');
@@ -286,6 +287,7 @@ app.use('/api/crypto-wallets', cryptoWalletsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api', ledgerRoutes);
 app.use('/api/files', filesRoutes);
+app.use('/api/records', osintRecordsRoutes);
 app.use('/api/integrations', integrationsRoutes);
 
 app.get('/api', (req, res) => {
@@ -341,7 +343,7 @@ app.get('/api/export', requireAdmin, async (req, res) => {
     // file unusable for backup or migration (issue #74).
     const [
       people, tools, todos, customFields, modelOptions, cases, travelHistory,
-      businesses, properties, assets, transactions, wirelessNetworks,
+      businesses, properties, assets, transactions, wirelessNetworks, osintRecords,
     ] = await Promise.all([
       pool.query('SELECT * FROM people'),
       pool.query('SELECT * FROM tools'),
@@ -355,10 +357,11 @@ app.get('/api/export', requireAdmin, async (req, res) => {
       pool.query('SELECT * FROM assets'),
       pool.query('SELECT * FROM transactions'),
       pool.query('SELECT * FROM wireless_networks'),
+      pool.query('SELECT * FROM osint_records ORDER BY id'),
     ]);
 
     const exportData = {
-      version: '1.3',
+      version: '1.4',
       exportDate: new Date().toISOString(),
       data: {
         people: people.rows,
@@ -367,6 +370,7 @@ app.get('/api/export', requireAdmin, async (req, res) => {
         assets: assets.rows,
         transactions: transactions.rows,
         wirelessNetworks: wirelessNetworks.rows,
+        osintRecords: osintRecords.rows,
         tools: tools.rows,
         todos: todos.rows,
         customFields: customFields.rows,
@@ -681,6 +685,43 @@ app.post('/api/import', requireAdmin, async (req, res) => {
            (net.associated_person_ids || []).map(id => personIdMapping[id] || id),
            (net.associated_business_ids || []).map(id => businessIdMapping[id] || id),
            importProjectId]
+        ));
+      }
+    }
+
+    // Saved integration records (issue #96, export 1.4). Values taken from a
+    // record point at it by id in their finding (source.record_id), so those
+    // ids are rewritten to the new records afterwards.
+    if (importData.data.osintRecords) {
+      const { recordHash, recordProblem } = require('./utils/osintRecords');
+      const recordIdMapping = {};
+      for (const rec of importData.data.osintRecords) {
+        const personId = personIdMapping[rec.person_id];
+        if (!personId || recordProblem(rec.data)) continue;
+        await tryInsert(`osintRecord:${rec.id}`, async () => {
+          const { rows } = await client.query(
+            `INSERT INTO osint_records (person_id, data, data_hash, record_source, occurrences, tool_name,
+                                        integration_id, operation, query, retrieved_at, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_TIMESTAMP))
+             ON CONFLICT ON CONSTRAINT osint_records_unique DO UPDATE SET retrieved_at = EXCLUDED.retrieved_at
+             RETURNING id`,
+            [personId, JSON.stringify(rec.data), recordHash(rec.data), rec.record_source || null, rec.occurrences || 1,
+              rec.tool_name || null, rec.integration_id || '', rec.operation || null, rec.query ?? null,
+              rec.retrieved_at || null, rec.created_at || null]
+          );
+          recordIdMapping[rec.id] = rows[0].id;
+        });
+      }
+      for (const person of importData.data.people || []) {
+        const newPersonId = personIdMapping[person.id];
+        const osint = Array.isArray(person.osint_data) ? person.osint_data : [];
+        if (!newPersonId || !osint.some((e) => (e.sources || []).some((src) => src.record_id))) continue;
+        const remap = (src) => (src && src.record_id
+          ? { ...src, record_id: recordIdMapping[src.record_id] || undefined }
+          : src);
+        const rewritten = osint.map((e) => ({ ...e, ...(e.source ? { source: remap(e.source) } : {}), ...(e.sources ? { sources: e.sources.map(remap) } : {}) }));
+        await tryInsert(`osintRecordLinks:${newPersonId}`, () => client.query(
+          'UPDATE people SET osint_data = $1::jsonb WHERE id = $2', [JSON.stringify(rewritten), newPersonId]
         ));
       }
     }

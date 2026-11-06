@@ -109,6 +109,8 @@ for complete examples.
         "link": "url",                   // shown as a link if it's http(s)
         "distinctBy": "id",              // drop items whose id was already seen
         "mergeDuplicates": true,         // show identical results once, counted
+        "keepRecords": true,             // each result also carries its full item
+        "recordSource": "database",      // the item's field naming where it comes from
         "fields": [
           { "label": "Name", "path": "name" },
           { "label": "Profiles", "path": "profiles[].url", "osintType": "Social Media" },
@@ -129,6 +131,15 @@ for complete examples.
   identical are shown once with their count, instead of one row each.
   `distinctBy` drops repeats by a key without counting them. When a counted
   value is added to a person, the count is kept with where it came from.
+- **Full records.** With `"keepRecords": true` each result also carries the
+  item exactly as the service returned it (nested objects, lists, fields
+  only some items have). Investigators can save it on a person ("Keep full
+  record") and add any value from it to the OSINT data later, so nothing is
+  lost because the mapping didn't foresee a field. `fields` may then be
+  empty. `recordSource` names a field of the item that says where it comes
+  from (a service that merges several databases often has one); it is shown
+  with the record and with values taken from it. Records over 100 KB, or
+  past 5 MB per search, are left out (the values still show).
 - **`osintType`** marks a value the investigator can add to a person; it
   should match one of your OSINT data types (Email, Phone, Website, Social
   Media, Username, IP Address…).

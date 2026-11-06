@@ -9,12 +9,13 @@ import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
 import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
-import { transactionsAPI, assetsAPI, toolsAPI } from '../utils/api';
+import { transactionsAPI, assetsAPI, toolsAPI, osintRecordsAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 import FilesPanel from './files/FilesPanel';
+import PersonRecordsPanel from './records/PersonRecordsPanel';
 import ToolRunModal from './tools/ToolRunModal';
 import { inputKindForOsint, operationsForInput, runnableTools } from '../utils/integrations';
 
@@ -46,6 +47,19 @@ const PersonDetailModal = () => {
   // Integrated tools usable in this person's project (issue #96).
   const [personTools, setPersonTools] = useState([]);
   const [search, setSearch] = useState(null);
+  // Saved integration records (issue #96): the count for the tab badge.
+  const [recordCount, setRecordCount] = useState({ personId: null, count: 0 });
+
+  useEffect(() => {
+    if (!person?.id) return undefined;
+    let cancelled = false;
+    osintRecordsAPI.list({ person_id: person.id, limit: 1 })
+      .then((res) => { if (!cancelled) setRecordCount({ personId: person.id, count: res.meta?.total ?? 0 }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [person?.id]);
+  const recordsShown = recordCount.personId === person?.id ? recordCount.count : 0;
+  const setRecordsShown = (count) => setRecordCount({ personId: person?.id, count });
 
   useEffect(() => {
     if (!person?.project_id) return;
@@ -209,7 +223,7 @@ const PersonDetailModal = () => {
           {/* Tabs */}
           <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <div className="flex min-w-max">
-            {['details', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger', 'files'].map((tab) => (
+            {['details', 'records', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger', 'files'].map((tab) => (
                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -220,6 +234,9 @@ const PersonDetailModal = () => {
                   }`}
                 >
                   {t(`personDetailModal.tab_${tab}`)}
+                  {tab === 'records' && recordsShown > 0 && (
+                    <span className="ms-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400 tabular-nums">{recordsShown}</span>
+                  )}
                   {tab === 'relationships' && connectedPeople.length > 0 && (
                     <span className="ms-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400">
                       {connectedPeople.length}
@@ -377,6 +394,10 @@ const PersonDetailModal = () => {
                                   <p key={i}>
                                     {t('tools.provenance', { tool: s.tool_name || s.integration_id, date: (s.retrieved_at || '').slice(0, 10) })}
                                     {s.occurrences > 1 && <> · {t('tools.occurrencesTitle', { count: s.occurrences })}</>}
+                                    {s.record_sources?.length > 0 && <> · {t('tools.inRecordSources', { sources: isolateList(s.record_sources) })}</>}
+                                    {s.record_id && (
+                                      <> · <button type="button" onClick={() => setActiveTab('records')} className="text-blue-600 dark:text-blue-400 hover:underline">{t('tools.fromSavedRecord')}</button></>
+                                    )}
                                     {i === 0 && osint.verified === false && <span className="ms-2 px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{t('tools.unverified')}</span>}
                                   </p>
                                 ))}
@@ -512,6 +533,12 @@ const PersonDetailModal = () => {
             {activeTab === 'ledger' && (
               <div className="p-6">
                 <EntityLedger entityType="people" entityId={person.id} />
+              </div>
+            )}
+
+            {activeTab === 'records' && (
+              <div className="p-6">
+                <PersonRecordsPanel personId={person.id} onOsintAdded={handleOsintAdded} onCount={setRecordsShown} />
               </div>
             )}
 

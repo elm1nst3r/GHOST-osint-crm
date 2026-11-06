@@ -1,5 +1,5 @@
 import {
-  slugify, humanizeKey, templateFromExample, requestLine, parseRequestLine, interpretClick, parsePath, segmentsToPath, buildManifest, stateFromManifest, emptyState, emptyOperation, operationIds, usesKeyPlaceholder,
+  slugify, humanizeKey, templateFromExample, requestLine, parseRequestLine, interpretClick, parsePath, segmentsToPath, buildManifest, stateFromManifest, emptyState, emptyOperation, operationIds, usesKeyPlaceholder, recordLists, recordSourceCandidates,
 } from './integrationBuilder';
 
 test('slugify and humanizeKey', () => {
@@ -149,4 +149,27 @@ test('custom search types round-trip through the file', () => {
   expect(stateFromManifest(m).operations[0]).toMatchObject({ inputLabel: 'Vehicle registration', osintTypes: ['Vehicle'] });
   const email = buildManifest({ ...state, operations: [{ ...state.operations[0], input: 'email' }] }).operations[0];
   expect(email.inputLabel).toBeUndefined();
+});
+
+describe('full records in the builder (#96)', () => {
+  const sample = { meta: { n: 2 }, result: [{ PHONE: '1', database: 'A' }, { PHONE: '1', EMAIL: 'x@y.co', database: 'B', nested: { list: [{ a: 1 }] } }] };
+
+  test('finds the lists of records in a response', () => {
+    expect(recordLists(sample).map((l) => l.path)).toEqual(['result']);
+    expect(recordLists([{ a: 1 }])).toEqual([{ path: '', count: 1 }]);
+    expect(recordLists({ data: { items: [{ a: 1 }] }, tags: ['x'] }).map((l) => l.path)).toEqual(['data.items']);
+  });
+
+  test('suggests text fields as record sources', () => {
+    expect(recordSourceCandidates(sample, 'result')).toEqual(['PHONE', 'database', 'EMAIL']);
+  });
+
+  test('keepRecords and recordSource round-trip, and records need no fields', () => {
+    const state = { ...emptyState(), name: 'Leaks', id: 'leaks', baseUrl: 'https://api.example.com',
+      operations: [{ ...emptyOperation(), label: 'By phone', input: 'phone', path: '/q/{{input}}', root: 'result', recordSource: 'database' }] };
+    const m = buildManifest(state);
+    expect(m.operations[0].results).toMatchObject({ root: 'result', keepRecords: true, recordSource: 'database', fields: [] });
+    const back = stateFromManifest(m).operations[0];
+    expect(back).toMatchObject({ keepRecords: true, recordSource: 'database', root: 'result' });
+  });
 });

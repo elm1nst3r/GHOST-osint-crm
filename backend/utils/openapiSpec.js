@@ -213,6 +213,7 @@ const spec = {
     { name: 'Properties', description: 'Real estate and other mappable property.' },
     { name: 'Assets', description: 'Tracked items of value and who holds them.' },
     { name: 'Crypto Wallets', description: 'Wallet addresses as entities. GHOST records them; it does not do chain analysis.' },
+    { name: 'Records', description: 'Saved records: results an integration returned, kept on a person exactly as the provider sent them (issue #96). Any member of the person\'s project may list, search, save and delete them.' },
     { name: 'Files', description: 'Documents attached to a person or to a project. Any project member may upload, download and edit them; deleting needs the uploader, a project owner or manager, or an admin. Every upload, download and delete is audit-logged.' },
     { name: 'Transactions', description: 'Transfers of value between people, businesses and external parties.' },
     { name: 'Ledger', description: 'Read-only views derived from transactions and asset holdings.' },
@@ -267,6 +268,7 @@ const spec = {
       IntegrationDraftMap: toSchema(S.IntegrationDraftMapSchema),
       SettingsTools: toSchema(S.SettingsToolsSchema),
       PersonOsintAppend: toSchema(S.PersonOsintAppendSchema),
+      OsintRecordsAdd: toSchema(S.OsintRecordsAddSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       ProjectCreate: toSchema(S.ProjectCreateSchema),
@@ -398,7 +400,9 @@ const spec = {
     '/people/{id}/osint': {
       post: op('People', 'Add OSINT data entries to a person', {
         params: [idParam], body: ref('PersonOsintAppend'),
-        description: 'Appends entries (skipping ones the person already has). Entries with a source are marked unverified and keep where they came from.',
+        description: 'Appends entries. A value the person already has (same type and value) gets the new finding added to its `sources` instead of a second entry; '
+          + 'running the same search again refreshes that finding\'s count and date. New entries with a source are marked unverified. '
+          + 'Answers { added, updated, unchanged, osint_data }.',
       }),
     },
     '/people/{id}/locations': {
@@ -610,6 +614,31 @@ const spec = {
         queryParam('tag', 'Wallets carrying this exact tag'),
       ],
     }),
+
+    // ── Saved records (issue #96) ──
+    '/records': {
+      get: op('Records', 'List or search saved records', {
+        description: 'Newest first. `q` matches any text in a record, its source or the search that found it.',
+        params: [
+          ...paginationParams,
+          projectParam,
+          intParam('person_id', 'Only records saved on this person'),
+          queryParam('integration_id', 'Only records from this integration'),
+          queryParam('q', 'Text anywhere in the record'),
+        ],
+        responseSchema: paginatedEnvelope,
+      }),
+      post: op('Records', 'Save integration records on a person', {
+        body: ref('OsintRecordsAdd'),
+        description: 'Each record is kept exactly as sent (max 100 KB, nesting 32 levels). A record the person already has from the same integration, '
+          + 'with the same content in any key order, is refreshed (latest search, date and count) instead of saved twice. '
+          + 'Answers { added, updated, unchanged, rejected: [{ index, error }], saved: [{ index, id }] }.',
+      }),
+    },
+    '/records/{id}': {
+      get: op('Records', 'Get a saved record', { params: [idParam] }),
+      delete: op('Records', 'Delete a saved record', { params: [idParam] }),
+    },
 
     // ── Files (issue #97) ──
     '/files': {

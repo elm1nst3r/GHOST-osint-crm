@@ -9,6 +9,7 @@ import { Wand2, Play, Loader2, AlertTriangle, CheckCircle2, Trash2, Info } from 
 import { integrationsAPI } from '../../../utils/api';
 import {
   templateFromExample, requestLine, parseRequestLine, interpretClick, humanizeKey, segmentsToPath, KEY_PLACEHOLDER, usesKeyPlaceholder,
+  recordLists, recordSourceCandidates,
 } from '../../../utils/integrationBuilder';
 import { INPUT_KINDS } from '../../../utils/integrations';
 import JsonPicker, { pickedKey } from './JsonPicker';
@@ -50,14 +51,14 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
   // Every field is checked against the real mapping rules on the server.
   const resultsSpec = useMemo(() => manifest.operations[opIndex]?.results, [manifest, opIndex]);
   useEffect(() => {
-    if (!test?.json || !op.fields.length) { setPreview(null); return undefined; }
+    if (!test?.json || (!op.fields.length && !op.keepRecords)) { setPreview(null); return undefined; }
     const h = setTimeout(() => {
       integrationsAPI.draftMap({ results: resultsSpec, json: test.json })
         .then(setPreview)
         .catch(() => setPreview(null));
     }, 300);
     return () => clearTimeout(h);
-  }, [resultsSpec, test, op.fields.length]);
+  }, [resultsSpec, test, op.fields.length, op.keepRecords]);
 
   const noInput = op.input === 'none';
   const keyInUrl = state.authType === 'url';
@@ -135,11 +136,15 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
     setChoice(null);
   };
 
+  // Full records (#96): which list holds them, and which field names a source.
+  const lists = useMemo(() => (test?.json != null ? recordLists(test.json) : []), [test]);
+  const sourceFields = useMemo(() => (test?.json != null && op.root !== undefined ? recordSourceCandidates(test.json, op.root) : []), [test, op.root]);
+
   const picked = useMemo(() => new Set(op.fields.filter((f) => f._segs).map((f) => pickedKey(f._segs))), [op.fields]);
   const updateField = (i, patch) => onChange((current) => ({ fields: current.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)) }));
   const removeField = (i) => onChange((current) => {
     const fields = current.fields.filter((_, j) => j !== i);
-    return { fields, ...(fields.length === 0 ? { root: undefined, title: '', link: '' } : {}) };
+    return { fields, ...(fields.length === 0 ? { ...(current.keepRecords ? {} : { root: undefined }), title: '', link: '' } : {}) };
   });
 
   return (
@@ -302,7 +307,46 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
                   </span>
                 </label>
               )}
-              {op.fields.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t('builder.noFields')}</p>}
+              <div className="p-2 mb-2 rounded-sm border border-gray-200 dark:border-gray-700 space-y-2 text-xs">
+                <label className="flex items-start gap-2 text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5" checked={Boolean(op.keepRecords)} onChange={(e) => onChange({ keepRecords: e.target.checked })} />
+                  <span>
+                    <span className="font-medium">{t('builder.keepRecords')}</span>
+                    <span className="block text-gray-500 dark:text-gray-400">{t('builder.keepRecordsHelp')}</span>
+                  </span>
+                </label>
+                {op.keepRecords && (
+                  <div className="flex flex-wrap items-center gap-3 ps-6">
+                    {op.fields.length === 0 ? (
+                      <label className="flex items-center gap-1">
+                        {t('builder.recordList')}
+                        <select className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-sm dark:bg-gray-700 dark:text-white" value={op.root ?? ''}
+                          onChange={(e) => onChange({ root: e.target.value })}>
+                          <option value="">{t('builder.recordWhole')}</option>
+                          {lists.filter((l) => l.path).map((l) => <option key={l.path} value={l.path}>{t('builder.recordListOption', { list: l.path, count: l.count })}</option>)}
+                        </select>
+                      </label>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">{op.root ? t('builder.recordEachItem', { list: op.root }) : t('builder.recordWholeResponse')}</span>
+                    )}
+                    <label className="flex items-center gap-1">
+                      {t('builder.recordSource')}
+                      {sourceFields.length > 0 ? (
+                        <select className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-sm dark:bg-gray-700 dark:text-white" value={op.recordSource || ''}
+                          onChange={(e) => onChange({ recordSource: e.target.value })}>
+                          <option value="">{t('builder.recordSourceNone')}</option>
+                          {sourceFields.map((k) => <option key={k} value={k}>{k}</option>)}
+                          {op.recordSource && !sourceFields.includes(op.recordSource) && <option value={op.recordSource}>{op.recordSource}</option>}
+                        </select>
+                      ) : (
+                        <input className="px-2 py-1 w-32 border border-gray-300 dark:border-gray-600 rounded-sm dark:bg-gray-700 dark:text-white font-mono" value={op.recordSource || ''}
+                          placeholder="database" onChange={(e) => onChange({ recordSource: e.target.value.trim() })} />
+                      )}
+                    </label>
+                  </div>
+                )}
+              </div>
+              {op.fields.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{op.keepRecords ? t('builder.noFieldsRecords') : t('builder.noFields')}</p>}
               <div className="space-y-2">
                 {op.fields.map((f, i) => (
                   <div key={f.path} className="p-2 rounded-sm border border-gray-200 dark:border-gray-700 space-y-1.5">
@@ -338,6 +382,12 @@ const BuilderSearchStep = ({ op, onChange, state, setState, manifest, opIndex, t
                   {preview.items.slice(0, 3).map((item, idx) => (
                     <div key={idx} className="p-2 text-xs">
                       {item.title && <div className="font-medium text-gray-900 dark:text-gray-100 break-all">{item.title}</div>}
+                      {(item.recordSource || item.record) && (
+                        <div className="text-gray-500 dark:text-gray-400">
+                          {item.recordSource && <bdi dir="auto" className="me-2 px-1 rounded-sm bg-indigo-50 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">{item.recordSource}</bdi>}
+                          {item.record && t('builder.previewRecordKept', { count: Object.keys(item.record).length })}
+                        </div>
+                      )}
                       {item.fields.map((f) => (
                         <div key={f.label} className="break-all"><span className="text-gray-500">{f.label}:</span>{' '}
                           {f.values.map((v, i) => {

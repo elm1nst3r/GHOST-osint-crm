@@ -70,3 +70,21 @@ describe('mergeOsintFindings (#96)', () => {
     expect(data[0].sources.at(-1).integration_id).toBe(`t${MAX_SOURCES + 4}`);
   });
 });
+
+describe('findings from saved records (#96)', () => {
+  test('a value taken from a saved record is its own finding, even for the same search', () => {
+    const first = mergeOsintFindings([], [{ type: 'Phone', value: '+10000000001', source: finding({ occurrences: 4 }) }]).osintData;
+    const r = mergeOsintFindings(first, [{ type: 'Phone', value: '+10000000001', source: finding({ record_id: 12, record_path: 'PHONE' }) }]);
+    expect(r).toMatchObject({ updated: 1 });
+    expect(r.osintData[0].sources).toHaveLength(2);
+    expect(r.osintData[0].sources[1]).toMatchObject({ record_id: 12, record_path: 'PHONE' });
+  });
+
+  test('record sources are kept and refreshed with the search', () => {
+    const first = mergeOsintFindings([], [{ type: 'Phone', value: 'p', source: finding({ occurrences: 2, record_sources: ['A'] }) }]).osintData;
+    expect(first[0].sources[0].record_sources).toEqual(['A']);
+    const r = mergeOsintFindings(first, [{ type: 'Phone', value: 'p', source: finding({ occurrences: 2, record_sources: ['A', 'B'] }) }]);
+    expect(r).toMatchObject({ updated: 1 });
+    expect(r.osintData[0].sources[0].record_sources).toEqual(['A', 'B']);
+  });
+});

@@ -103,6 +103,8 @@ export function occurrenceTotals(result) {
 
 // The values of one search's results that can be added to a person, once
 // each, in the order they first appear: [{ key, osintType, value, label }].
+// Values a search found that can be added to a person, each once, with the
+// sources named by the records it occurred in (results.recordSource).
 export function addableValues(result) {
   const out = new Map();
   for (const item of result?.items || []) {
@@ -110,9 +112,27 @@ export function addableValues(result) {
       if (!f.osintType) continue;
       for (const value of f.values) {
         const key = occurrenceKey(f, value);
-        if (!out.has(key)) out.set(key, { key, osintType: f.osintType, value, label: f.label });
+        if (!out.has(key)) out.set(key, { key, osintType: f.osintType, value, label: f.label, recordSources: [] });
+        const sources = out.get(key).recordSources;
+        if (item.recordSource && !sources.includes(item.recordSource) && sources.length < MAX_RECORD_SOURCES) sources.push(item.recordSource);
       }
     }
   }
   return [...out.values()];
+}
+const MAX_RECORD_SOURCES = 20;
+
+// A first guess at the OSINT data type of a value picked from a saved record,
+// from its field name and shape. Only a suggestion: the user chooses.
+export function guessOsintType(path, value) {
+  const name = String(path).split(/[.[\]]/).filter(Boolean).pop()?.toLowerCase() || '';
+  const v = String(value).trim();
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email';
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(v) || /^[0-9a-f:]{6,}$/i.test(v) && v.includes(':') && /ip/.test(name)) return 'IP Address';
+  if (/^https?:\/\//i.test(v)) return 'Website';
+  if (/phone|tel|mobile|msisdn/.test(name) || /^\+?[\d\s().-]{7,}$/.test(v)) return 'Phone';
+  if (/user(name)?|login|nick|handle/.test(name)) return 'Username';
+  if (/passport|document|inn|snils|ssn|tax/.test(name)) return 'Document ID';
+  if (/plate|vin|vehicle|car/.test(name)) return 'Vehicle';
+  return 'Other';
 }

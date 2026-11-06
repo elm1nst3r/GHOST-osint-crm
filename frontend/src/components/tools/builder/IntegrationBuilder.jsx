@@ -75,7 +75,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
   const steps = [t('builder.stepAbout'), t('builder.stepConnect'), t('builder.stepSearches'), t('builder.stepReview')];
   const keyMark = { keyMark: KEY_PLACEHOLDER };
   // What still stops the Searches step, first problem first.
-  const searchesProblem = !state.baseUrl || state.operations.some((o) => o.fields.length === 0) ? t('builder.needFields')
+  const searchesProblem = !state.baseUrl || state.operations.some((o) => o.fields.length === 0 && !o.keepRecords) ? t('builder.needFields')
     : state.operations.some((o) => o.input === 'text' && !(o.inputLabel || '').trim()) ? t('builder.needInputLabel')
       : state.authType === 'url' && state.operations.some((o) => !usesKeyPlaceholder(o)) ? t('builder.needKeyPlaceholder', keyMark)
         : null;
@@ -222,7 +222,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
                 {state.operations.map((o, i) => (
                   <span key={i} className={`inline-flex items-center rounded-lg border text-sm ${i === opIndex ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600'}`}>
                     <button type="button" onClick={() => setOpIndex(i)} className="px-3 py-1.5 text-gray-800 dark:text-gray-100">
-                      {o.label || t('builder.searchN', { n: i + 1 })}{o.fields.length ? '' : ' •'}
+                      {o.label || t('builder.searchN', { n: i + 1 })}{o.fields.length || o.keepRecords ? '' : ' •'}
                     </button>
                     {state.operations.length > 1 && (
                       <button type="button" onClick={() => removeOp(i)} aria-label={t('common.delete')} className="pe-2 text-gray-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>
@@ -255,7 +255,7 @@ const IntegrationBuilder = ({ initialManifest = null, mode = 'new', onClose, onI
                   <li>{t('builder.reviewHost', { host: (() => { try { return new URL(manifest.baseUrl).host; } catch { return '?'; } })() })}</li>
                   <li>{manifest.auth.type === 'none' ? t('tools.noKeyNeeded') : t(`builder.auth_${manifest.auth.type}`)}</li>
                   {manifest.operations.map((o) => (
-                    <li key={o.id}>• {o.label} ({o.input === 'text' ? o.inputLabel : t(`tools.kind_${o.input}`)}) — {t('builder.reviewFields', { count: o.results.fields.length })}</li>
+                    <li key={o.id}>• {o.label} ({o.input === 'text' ? o.inputLabel : t(`tools.kind_${o.input}`)}) — {t('builder.reviewFields', { count: o.results.fields.length })}{o.results.keepRecords ? ` · ${t('builder.reviewKeepsRecords')}` : ''}</li>
                   ))}
                 </ul>
                 {testKey && (

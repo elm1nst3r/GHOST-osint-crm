@@ -18,11 +18,13 @@ const MAX_SOURCES = 50;
 const norm = (s) => String(s ?? '').trim().toLowerCase();
 const entryKey = (e) => `${norm(e.type)}\u0000${norm(e.value)}`;
 
-// The same search: same integration, operation and query. Running it again
-// refreshes its count and date instead of adding another finding.
+// The same search: same integration, operation and query (and, for a value
+// taken from a saved record, the same record). Running it again refreshes its
+// count and date instead of adding another finding.
 const sameSearch = (a, b) => a.integration_id === b.integration_id
   && a.operation === b.operation
-  && norm(a.query) === norm(b.query);
+  && norm(a.query) === norm(b.query)
+  && (a.record_id ?? null) === (b.record_id ?? null);
 
 const findingsOf = (entry) => {
   if (Array.isArray(entry.sources)) return entry.sources;
@@ -64,8 +66,10 @@ function mergeOsintFindings(current, entries, userId = null) {
     const j = sources.findIndex((s) => sameSearch(s, finding));
     if (j >= 0) {
       const s = sources[j];
-      if (s.occurrences === finding.occurrences && s.retrieved_at === finding.retrieved_at) { unchanged += 1; continue; }
-      sources[j] = { ...s, occurrences: finding.occurrences, retrieved_at: finding.retrieved_at };
+      if (s.occurrences === finding.occurrences && s.retrieved_at === finding.retrieved_at
+        && JSON.stringify(s.record_sources) === JSON.stringify(finding.record_sources)) { unchanged += 1; continue; }
+      sources[j] = { ...s, occurrences: finding.occurrences, retrieved_at: finding.retrieved_at, record_sources: finding.record_sources };
+      if (sources[j].record_sources === undefined) delete sources[j].record_sources;
     } else {
       sources.push(finding);
       if (sources.length > MAX_SOURCES) sources.splice(1, sources.length - MAX_SOURCES); // keep the first, drop the oldest after it

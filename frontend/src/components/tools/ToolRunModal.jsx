@@ -13,12 +13,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Search, Loader2, AlertTriangle, CheckCircle2, ExternalLink, Plus, Info } from 'lucide-react';
-import { toolsAPI, peopleAPI } from '../../utils/api';
+import { toolsAPI, peopleAPI, osintRecordsAPI } from '../../utils/api';
 import {
   inputKindForOsint, operationsFor, operationsForInput, runnableTools, accepts, customSearchTypes, noInputOperations, INPUT_KINDS,
   occurrenceTotals, occurrenceKey, addableValues,
 } from '../../utils/integrations';
 import { useProject } from '../../contexts/ProjectContext';
+import JsonTree from '../records/JsonTree';
 import { formatPersonName } from '../../utils/personName';
 
 const pairKey = (tool, op) => `${tool.id}:${op.id}`;
@@ -226,8 +227,14 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
   const totalsByRun = useMemo(() => new Map(runs.filter((r) => r.status === 'done').map((r) => [r.key, occurrenceTotals(r.result)])), [runs]);
   const occurrencesOf = (run, f, value) => totalsByRun.get(run.key)?.get(occurrenceKey(f, value)) ?? 1;
   const addableOf = (run) => (run.status === 'done' ? addableValues(run.result) : []);
+  // Full records a search returned (results.keepRecords), saved on the person
+  // as the provider sent them.
+  const recordKey = (run, itemIdx) => `${run.key}|record|${itemIdx}`;
+  const recordsOf = (run) => (run.status === 'done' ? run.result.items.map((item, i) => ({ item, i })).filter(({ item }) => item.record) : []);
+  const selectableOf = (run) => [...addableOf(run).map((v) => `${run.key}|${v.key}`), ...recordsOf(run).map(({ i }) => recordKey(run, i))];
+  const [openRecords, setOpenRecords] = useState(() => new Set());
   const toggleAll = (run) => {
-    const keys = addableOf(run).map((v) => `${run.key}|${v.key}`);
+    const keys = selectableOf(run);
     const all = keys.every((k) => picks.has(k));
     const next = new Set(picks);
     keys.forEach((k) => (all ? next.delete(k) : next.add(k)));
@@ -235,7 +242,16 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
   };
   const addPicked = async () => {
     const entries = [];
+    const records = [];
     for (const run of runs) {
+      const source = {
+        tool_id: run.tool.id,
+        tool_name: run.tool.name,
+        integration_id: run.result?.integration_id,
+        operation: run.op.id,
+        query: run.result?.query,
+        retrieved_at: run.result?.retrieved_at,
+      };
       for (const v of addableOf(run)) {
         if (!picks.has(`${run.key}|${v.key}`)) continue;
         const occurrences = totalsByRun.get(run.key)?.get(v.key) ?? 1;
@@ -244,24 +260,35 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
           value: v.value,
           notes: t('tools.foundNote', { field: v.label, tool: run.tool.name, query: run.result.query }),
           source: {
-            tool_id: run.tool.id,
-            tool_name: run.tool.name,
-            integration_id: run.result.integration_id,
-            operation: run.op.id,
-            query: run.result.query,
-            retrieved_at: run.result.retrieved_at,
+            ...source,
             ...(occurrences > 1 ? { occurrences } : {}),
+            ...(v.recordSources.length ? { record_sources: v.recordSources } : {}),
           },
         });
       }
+      for (const { item, i } of recordsOf(run)) {
+        if (!picks.has(recordKey(run, i))) continue;
+        records.push({
+          data: item.record,
+          ...(item.recordSource ? { record_source: item.recordSource } : {}),
+          ...(item.count > 1 ? { occurrences: item.count } : {}),
+          source,
+        });
+      }
     }
-    if (!entries.length || !target) return;
+    if ((!entries.length && !records.length) || !target) return;
     setAdding(true);
     try {
-      const res = await peopleAPI.addOsint(target.id, entries);
-      setAddResult({ ok: true, added: res.added, updated: res.updated ?? 0, unchanged: res.unchanged ?? res.skipped, name: formatPersonName(target, t('tools.unnamedPerson')) });
+      const saved = records.length ? await osintRecordsAPI.add(target.id, records) : null;
+      const res = entries.length ? await peopleAPI.addOsint(target.id, entries) : null;
+      setAddResult({
+        ok: true,
+        name: formatPersonName(target, t('tools.unnamedPerson')),
+        values: res && { added: res.added, updated: res.updated ?? 0, unchanged: res.unchanged ?? res.skipped },
+        records: saved && { added: saved.added, updated: saved.updated, unchanged: saved.unchanged, rejected: saved.rejected?.length || 0 },
+      });
       setPicks(new Set());
-      if (person) onAdded?.(res.osint_data);
+      if (person && res) onAdded?.(res.osint_data);
     } catch (err) {
       setAddResult({ ok: false, message: err.message });
     } finally {
@@ -378,9 +405,9 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                         {(run.result?.query || run.input.value) && (
                           <span className="text-gray-500 dark:text-gray-400 break-all">· <bdi>{run.result?.query || run.input.value}</bdi></span>
                         )}
-                        {addableOf(run).length > 1 && (
+                        {selectableOf(run).length > 1 && (
                           <button type="button" onClick={() => toggleAll(run)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                            {addableOf(run).every((v) => picks.has(`${run.key}|${v.key}`)) ? t('tools.clearSelection') : t('tools.selectAll', { count: addableOf(run).length })}
+                            {selectableOf(run).every((k) => picks.has(k)) ? t('tools.clearSelection') : t('tools.selectAll', { count: selectableOf(run).length })}
                           </button>
                         )}
                         <span className="ms-auto text-xs">
@@ -409,6 +436,40 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
                                   )}
+                                </div>
+                              )}
+                              {(item.recordSource || item.record) && (
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1 text-xs">
+                                  {item.recordSource && (
+                                    <span className="px-1.5 py-0.5 rounded-sm bg-indigo-50 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" title={t('tools.recordSourceTitle')}>
+                                      <bdi dir="auto">{item.recordSource}</bdi>
+                                    </span>
+                                  )}
+                                  {item.record && (
+                                    <>
+                                      <label className="inline-flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+                                        <input
+                                          type="checkbox"
+                                          checked={picks.has(recordKey(run, itemIdx))}
+                                          onChange={() => toggle(picks, setPicks, recordKey(run, itemIdx))}
+                                        />
+                                        {t('tools.keepRecord')}
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggle(openRecords, setOpenRecords, recordKey(run, itemIdx))}
+                                        aria-expanded={openRecords.has(recordKey(run, itemIdx))}
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        {openRecords.has(recordKey(run, itemIdx)) ? t('tools.hideRecord') : t('tools.showRecord')}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              {item.record && openRecords.has(recordKey(run, itemIdx)) && (
+                                <div className="mb-2 p-2 rounded-sm bg-gray-50 dark:bg-gray-900/40 overflow-x-auto">
+                                  <JsonTree value={item.record} />
                                 </div>
                               )}
                               <dl className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-x-3 gap-y-0.5">
@@ -445,6 +506,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
                             </div>
                           ))}
                           {run.result.truncated && <p className="px-3 py-2 text-xs text-gray-500">{t('tools.truncated', { count: run.result.items.length, total: run.result.total })}</p>}
+                          {run.result.recordsOmitted > 0 && <p className="px-3 py-2 text-xs text-gray-500">{t('tools.recordsOmitted', { count: run.result.recordsOmitted })}</p>}
                         </div>
                       )}
                     </div>
@@ -455,7 +517,7 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
           )}
         </div>
 
-        {runs.some((r) => addableOf(r).length > 0) && (
+        {runs.some((r) => selectableOf(r).length > 0) && (
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-3">
             {!person && <PersonPicker value={chosenTarget} onChange={(p) => { setChosenTarget(p); setAddResult(null); }} />}
             <button
@@ -470,7 +532,12 @@ const ToolRunModal = ({ tools, person = null, initialEntryIndex = null, initialT
             <span className="text-xs text-gray-500 dark:text-gray-400">{t('tools.addPickedHint')}</span>
             {addResult?.ok && (
               <span className="text-sm text-green-700 dark:text-green-400 flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />{t('tools.addedToPerson', { name: addResult.name, added: addResult.added, updated: addResult.updated, unchanged: addResult.unchanged })}
+                <CheckCircle2 className="w-4 h-4" />
+                {[
+                  addResult.values && t('tools.addedToPerson', { name: addResult.name, ...addResult.values }),
+                  addResult.records && t('tools.recordsSaved', { name: addResult.name, ...addResult.records }),
+                  addResult.records?.rejected > 0 && t('tools.recordsRejected', { count: addResult.records.rejected }),
+                ].filter(Boolean).join(' ')}
               </span>
             )}
             {addResult && !addResult.ok && <span className="text-sm text-red-600 dark:text-red-400">{addResult.message}</span>}
