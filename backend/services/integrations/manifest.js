@@ -10,6 +10,7 @@
 //
 // Everything here is pure (no I/O) so it's unit-tested directly. The HTTP
 // call itself is in httpClient.js.
+const { canonicalJson, recordBytes, recordProblem } = require('../../utils/osintRecords');
 const net = require('net');
 const crypto = require('crypto');
 const { z } = require('zod');
@@ -191,8 +192,15 @@ const operationSchema = z.object({
     // Results that come out identical are shown once, with how many times
     // they occurred (issue #96).
     mergeDuplicates: z.boolean().optional(),
-    fields: z.array(fieldSchema).min(1).max(30),
-  }),
+    // Each result also carries the item exactly as the provider returned it,
+    // so it can be saved on a person in full (issue #96). With it, mapping
+    // fields is optional.
+    keepRecords: z.boolean().optional(),
+    // Where a record says it comes from (a provider that merges databases
+    // names one per record), shown with the record and the values from it.
+    recordSource: pathString.optional(),
+    fields: z.array(fieldSchema).max(30),
+  }).refine((r) => r.fields.length > 0 || r.keepRecords, { message: 'Map at least one field, or keep the full records', path: ['fields'] }),
 });
 
 const manifestSchema = z.object({
@@ -315,6 +323,10 @@ const MAX_VALUE_LENGTH = 1000;
 // Items looked at when merging duplicates (all of them are mapped first, so
 // the counts cover the whole response, not just the first page).
 const MAX_MERGE_ITEMS = 10000;
+// Full records sent with one search's results (keepRecords). Past this, items
+// still show their mapped fields but no record (`recordsOmitted` says how many).
+const MAX_RUN_RECORD_BYTES = 5_000_000;
+const MAX_SOURCE_LENGTH = 200;
 
 // Dotted path with array support: "a.b[0].c", and "list[].name" maps over a
 // list. An empty path is the value itself.
@@ -368,11 +380,14 @@ function countValues(raw, field) {
 const toValues = (raw, field) => countValues(raw, field).map((c) => c.value);
 
 // Turns a JSON response into display rows:
-//   { items: [{ title, link, count?, fields: [{ label, values, counts?, osintType }] }], total, truncated }
+//   { items: [{ title, link, count?, recordSource?, record?, fields: [{ label, values, counts?, osintType }] }],
+//     total, truncated, recordsOmitted? }
 // `counts` (parallel to `values`) is present when a value occurred more than
 // once in what the field collected; `count` on an item when identical items
 // were merged (results.mergeDuplicates). Both are occurrence counts, so an
 // investigator can tell a value seen once from one seen dozens of times.
+// `record` is the item as the provider sent it (results.keepRecords), and
+// `recordSource` where that item says it comes from (results.recordSource).
 function mapResults(results, json) {
   let root = getPath(json, results.root || '');
   if (root === null || root === undefined) root = [];
@@ -389,10 +404,14 @@ function mapResults(results, json) {
     });
   }
 
+  const keepRecords = Boolean(results.keepRecords);
+  const isRecord = (raw) => keepRecords && raw !== null && typeof raw === 'object';
+
   const mapItem = (item) => {
     const title = results.title ? toValues(getPath(item, results.title), {})[0] : undefined;
     const linkValue = results.link ? toValues(getPath(item, results.link), {})[0] : undefined;
     const link = linkValue && /^https?:\/\//i.test(linkValue) ? linkValue : undefined;
+    const recordSource = results.recordSource ? toValues(getPath(item, results.recordSource), {})[0]?.slice(0, MAX_SOURCE_LENGTH) : undefined;
     const fields = results.fields
       .map((f) => {
         const counted = countValues(getPath(item, f.path), f);
@@ -404,32 +423,48 @@ function mapResults(results, json) {
         };
       })
       .filter((f) => f.values.length > 0);
-    return { title, link, fields };
+    return { title, link, ...(recordSource ? { recordSource } : {}), fields };
   };
-  const shown = (it) => it.fields.length > 0 || it.title;
+  const shown = (it, raw) => it.fields.length > 0 || it.title || isRecord(raw);
+
+  // Records are attached last, to the items actually sent, within a budget.
+  let recordBytesLeft = MAX_RUN_RECORD_BYTES;
+  let recordsOmitted = 0;
+  const attachRecord = (item, raw) => {
+    if (!isRecord(raw)) return item;
+    const size = recordBytes(raw);
+    if (recordProblem(raw) || size > recordBytesLeft) { recordsOmitted += 1; return item; }
+    recordBytesLeft -= size;
+    return { ...item, record: raw };
+  };
+  const withOmitted = (out) => (recordsOmitted ? { ...out, recordsOmitted } : out);
 
   if (results.mergeDuplicates) {
     const merged = new Map();
     const scanned = list.slice(0, MAX_MERGE_ITEMS);
     for (const raw of scanned) {
       const item = mapItem(raw);
-      if (!shown(item)) continue;
-      const key = JSON.stringify(item);
+      if (!shown(item, raw)) continue;
+      // With full records kept, results are identical only if the records are.
+      const key = JSON.stringify(item) + (isRecord(raw) ? canonicalJson(raw) : '');
       const entry = merged.get(key);
       if (entry) entry.count += 1;
-      else merged.set(key, { item, count: 1 });
+      else merged.set(key, { item, raw, count: 1 });
     }
-    const unique = [...merged.values()].map(({ item, count }) => (count > 1 ? { ...item, count } : item));
-    return {
-      items: unique.slice(0, MAX_ITEMS),
+    const unique = [...merged.values()];
+    return withOmitted({
+      items: unique.slice(0, MAX_ITEMS).map(({ item, raw, count }) => attachRecord(count > 1 ? { ...item, count } : item, raw)),
       total: unique.length,
       truncated: unique.length > MAX_ITEMS || list.length > MAX_MERGE_ITEMS,
-    };
+    });
   }
 
   const total = list.length;
-  const items = list.slice(0, MAX_ITEMS).map(mapItem).filter(shown);
-  return { items, total, truncated: total > MAX_ITEMS };
+  const items = list.slice(0, MAX_ITEMS)
+    .map((raw) => ({ raw, item: mapItem(raw) }))
+    .filter(({ item, raw }) => shown(item, raw))
+    .map(({ item, raw }) => attachRecord(item, raw));
+  return withOmitted({ items, total, truncated: total > MAX_ITEMS });
 }
 
 // With no `test` in the manifest, a free search that needs no input checks

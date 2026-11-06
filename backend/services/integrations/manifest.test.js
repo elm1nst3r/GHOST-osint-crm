@@ -370,3 +370,57 @@ describe('custom ("text") and no-input ("none") searches', () => {
     expect(publicSummary(paid, 'imported').has_test).toBe(false);
   });
 });
+
+describe('full records (#96)', () => {
+  // Records from several databases, each with its own set of fields.
+  const leak = {
+    result: [
+      { FULL_NAME: 'Alex Example', PHONE: '+10000000001', database: 'Sample database A' },
+      { FULL_NAME: 'Alex Example', PHONE: '+10000000001', LAST_UPDATED: '2025-01-15', EMAIL: 'alex@example.com', database: 'Sample database B' },
+      { FULL_NAME: 'A. Example', PHONE: '+10000000001', EMAIL: 'alex@example.com', IP: '192.0.2.10', database: 'Sample database C', extra: { tags: ['x', 'y'] } },
+      { FULL_NAME: 'Alexander Example', PHONE: '+10000000001' },
+    ],
+  };
+
+  test('each item keeps its full record and its source', () => {
+    const out = mapResults({ root: 'result', keepRecords: true, recordSource: 'database', fields: [{ label: 'Phone', path: 'PHONE', osintType: 'Phone' }] }, leak);
+    expect(out.items).toHaveLength(4);
+    expect(out.items[2].record).toEqual(leak.result[2]);
+    expect(out.items.map((i) => i.recordSource)).toEqual(['Sample database A', 'Sample database B', 'Sample database C', undefined]);
+    expect(out.recordsOmitted).toBeUndefined();
+  });
+
+  test('without keepRecords no record is sent', () => {
+    const out = mapResults({ root: 'result', fields: [{ label: 'Phone', path: 'PHONE' }] }, leak);
+    expect(out.items[0].record).toBeUndefined();
+  });
+
+  test('records can be kept without mapping any field', () => {
+    const { manifest, errors } = validateManifest(base({ operations: [{ id: 'q', label: 'Q', input: 'phone', path: '/q/{{input}}', results: { root: 'result', keepRecords: true, fields: [] } }] }));
+    expect(errors).toBeUndefined();
+    const out = mapResults(manifest.operations[0].results, leak);
+    expect(out.items).toHaveLength(4);
+    expect(out.items.every((i) => i.record && i.fields.length === 0)).toBe(true);
+  });
+
+  test('a search with no fields and no records is still rejected', () => {
+    const { errors } = validateManifest(base({ operations: [{ id: 'q', label: 'Q', input: 'phone', path: '/q/{{input}}', results: { fields: [] } }] }));
+    expect(errors.join(' ')).toMatch(/at least one field/);
+  });
+
+  test('merging keeps records apart unless they are identical', () => {
+    const json = { result: [leak.result[0], { ...leak.result[0] }, { ...leak.result[0], database: 'Other' }] };
+    const out = mapResults({ root: 'result', keepRecords: true, mergeDuplicates: true, fields: [{ label: 'Phone', path: 'PHONE' }] }, json);
+    expect(out.items.map((i) => i.count)).toEqual([2, undefined]);
+    expect(out.items[1].record.database).toBe('Other');
+  });
+
+  test('records too large for one search are left out and counted', () => {
+    const big = { result: Array.from({ length: 80 }, (_, i) => ({ id: i, blob: 'x'.repeat(90_000) })) };
+    const out = mapResults({ root: 'result', keepRecords: true, fields: [{ label: 'Id', path: 'id' }] }, big);
+    expect(out.items).toHaveLength(80);
+    const kept = out.items.filter((i) => i.record).length;
+    expect(kept).toBeGreaterThan(40);
+    expect(kept + out.recordsOmitted).toBe(80);
+  });
+});

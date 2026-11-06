@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { occurrenceTotals, addableValues, occurrenceKey } from './integrations';
+import { occurrenceTotals, addableValues, occurrenceKey, guessOsintType } from './integrations';
 
 const email = (values, counts) => ({ label: 'Email', osintType: 'Email', values, ...(counts ? { counts } : {}) });
 
@@ -34,5 +34,27 @@ describe('occurrence totals across a search (#96)', () => {
       { fields: [email(['a@x.co'])] },
     ] };
     expect(addableValues(result).map((v) => v.value)).toEqual(['b@x.co', 'a@x.co']);
+  });
+});
+
+describe('records in results (#96)', () => {
+  test('a value lists the sources of the records it occurred in', () => {
+    const result = { items: [
+      { recordSource: 'A', fields: [email(['x@y.co'])] },
+      { recordSource: 'B', fields: [email(['x@y.co'])] },
+      { recordSource: 'A', fields: [email(['x@y.co', 'z@y.co'])] },
+      { fields: [email(['z@y.co'])] },
+    ] };
+    const byValue = Object.fromEntries(addableValues(result).map((v) => [v.value, v.recordSources]));
+    expect(byValue).toEqual({ 'x@y.co': ['A', 'B'], 'z@y.co': ['A'] });
+  });
+
+  test('guessing a type for a value from a record', () => {
+    expect(guessOsintType('result[2].EMAIL', 'alex@example.com')).toBe('Email');
+    expect(guessOsintType('PHONE', '+10000000001')).toBe('Phone');
+    expect(guessOsintType('IP', '192.0.2.10')).toBe('IP Address');
+    expect(guessOsintType('profile', 'https://vk.com/id1')).toBe('Website');
+    expect(guessOsintType('login', 'vovk')).toBe('Username');
+    expect(guessOsintType('FULL_NAME', 'Alex Example')).toBe('Other');
   });
 });

@@ -16,7 +16,7 @@ function completeDraft(draft, operationId) {
   const ops = Array.isArray(draft.operations) ? draft.operations : [];
   const op = ops.find((o) => o && o.id === operationId) || ops[0];
   if (!op) return { errors: ['Add a search first'] };
-  const results = op.results && Array.isArray(op.results.fields) && op.results.fields.length ? op.results : PLACEHOLDER_RESULTS;
+  const results = op.results && Array.isArray(op.results.fields) && (op.results.fields.length || op.results.keepRecords) ? op.results : PLACEHOLDER_RESULTS;
   const candidate = {
     ...draft,
     schema: 'ghost-integration/v1',

@@ -353,6 +353,30 @@ const PersonOsintAppendSchema = z.object({
       retrieved_at: z.string().max(40).optional(),
       // How many times the value occurred in that search's results (#96).
       occurrences: z.number().int().min(1).max(1000000000).optional(),
+      // Where the records it occurred in say they come from (a provider's
+      // `database` field), and the saved record a value was taken from.
+      record_sources: z.array(z.string().min(1).max(200)).max(20).optional(),
+      record_id: z.number().int().positive().optional(),
+      record_path: z.string().max(500).optional(),
+    }).optional(),
+  })).min(1).max(200),
+});
+
+// Saving full integration records on a person (issue #96). Each record's size
+// and depth are checked in the route (utils/osintRecords.js).
+const OsintRecordsAddSchema = z.object({
+  person_id: z.number().int().positive(),
+  records: z.array(z.object({
+    data: z.union([z.record(z.string(), z.any()), z.array(z.any())]),
+    record_source: z.string().max(200).optional(),
+    occurrences: z.number().int().min(1).max(1000000000).optional(),
+    source: z.object({
+      tool_id: z.number().int().positive().optional(),
+      tool_name: z.string().max(255).optional(),
+      integration_id: z.string().max(64).optional(),
+      operation: z.string().max(100).optional(),
+      query: z.string().max(2000).optional(),
+      retrieved_at: z.string().max(40).optional(),
     }).optional(),
   })).min(1).max(200),
 });
@@ -827,6 +851,7 @@ module.exports = {
   CryptoWalletUpdateSchema,
   FileUploadSchema,
   FileUpdateSchema,
+  OsintRecordsAddSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,

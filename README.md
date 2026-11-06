@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.0.1-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.2-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -283,7 +283,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.0.1
+GHOST_VERSION=3.0.2
 ```
 
 Without it, the containers track the latest release.
@@ -686,6 +686,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.0.2 (November 2026)
+- 🗃️ **Saved records** — integrations can keep each result exactly as the service returned it; save it on a person, see every field in the new Records tab, add any value from it to the OSINT data later, and search inside saved records (issue #96)
+
 ### Version 3.0.1 (November 2026)
 - 🔁 **Integration results: repeated values and sources** — a value returned many times shows once with its count (×27), results from the OSINT Tools page can be added to any person, and a value found by several tools keeps every source (issue #96)
 
@@ -713,5 +716,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.0.1
+**Version:** 3.0.2
 **Last Updated:** November 5, 2026

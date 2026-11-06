@@ -5,6 +5,32 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2026-11-06
+
+### ✨ New
+
+- **Saved records** (issue #96). Integrations can keep each result exactly as
+  the service returned it, including nested objects, lists and fields only
+  some results have (builder: **Keep the full records**, on for new
+  searches; manifests: `keepRecords`). In a search, tick **Keep full
+  record** to save a result on a person. The person's new **Records** tab
+  lists them with the tool, the search, the date and the source the record
+  names (builder: **Record source field**, manifests: `recordSource`, such
+  as a provider's `database` field). Open a record to see every field, and
+  add any value from it to the OSINT data later. The value then links back
+  to its record ("from a saved record"). Finding the same record again,
+  whatever the order of its fields, refreshes it instead of saving a copy.
+  Values added from a search also name the record sources they occurred in
+  ("found 3 times · in Sample database A, Sample database B").
+- **Search inside saved records**: Advanced Search has a **Saved records**
+  option, and `GET /api/records?q=` finds records containing a text anywhere,
+  across the project (also available to the MCP server).
+- Saved records go with their person (deleting the person deletes them),
+  are included in the full export (format 1.4) and restored on import, with
+  value-to-record links kept. Records are stored in the database like the
+  rest of a case: anything a service returns about a person is now kept if
+  an investigator saves it, so treat backups accordingly.
+
 ## [3.0.1] - 2026-11-05
 
 ### ✨ Improved

@@ -1,7 +1,7 @@
 // File: frontend/src/components/AdvancedSearch.jsx
 import { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI } from '../utils/api';
+import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, osintRecordsAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
 import SearchFilters from './search/SearchFilters';
 import SearchResults from './search/SearchResults';
@@ -97,7 +97,13 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
       // Text search
       if (searchParams.searchText) {
         const searchLower = searchParams.searchText.toLowerCase();
+        // Saved integration records are searched on the server (issue #96).
+        const recordPeople = searchParams.searchIn.includes('records')
+          ? new Set((await osintRecordsAPI.list({ q: searchParams.searchText, project_id: activeProjectId, limit: 500 })).data.map((r) => r.person_id))
+          : new Set();
         filtered = filtered.filter(person => {
+          if (recordPeople.has(person.id)) return true;
+
           if (searchParams.searchIn.includes('name')) {
             // Matches any name part and both orderings, so a person is findable
             // by the name the app actually shows — patronymics included (#78).
