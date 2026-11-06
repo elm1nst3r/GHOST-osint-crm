@@ -9,6 +9,7 @@ import { SUPPORTED_LANGUAGES, changeLanguage } from '../../i18n';
 import GeocodingSection from './GeocodingSection';
 import ProjectRetentionSection from './ProjectRetentionSection';
 import GlobalDefaultsSection from './GlobalDefaultsSection';
+import ModulesSection from './ModulesSection';
 import { useScratchpad } from '../../contexts/ScratchpadContext';
 import { Toggle } from '../scratchpad/ScratchpadSettingsView';
 
@@ -128,6 +129,7 @@ const GeneralTab = () => {
         </div>
       </div>
       <GlobalDefaultsSection />
+      <ModulesSection />
       <GeocodingSection />
       <ProjectRetentionSection />
     </div>

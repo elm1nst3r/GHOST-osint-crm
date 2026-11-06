@@ -62,6 +62,7 @@ const ROUTE_SCHEMAS = {
     S.SettingsProjectRetentionSchema,
     S.SettingsBrandingUpdateSchema,
     S.SettingsToolsSchema,
+    S.SettingsModulesSchema,
     S.SettingsSecuritySchema
   ),
   'auth.js': shape(S.MfaVerifySchema, S.PasskeySignInSchema),

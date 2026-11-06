@@ -544,6 +544,12 @@ export const cryptoWalletsAPI = {
 // Files API (issue #97). Uploads go through XMLHttpRequest rather than
 // fetchAPI: fetch can't report upload progress, and fetchAPI's 30 s timeout
 // would cut off a large upload.
+// Sections switched off for the whole instance.
+export const modulesAPI = {
+  get: () => fetchAPI('/settings/modules'),
+  update: (disabled) => fetchAPI('/settings/modules', { method: 'PUT', body: JSON.stringify({ disabled }) }),
+};
+
 // Saved integration records on people (issue #96).
 export const osintRecordsAPI = {
   // params: { person_id?, project_id?, q?, integration_id?, limit?, offset? } → { data, meta }

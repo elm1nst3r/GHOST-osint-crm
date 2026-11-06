@@ -15,6 +15,7 @@ import { optionLabel } from '../utils/optionLabels';
 import { locationColors, buildIconCache, colorForCustomType } from './map/mapUtils';
 import AddLocationModal from './map/AddLocationModal';
 import MapLegend from './map/MapLegend';
+import { useModules } from '../contexts/ModulesContext';
 import MapStats from './map/MapStats';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -52,6 +53,12 @@ const GlobalMap = () => {
   const [showProperties, setShowProperties] = useState(true);
   const [showAssets, setShowAssets] = useState(true);
   const [showTransactions, setShowTransactions] = useState(false);
+  // Layers of a switched-off module are neither drawn nor offered.
+  const { isOn: moduleOn } = useModules();
+  const networksShown = showNetworks && moduleOn('wireless');
+  const propertiesShown = showProperties && moduleOn('properties');
+  const assetsShown = showAssets && moduleOn('assets');
+  const transactionsShown = showTransactions && moduleOn('transactions');
   const [filterTxType, setFilterTxType] = useState('');
   const [filterAssetCategory, setFilterAssetCategory] = useState('');
   const [txTypeOptions, setTxTypeOptions] = useState([]);
@@ -257,7 +264,7 @@ const GlobalMap = () => {
         });
       });
     });
-    if (showNetworks) {
+    if (networksShown) {
       wirelessNetworks.forEach(n => {
         list.push({
           id: `network-${n.id}`,
@@ -272,7 +279,7 @@ const GlobalMap = () => {
         });
       });
     }
-    if (showProperties) {
+    if (propertiesShown) {
       properties.forEach(p => {
         list.push({
           id: `property-${p.id}`, kind: 'property', lat: parseFloat(p.latitude), lng: parseFloat(p.longitude),
@@ -281,7 +288,7 @@ const GlobalMap = () => {
         });
       });
     }
-    if (showAssets) {
+    if (assetsShown) {
       assets.forEach(a => {
         if (filterAssetCategory && a.category !== filterAssetCategory) return;
         const loc = a.resolved_location;
@@ -293,7 +300,7 @@ const GlobalMap = () => {
         });
       });
     }
-    if (showTransactions) {
+    if (transactionsShown) {
       txEvents.forEach(t => {
         if (filterTxType && t.transaction_type !== filterTxType) return;
         list.push({
@@ -305,8 +312,8 @@ const GlobalMap = () => {
       });
     }
     return list;
-  }, [filteredPeople, selectedLocationTypes, iconCache, wirelessNetworks, showNetworks,
-      properties, assets, txEvents, showProperties, showAssets, showTransactions,
+  }, [filteredPeople, selectedLocationTypes, iconCache, wirelessNetworks, networksShown,
+      properties, assets, txEvents, propertiesShown, assetsShown, transactionsShown,
       filterAssetCategory, filterTxType, featureIcons]);
 
   const toggleLocationType = (type) =>
@@ -386,6 +393,7 @@ const GlobalMap = () => {
               <input type="checkbox" checked={includeRelated} onChange={e => setIncludeRelated(e.target.checked)} className="h-4 w-4 text-blue-600 rounded-sm" />
               <span className="text-sm text-gray-700 dark:text-gray-300">{t('globalMap.includeRelatedPeople')}</span>
             </label>
+            {moduleOn('wireless') && (
             <label className="flex items-center gap-x-2 cursor-pointer">
               <input type="checkbox" checked={showNetworks} onChange={e => setShowNetworks(e.target.checked)} className="h-4 w-4 text-blue-600 rounded-sm" />
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center">
@@ -393,18 +401,25 @@ const GlobalMap = () => {
                 {t('globalMap.wirelessNetworksCount', { count: wirelessNetworks.length })}
               </span>
             </label>
+            )}
+            {moduleOn('properties') && (
             <label className="flex items-center gap-x-2 cursor-pointer">
               <input type="checkbox" checked={showProperties} onChange={e => setShowProperties(e.target.checked)} className="h-4 w-4 text-emerald-600 rounded-sm" />
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Landmark className="w-4 h-4 me-1" />{t('globalMap.propertiesCount', { count: properties.length })}</span>
             </label>
+            )}
+            {moduleOn('assets') && (
             <label className="flex items-center gap-x-2 cursor-pointer">
               <input type="checkbox" checked={showAssets} onChange={e => setShowAssets(e.target.checked)} className="h-4 w-4 text-orange-600 rounded-sm" />
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Package className="w-4 h-4 me-1" />{t('globalMap.assetsCount', { count: assets.length })}</span>
             </label>
+            )}
+            {moduleOn('transactions') && (
             <label className="flex items-center gap-x-2 cursor-pointer">
               <input type="checkbox" checked={showTransactions} onChange={e => setShowTransactions(e.target.checked)} className="h-4 w-4 text-blue-600 rounded-sm" />
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Receipt className="w-4 h-4 me-1" />{t('globalMap.transactionsCount', { count: txEvents.length })}</span>
             </label>
+            )}
           </div>
         </div>
 
@@ -425,14 +440,14 @@ const GlobalMap = () => {
               </button>
             ))}
           </div>
-          {showAssets && (
+          {assetsShown && (
             <select value={filterAssetCategory} onChange={e => setFilterAssetCategory(e.target.value)}
               className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-sm dark:bg-slate-800 dark:text-gray-100">
               <option value="">{t('globalMap.allAssetCategories')}</option>
               {assetCategoryOptions.map(o => <option key={o.id} value={o.option_value}>{optionLabel(t, 'asset_category', o.option_value, o.option_label)}</option>)}
             </select>
           )}
-          {showTransactions && (
+          {transactionsShown && (
             <select value={filterTxType} onChange={e => setFilterTxType(e.target.value)}
               className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-sm dark:bg-slate-800 dark:text-gray-100">
               <option value="">{t('globalMap.allTransactionTypes')}</option>

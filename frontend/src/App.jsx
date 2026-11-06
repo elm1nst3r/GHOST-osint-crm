@@ -11,6 +11,8 @@ import { UIProvider, useUI } from './contexts/UIContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 import { ScratchpadProvider } from './contexts/ScratchpadContext';
+import { ModulesProvider, useModules } from './contexts/ModulesContext';
+import { visibleNavGroups } from './utils/modules';
 import { changeLanguage } from './i18n';
 
 import UpdateBanner from './components/UpdateBanner';
@@ -71,6 +73,24 @@ const navigationItemIds = [
   { id: 'wireless',      icon: Wifi },
   { id: 'settings',      icon: Settings },
 ];
+
+const NavItem = ({ item, active, onSelect }) => {
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={() => onSelect(item.id)}
+      aria-current={active ? 'page' : undefined}
+      className={`nav-item ${
+        active
+          ? 'bg-accent-primary/10 text-accent-primary'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+      }`}
+    >
+      <Icon className={`shrink-0 transition-colors duration-150 ${active ? 'text-accent-primary' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
+      <span>{item.label}</span>
+    </button>
+  );
+};
 
 const EntityNetworkSection = () => {
   const { t } = useTranslation();
@@ -178,6 +198,13 @@ const AppShell = () => {
     ...item,
     label: t(`app.nav.${item.id}`),
   })), [t]);
+  // Menu groups without the sections an admin switched off.
+  const { disabled: disabledModules, isOn: moduleOn } = useModules();
+  const navGroups = useMemo(() => {
+    const byId = Object.fromEntries(navigationItems.map((item) => [item.id, item]));
+    return visibleNavGroups(disabledModules).map((g) => ({ ...g, items: g.items.map((id) => byId[id]) }));
+  }, [navigationItems, disabledModules]);
+  const settingsItem = navigationItems.find((item) => item.id === 'settings');
 
   // ── URL ↔ section sync (issue #52) ────────────────────────────────────────
   // The URL is the source of truth for which section is shown, so browser
@@ -186,6 +213,7 @@ const AppShell = () => {
   // Mobile nav drawer. Desktop (md+) ignores this entirely: the sidebar is
   // statically positioned there, so this only governs the off-canvas panel.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const selectSection = (id) => { setActiveSection(id); setMobileNavOpen(false); };
 
   // Sections opened since sign-in (see SECTIONS). Cleared on sign-out, so
   // nothing one user had open survives into the next session.
@@ -213,7 +241,14 @@ const AppShell = () => {
   // URL → state (also handles back/forward and initial deep links)
   const syncFromUrl = useEffectEvent(() => {
     const [, seg, id] = location.pathname.split('/');
-    const section = navigationItemIds.some(item => item.id === seg) ? seg : 'dashboard';
+    // A switched-off module's address opens the dashboard instead, and the
+    // address bar says so.
+    const known = navigationItemIds.some(item => item.id === seg);
+    if (known && !moduleOn(seg)) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    const section = known ? seg : 'dashboard';
     urlSection.current = section;
     setActiveSection(section);
     setMobileNavOpen(false);
@@ -229,7 +264,7 @@ const AppShell = () => {
       }
     }
   });
-  useEffect(() => syncFromUrl(), [location.pathname, authenticated]);
+  useEffect(() => syncFromUrl(), [location.pathname, authenticated, disabledModules]);
 
   // state → URL (covers setActiveSection calls from any component). Must not
   // fire before state has absorbed the initial URL, or a deep link like
@@ -277,7 +312,11 @@ const AppShell = () => {
 
   return (
     <ProjectGate>
-    <div className="flex min-h-dvh bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
+    {/* h-dvh, not min-h-dvh: the shell is exactly the window, so the sidebar
+        and the content panel ([data-scroll-root]) each scroll on their own. With
+        min-h-dvh the whole page grew and scrolled, the sidebar footer ended up
+        below a long list, and per-section scroll memory had nothing to restore. */}
+    <div className="flex h-dvh bg-slate-100 dark:bg-slate-950 relative overflow-hidden transition-colors duration-150">
 
       {/* Mobile top bar — the only chrome visible below md, since the sidebar
           is off-canvas there. */}
@@ -349,50 +388,44 @@ const AppShell = () => {
           <div className="mt-3">
             <ProjectSelector />
           </div>
-        </div>
-
-        <nav className="p-3 space-y-0.5 flex-1 overflow-y-auto">
-          <p className="px-3 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-            {t('app.workspace')}
-          </p>
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setActiveSection(item.id); setMobileNavOpen(false); }}
-                className={`nav-item ${
-                  isActive
-                    ? 'bg-accent-primary/10 text-accent-primary'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-              >
-                <Icon className={`shrink-0 transition-colors duration-150 ${isActive ? 'text-accent-primary' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-            <button
-              onClick={handleLogout}
-              className="nav-item text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
-            >
-              <LogOut className="shrink-0" style={{ width: 18, height: 18 }} />
-              <span>{t('app.logout')}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 ms-auto">{currentUser?.username}</span>
-            </button>
-          </div>
-        </nav>
-
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={() => { setShowAdvancedSearch(true); setMobileNavOpen(false); }}
-            className="btn btn-secondary w-full"
+            className="mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
-            <Search className="w-4 h-4 text-accent-primary" />
+            <Search className="w-4 h-4 shrink-0 text-accent-primary" />
             <span>{t('searchFilters.advancedSearch')}</span>
+          </button>
+        </div>
+
+        <nav className="p-3 flex-1 overflow-y-auto" aria-label={t('app.navigation')}>
+          {navGroups.map((group) => (
+            <div key={group.heading || 'top'} className={group.heading ? 'pt-3' : ''}>
+              {group.heading && (
+                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
+                  {t(`app.navGroup.${group.heading}`)}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => <NavItem key={item.id} item={item} active={activeSection === item.id} onSelect={selectSection} />)}
+              </div>
+            </div>
+          ))}
+
+        </nav>
+
+        {/* Pinned under the menu, so they stay visible when the list scrolls. */}
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1">
+          <div className="flex-1 min-w-0">
+            <NavItem item={settingsItem} active={activeSection === 'settings'} onSelect={selectSection} />
+          </div>
+          <button
+            onClick={handleLogout}
+            title={t('app.logoutAs', { name: currentUser?.username || '' })}
+            aria-label={t('app.logoutAs', { name: currentUser?.username || '' })}
+            className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-(--radius-control) text-sm text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          >
+            <span className="text-xs max-w-24 truncate">{currentUser?.username}</span>
+            <LogOut className="shrink-0 rtl:-scale-x-100" style={{ width: 18, height: 18 }} />
           </button>
         </div>
       </div>
@@ -490,11 +523,13 @@ const App = () => (
       <AuthProvider>
         <ProjectProvider>
           <DataProvider>
+            <ModulesProvider>
             <UIProvider>
               <ScratchpadProvider>
                 <AppShell />
               </ScratchpadProvider>
             </UIProvider>
+            </ModulesProvider>
           </DataProvider>
         </ProjectProvider>
       </AuthProvider>

@@ -269,6 +269,7 @@ const spec = {
       SettingsTools: toSchema(S.SettingsToolsSchema),
       PersonOsintAppend: toSchema(S.PersonOsintAppendSchema),
       OsintRecordsAdd: toSchema(S.OsintRecordsAddSchema),
+      SettingsModules: toSchema(S.SettingsModulesSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       ProjectCreate: toSchema(S.ProjectCreateSchema),
@@ -974,6 +975,12 @@ const spec = {
         admin: true, mcp: false, body: ref('SettingsUpdateCheck'),
         description: 'When disabled the server makes no outbound request at all.',
       }),
+    },
+    '/settings/modules': {
+      get: op('Settings', 'Which sections the interface shows', {
+        description: '`available`: the sections an admin can switch off; `disabled`: the ones switched off. Display only: their data and API stay.',
+      }),
+      put: op('Settings', 'Switch interface sections off or on', { admin: true, mcp: false, body: ref('SettingsModules') }),
     },
     '/settings/tools': {
       get: op('Settings', 'OSINT tools policy (whether users may add their own tools)'),

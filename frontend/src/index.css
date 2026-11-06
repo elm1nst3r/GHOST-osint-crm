@@ -330,7 +330,7 @@
 }
 /* Sidebar navigation item — padding is density-aware */
 @utility nav-item {
-  @apply w-full text-start px-3 py-2.5 rounded-(--radius-control) flex items-center gap-3
+  @apply w-full text-start px-3 py-2 rounded-(--radius-control) flex items-center gap-3
     text-sm font-medium
     transition-[background-color,color] duration-150 active:scale-[0.97]
     focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-primary/50;

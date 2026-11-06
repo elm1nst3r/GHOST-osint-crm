@@ -17,9 +17,11 @@ const {
   SettingsModelOptionCreateSchema,
   SettingsModelOptionUpdateSchema,
   SettingsToolsSchema,
+  SettingsModulesSchema,
   SettingsSecuritySchema,
 } = require('../middleware/schemas');
 const { ALLOW_USER_TOOLS_KEY, allowUserTools } = require('../utils/toolAccess');
+const { SWITCHABLE_MODULES, DISABLED_MODULES_KEY, readDisabledModules } = require('../utils/modules');
 const { MFA_REQUIRED_KEY, mfaRequiredByPolicy, setMfaRequired, mfaState } = require('../services/accountSecurity');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
@@ -224,6 +226,36 @@ router.put('/tools', requireAdmin, validate(SettingsToolsSchema), async (req, re
   } catch (err) {
     console.error('Error saving tools policy:', err);
     res.status(500).json({ error: 'Failed to save tools settings' });
+  }
+});
+
+// ── Modules ───────────────────────────────────────────────────────────────────
+// Which sections the interface shows. Readable by every signed-in user (the
+// menu is built from it), changeable by admins. Display only: switching a
+// module off hides it, its data and API stay.
+router.get('/modules', requireAuth, async (req, res) => {
+  try {
+    res.json({ available: SWITCHABLE_MODULES, disabled: await readDisabledModules(pool) });
+  } catch (err) {
+    console.error('Error fetching modules:', err);
+    res.status(500).json({ error: 'Failed to fetch modules' });
+  }
+});
+
+router.put('/modules', requireAdmin, validate(SettingsModulesSchema), async (req, res) => {
+  const disabled = SWITCHABLE_MODULES.filter((id) => req.body.disabled.includes(id));
+  try {
+    const before = await readDisabledModules(pool);
+    await pool.query(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [DISABLED_MODULES_KEY, JSON.stringify(disabled)]
+    );
+    await req.audit.log('settings', 0, 'update', DISABLED_MODULES_KEY, before.join(', ') || 'none', disabled.join(', ') || 'none');
+    res.json({ available: SWITCHABLE_MODULES, disabled });
+  } catch (err) {
+    console.error('Error saving modules:', err);
+    res.status(500).json({ error: 'Failed to save modules' });
   }
 });
 

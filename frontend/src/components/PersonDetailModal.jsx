@@ -16,12 +16,15 @@ import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 import FilesPanel from './files/FilesPanel';
 import PersonRecordsPanel from './records/PersonRecordsPanel';
+import { useModules } from '../contexts/ModulesContext';
 import ToolRunModal from './tools/ToolRunModal';
 import { inputKindForOsint, operationsForInput, runnableTools } from '../utils/integrations';
 
 // Every tool finding of an OSINT entry; entries saved before 3.1 have only `source` (#96).
 const findingsOf = (osint) => (Array.isArray(osint.sources) ? osint.sources : (osint.source ? [osint.source] : []));
 const SHOWN_SOURCES = 5;
+// Tabs that belong to a module an admin can switch off.
+const TAB_MODULE = { records: 'tools', transactions: 'transactions', ledger: 'transactions', assets: 'assets', files: 'files' };
 import { formatDate, ageFrom } from '../utils/format';
 
 const PersonDetailModal = () => {
@@ -40,6 +43,7 @@ const PersonDetailModal = () => {
   const onClose = () => setSelectedPersonForDetail(null);
   const onEdit = (p) => { setSelectedPersonForDetail(null); setEditingPerson(p); };
   const [activeTab, setActiveTab] = useState('details');
+  const { isOn: moduleOn } = useModules();
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [locations, setLocations] = useState(person.locations || []);
   const [personTransactions, setPersonTransactions] = useState([]);
@@ -223,7 +227,7 @@ const PersonDetailModal = () => {
           {/* Tabs */}
           <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <div className="flex min-w-max">
-            {['details', 'records', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger', 'files'].map((tab) => (
+            {['details', 'records', 'relationships', 'locations', 'travel', 'transactions', 'assets', 'ledger', 'files'].filter((tab) => moduleOn(TAB_MODULE[tab])).map((tab) => (
                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}

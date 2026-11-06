@@ -338,6 +338,11 @@ const SettingsToolsSchema = z.object({
   allow_user_tools: z.boolean(),
 });
 
+// Sections switched off for the whole instance (utils/modules.js).
+const SettingsModulesSchema = z.object({
+  disabled: z.array(z.enum(require('../utils/modules').SWITCHABLE_MODULES)).max(20),
+});
+
 // Appending OSINT data found by an integration to a person (issue #96).
 const PersonOsintAppendSchema = z.object({
   entries: z.array(z.object({
@@ -852,6 +857,7 @@ module.exports = {
   FileUploadSchema,
   FileUpdateSchema,
   OsintRecordsAddSchema,
+  SettingsModulesSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,
