@@ -1952,7 +1952,8 @@
     "givenTitle": "Given",
     "nothingGiven": "Nothing given.",
     "assetsCurrentlyHeld": "Assets Currently Held",
-    "noAssetsHeld": "No assets currently held."
+    "noAssetsHeld": "No assets currently held.",
+    "tab_records": "Records"
   },
   "report": {
     "investigationReport": "INVESTIGATION REPORT",
@@ -2300,7 +2301,7 @@
     "truncated_other": "Showing the first {{count}} of {{total}} results.",
     "addPicked_one": "Add {{count}} to person",
     "addPicked_other": "Add {{count}} to person",
-    "addPickedHint": "Tick values to add them to a person's OSINT data. New values are marked unverified; values the person already has get this search recorded as another source.",
+    "addPickedHint": "Tick values to add them to a person's OSINT data, or keep whole records. New values are marked unverified; values the person already has get this search recorded as another source.",
     "addedResult": "Added {{added}}; {{skipped}} already there.",
     "addedToPerson": "Added to {{name}}: {{added}} new, {{updated}} updated, {{unchanged}} unchanged.",
     "addTarget": "Add to",
@@ -2391,7 +2392,18 @@
     "kind_text": "Custom",
     "kind_none": "No input",
     "noInputTag": "no input",
-    "noInputOnly": "This tool's searches need no input."
+    "noInputOnly": "This tool's searches need no input.",
+    "inRecordSources": "in {{sources}}",
+    "fromSavedRecord": "from a saved record",
+    "recordSourceTitle": "Where this record says it comes from",
+    "keepRecord": "Keep full record",
+    "showRecord": "Show record",
+    "hideRecord": "Hide record",
+    "recordsOmitted_one": "{{count}} record was too large to keep; its values are shown.",
+    "recordsOmitted_other": "{{count}} records were too large to keep; their values are shown.",
+    "recordsSaved": "Records on {{name}}: {{added}} saved, {{updated}} updated, {{unchanged}} unchanged.",
+    "recordsRejected_one": "{{count}} record could not be saved.",
+    "recordsRejected_other": "{{count}} records could not be saved."
   },
   "builder": {
     "title": "Build an integration",
@@ -2515,7 +2527,20 @@
     "inputCustomNamePlaceholder": "e.g. Vehicle registration number",
     "inputCustomTypes": "Search button on these person entries",
     "inputCustomTypesHint": "Entries of these OSINT data types get a search button for it. With none ticked, it searches typed-in values only.",
-    "inputNoneHelp": "Sends no value, for things like account balance or service status. It runs from the tool on the Tools page, and checks the connection when the key is tested."
+    "inputNoneHelp": "Sends no value, for things like account balance or service status. It runs from the tool on the Tools page, and checks the connection when the key is tested.",
+    "keepRecords": "Keep the full records",
+    "keepRecordsHelp": "Each result also keeps everything the service returned for it, including fields you did not pick and fields only some results have. Investigators can save a record on a person and add values from it later.",
+    "recordList": "Records are",
+    "recordWhole": "the whole response",
+    "recordListOption": "each item in \"{{list}}\" ({{count}})",
+    "recordEachItem": "Each item in \"{{list}}\" is one record.",
+    "recordWholeResponse": "The whole response is one record.",
+    "recordSource": "Record source field",
+    "recordSourceNone": "none",
+    "noFieldsRecords": "No fields picked: results show their full records only. Pick fields to show values and add them as OSINT data directly.",
+    "reviewKeepsRecords": "keeps full records",
+    "previewRecordKept_one": "full record kept ({{count}} field)",
+    "previewRecordKept_other": "full record kept ({{count}} fields)"
   },
   "scratchpad": {
     "title": "Scratchpad",
@@ -2700,5 +2725,34 @@
       "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
       "generic": "Something went wrong. Try again."
     }
+  },
+  "records": {
+    "title": "Saved records",
+    "help": "Results from integrated tools, kept exactly as the service returned them. Open a record to see every field; any value in it can be added to the OSINT data.",
+    "filter": "Filter records",
+    "loading": "Loading records…",
+    "empty": "No saved records. In a tool search, tick \"Keep full record\" on a result to save it here.",
+    "noMatch": "No record contains that text.",
+    "more": "Showing the newest {{count}} of {{total}} records.",
+    "untitled": "Record",
+    "provenance": "via {{tool}} · {{date}}",
+    "searchedFor": "searched for",
+    "import": "import",
+    "delete": "Delete record",
+    "deleteConfirm": "Delete this record?",
+    "pickHint": "Use + next to a value to add it to the OSINT data.",
+    "addValue": "Add to OSINT data",
+    "addValueNamed": "Add {{value}} to OSINT data",
+    "listSummary_one": "list, {{count}} item",
+    "listSummary_other": "list, {{count}} items",
+    "objectSummary_one": "{{count}} field",
+    "objectSummary_other": "{{count}} fields",
+    "addFromPath": "Add the value at",
+    "osintType": "Type",
+    "value": "Value",
+    "addToOsint": "Add to OSINT data",
+    "foundNote": "{{path}} in a saved record from {{tool}}",
+    "addedNew": "Added {{value}} to the OSINT data.",
+    "addedExisting": "{{value}} was already in the OSINT data; this record is now one of its sources."
   }
 }
