@@ -5,6 +5,33 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2026-11-06
+
+### ✨ New
+
+- **Test data set** (`test-data/middle-earth.json`): a fictional
+  investigation themed on *The Lord of the Rings* with 22 people,
+  30 relationships, locations (New Zealand filming locations), travel,
+  businesses with an ownership chain, properties, assets, transactions,
+  wireless networks, OSINT data, saved records and to-dos. Import it into
+  an empty project under Settings → Import / Export.
+
+### 🐛 Fixed
+
+- **Import put people outside their cases.** Imported people kept the case
+  name but not the case link, so the Cases view showed them under no case.
+  Assets, properties and transactions from an export lost their case too.
+- **Importing into a second project touched the first one.** Case names are
+  unique across the instance, so importing a file whose cases already
+  existed in another project updated that project's cases and linked the
+  new records into them. The imported case now gets the project's name
+  added instead (`The One Ring (Middle-earth)`).
+- **Business employees linked to a person** pointed at the person's id in
+  the exported instance, not the imported one.
+- **Squeezed avatars on person cards.** A long name or alias list pushed
+  the round avatar into an oval.
+- The README screenshot shows the 3.0 interface with the Middle-earth data.
+
 ## [3.0.2] - 2026-11-06
 
 ### ✨ New

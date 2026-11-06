@@ -1,0 +1,1984 @@
+{
+  "version": "1.4",
+  "exportDate": "2026-11-06T00:00:00.000Z",
+  "description": "GHOST standard test data set: \"Middle-earth\" (Lord of the Rings theme). Fictional; coordinates are New Zealand filming locations. Import into an empty project under Settings → Import / Export.",
+  "data": {
+    "cases": [
+      {
+        "id": 1,
+        "case_name": "The One Ring",
+        "status": "active",
+        "description": "Track the Ring and everyone who has held it, from Bag End to Mordor."
+      },
+      {
+        "id": 2,
+        "case_name": "Isengard Industries",
+        "status": "active",
+        "description": "Saruman’s operation at Isengard: deforestation of Fangorn, arms production, agents in Rohan and the Shire."
+      },
+      {
+        "id": 3,
+        "case_name": "The Fellowship",
+        "status": "active",
+        "description": "The nine walkers who left Rivendell: movements, contacts, losses."
+      },
+      {
+        "id": 4,
+        "case_name": "Scouring of the Shire",
+        "status": "on_hold",
+        "description": "Property buy-ups and ruffians in the Shire, financed from outside."
+      }
+    ],
+    "people": [
+      {
+        "id": 22,
+        "first_name": "Galadriel",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Lady of Lórien",
+          "Lady of the Golden Wood"
+        ],
+        "date_of_birth": null,
+        "category": "Other",
+        "status": "Open",
+        "case_id": null,
+        "case_name": null,
+        "notes": "Received the Fellowship in Lothlórien. No case assigned.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Caras Galadhon",
+            "address": "Caras Galadhon",
+            "city": "Lothlórien",
+            "country": "Lórien",
+            "latitude": -44.792,
+            "longitude": 168.3706
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "associate",
+            "note": "Gave him the phial"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 21,
+        "first_name": "Elrond",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Lord of Rivendell",
+          "Half-elven"
+        ],
+        "date_of_birth": null,
+        "category": "Other",
+        "status": "Open",
+        "case_id": null,
+        "case_name": null,
+        "notes": "Hosted the Council at Rivendell. No case assigned.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Rivendell",
+            "address": "The Last Homely House",
+            "city": "Rivendell",
+            "country": "Eriador",
+            "latitude": -41.0852,
+            "longitude": 175.1793
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 3,
+            "type": "friend",
+            "note": "Host in Rivendell"
+          },
+          {
+            "person_id": 8,
+            "type": "family",
+            "note": "Foster father"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 20,
+        "first_name": "Barliman",
+        "patronymic": null,
+        "last_name": "Butterbur",
+        "aliases": [],
+        "date_of_birth": "1968-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 4,
+        "case_name": "Scouring of the Shire",
+        "notes": "Landlord of the Prancing Pony. Forgot to send Gandalf’s letter.",
+        "locations": [
+          {
+            "type": "work",
+            "label": "The Prancing Pony",
+            "address": "The Prancing Pony, Great East Road",
+            "city": "Bree",
+            "country": "Eriador",
+            "latitude": -41.3271,
+            "longitude": 174.8298
+          },
+          {
+            "type": "primary_residence",
+            "label": "The Prancing Pony",
+            "address": "The Prancing Pony, Great East Road",
+            "city": "Bree",
+            "country": "Eriador",
+            "latitude": -41.3271,
+            "longitude": 174.8298
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Phone",
+            "value": "+1 555 0120",
+            "notes": "The Prancing Pony"
+          },
+          {
+            "type": "Website",
+            "value": "https://prancing-pony.example"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 7,
+            "type": "friend"
+          },
+          {
+            "person_id": 19,
+            "type": "enemy"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 19,
+        "first_name": "Bill",
+        "patronymic": null,
+        "last_name": "Ferny",
+        "aliases": [],
+        "date_of_birth": "1979-09-22",
+        "category": "Suspect",
+        "status": "Open",
+        "case_id": 4,
+        "case_name": "Scouring of the Shire",
+        "notes": "Bree local; informant for the Black Riders. Sold a half-starved pony to Butterbur.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "The Prancing Pony",
+            "address": "The Prancing Pony, Great East Road",
+            "city": "Bree",
+            "country": "Eriador",
+            "latitude": -41.3271,
+            "longitude": 174.8298
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Phone",
+            "value": "+1 555 0119",
+            "notes": "PHONE in a saved record",
+            "source": {
+              "tool_name": "Leak index (demo)",
+              "integration_id": "demo-leak-index",
+              "operation": "by-name",
+              "retrieved_at": "2026-10-30T09:15:00.000Z",
+              "query": "Bill Ferny",
+              "record_id": 3,
+              "record_path": "PHONE",
+              "record_sources": [
+                "Bree Town Register"
+              ]
+            },
+            "sources": [
+              {
+                "tool_name": "Leak index (demo)",
+                "integration_id": "demo-leak-index",
+                "operation": "by-name",
+                "retrieved_at": "2026-10-30T09:15:00.000Z",
+                "query": "Bill Ferny",
+                "record_id": 3,
+                "record_path": "PHONE",
+                "record_sources": [
+                  "Bree Town Register"
+                ]
+              }
+            ],
+            "verified": false
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 5,
+            "type": "associate",
+            "note": "Passed information to the Black Riders"
+          },
+          {
+            "person_id": 14,
+            "type": "associate",
+            "note": "Later one of Sharkey’s men in the Shire"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 18,
+        "first_name": "Lotho",
+        "patronymic": null,
+        "last_name": "Sackville-Baggins",
+        "aliases": [
+          "Pimple",
+          "The Chief"
+        ],
+        "date_of_birth": "1982-09-22",
+        "category": "Suspect",
+        "status": "On Hold",
+        "case_id": 4,
+        "case_name": "Scouring of the Shire",
+        "notes": "Bought up farms, mills and Bag End; brought in ruffians. Money traced to Isengard.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829,
+            "notes": "Moved in after the sale"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "the.chief@middle-earth.example"
+          },
+          {
+            "type": "Document ID",
+            "value": "SHIRE-DEED-1418-BE",
+            "notes": "Bag End deed"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 14,
+            "type": "associate",
+            "note": "Financed and supplied by Isengard"
+          },
+          {
+            "person_id": 1,
+            "type": "family",
+            "note": "Cousin; bought Bag End"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 17,
+        "first_name": "Éowyn",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Dernhelm",
+          "Shieldmaiden of Rohan"
+        ],
+        "date_of_birth": "2002-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 2,
+        "case_name": "Isengard Industries",
+        "notes": "Niece of Théoden. Rode to the Pelennor in disguise.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Meduseld",
+            "address": "Meduseld, Edoras",
+            "city": "Edoras",
+            "country": "Rohan",
+            "latitude": -43.6127,
+            "longitude": 171.1625
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 16,
+            "type": "family",
+            "note": "Niece"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 16,
+        "first_name": "Théoden",
+        "patronymic": "son of Thengel",
+        "last_name": null,
+        "aliases": [
+          "King of Rohan"
+        ],
+        "date_of_birth": "1955-09-22",
+        "category": "Victim",
+        "status": "Open",
+        "case_id": 2,
+        "case_name": "Isengard Industries",
+        "notes": "Kept in a stupor by Gríma’s counsel until Gandalf’s visit.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Meduseld",
+            "address": "Meduseld, Edoras",
+            "city": "Edoras",
+            "country": "Rohan",
+            "latitude": -43.6127,
+            "longitude": 171.1625
+          },
+          {
+            "type": "other",
+            "label": "Helm's Deep",
+            "address": "The Hornburg",
+            "city": "Helm's Deep",
+            "country": "Rohan",
+            "latitude": -41.1985,
+            "longitude": 174.9321
+          }
+        ],
+        "osint_data": [],
+        "connections": [],
+        "custom_fields": {}
+      },
+      {
+        "id": 15,
+        "first_name": "Gríma",
+        "patronymic": "son of Gálmód",
+        "last_name": null,
+        "aliases": [
+          "Wormtongue"
+        ],
+        "date_of_birth": "1974-09-22",
+        "category": "Suspect",
+        "status": "Being Investigated",
+        "case_id": 2,
+        "case_name": "Isengard Industries",
+        "notes": "Adviser to Théoden, in Saruman’s pay.",
+        "locations": [
+          {
+            "type": "work",
+            "label": "Meduseld",
+            "address": "Meduseld, Edoras",
+            "city": "Edoras",
+            "country": "Rohan",
+            "latitude": -43.6127,
+            "longitude": 171.1625
+          },
+          {
+            "type": "other",
+            "label": "Orthanc",
+            "address": "Tower of Orthanc, Ring of Isengard",
+            "city": "Isengard",
+            "country": "Rohan (Nan Curunír)",
+            "latitude": -41.1248,
+            "longitude": 175.0812
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "grima@middle-earth.example"
+          },
+          {
+            "type": "Phone",
+            "value": "+1 555 0115"
+          },
+          {
+            "type": "Other",
+            "value": "Payments from Isengard",
+            "notes": "PAYMENTS_FROM in a saved record",
+            "source": {
+              "tool_name": "Leak index (demo)",
+              "integration_id": "demo-leak-index",
+              "operation": "by-name",
+              "retrieved_at": "2026-10-30T09:15:00.000Z",
+              "query": "Gríma",
+              "record_id": 4,
+              "record_path": "PAYMENTS_FROM",
+              "record_sources": [
+                "Edoras Court Rolls"
+              ]
+            },
+            "sources": [
+              {
+                "tool_name": "Leak index (demo)",
+                "integration_id": "demo-leak-index",
+                "operation": "by-name",
+                "retrieved_at": "2026-10-30T09:15:00.000Z",
+                "query": "Gríma",
+                "record_id": 4,
+                "record_path": "PAYMENTS_FROM",
+                "record_sources": [
+                  "Edoras Court Rolls"
+                ]
+              }
+            ],
+            "verified": false
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 14,
+            "type": "employee",
+            "note": "Informant at Edoras"
+          },
+          {
+            "person_id": 16,
+            "type": "associate",
+            "note": "Chief counsellor"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 14,
+        "first_name": "Saruman",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Saruman the White",
+          "Curunír",
+          "Sharkey"
+        ],
+        "date_of_birth": null,
+        "category": "Suspect",
+        "status": "Being Investigated",
+        "case_id": 2,
+        "case_name": "Isengard Industries",
+        "notes": "Head of the White Council turned to Sauron. Runs Isengard Industries; later seen in the Shire as \"Sharkey\".",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Orthanc",
+            "address": "Tower of Orthanc, Ring of Isengard",
+            "city": "Isengard",
+            "country": "Rohan (Nan Curunír)",
+            "latitude": -41.1248,
+            "longitude": 175.0812
+          },
+          {
+            "type": "other",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829,
+            "notes": "Occupied as \"Sharkey\""
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "saruman.white@middle-earth.example"
+          },
+          {
+            "type": "Website",
+            "value": "https://isengard-industries.example"
+          },
+          {
+            "type": "IP Address",
+            "value": "192.0.2.14",
+            "notes": "Palantír relay (test range)"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 5,
+            "type": "associate",
+            "note": "Communicated by palantír"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 13,
+        "first_name": "Peregrin",
+        "patronymic": null,
+        "last_name": "Took",
+        "aliases": [
+          "Pippin"
+        ],
+        "date_of_birth": "1998-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Looked into the palantír of Orthanc.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Great Smials",
+            "address": "Great Smials",
+            "city": "Tuckborough",
+            "country": "The Shire",
+            "latitude": -37.8749,
+            "longitude": 175.6862
+          },
+          {
+            "type": "other",
+            "label": "Minas Tirith",
+            "address": "The Citadel, Seventh Circle",
+            "city": "Minas Tirith",
+            "country": "Gondor",
+            "latitude": -41.2014,
+            "longitude": 174.9406
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "family",
+            "note": "Cousin"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 12,
+        "first_name": "Meriadoc",
+        "patronymic": null,
+        "last_name": "Brandybuck",
+        "aliases": [
+          "Merry"
+        ],
+        "date_of_birth": "1990-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Taken by Uruk-hai at Amon Hen with Pippin; escaped into Fangorn.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Brandy Hall",
+            "address": "Brandy Hall",
+            "city": "Buckland",
+            "country": "The Shire",
+            "latitude": -37.8735,
+            "longitude": 175.6801
+          },
+          {
+            "type": "other",
+            "label": "Fangorn Forest",
+            "address": "Edge of Fangorn",
+            "city": "Fangorn",
+            "country": "Rohan",
+            "latitude": -45.3036,
+            "longitude": 168.1709
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 13,
+            "type": "family",
+            "note": "Cousins"
+          },
+          {
+            "person_id": 1,
+            "type": "family",
+            "note": "Cousin"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 11,
+        "first_name": "Boromir",
+        "patronymic": "son of Denethor",
+        "last_name": null,
+        "aliases": [],
+        "date_of_birth": "1985-09-22",
+        "category": "Victim",
+        "status": "Closed",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Killed at Amon Hen defending Merry and Pippin. Had tried to take the Ring.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Minas Tirith",
+            "address": "The Citadel, Seventh Circle",
+            "city": "Minas Tirith",
+            "country": "Gondor",
+            "latitude": -41.2014,
+            "longitude": 174.9406
+          },
+          {
+            "type": "other",
+            "label": "The Argonath",
+            "address": "Gates of Argonath, Anduin",
+            "city": "Anduin",
+            "country": "Rhovanion",
+            "latitude": -45.0187,
+            "longitude": 168.871,
+            "notes": "Last seen near Amon Hen"
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 6,
+            "type": "family",
+            "note": "Brothers"
+          },
+          {
+            "person_id": 8,
+            "type": "associate"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 10,
+        "first_name": "Gimli",
+        "patronymic": "son of Glóin",
+        "last_name": null,
+        "aliases": [
+          "Elf-friend"
+        ],
+        "date_of_birth": "1887-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Dwarf of Erebor.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Erebor",
+            "address": "The Lonely Mountain",
+            "city": "Erebor",
+            "country": "Rhovanion",
+            "latitude": -40,
+            "longitude": 176
+          },
+          {
+            "type": "other",
+            "label": "Helm's Deep",
+            "address": "The Hornburg",
+            "city": "Helm's Deep",
+            "country": "Rohan",
+            "latitude": -41.1985,
+            "longitude": 174.9321
+          }
+        ],
+        "osint_data": [],
+        "connections": [],
+        "custom_fields": {}
+      },
+      {
+        "id": 9,
+        "first_name": "Legolas",
+        "patronymic": null,
+        "last_name": "Greenleaf",
+        "aliases": [],
+        "date_of_birth": null,
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Elf of Mirkwood, son of Thranduil.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Thranduil’s Halls",
+            "address": "Elvenking’s Halls",
+            "city": "Northern Mirkwood",
+            "country": "Mirkwood",
+            "latitude": -41.2245,
+            "longitude": 175.457
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 10,
+            "type": "friend",
+            "note": "Started as a rivalry"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 8,
+        "first_name": "Aragorn",
+        "patronymic": "son of Arathorn",
+        "last_name": null,
+        "aliases": [
+          "Strider",
+          "Elessar",
+          "Thorongil"
+        ],
+        "date_of_birth": "1939-09-22",
+        "category": "Person of Interest",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Ranger met at Bree; heir of Isildur. Led the Fellowship after Moria.",
+        "locations": [
+          {
+            "type": "favorite_hotel",
+            "label": "The Prancing Pony",
+            "address": "The Prancing Pony, Great East Road",
+            "city": "Bree",
+            "country": "Eriador",
+            "latitude": -41.3271,
+            "longitude": 174.8298
+          },
+          {
+            "type": "primary_residence",
+            "label": "Minas Tirith",
+            "address": "The Citadel, Seventh Circle",
+            "city": "Minas Tirith",
+            "country": "Gondor",
+            "latitude": -41.2014,
+            "longitude": 174.9406
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Username",
+            "value": "strider",
+            "notes": "Ranger name"
+          },
+          {
+            "type": "Email",
+            "value": "dunadan@middle-earth.example"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "friend",
+            "note": "Guide from Bree"
+          },
+          {
+            "person_id": 7,
+            "type": "associate"
+          },
+          {
+            "person_id": 6,
+            "type": "associate"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 7,
+        "first_name": "Gandalf",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Mithrandir",
+          "Gandalf the Grey",
+          "Gandalf the White",
+          "Olórin",
+          "Greyhame"
+        ],
+        "date_of_birth": null,
+        "category": "Client",
+        "status": "Open",
+        "case_id": 3,
+        "case_name": "The Fellowship",
+        "notes": "Commissioned this investigation. Comes and goes without notice.",
+        "locations": [
+          {
+            "type": "other",
+            "label": "Rivendell",
+            "address": "The Last Homely House",
+            "city": "Rivendell",
+            "country": "Eriador",
+            "latitude": -41.0852,
+            "longitude": 175.1793
+          },
+          {
+            "type": "favorite_hotel",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829,
+            "notes": "Frequent guest"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "mithrandir@middle-earth.example"
+          },
+          {
+            "type": "Phone",
+            "value": "+1 555 0107"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "friend",
+            "note": "Sent him on the journey"
+          },
+          {
+            "person_id": 3,
+            "type": "friend"
+          },
+          {
+            "person_id": 14,
+            "type": "enemy",
+            "note": "Held prisoner on Orthanc"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 6,
+        "first_name": "Faramir",
+        "patronymic": "son of Denethor",
+        "last_name": null,
+        "aliases": [
+          "Captain of Gondor"
+        ],
+        "date_of_birth": "1990-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Met Frodo and Sam in Ithilien and let them go on.",
+        "locations": [
+          {
+            "type": "work",
+            "label": "Henneth Annûn",
+            "address": "Window on the West, Ithilien",
+            "city": "Ithilien",
+            "country": "Gondor",
+            "latitude": -45.4144,
+            "longitude": 167.7163
+          },
+          {
+            "type": "primary_residence",
+            "label": "Minas Tirith",
+            "address": "The Citadel, Seventh Circle",
+            "city": "Minas Tirith",
+            "country": "Gondor",
+            "latitude": -41.2014,
+            "longitude": 174.9406
+          }
+        ],
+        "osint_data": [],
+        "connections": [],
+        "custom_fields": {}
+      },
+      {
+        "id": 5,
+        "first_name": "Sauron",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "The Necromancer",
+          "Annatar",
+          "The Dark Lord",
+          "The Eye"
+        ],
+        "date_of_birth": null,
+        "category": "Suspect",
+        "status": "Open",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Maker of the Ring. Location believed to be Barad-dûr; never seen in person.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Barad-dûr",
+            "address": "Barad-dûr",
+            "city": "Gorgoroth",
+            "country": "Mordor",
+            "latitude": -39.2333,
+            "longitude": 175.7167
+          }
+        ],
+        "osint_data": [],
+        "connections": [
+          {
+            "person_id": 4,
+            "type": "associate",
+            "note": "Held and questioned in Mordor, then released"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 4,
+        "first_name": "Sméagol",
+        "patronymic": null,
+        "last_name": null,
+        "aliases": [
+          "Gollum",
+          "Stinker",
+          "Slinker"
+        ],
+        "date_of_birth": null,
+        "category": "Suspect",
+        "status": "Being Investigated",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Held the Ring for centuries. Escaped custody in Mirkwood. Follows the Ring-bearer.",
+        "locations": [
+          {
+            "type": "other",
+            "label": "Emyn Muil",
+            "address": "Emyn Muil",
+            "city": "Emyn Muil",
+            "country": "Rhovanion",
+            "latitude": -39.2,
+            "longitude": 175.54,
+            "notes": "Last confirmed sighting"
+          },
+          {
+            "type": "other",
+            "label": "Thranduil’s Halls",
+            "address": "Elvenking’s Halls",
+            "city": "Northern Mirkwood",
+            "country": "Mirkwood",
+            "latitude": -41.2245,
+            "longitude": 175.457,
+            "notes": "Held in custody; escaped"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Other",
+            "value": "Fish, raw",
+            "notes": "Diet; useful for tracking near rivers"
+          },
+          {
+            "type": "Other",
+            "value": "Thranduil’s Halls (escaped)",
+            "notes": "HELD_AT in a saved record",
+            "source": {
+              "tool_name": "Leak index (demo)",
+              "integration_id": "demo-leak-index",
+              "operation": "by-name",
+              "retrieved_at": "2026-10-30T09:15:00.000Z",
+              "query": "Gollum",
+              "record_id": 1,
+              "record_path": "HELD_AT",
+              "record_sources": [
+                "Mirkwood Prison Register"
+              ]
+            },
+            "sources": [
+              {
+                "tool_name": "Leak index (demo)",
+                "integration_id": "demo-leak-index",
+                "operation": "by-name",
+                "retrieved_at": "2026-10-30T09:15:00.000Z",
+                "query": "Gollum",
+                "record_id": 1,
+                "record_path": "HELD_AT",
+                "record_sources": [
+                  "Mirkwood Prison Register"
+                ]
+              }
+            ],
+            "verified": false
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 3,
+            "type": "enemy",
+            "note": "Lost the Ring to Bilbo in the Misty Mountains"
+          },
+          {
+            "person_id": 1,
+            "type": "suspect",
+            "note": "Guide into Mordor; tracked the Ring-bearer from Moria"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 3,
+        "first_name": "Bilbo",
+        "patronymic": null,
+        "last_name": "Baggins",
+        "aliases": [
+          "Mad Baggins"
+        ],
+        "date_of_birth": "1915-09-22",
+        "category": "Person of Interest",
+        "status": "Closed",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Held the Ring for sixty years. Left the Shire after his birthday party; now in Rivendell.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Rivendell",
+            "address": "The Last Homely House",
+            "city": "Rivendell",
+            "country": "Eriador",
+            "latitude": -41.0852,
+            "longitude": 175.1793
+          },
+          {
+            "type": "other",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829,
+            "notes": "Former home"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "bilbo@middle-earth.example"
+          },
+          {
+            "type": "Website",
+            "value": "https://there-and-back-again.example",
+            "notes": "Memoir draft"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "family",
+            "note": "Cousin and adoptive heir"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 2,
+        "first_name": "Samwise",
+        "patronymic": null,
+        "last_name": "Gamgee",
+        "aliases": [
+          "Sam"
+        ],
+        "date_of_birth": "1988-09-22",
+        "category": "Witness",
+        "status": "Open",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Gardener at Bag End; with Frodo the whole way. Most reliable account of the journey.",
+        "locations": [
+          {
+            "type": "work",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829
+          },
+          {
+            "type": "primary_residence",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829,
+            "notes": "Bagshot Row, No. 3"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "sam.gamgee@middle-earth.example"
+          },
+          {
+            "type": "Website",
+            "value": "https://bagshot-row-gardens.example"
+          }
+        ],
+        "connections": [
+          {
+            "person_id": 1,
+            "type": "employee",
+            "note": "Gardener at Bag End"
+          }
+        ],
+        "custom_fields": {}
+      },
+      {
+        "id": 1,
+        "first_name": "Frodo",
+        "patronymic": null,
+        "last_name": "Baggins",
+        "aliases": [
+          "Mr. Underhill"
+        ],
+        "date_of_birth": "1976-09-22",
+        "category": "Person of Interest",
+        "status": "Being Investigated",
+        "case_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Current Ring-bearer. Inherited Bag End and the Ring from Bilbo.",
+        "locations": [
+          {
+            "type": "primary_residence",
+            "label": "Bag End",
+            "address": "Bag End, Bagshot Row",
+            "city": "Hobbiton",
+            "country": "The Shire",
+            "latitude": -37.8721,
+            "longitude": 175.6829
+          },
+          {
+            "type": "other",
+            "label": "Rivendell",
+            "address": "The Last Homely House",
+            "city": "Rivendell",
+            "country": "Eriador",
+            "latitude": -41.0852,
+            "longitude": 175.1793,
+            "notes": "Recovered here after the attack at Weathertop"
+          }
+        ],
+        "osint_data": [
+          {
+            "type": "Email",
+            "value": "frodo.baggins@middle-earth.example",
+            "notes": "Personal"
+          },
+          {
+            "type": "Phone",
+            "value": "+1 555 0101",
+            "notes": "Bag End"
+          },
+          {
+            "type": "Username",
+            "value": "mr.underhill",
+            "notes": "Used at the Prancing Pony"
+          }
+        ],
+        "connections": [],
+        "custom_fields": {}
+      }
+    ],
+    "businesses": [
+      {
+        "id": 1,
+        "name": "Isengard Industries",
+        "type": "Corporation",
+        "industry": "Manufacturing",
+        "address": "Tower of Orthanc, Ring of Isengard",
+        "city": "Isengard",
+        "country": "Rohan (Nan Curunír)",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "website": "https://isengard-industries.example",
+        "email": "orders@middle-earth.example",
+        "owner_person_id": 14,
+        "status": "active",
+        "notes": "Furnaces fed from Fangorn. Arms for the Uruk-hai.",
+        "employees": [
+          {
+            "name": "Gríma Wormtongue",
+            "person_id": 15,
+            "role": "Agent at Edoras",
+            "is_decision_maker": false
+          },
+          {
+            "name": "Uglúk",
+            "person_id": null,
+            "role": "Captain, Uruk-hai",
+            "department": "Operations",
+            "is_decision_maker": false
+          },
+          {
+            "name": "Saruman",
+            "person_id": 14,
+            "role": "Founder",
+            "is_decision_maker": true
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Sackville-Baggins Holdings",
+        "type": "LLC",
+        "industry": "Other",
+        "address": "Bag End, Bagshot Row",
+        "city": "Hobbiton",
+        "country": "The Shire",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "owner_person_id": 18,
+        "owner_business_id": 1,
+        "status": "active",
+        "notes": "Bought farms, mills and Bag End. Owned through Isengard Industries.",
+        "employees": [
+          {
+            "name": "Lotho Sackville-Baggins",
+            "person_id": 18,
+            "role": "The Chief",
+            "is_decision_maker": true
+          },
+          {
+            "name": "Bill Ferny",
+            "person_id": 19,
+            "role": "Gatekeeper",
+            "is_decision_maker": false
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "The Prancing Pony",
+        "type": "Sole Proprietorship",
+        "industry": "Other",
+        "address": "The Prancing Pony, Great East Road",
+        "city": "Bree",
+        "country": "Eriador",
+        "latitude": -41.3271,
+        "longitude": 174.8298,
+        "phone": "+1 555 0120",
+        "website": "https://prancing-pony.example",
+        "owner_person_id": 20,
+        "status": "active",
+        "notes": "Inn at Bree.",
+        "employees": [
+          {
+            "name": "Barliman Butterbur",
+            "person_id": 20,
+            "role": "Landlord",
+            "is_decision_maker": true
+          },
+          {
+            "name": "Nob",
+            "person_id": null,
+            "role": "Hobbit servant"
+          },
+          {
+            "name": "Bob",
+            "person_id": null,
+            "role": "Stable hand"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "The Green Dragon",
+        "type": "Partnership",
+        "industry": "Other",
+        "address": "The Green Dragon, Bywater Road",
+        "city": "Bywater",
+        "country": "The Shire",
+        "latitude": -37.8706,
+        "longitude": 175.6837,
+        "status": "active",
+        "notes": "Inn at Bywater. Regulars talk too much."
+      }
+    ],
+    "properties": [
+      {
+        "id": 1,
+        "name": "Bag End",
+        "property_type": "residential",
+        "address": "Bag End, Bagshot Row",
+        "city": "Hobbiton",
+        "country": "The Shire",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "owner_person_id": 18,
+        "case_name": "Scouring of the Shire",
+        "description": "Hobbit-hole under the Hill.",
+        "notes": "Sold by Frodo to the Sackville-Bagginses before he left."
+      },
+      {
+        "id": 2,
+        "name": "Orthanc",
+        "property_type": "commercial",
+        "address": "Tower of Orthanc, Ring of Isengard",
+        "city": "Isengard",
+        "country": "Rohan (Nan Curunír)",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "owner_person_id": 14,
+        "case_name": "Isengard Industries",
+        "description": "Tower in the Ring of Isengard."
+      },
+      {
+        "id": 3,
+        "name": "Meduseld",
+        "property_type": "residential",
+        "address": "Meduseld, Edoras",
+        "city": "Edoras",
+        "country": "Rohan",
+        "latitude": -43.6127,
+        "longitude": 171.1625,
+        "owner_person_id": 16,
+        "case_name": "Isengard Industries",
+        "description": "The Golden Hall of Edoras."
+      },
+      {
+        "id": 4,
+        "name": "Barad-dûr",
+        "property_type": "other",
+        "address": "Barad-dûr",
+        "city": "Gorgoroth",
+        "country": "Mordor",
+        "latitude": -39.2333,
+        "longitude": 175.7167,
+        "owner_person_id": 5,
+        "case_name": "The One Ring",
+        "description": "Fortress in Mordor."
+      },
+      {
+        "id": 5,
+        "name": "Brandy Hall",
+        "property_type": "residential",
+        "address": "Brandy Hall",
+        "city": "Buckland",
+        "country": "The Shire",
+        "latitude": -37.8735,
+        "longitude": 175.6801,
+        "owner_person_id": 12,
+        "description": "Seat of the Brandybucks."
+      }
+    ],
+    "assets": [
+      {
+        "id": 1,
+        "name": "The One Ring",
+        "category": "jewellery",
+        "identifier": "Plain gold band; writing shows in fire",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Holders: Sauron, Isildur, Déagol, Sméagol, Bilbo, Frodo."
+      },
+      {
+        "id": 2,
+        "name": "Sting",
+        "category": "other",
+        "identifier": "Elven short sword, glows near orcs",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 1,
+        "case_name": "The One Ring"
+      },
+      {
+        "id": 3,
+        "name": "Mithril shirt",
+        "category": "other",
+        "identifier": "Dwarf-made mail",
+        "estimated_value": 1000000,
+        "currency": "GOLD",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 1,
+        "case_name": "The One Ring",
+        "notes": "Worth more than the Shire, according to Gandalf."
+      },
+      {
+        "id": 4,
+        "name": "Andúril",
+        "category": "other",
+        "identifier": "Reforged Narsil",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 8,
+        "case_name": "The Fellowship"
+      },
+      {
+        "id": 5,
+        "name": "Palantír of Orthanc",
+        "category": "electronics",
+        "identifier": "Seeing-stone",
+        "status": "seized",
+        "location_mode": "with_holder",
+        "location_person_id": 8,
+        "case_name": "Isengard Industries",
+        "notes": "Thrown from Orthanc by Gríma; picked up by Pippin."
+      },
+      {
+        "id": 6,
+        "name": "Bill the Pony",
+        "category": "vehicle",
+        "identifier": "Pony, brown",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 2,
+        "case_name": "Scouring of the Shire"
+      },
+      {
+        "id": 7,
+        "name": "Phial of Galadriel",
+        "category": "other",
+        "identifier": "Star-glass",
+        "status": "active",
+        "location_mode": "with_holder",
+        "location_person_id": 2,
+        "case_name": "The One Ring"
+      }
+    ],
+    "transactions": [
+      {
+        "transaction_type": "transfer",
+        "item_label": "The One Ring",
+        "item_category": "physical_good",
+        "subject_asset_id": 1,
+        "from_person_id": 3,
+        "to_person_id": 1,
+        "occurred_on": "2025-09-22",
+        "address": "Bag End, Bagshot Row",
+        "city": "Hobbiton",
+        "country": "The Shire",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "location_name": "Bag End",
+        "case_name": "The One Ring",
+        "notes": "Left in an envelope on the mantelpiece after the party."
+      },
+      {
+        "transaction_type": "gift",
+        "item_label": "Sting and the mithril shirt",
+        "item_category": "physical_good",
+        "subject_asset_id": 2,
+        "from_person_id": 3,
+        "to_person_id": 1,
+        "occurred_on": "2025-12-24",
+        "address": "The Last Homely House",
+        "city": "Rivendell",
+        "country": "Eriador",
+        "latitude": -41.0852,
+        "longitude": 175.1793,
+        "location_name": "Rivendell",
+        "case_name": "The One Ring"
+      },
+      {
+        "transaction_type": "sale",
+        "item_label": "Bag End",
+        "item_category": "real_estate",
+        "subject_property_id": 1,
+        "from_person_id": 1,
+        "to_person_id": 18,
+        "value": 4000,
+        "currency": "GOLD",
+        "occurred_on": "2025-09-01",
+        "address": "Bag End, Bagshot Row",
+        "city": "Hobbiton",
+        "country": "The Shire",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "location_name": "Bag End",
+        "case_name": "Scouring of the Shire",
+        "notes": "Sale to the Sackville-Bagginses before the move to Crickhollow."
+      },
+      {
+        "transaction_type": "sale",
+        "item_label": "Bill the Pony",
+        "item_category": "physical_good",
+        "subject_asset_id": 6,
+        "from_person_id": 19,
+        "to_person_id": 20,
+        "value": 12,
+        "currency": "SILVER",
+        "occurred_on": "2025-09-30",
+        "address": "The Prancing Pony, Great East Road",
+        "city": "Bree",
+        "country": "Eriador",
+        "latitude": -41.3271,
+        "longitude": 174.8298,
+        "location_name": "Bree",
+        "case_name": "Scouring of the Shire",
+        "notes": "Three times what the pony was worth."
+      },
+      {
+        "transaction_type": "loan",
+        "item_label": "Funding for Shire purchases",
+        "item_category": "business_interest",
+        "from_business_id": 1,
+        "to_business_id": 2,
+        "value": 25000,
+        "currency": "GOLD",
+        "occurred_on": "2025-06-15",
+        "address": "Tower of Orthanc, Ring of Isengard",
+        "city": "Isengard",
+        "country": "Rohan (Nan Curunír)",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "location_name": "Isengard",
+        "case_name": "Isengard Industries",
+        "tags": [
+          "follow-the-money",
+          "shell"
+        ]
+      },
+      {
+        "transaction_type": "benefit",
+        "item_label": "Retainer for counsel at Edoras",
+        "item_category": "cash_donation",
+        "from_person_id": 14,
+        "to_person_id": 15,
+        "value": 500,
+        "currency": "GOLD",
+        "occurred_on": "2025-03-01",
+        "address": "Meduseld, Edoras",
+        "city": "Edoras",
+        "country": "Rohan",
+        "latitude": -43.6127,
+        "longitude": 171.1625,
+        "location_name": "Edoras",
+        "case_name": "Isengard Industries",
+        "tags": [
+          "bribery"
+        ]
+      },
+      {
+        "transaction_type": "gift",
+        "item_label": "Phial of Galadriel",
+        "item_category": "physical_good",
+        "subject_asset_id": 7,
+        "from_person_id": 22,
+        "to_person_id": 1,
+        "occurred_on": "2026-02-16",
+        "address": "Caras Galadhon",
+        "city": "Lothlórien",
+        "country": "Lórien",
+        "latitude": -44.792,
+        "longitude": 168.3706,
+        "location_name": "Lothlórien",
+        "case_name": "The One Ring"
+      },
+      {
+        "transaction_type": "seized",
+        "item_label": "Palantír of Orthanc",
+        "item_category": "physical_good",
+        "subject_asset_id": 5,
+        "from_person_id": 14,
+        "to_person_id": 8,
+        "occurred_on": "2026-03-05",
+        "address": "Tower of Orthanc, Ring of Isengard",
+        "city": "Isengard",
+        "country": "Rohan (Nan Curunír)",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "location_name": "Isengard",
+        "case_name": "Isengard Industries"
+      }
+    ],
+    "travelHistory": [
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "The Prancing Pony",
+        "address": "The Prancing Pony, Great East Road",
+        "city": "Bree",
+        "country": "Eriador",
+        "latitude": -41.3271,
+        "longitude": 174.8298,
+        "arrival_date": "2025-09-29",
+        "departure_date": "2025-09-30",
+        "purpose": "Meeting Gandalf (who did not come)",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Rivendell",
+        "address": "The Last Homely House",
+        "city": "Rivendell",
+        "country": "Eriador",
+        "latitude": -41.0852,
+        "longitude": 175.1793,
+        "arrival_date": "2025-10-20",
+        "departure_date": "2025-12-25",
+        "purpose": "Council of Elrond",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Moria (West-gate)",
+        "address": "Doors of Durin",
+        "city": "Moria",
+        "country": "Misty Mountains",
+        "latitude": -39.2817,
+        "longitude": 175.5685,
+        "arrival_date": "2026-01-13",
+        "departure_date": "2026-01-15",
+        "purpose": "Passage under the mountains",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Caras Galadhon",
+        "address": "Caras Galadhon",
+        "city": "Lothlórien",
+        "country": "Lórien",
+        "latitude": -44.792,
+        "longitude": 168.3706,
+        "arrival_date": "2026-01-17",
+        "departure_date": "2026-02-16",
+        "purpose": "Rest",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "The Argonath",
+        "address": "Gates of Argonath, Anduin",
+        "city": "Anduin",
+        "country": "Rhovanion",
+        "latitude": -45.0187,
+        "longitude": 168.871,
+        "arrival_date": "2026-02-25",
+        "departure_date": "2026-02-26",
+        "purpose": "Down the Anduin",
+        "transportation_mode": "ship"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Emyn Muil",
+        "address": "Emyn Muil",
+        "city": "Emyn Muil",
+        "country": "Rhovanion",
+        "latitude": -39.2,
+        "longitude": 175.54,
+        "arrival_date": "2026-02-27",
+        "departure_date": "2026-02-28",
+        "purpose": "Lost in the hills; caught Gollum",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Henneth Annûn",
+        "address": "Window on the West, Ithilien",
+        "city": "Ithilien",
+        "country": "Gondor",
+        "latitude": -45.4144,
+        "longitude": 167.7163,
+        "arrival_date": "2026-03-07",
+        "departure_date": "2026-03-08",
+        "purpose": "Held by Faramir",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 1,
+        "location_type": "travel",
+        "location_name": "Mount Doom",
+        "address": "Sammath Naur, Orodruin",
+        "city": "Gorgoroth",
+        "country": "Mordor",
+        "latitude": -39.1569,
+        "longitude": 175.6321,
+        "arrival_date": "2026-03-25",
+        "departure_date": "2026-03-25",
+        "purpose": "Destroy the Ring",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 12,
+        "location_type": "travel",
+        "location_name": "Fangorn Forest",
+        "address": "Edge of Fangorn",
+        "city": "Fangorn",
+        "country": "Rohan",
+        "latitude": -45.3036,
+        "longitude": 168.1709,
+        "arrival_date": "2026-02-28",
+        "departure_date": "2026-03-02",
+        "purpose": "Escaped the Uruk-hai",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 12,
+        "location_type": "travel",
+        "location_name": "Orthanc",
+        "address": "Tower of Orthanc, Ring of Isengard",
+        "city": "Isengard",
+        "country": "Rohan (Nan Curunír)",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "arrival_date": "2026-03-03",
+        "departure_date": "2026-03-05",
+        "purpose": "With the Ents",
+        "transportation_mode": "other"
+      },
+      {
+        "person_id": 14,
+        "location_type": "travel",
+        "location_name": "Bag End",
+        "address": "Bag End, Bagshot Row",
+        "city": "Hobbiton",
+        "country": "The Shire",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "arrival_date": "2026-10-20",
+        "departure_date": "2026-11-03",
+        "purpose": "As \"Sharkey\"",
+        "transportation_mode": "other"
+      }
+    ],
+    "wirelessNetworks": [
+      {
+        "ssid": "PalantirNet",
+        "bssid": "02:00:00:00:00:01",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "encryption": "WPA3",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "Orthanc",
+        "import_source": "demo",
+        "tags": [
+          "surveillance"
+        ],
+        "person_id": 14,
+        "association_note": "Orthanc private network",
+        "association_confidence": "high"
+      },
+      {
+        "ssid": "Orthanc-Guest",
+        "bssid": "02:00:00:00:00:02",
+        "latitude": -41.1248,
+        "longitude": 175.0812,
+        "encryption": "WPA2",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "Orthanc",
+        "import_source": "demo",
+        "tags": [],
+        "associated_person_ids": [
+          15
+        ],
+        "associated_business_ids": [
+          1
+        ]
+      },
+      {
+        "ssid": "PrancingPony_Guests",
+        "bssid": "02:00:00:00:00:03",
+        "latitude": -41.3271,
+        "longitude": 174.8298,
+        "encryption": "WPA2",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "The Prancing Pony",
+        "import_source": "demo",
+        "tags": [],
+        "associated_person_ids": [
+          20,
+          19
+        ],
+        "associated_business_ids": [
+          3
+        ],
+        "notes": "Password on a slate behind the bar"
+      },
+      {
+        "ssid": "BagEnd",
+        "bssid": "02:00:00:00:00:04",
+        "latitude": -37.8721,
+        "longitude": 175.6829,
+        "encryption": "WPA2",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "Bag End",
+        "import_source": "demo",
+        "tags": [],
+        "person_id": 1,
+        "association_confidence": "high"
+      },
+      {
+        "ssid": "GreenDragon-Free",
+        "bssid": "02:00:00:00:00:05",
+        "latitude": -37.8706,
+        "longitude": 175.6837,
+        "encryption": "",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "The Green Dragon",
+        "import_source": "demo",
+        "tags": [],
+        "associated_business_ids": [
+          4
+        ]
+      },
+      {
+        "ssid": "Meduseld-Court",
+        "bssid": "02:00:00:00:00:06",
+        "latitude": -43.6127,
+        "longitude": 171.1625,
+        "encryption": "WPA3",
+        "signal_strength": -60,
+        "frequency": "2.4 GHz",
+        "channel": 6,
+        "network_type": "infrastructure",
+        "confidence_level": "medium",
+        "area_name": "Meduseld",
+        "import_source": "demo",
+        "tags": [],
+        "associated_person_ids": [
+          16,
+          15,
+          17
+        ]
+      }
+    ],
+    "osintRecords": [
+      {
+        "id": 1,
+        "person_id": 4,
+        "record_source": "Mirkwood Prison Register",
+        "occurrences": 1,
+        "tool_name": "Leak index (demo)",
+        "integration_id": "demo-leak-index",
+        "operation": "by-name",
+        "retrieved_at": "2026-10-30T09:15:00.000Z",
+        "query": "Gollum",
+        "data": {
+          "FULL_NAME": "Gollum",
+          "ALSO_KNOWN_AS": [
+            "Sméagol"
+          ],
+          "HELD_AT": "Thranduil’s Halls",
+          "ESCAPED": "3018-06-20",
+          "GUARDS": [
+            {
+              "name": "unnamed",
+              "post": "tree"
+            }
+          ],
+          "NOTES": "Escaped during an orc raid"
+        }
+      },
+      {
+        "id": 2,
+        "person_id": 4,
+        "record_source": "Mordor Interrogation Log",
+        "occurrences": 2,
+        "tool_name": "Leak index (demo)",
+        "integration_id": "demo-leak-index",
+        "operation": "by-name",
+        "retrieved_at": "2026-10-30T09:15:00.000Z",
+        "query": "Gollum",
+        "data": {
+          "SUBJECT": "Gollum",
+          "LOCATION": "Barad-dûr",
+          "DISCLOSED": [
+            "Shire",
+            "Baggins"
+          ],
+          "RELEASED": true
+        }
+      },
+      {
+        "id": 3,
+        "person_id": 19,
+        "record_source": "Bree Town Register",
+        "occurrences": 1,
+        "tool_name": "Leak index (demo)",
+        "integration_id": "demo-leak-index",
+        "operation": "by-name",
+        "retrieved_at": "2026-10-30T09:15:00.000Z",
+        "query": "Bill Ferny",
+        "data": {
+          "FULL_NAME": "Bill Ferny",
+          "PHONE": "+1 555 0119",
+          "ADDRESS": {
+            "street": "Bree-hill",
+            "town": "Bree"
+          },
+          "OCCUPATION": null,
+          "SOLD": {
+            "item": "pony",
+            "price": 12,
+            "currency": "silver pennies",
+            "buyer": "Barliman Butterbur"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "person_id": 15,
+        "record_source": "Edoras Court Rolls",
+        "occurrences": 1,
+        "tool_name": "Leak index (demo)",
+        "integration_id": "demo-leak-index",
+        "operation": "by-name",
+        "retrieved_at": "2026-10-30T09:15:00.000Z",
+        "query": "Gríma",
+        "data": {
+          "FULL_NAME": "Gríma son of Gálmód",
+          "ROLE": "Counsellor",
+          "EMAIL": "grima@middle-earth.example",
+          "PAYMENTS_FROM": "Isengard",
+          "BANISHED": "3019-03-02"
+        }
+      }
+    ],
+    "todos": [
+      {
+        "text": "Confirm Gollum’s whereabouts after Emyn Muil",
+        "status": "open"
+      },
+      {
+        "text": "Request the Edoras court rolls on Gríma’s payments",
+        "status": "in_progress"
+      },
+      {
+        "text": "Trace the funding from Isengard Industries to Sackville-Baggins Holdings",
+        "status": "attention"
+      },
+      {
+        "text": "Interview Barliman Butterbur about Gandalf’s letter",
+        "status": "done"
+      },
+      {
+        "text": "Check who has used the Orthanc-Guest network",
+        "status": "on_hold"
+      }
+    ]
+  }
+}

@@ -444,18 +444,54 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     // Create a mapping for person IDs (old ID -> new ID)
     const personIdMapping = {};
 
-    // Import in order to respect foreign key constraints
+    // Import in order to respect foreign key constraints.
+    //
+    // Case names are unique across the whole instance. A case of the same
+    // name in the target project is reused (its description and status
+    // updated); one in ANOTHER project is never touched or linked to: the
+    // imported case gets the project's name appended instead. Without this,
+    // importing the same file into a second project updated the first
+    // project's case and linked the new records into it.
+    // importedCases: name in the file -> { id, name } in this project.
+    const importedCases = {};
+    // Exported rows carry case_id; the file's own case list turns it into a name.
+    const fileCaseName = {};
+    for (const c of importData.data.cases || []) if (c && c.id != null) fileCaseName[c.id] = c.case_name;
+    const caseNameOf = (row) => row.case_name || (row.case_id != null ? fileCaseName[row.case_id] : null) || null;
     if (importData.data.cases) {
+      const projectName = (await client.query('SELECT name FROM projects WHERE id = $1', [importProjectId])).rows[0]?.name || `project ${importProjectId}`;
       for (const caseItem of importData.data.cases) {
-        await tryInsert(`case:${caseItem.case_name}`, () => client.query(
-          `INSERT INTO cases (case_name, description, status, project_id)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (case_name) DO UPDATE
-           SET description = EXCLUDED.description, status = EXCLUDED.status`,
-          [caseItem.case_name, caseItem.description, caseItem.status, importProjectId]
-        ));
+        if (!caseItem.case_name) continue;
+        await tryInsert(`case:${caseItem.case_name}`, async () => {
+          const existing = await client.query('SELECT id, project_id FROM cases WHERE case_name = $1', [caseItem.case_name]);
+          const row = existing.rows[0];
+          if (row && row.project_id === importProjectId) {
+            await client.query('UPDATE cases SET description = $1, status = $2 WHERE id = $3',
+              [caseItem.description, caseItem.status, row.id]);
+            importedCases[caseItem.case_name] = { id: row.id, name: caseItem.case_name };
+            return;
+          }
+          let name = row ? `${caseItem.case_name} (${projectName})` : caseItem.case_name;
+          for (let n = 2; (await client.query('SELECT 1 FROM cases WHERE case_name = $1', [name])).rows.length; n++) {
+            name = `${caseItem.case_name} (${projectName} ${n})`;
+          }
+          const created = await client.query(
+            'INSERT INTO cases (case_name, description, status, project_id) VALUES ($1, $2, $3, $4) RETURNING id',
+            [name, caseItem.description, caseItem.status, importProjectId]
+          );
+          importedCases[caseItem.case_name] = { id: created.rows[0].id, name };
+        });
       }
     }
+    // A case named in a record but not in the file's case list may still
+    // exist in the target project.
+    const caseFor = async (caseName) => {
+      if (!caseName) return null;
+      if (importedCases[caseName]) return importedCases[caseName];
+      const { rows } = await client.query('SELECT id FROM cases WHERE case_name = $1 AND project_id = $2', [caseName, importProjectId]);
+      importedCases[caseName] = rows[0] ? { id: rows[0].id, name: caseName } : null;
+      return importedCases[caseName];
+    };
 
     if (importData.data.customFields) {
       for (const field of importData.data.customFields) {
@@ -493,14 +529,18 @@ app.post('/api/import', requireAdmin, async (req, res) => {
         const customFieldsJSON = person.custom_fields ? toJSONString(person.custom_fields) : '{}';
 
         try {
+          // case_id is what groups people under a case (issue #83); case_name
+          // alone left imported people outside every case.
+          const personCase = await caseFor(caseNameOf(person));
           const result = await client.query(
             `INSERT INTO people (first_name, last_name, patronymic, aliases, date_of_birth, category, status,
-                                 crm_status, case_name, profile_picture_url, notes, osint_data,
+                                 crm_status, case_name, case_id, profile_picture_url, notes, osint_data,
                                  attachments, connections, locations, custom_fields, project_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18)
              RETURNING id`,
             [person.first_name, person.last_name, person.patronymic || null, person.aliases,
-             person.date_of_birth, person.category, person.status, person.crm_status, person.case_name,
+             person.date_of_birth, person.category, person.status, person.crm_status,
+             personCase ? personCase.name : caseNameOf(person), personCase ? personCase.id : null,
              person.profile_picture_url, person.notes, osintDataJSON, attachmentsJSON,
              connectionsJSON, locationsJSON, customFieldsJSON, importProjectId]
           );
@@ -558,7 +598,11 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     const businessIdMapping = {};
     if (importData.data.businesses) {
       for (const business of importData.data.businesses) {
-        const employeesJSON = business.employees ? toJSONString(business.employees) : '[]';
+        // Employees linked to a person point at that person's new id.
+        const employees = Array.isArray(business.employees)
+          ? business.employees.map((e) => (e && e.person_id != null ? { ...e, person_id: personIdMapping[e.person_id] || null } : e))
+          : business.employees;
+        const employeesJSON = employees ? toJSONString(employees) : '[]';
         const remappedOwnerId = business.owner_person_id
           ? (personIdMapping[business.owner_person_id] || null)
           : null;
@@ -586,14 +630,16 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     // Imported after people and businesses so their owner/party references can
     // be remapped onto the newly-inserted ids. Cases are matched by name, since
     // case_id is not stable across installs.
+    // Cases of this project only (see importedCases above).
     const caseIdByName = {};
+    for (const [fileName, c] of Object.entries(importedCases)) if (c) caseIdByName[fileName] = c.id;
     {
-      const rows = await client.query('SELECT id, case_name FROM cases');
-      rows.rows.forEach(r => { caseIdByName[r.case_name] = r.id; });
+      const rows = await client.query('SELECT id, case_name FROM cases WHERE project_id = $1', [importProjectId]);
+      rows.rows.forEach(r => { if (!(r.case_name in caseIdByName)) caseIdByName[r.case_name] = r.id; });
     }
     const remapCase = (row) => {
-      if (row.case_name && caseIdByName[row.case_name]) return caseIdByName[row.case_name];
-      return null;
+      const name = caseNameOf(row);
+      return name && caseIdByName[name] ? caseIdByName[name] : null;
     };
 
     const propertyIdMapping = {};
