@@ -25,3 +25,22 @@ export const isModuleOn = (disabled, id) => !SWITCHABLE_MODULES.includes(id) || 
 export const visibleNavGroups = (disabled) => NAV_GROUPS
   .map((g) => ({ ...g, items: g.items.filter((id) => isModuleOn(disabled, id)) }))
   .filter((g) => g.items.length > 0);
+
+// ── Collapsible groups ───────────────────────────────────────────────────────
+// Which group headings are collapsed, per browser. A collapsed group still
+// shows the section you are in, so the menu never hides where you are.
+const COLLAPSED_KEY = 'ghost-nav-collapsed';
+const HEADINGS = NAV_GROUPS.map((g) => g.heading).filter(Boolean);
+
+export function readCollapsedGroups() {
+  try {
+    const v = JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]');
+    return Array.isArray(v) ? v.filter((h) => HEADINGS.includes(h)) : [];
+  } catch { return []; }
+}
+
+export function writeCollapsedGroups(list) {
+  try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(list)); } catch { /* private mode */ }
+}
+
+export const itemsShown = (items, collapsed, activeId) => (collapsed ? items.filter((id) => id === activeId) : items);

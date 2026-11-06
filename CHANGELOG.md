@@ -5,6 +5,28 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.5] - 2026-11-06
+
+### ✨ New
+
+- **Colour themes** (Settings → Appearance). Catppuccin (Latte, with
+  Frappé, Macchiato or Mocha for dark), Nord, Dracula, Gruvbox, Solarized,
+  Tokyo Night and Rosé Pine recolour the whole interface, including the
+  relationship graph. Light/dark themes follow the mode switch; Dracula is
+  dark only. Each theme brings its own accent; the accent picker still
+  overrides it. Admins can set a default theme for users who haven't
+  picked one (Settings → General → Global defaults). The standard GHOST
+  look is unchanged.
+- **Matrix theme**: phosphor green on black, a monospace font, faint
+  scanlines, glowing headings, and green rain behind the sign-in screen
+  (not shown when the system asks for reduced motion).
+- Every theme's text, button and badge shades are generated to meet WCAG AA
+  contrast, and a test checks all 16 theme variants.
+- **Collapsible menu groups.** Click a group heading (Investigation, Money &
+  property, Analysis, Sources) to fold it away; the choice is remembered in
+  the browser. A folded group still shows the section you are in, so the
+  menu never hides where you are.
+
 ## [3.0.4] - 2026-11-06
 
 ### ✨ New

@@ -199,7 +199,7 @@ const ProjectSelector = ({ compact = false }) => {
                         </span>
                       )}
                     </button>
-                    {p.id === activeProjectId && <Check className="w-4 h-4 text-accent-primary shrink-0" />}
+                    {p.id === activeProjectId && <Check className="w-4 h-4 text-accent-ink shrink-0" />}
                     {['admin', 'owner', 'manager'].includes(p.my_role) && (
                       <button
                         onClick={(e) => startEdit(e, p)}
@@ -242,7 +242,7 @@ const ProjectSelector = ({ compact = false }) => {
               ) : (
                 <button
                   onClick={() => setCreating(true)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-accent-primary hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-accent-ink hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
                   <Plus className="w-4 h-4" />
                   {t('projectSelector.newProject')}

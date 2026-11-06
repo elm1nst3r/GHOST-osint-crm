@@ -111,7 +111,7 @@ const ProjectMembersModal = ({ project, onClose }) => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Users className="w-5 h-5 me-2 text-accent-primary" />{t('projectMembers.title', { name: project.name })}
+            <Users className="w-5 h-5 me-2 text-accent-ink" />{t('projectMembers.title', { name: project.name })}
           </h2>
           <button onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
         </div>

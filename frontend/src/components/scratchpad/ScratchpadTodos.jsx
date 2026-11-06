@@ -95,7 +95,7 @@ const ScratchpadTodos = ({ fontClass }) => {
             </div>
           ))}
           {open.length > MAX_SHOWN && (
-            <button type="button" onClick={goToDashboard} className="ps-6 text-xs text-accent-primary hover:underline inline-flex items-center gap-1">
+            <button type="button" onClick={goToDashboard} className="ps-6 text-xs text-accent-ink hover:underline inline-flex items-center gap-1">
               {t('scratchpad.todos.more', { count: open.length - MAX_SHOWN })}
               <ArrowUpRight className="w-3 h-3" />
             </button>

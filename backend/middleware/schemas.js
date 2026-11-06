@@ -217,6 +217,8 @@ const SettingsBrandingUpdateSchema = z.object({
   appLogo: z.union([z.string().max(500), z.null()]).optional(),
   defaultLanguage: z.union([z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/), z.null()]).optional(),
   defaultThemeMode: z.enum(['light', 'dark', 'system']).optional(),
+  // A theme id from frontend/src/themes/themes.js; an unknown one shows GHOST.
+  defaultTheme: z.string().regex(/^[a-z][a-z-]{1,30}$/).optional(),
 });
 
 // Archived-project retention (issue #88): number of days a project may sit

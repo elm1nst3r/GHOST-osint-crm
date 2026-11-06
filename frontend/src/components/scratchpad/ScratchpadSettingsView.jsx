@@ -85,7 +85,7 @@ const ScratchpadSettingsView = ({ settings, onChange, onResetGeometry, isMobile 
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400 flex-1">
               {t('scratchpad.settings.positionHelp')}
-              <button type="button" onClick={onResetGeometry} className="mt-1.5 flex items-center gap-1 text-accent-primary hover:underline">
+              <button type="button" onClick={onResetGeometry} className="mt-1.5 flex items-center gap-1 text-accent-ink hover:underline">
                 <RotateCcw className="w-3 h-3" /> {t('scratchpad.settings.resetGeometry')}
               </button>
             </div>

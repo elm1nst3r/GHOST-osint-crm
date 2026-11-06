@@ -1,8 +1,12 @@
-import { useState, useTransition } from 'react';
+import { useState, useTransition, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LogIn, AlertCircle, ShieldCheck, KeyRound, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../utils/authAPI';
+import { useTheme } from '../contexts/ThemeContext';
+
+// Only the Matrix theme loads the rain.
+const MatrixRain = lazy(() => import('./effects/MatrixRain'));
 import { signInWithPasskey, securityErrorMessage, passkeysSupportedByBrowser } from '../utils/passkeys';
 
 const inputClass = 'appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-md focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm';
@@ -134,6 +138,7 @@ const SecondStep = ({ methods, onDone, onRestart }) => {
 };
 
 const Login = ({ onLogin }) => {
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const { completeLogin } = useAuth();
   const [username, setUsername] = useState('');
@@ -169,7 +174,8 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      {theme.effect === 'matrix' && <Suspense fallback={null}><MatrixRain /></Suspense>}
+      <div className="relative max-w-md w-full space-y-8">
         <div>
           <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
             <LogIn className="h-6 w-6 text-blue-600 dark:text-blue-300" />

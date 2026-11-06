@@ -45,7 +45,7 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-150 ${
                   activeTab === tab.id
-                    ? 'border-accent-primary text-accent-primary'
+                    ? 'border-accent-primary text-accent-ink'
                     : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >

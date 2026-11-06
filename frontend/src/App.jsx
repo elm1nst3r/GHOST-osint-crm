@@ -2,7 +2,7 @@
 import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -12,7 +12,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 import { ScratchpadProvider } from './contexts/ScratchpadContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
-import { visibleNavGroups } from './utils/modules';
+import { visibleNavGroups, readCollapsedGroups, writeCollapsedGroups, itemsShown } from './utils/modules';
 import { changeLanguage } from './i18n';
 
 import UpdateBanner from './components/UpdateBanner';
@@ -82,11 +82,11 @@ const NavItem = ({ item, active, onSelect }) => {
       aria-current={active ? 'page' : undefined}
       className={`nav-item ${
         active
-          ? 'bg-accent-primary/10 text-accent-primary'
+          ? 'bg-accent-primary/10 text-accent-ink'
           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
       }`}
     >
-      <Icon className={`shrink-0 transition-colors duration-150 ${active ? 'text-accent-primary' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
+      <Icon className={`shrink-0 transition-colors duration-150 ${active ? 'text-accent-ink' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
       <span>{item.label}</span>
     </button>
   );
@@ -205,6 +205,13 @@ const AppShell = () => {
     return visibleNavGroups(disabledModules).map((g) => ({ ...g, items: g.items.map((id) => byId[id]) }));
   }, [navigationItems, disabledModules]);
   const settingsItem = navigationItems.find((item) => item.id === 'settings');
+  // Collapsed group headings, remembered in this browser.
+  const [collapsedGroups, setCollapsedGroups] = useState(readCollapsedGroups);
+  const toggleGroup = (heading) => setCollapsedGroups((list) => {
+    const next = list.includes(heading) ? list.filter((h) => h !== heading) : [...list, heading];
+    writeCollapsedGroups(next);
+    return next;
+  });
 
   // ── URL ↔ section sync (issue #52) ────────────────────────────────────────
   // The URL is the source of truth for which section is shown, so browser
@@ -392,24 +399,38 @@ const AppShell = () => {
             onClick={() => { setShowAdvancedSearch(true); setMobileNavOpen(false); }}
             className="mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
-            <Search className="w-4 h-4 shrink-0 text-accent-primary" />
+            <Search className="w-4 h-4 shrink-0 text-accent-ink" />
             <span>{t('searchFilters.advancedSearch')}</span>
           </button>
         </div>
 
         <nav className="p-3 flex-1 overflow-y-auto" aria-label={t('app.navigation')}>
-          {navGroups.map((group) => (
-            <div key={group.heading || 'top'} className={group.heading ? 'pt-3' : ''}>
-              {group.heading && (
-                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
-                  {t(`app.navGroup.${group.heading}`)}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {group.items.map((item) => <NavItem key={item.id} item={item} active={activeSection === item.id} onSelect={selectSection} />)}
+          {navGroups.map((group) => {
+            const collapsed = Boolean(group.heading) && collapsedGroups.includes(group.heading);
+            const shownIds = itemsShown(group.items.map((item) => item.id), collapsed, activeSection);
+            const listId = `nav-group-${group.heading || 'top'}`;
+            return (
+              <div key={group.heading || 'top'} className={group.heading ? 'pt-3' : ''}>
+                {group.heading && (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.heading)}
+                    aria-expanded={!collapsed}
+                    aria-controls={listId}
+                    className="w-full flex items-center justify-between px-3 pb-1 rounded-sm text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-primary/50"
+                  >
+                    <span>{t(`app.navGroup.${group.heading}`)}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${collapsed ? '-rotate-90 rtl:rotate-90' : ''}`} aria-hidden="true" />
+                  </button>
+                )}
+                <div id={listId} className="space-y-0.5">
+                  {group.items.filter((item) => shownIds.includes(item.id)).map((item) => (
+                    <NavItem key={item.id} item={item} active={activeSection === item.id} onSelect={selectSection} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
         </nav>
 
