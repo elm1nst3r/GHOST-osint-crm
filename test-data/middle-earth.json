@@ -1463,7 +1463,7 @@
       },
       {
         "transaction_type": "gift",
-        "item_label": "Sting and the mithril shirt",
+        "item_label": "Sting",
         "item_category": "physical_good",
         "subject_asset_id": 2,
         "from_person_id": 3,
@@ -1476,6 +1476,40 @@
         "longitude": 175.1793,
         "location_name": "Rivendell",
         "case_name": "The One Ring"
+      },
+      {
+        "transaction_type": "gift",
+        "item_label": "Mithril shirt",
+        "item_category": "physical_good",
+        "subject_asset_id": 3,
+        "from_person_id": 3,
+        "to_person_id": 1,
+        "occurred_on": "2025-12-24",
+        "address": "The Last Homely House",
+        "city": "Rivendell",
+        "country": "Eriador",
+        "latitude": -41.0852,
+        "longitude": 175.1793,
+        "location_name": "Rivendell",
+        "case_name": "The One Ring",
+        "notes": "Worn under his clothes from then on."
+      },
+      {
+        "transaction_type": "transfer",
+        "item_label": "Andúril",
+        "item_category": "physical_good",
+        "subject_asset_id": 4,
+        "from_person_id": 21,
+        "to_person_id": 8,
+        "occurred_on": "2025-12-24",
+        "address": "The Last Homely House",
+        "city": "Rivendell",
+        "country": "Eriador",
+        "latitude": -41.0852,
+        "longitude": 175.1793,
+        "location_name": "Rivendell",
+        "case_name": "The Fellowship",
+        "notes": "Shards of Narsil reforged in Rivendell."
       },
       {
         "transaction_type": "sale",
@@ -1514,6 +1548,23 @@
         "location_name": "Bree",
         "case_name": "Scouring of the Shire",
         "notes": "Three times what the pony was worth."
+      },
+      {
+        "transaction_type": "transfer",
+        "item_label": "Bill the Pony",
+        "item_category": "physical_good",
+        "subject_asset_id": 6,
+        "from_person_id": 20,
+        "to_person_id": 2,
+        "occurred_on": "2025-09-30",
+        "address": "The Prancing Pony, Great East Road",
+        "city": "Bree",
+        "country": "Eriador",
+        "latitude": -41.3271,
+        "longitude": 174.8298,
+        "location_name": "Bree",
+        "case_name": "Scouring of the Shire",
+        "notes": "Handed to the hobbits for the journey; Merry paid."
       },
       {
         "transaction_type": "loan",
@@ -1571,6 +1622,23 @@
         "longitude": 168.3706,
         "location_name": "Lothlórien",
         "case_name": "The One Ring"
+      },
+      {
+        "transaction_type": "transfer",
+        "item_label": "Phial of Galadriel",
+        "item_category": "physical_good",
+        "subject_asset_id": 7,
+        "from_person_id": 1,
+        "to_person_id": 2,
+        "occurred_on": "2026-03-13",
+        "address": "Sammath Naur, Orodruin",
+        "city": "Gorgoroth",
+        "country": "Mordor",
+        "latitude": -39.1569,
+        "longitude": 175.6321,
+        "location_name": "Cirith Ungol",
+        "case_name": "The One Ring",
+        "notes": "Taken by Sam when he believed Frodo dead."
       },
       {
         "transaction_type": "seized",

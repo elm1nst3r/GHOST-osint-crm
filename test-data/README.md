@@ -17,7 +17,7 @@ screenshots. Everything in it is made up.
 | **Businesses** | 4, with an ownership chain: Isengard Industries owns Sackville-Baggins Holdings |
 | **Properties** | 5 (Bag End, Orthanc, Meduseld, Barad-dûr, Brandy Hall) |
 | **Assets** | 7 (the One Ring, Sting, the mithril shirt, Andúril, the palantír, Bill the Pony, the phial) |
-| **Transactions** | 8: gifts, sales, a loan between businesses, a bribe, a seizure. Some with tags |
+| **Transactions** | 12: gifts, sales, hand-overs, a loan between businesses, a bribe, a seizure. Every asset has a chain of custody; some transactions have tags |
 | **Wireless networks** | 6 at places of interest, linked to people and businesses |
 | **OSINT data** | Emails, phones, usernames, websites, an IP address and a document ID |
 | **Saved records** | 4 integration records (prison register, interrogation log, town register, court rolls), with OSINT entries taken from them |

@@ -5,6 +5,15 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔧 Changed
+
+- **Test data:** every asset in `test-data/middle-earth.json` now has a
+  chain of custody that matches the story (four more hand-overs: the
+  mithril shirt, Andúril, Bill the Pony, the phial), so each asset shows
+  its holder. The wiki screenshots use this data set.
+
 ## [3.0.3] - 2026-11-06
 
 ### ✨ New
