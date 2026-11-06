@@ -23,7 +23,15 @@
       "settings": "تنظیمات"
     },
     "openNavigation": "باز کردن ناوبری",
-    "closeNavigation": "بستن ناوبری"
+    "closeNavigation": "بستن ناوبری",
+    "navigation": "Main menu",
+    "navGroup": {
+      "investigation": "Investigation",
+      "money": "Money & property",
+      "analysis": "Analysis",
+      "sources": "Sources"
+    },
+    "logoutAs": "Log out ({{name}})"
   },
   "common": {
     "loading": "در حال بارگذاری...",
@@ -504,6 +512,13 @@
       "language": "زبان پیش‌فرض",
       "themeMode": "تم پیش‌فرض",
       "overrideHint": "انتخاب زبان یا تم توسط کاربر (تنظیمات → عمومی/ظاهر) همیشه بر این پیش‌فرض غلبه می‌کند."
+    },
+    "modules": {
+      "title": "Modules",
+      "description": "Switch off sections nobody here uses, for everyone. They leave the menu, and their tabs and map layers are hidden. Their data stays, and they can be switched back on at any time with everything still there.",
+      "alwaysOn": "Dashboard, Cases, People, Businesses and Settings are always on. Switching a module off only changes the interface: the API and the MCP server still reach its data.",
+      "saved": "Saved. Everyone sees the change the next time they load GHOST.",
+      "saveFailed": "Could not save. Nothing was changed."
     }
   },
   "dashboard": {
