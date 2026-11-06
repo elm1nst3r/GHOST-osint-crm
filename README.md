@@ -26,7 +26,7 @@
 
 A full-stack, self-hosted OSINT investigation management system with a modern interface — built for individual investigators, researchers, and hobbyists who want structured case management without spreadsheets. See [Project Status](#-project-status) below for maintenance posture and intended use.
 
-<img width="3360" height="2040" alt="image" src="https://github.com/user-attachments/assets/6d147bb3-4422-46cc-bdc1-1a4005e3e81d" />
+<img width="1680" alt="GHOST People view: person cards with category, case, connections and status" src="docs/images/people.png" />
 
 
 ## 📌 Project Status
