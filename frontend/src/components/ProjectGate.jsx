@@ -52,7 +52,7 @@ const ProjectGate = ({ children }) => {
     <div className="flex items-center justify-center min-h-dvh bg-slate-50 dark:bg-slate-900 px-4">
       <div className="w-full max-w-md rounded-(--radius-card) border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg p-6">
         <div className="flex items-center gap-2 mb-1">
-          <FolderKanban className="w-5 h-5 text-accent-primary" />
+          <FolderKanban className="w-5 h-5 text-accent-ink" />
           <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
             {projects.length === 0
               ? (isAdmin ? t('projectGate.titleFirstRun') : t('projectGate.titleNoMemberships'))

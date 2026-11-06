@@ -8,6 +8,7 @@ import { vi, beforeEach, afterEach, test, expect } from 'vitest';
 import '../index.css';
 import i18n from '../i18n';
 import Login from './Login';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 let calls;
@@ -35,7 +36,7 @@ function Harness() {
   return authenticated ? <p>signed in as {currentUser.username}</p> : <Login onLogin={handleLogin} />;
 }
 
-const renderLogin = () => render(<AuthProvider><Harness /></AuthProvider>);
+const renderLogin = () => render(<ThemeProvider><AuthProvider><Harness /></AuthProvider></ThemeProvider>);
 
 async function enterPassword(screen) {
   await screen.getByLabelText(i18n.t('login.username')).fill('inv1');

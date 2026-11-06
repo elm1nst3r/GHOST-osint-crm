@@ -29,36 +29,49 @@ const getConnectionStrength = (type) => {
   return strengths[type] || 1.0;
 };
 
-// Theme colors (Obsidian-inspired dark theme)
+// Graph colours (Obsidian-inspired dark canvas). Each is a CSS variable with
+// GHOST's own colour as the fallback, so a colour theme (themes.css) can
+// recolour the graph and the standard look stays exactly as it was. They are
+// applied with .style(), which (unlike SVG attributes) resolves var().
+const g = (name, fallback) => `var(--graph-${name}, ${fallback})`;
 const theme = {
-  background: '#1e1e1e',
+  background: g('bg', '#1e1e1e'),
   node: {
-    default: '#4c51bf',
-    person: '#667eea',
-    business: '#48bb78',
-    crypto_wallet: '#a855f7',
-    selected: '#f6ad55',
-    hover: '#fc8181',
-    text: '#ffffff'
+    default: g('node-default', '#4c51bf'),
+    person: g('node-person', '#667eea'),
+    business: g('node-business', '#48bb78'),
+    crypto_wallet: g('node-wallet', '#a855f7'),
+    selected: g('node-selected', '#f6ad55'),
+    hover: g('node-hover', '#fc8181'),
+    text: g('node-text', '#ffffff'),
   },
   edge: {
-    family: '#10b981',
-    friend: '#3b82f6',
-    enemy: '#ef4444',
-    associate: '#6b7280',
-    employer: '#8b5cf6',
-    employee: '#a78bfa',
-    suspect: '#ef4444',
-    witness: '#f59e0b',
-    victim: '#ec4899',
-    owner: '#48bb78',
-    owns_business: '#38a169',
-    board_member: '#7c3aed',
-    transaction: '#0891b2',
-    other: '#6b7280'
+    family: g('edge-family', '#10b981'),
+    friend: g('edge-friend', '#3b82f6'),
+    enemy: g('edge-enemy', '#ef4444'),
+    associate: g('edge-associate', '#6b7280'),
+    employer: g('edge-employer', '#8b5cf6'),
+    employee: g('edge-employee', '#a78bfa'),
+    suspect: g('edge-suspect', '#ef4444'),
+    witness: g('edge-witness', '#f59e0b'),
+    victim: g('edge-victim', '#ec4899'),
+    owner: g('edge-owner', '#48bb78'),
+    owns_business: g('edge-owns-business', '#38a169'),
+    board_member: g('edge-board-member', '#7c3aed'),
+    transaction: g('edge-transaction', '#0891b2'),
+    other: g('edge-other', '#6b7280'),
   },
-  grid: '#2d3748',
-  text: '#e2e8f0'
+  category: {
+    'Person of Interest': g('cat-poi', '#ef4444'),
+    'Client': g('cat-client', '#10b981'),
+    'Witness': g('cat-witness', '#f59e0b'),
+    'Victim': g('cat-victim', '#ec4899'),
+    'Suspect': g('cat-suspect', '#dc2626'),
+  },
+  ring: g('ring', '#ffffff'),
+  badge: g('badge', '#3b82f6'),
+  grid: g('grid', '#2d3748'),
+  text: g('text', '#e2e8f0'),
 };
 
 // Get node color (without hover - handled by D3 directly)
@@ -68,16 +81,7 @@ const getNodeColor = (node, isSelected) => {
   if (node.type === 'crypto_wallet') return theme.node.crypto_wallet;
 
   // Color by category
-  const categoryColors = {
-    'Person of Interest': '#ef4444',
-    'Client': '#10b981',
-    'Witness': '#f59e0b',
-    'Victim': '#ec4899',
-    'Suspect': '#dc2626',
-    'Business': theme.node.business
-  };
-
-  return categoryColors[node.category] || theme.node.person;
+  return theme.category[node.category] || theme.node.person;
 };
 
 const ObsidianGraph = ({
@@ -316,7 +320,7 @@ const ObsidianGraph = ({
         .attr('orient', 'auto')
         .append('path')
         .attr('d', 'M0,-5L10,0L0,5')
-        .attr('fill', theme.edge[type]);
+        .style('fill', theme.edge[type]);
     });
 
     // Create edges
@@ -324,7 +328,7 @@ const ObsidianGraph = ({
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', d => theme.edge[d.type] || theme.edge.other)
+      .style('stroke', d => theme.edge[d.type] || theme.edge.other)
       .attr('stroke-width', 2)
       .attr('stroke-opacity', 0.6)
       .attr('marker-end', d => `url(#arrow-${d.type})`)
@@ -340,7 +344,7 @@ const ObsidianGraph = ({
           .attr('x', (d.source.x + d.target.x) / 2)
           .attr('y', (d.source.y + d.target.y) / 2)
           .attr('text-anchor', 'middle')
-          .attr('fill', theme.text)
+          .style('fill', theme.text)
           .attr('font-size', '12px')
           .attr('font-weight', 'bold')
           .style('pointer-events', 'none')
@@ -368,8 +372,8 @@ const ObsidianGraph = ({
     // Add circles for nodes
     node.append('circle')
       .attr('r', d => getNodeSize(d))
-      .attr('fill', d => getNodeColor(d, selectedNode?.id === d.id))
-      .attr('stroke', '#fff')
+      .style('fill', d => getNodeColor(d, selectedNode?.id === d.id))
+      .style('stroke', theme.ring)
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
@@ -397,7 +401,7 @@ const ObsidianGraph = ({
       nodeGroup.append('text')
         .attr('dy', size + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', theme.text)
+        .style('fill', theme.text)
         .attr('font-size', '11px')
         .attr('font-weight', '500')
         .style('pointer-events', 'none')
@@ -410,8 +414,8 @@ const ObsidianGraph = ({
           .attr('cx', size - 2)
           .attr('cy', -size + 2)
           .attr('r', 8)
-          .attr('fill', '#3b82f6')
-          .attr('stroke', '#fff')
+          .style('fill', theme.badge)
+          .style('stroke', theme.ring)
           .attr('stroke-width', 1);
 
         nodeGroup.append('text')
@@ -419,7 +423,7 @@ const ObsidianGraph = ({
           .attr('y', -size + 2)
           .attr('dy', '0.35em')
           .attr('text-anchor', 'middle')
-          .attr('fill', '#fff')
+          .style('fill', theme.ring)
           .attr('font-size', '9px')
           .attr('font-weight', 'bold')
           .style('pointer-events', 'none')

@@ -186,7 +186,7 @@ const PeopleList = () => {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('peopleList.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 flex items-center">
-            <Users className="w-5 h-5 me-2 text-accent-primary" />
+            <Users className="w-5 h-5 me-2 text-accent-ink" />
             {filteredPeople.length === people.length ? (
               <span className="font-medium">
                 {peopleMeta.total > people.length
@@ -204,7 +204,7 @@ const PeopleList = () => {
             <button
               onClick={() => setViewMode('cards')}
               className={`px-3 py-1.5 rounded-md flex items-center gap-x-2 transition-[background-color,color,box-shadow] duration-150 active:scale-[0.97] ${
-                viewMode === 'cards' ? 'bg-white dark:bg-slate-600 shadow-xs text-accent-primary dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                viewMode === 'cards' ? 'bg-white dark:bg-slate-600 shadow-xs text-accent-ink dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
               title={t('peopleList.cardView')}
             >
@@ -214,7 +214,7 @@ const PeopleList = () => {
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1.5 rounded-md flex items-center gap-x-2 transition-[background-color,color,box-shadow] duration-150 active:scale-[0.97] ${
-                viewMode === 'table' ? 'bg-white dark:bg-slate-600 shadow-xs text-accent-primary dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                viewMode === 'table' ? 'bg-white dark:bg-slate-600 shadow-xs text-accent-ink dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
               title={t('peopleList.tableView')}
             >

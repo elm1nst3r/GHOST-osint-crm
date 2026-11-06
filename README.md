@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.0.4-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.5-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -186,10 +186,14 @@ administrator can change their own membership. Full details in
 - **Schema validation everywhere**: All POST/PUT routes validate bodies against Zod schemas and return structured field-level errors
 
 ### 🌓 Modern UI/UX
-- **Grouped menu**: sections sorted into Investigation, Money & property, Analysis and Sources, with Advanced Search at the top and Settings always in view
+- **Grouped menu**: sections sorted into Investigation, Money & property, Analysis and Sources (each group folds away), with Advanced Search at the top and Settings always in view
 - **Modules**: admins can switch off sections nobody uses (Settings → General → Modules); the menu gets shorter, the data stays
 - **Solid backgrounds**: Professional, readable interface with proper contrast
 - **Dark mode**: Full dark mode support with optimized text readability
+- **Colour themes** (Settings → Appearance): Catppuccin, Nord, Dracula, Gruvbox, Solarized, Tokyo Night, Rosé Pine, and a Matrix theme for the full hacker experience
+
+  <img width="720" alt="GHOST in the Matrix theme" src="docs/images/theme-matrix.png" /> <img width="720" alt="GHOST in Catppuccin Mocha" src="docs/images/theme-catppuccin-mocha.png" />
+
 - **Responsive layout**: Works on desktop, tablet and phone
 - **Right-to-left languages**: Persian, Arabic and other RTL languages get a fully mirrored interface
 - **Professional colorway**: Business-appropriate aesthetics
@@ -285,7 +289,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.0.4
+GHOST_VERSION=3.0.5
 ```
 
 Without it, the containers track the latest release.
@@ -692,6 +696,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.0.5 (November 2026)
+- 🎨 **Colour themes** — Catppuccin, Nord, Dracula, Gruvbox, Solarized, Tokyo Night, Rosé Pine and a Matrix theme, all checked for readable contrast; plus collapsible menu groups
+
 ### Version 3.0.4 (November 2026)
 - 🧭 **A tidier menu** — sections in four groups, Advanced Search at the top, Settings always visible, and admins can switch off modules nobody uses
 
@@ -728,5 +735,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.0.4
+**Version:** 3.0.5
 **Last Updated:** November 5, 2026

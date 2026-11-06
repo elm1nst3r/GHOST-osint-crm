@@ -18,3 +18,21 @@ describe('sidebar modules', () => {
     expect(groups.find((g) => g.heading === 'money').items).toEqual(['transactions', 'assets', 'properties']);
   });
 });
+
+describe('collapsible groups', () => {
+  test('a collapsed group shows only the section you are in', async () => {
+    const { itemsShown } = await import('./modules');
+    const money = ['transactions', 'assets', 'properties', 'crypto-wallets'];
+    expect(itemsShown(money, false, 'people')).toEqual(money);
+    expect(itemsShown(money, true, 'people')).toEqual([]);
+    expect(itemsShown(money, true, 'assets')).toEqual(['assets']);
+  });
+
+  test('the remembered list keeps only real headings', async () => {
+    const { readCollapsedGroups, writeCollapsedGroups } = await import('./modules');
+    writeCollapsedGroups(['money', 'bogus', 'analysis']);
+    expect(readCollapsedGroups()).toEqual(['money', 'analysis']);
+    localStorage.setItem('ghost-nav-collapsed', 'not json');
+    expect(readCollapsedGroups()).toEqual([]);
+  });
+});

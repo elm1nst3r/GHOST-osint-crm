@@ -1,15 +1,21 @@
 /* frontend/src/index.css */
 @import 'tailwindcss';
+/* Colour themes (Settings → Appearance): generated from src/themes/themes.js.
+   Each theme overrides the @theme colour variables below on <html>, so every
+   utility follows without any component knowing about themes. */
+@import './themes/themes.css';
 
 /* Tailwind 4 reads its configuration from CSS (this file); there is no
    tailwind.config.js any more. Class-based dark mode: ThemeContext puts
    `dark` on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
+/* `matrix:` styles something only in the Matrix theme. */
+@custom-variant matrix (&:where([data-theme="matrix"], [data-theme="matrix"] *));
 
 
 /* ── Theme ──────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
 
   /* A ring without a colour class is translucent blue, as in Tailwind 3
      (v4's default is the text colour, which made white rings on the map's
@@ -21,11 +27,20 @@
      fixed. Opacity modifiers (bg-accent-primary/10) work through color-mix. */
   --color-accent-primary: rgb(var(--accent));
   --color-accent-primary-hover: rgb(var(--accent-hover));
+  /* The accent as text. Same as the accent unless a theme needs a brighter
+     one on dark backgrounds (where the button shade would be too dark to read). */
+  --color-accent-ink: rgb(var(--accent-ink, var(--accent)));
   --color-accent-secondary: #0891b2; /* cyan-600 */
   --color-accent-tertiary: #7c3aed; /* violet-600 */
   --color-accent-success: #059669; /* emerald-600 */
   --color-accent-warning: #d97706; /* amber-600 */
   --color-accent-danger: #dc2626; /* red-600 */
+  /* Scratchpad note backgrounds in dark mode (a colour themes sets its own). */
+  --color-note-amber: rgb(36 28 12);
+  --color-note-emerald: rgb(10 32 26);
+  --color-note-sky: rgb(10 28 42);
+  --color-note-violet: rgb(28 18 48);
+  --color-note-rose: rgb(44 16 24);
   --color-business-navy: #1e3a8a;
   --color-business-slate: #475569;
   --color-business-steel: #64748b;
@@ -112,108 +127,108 @@
    (set by ThemeContext when the user picks the Glass style) restores
    translucency and blur. */
 @utility glass {
-  background: rgb(255 255 255);
-  border: 1px solid rgb(226 232 240);
+  background: var(--color-white);
+  border: 1px solid var(--color-slate-200);
   box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
   .dark & {
-    background: rgb(15 23 42);
-    border: 1px solid rgb(30 41 59);
+    background: var(--color-slate-900);
+    border: 1px solid var(--color-slate-800);
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   }
   [data-surface="glass"] & {
-    background: rgba(255, 255, 255, 0.6);
+    background: color-mix(in oklab, var(--color-white) 60%, transparent);
     backdrop-filter: blur(12px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid color-mix(in oklab, var(--color-white) 45%, transparent);
     box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.12);
   }
   .dark[data-surface="glass"] & {
-    background: rgba(15, 23, 42, 0.65);
+    background: color-mix(in oklab, var(--color-slate-900) 65%, transparent);
     backdrop-filter: blur(12px) saturate(160%);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid color-mix(in oklab, var(--color-slate-400) 25%, transparent);
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.5);
   }
 }
 
 @utility glass-heavy {
-  background: rgb(255 255 255);
-  border: 1px solid rgb(226 232 240);
+  background: var(--color-white);
+  border: 1px solid var(--color-slate-200);
   box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06);
   .dark & {
-    background: rgb(15 23 42);
-    border: 1px solid rgb(30 41 59);
+    background: var(--color-slate-900);
+    border: 1px solid var(--color-slate-800);
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.35);
   }
   [data-surface="glass"] & {
-    background: rgba(255, 255, 255, 0.75);
+    background: color-mix(in oklab, var(--color-white) 75%, transparent);
     backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid color-mix(in oklab, var(--color-white) 50%, transparent);
     box-shadow: 0 8px 24px 0 rgba(31, 38, 135, 0.1);
   }
   .dark[data-surface="glass"] & {
-    background: rgba(15, 23, 42, 0.85);
+    background: color-mix(in oklab, var(--color-slate-900) 85%, transparent);
     backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    border: 1px solid color-mix(in oklab, var(--color-slate-400) 30%, transparent);
     box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.6);
   }
 }
 
 @utility glass-card {
-  background: rgb(255 255 255);
-  border: 1px solid rgb(226 232 240);
+  background: var(--color-white);
+  border: 1px solid var(--color-slate-200);
   border-radius: var(--radius-card);
   box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
   .dark & {
-    background: rgb(15 23 42);
-    border: 1px solid rgb(30 41 59);
+    background: var(--color-slate-900);
+    border: 1px solid var(--color-slate-800);
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   }
   [data-surface="glass"] & {
-    background: rgba(255, 255, 255, 0.55);
+    background: color-mix(in oklab, var(--color-white) 55%, transparent);
     backdrop-filter: blur(14px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid color-mix(in oklab, var(--color-white) 45%, transparent);
     box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
   }
   .dark[data-surface="glass"] & {
-    background: rgba(15, 23, 42, 0.6);
+    background: color-mix(in oklab, var(--color-slate-900) 60%, transparent);
     backdrop-filter: blur(14px) saturate(160%);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid color-mix(in oklab, var(--color-slate-400) 25%, transparent);
     box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.55);
   }
 }
 
 @utility glass-button {
-  background: rgb(248 250 252);
-  border: 1px solid rgb(226 232 240);
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
   transition: background-color 0.15s ease, border-color 0.15s ease;
   &:hover {
-    background: rgb(241 245 249);
-    border-color: rgb(203 213 225);
+    background: var(--color-slate-100);
+    border-color: var(--color-slate-300);
   }
   .dark & {
-    background: rgb(30 41 59);
-    border: 1px solid rgb(51 65 85);
+    background: var(--color-slate-800);
+    border: 1px solid var(--color-slate-700);
   }
   .dark &:hover {
-    background: rgb(51 65 85);
-    border-color: rgb(71 85 105);
+    background: var(--color-slate-700);
+    border-color: var(--color-slate-600);
   }
   [data-surface="glass"] & {
-    background: rgba(255, 255, 255, 0.4);
+    background: color-mix(in oklab, var(--color-white) 40%, transparent);
     backdrop-filter: blur(10px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid color-mix(in oklab, var(--color-white) 40%, transparent);
   }
   [data-surface="glass"] &:hover {
-    background: rgba(255, 255, 255, 0.6);
-    border-color: rgba(255, 255, 255, 0.55);
+    background: color-mix(in oklab, var(--color-white) 60%, transparent);
+    border-color: color-mix(in oklab, var(--color-white) 55%, transparent);
   }
   .dark[data-surface="glass"] & {
-    background: rgba(30, 41, 59, 0.6);
+    background: color-mix(in oklab, var(--color-slate-800) 60%, transparent);
     backdrop-filter: blur(10px) saturate(160%);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid color-mix(in oklab, var(--color-slate-400) 25%, transparent);
   }
   .dark[data-surface="glass"] &:hover {
-    background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(148, 163, 184, 0.35);
+    background: color-mix(in oklab, var(--color-slate-800) 80%, transparent);
+    border-color: color-mix(in oklab, var(--color-slate-400) 35%, transparent);
   }
 }
 
@@ -229,33 +244,32 @@
     --radius-card: 10px;
     --radius-control: 8px;
 
-    /* Light-mode surfaces + text */
-    --surface-page: 248 250 252; /* slate-50  */
-    --surface-card: 255 255 255; /* white     */
-    --surface-sunken: 241 245 249; /* slate-100 */
-    --border-subtle: 226 232 240; /* slate-200 */
-    --text-primary: 15 23 42; /* slate-900 */
-    --text-secondary: 71 85 105; /* slate-600 */
+    /* Light-mode surfaces + text (colour themes recolour the slate scale) */
+    --surface-page: var(--color-slate-50);
+    --surface-card: var(--color-white);
+    --surface-sunken: var(--color-slate-100);
+    --border-subtle: var(--color-slate-200);
+    --text-primary: var(--color-slate-900);
+    --text-secondary: var(--color-slate-600);
   }
 
   .dark {
     /* Dark-mode surfaces + text */
-    --surface-page: 2 6 23; /* slate-950 */
-    --surface-card: 15 23 42; /* slate-900 */
-    --surface-sunken: 30 41 59; /* slate-800 */
-    --border-subtle: 30 41 59; /* slate-800 */
-    --text-primary: 241 245 249; /* slate-100 */
-    --text-secondary: 148 163 184; /* slate-400 */
+    --surface-page: var(--color-slate-950);
+    --surface-card: var(--color-slate-900);
+    --surface-sunken: var(--color-slate-800);
+    --border-subtle: var(--color-slate-800);
+    --text-primary: var(--color-slate-100);
+    --text-secondary: var(--color-slate-400);
   }
 
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', 'Roboto',
-      'Helvetica Neue', sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: rgb(var(--surface-page));
-    color: rgb(var(--text-primary));
+    background-color: var(--surface-page);
+    color: var(--text-primary);
     font-size: 15px;
     line-height: 1.6;
     letter-spacing: -0.011em;
@@ -284,17 +298,17 @@
   .dark input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
   .dark select,
   .dark textarea {
-    background-color: rgb(30 41 59); /* slate-800 */
-    border-color: rgb(71 85 105); /* slate-600 */
-    color: rgb(241 245 249); /* slate-100 */
+    background-color: var(--color-slate-800); /* slate-800 */
+    border-color: var(--color-slate-600); /* slate-600 */
+    color: var(--color-slate-100); /* slate-100 */
   }
   .dark input::placeholder,
   .dark textarea::placeholder {
-    color: rgb(100 116 139); /* slate-500 */
+    color: var(--color-slate-500); /* slate-500 */
   }
   .dark option {
-    background-color: rgb(30 41 59);
-    color: rgb(241 245 249);
+    background-color: var(--color-slate-800);
+    color: var(--color-slate-100);
   }
 }
 
@@ -316,7 +330,7 @@
     text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700;
 }
 @utility btn-ghost {
-  @apply text-accent-primary hover:bg-accent-primary/10;
+  @apply text-accent-ink hover:bg-accent-primary/10;
 }
 @utility btn-danger {
   @apply bg-accent-danger text-white hover:bg-red-700;
@@ -367,24 +381,24 @@
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: rgb(var(--surface-sunken));
+  background: var(--surface-sunken);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #94a3b8; /* Slate-400 */
+  background: var(--color-slate-400); /* Slate-400 */
   border-radius: 6px;
-  border: 2px solid rgb(var(--surface-sunken));
+  border: 2px solid var(--surface-sunken);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b; /* Slate-500 */
+  background: var(--color-slate-500); /* Slate-500 */
 }
 
 /* Dark mode scrollbar with better visibility */
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569; /* Slate-600 */
+  background: var(--color-slate-600); /* Slate-600 */
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b; /* Slate-500 */
+  background: var(--color-slate-500); /* Slate-500 */
 }
 
 /* Ensure ReactFlow takes full height */
@@ -424,12 +438,12 @@
   }
 
   ::placeholder {
-    color: #94a3b8;
+    color: var(--color-slate-400);
     opacity: 1;
   }
 
   .dark ::placeholder {
-    color: #64748b;
+    color: var(--color-slate-500);
   }
 }
 
@@ -462,8 +476,8 @@
 }
 
 .wireless-network-label .label-text {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1e293b;
+  background: color-mix(in oklab, var(--color-white) 95%, transparent);
+  color: var(--color-slate-800);
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -474,9 +488,9 @@
 }
 
 .dark .wireless-network-label .label-text {
-  background: rgba(30, 41, 59, 0.95);
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklab, var(--color-slate-800) 95%, transparent);
+  color: var(--color-slate-100);
+  border-color: color-mix(in oklab, var(--color-white) 10%, transparent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -543,21 +557,21 @@
   font-size: 0.9em;
   padding: 0.05em 0.3em;
   border-radius: 4px;
-  background: rgb(15 23 42 / 0.07);
+  background: color-mix(in oklab, var(--color-slate-900) 7%, transparent);
 }
-.dark .scratchpad-md code { background: rgb(255 255 255 / 0.1); }
+.dark .scratchpad-md code { background: color-mix(in oklab, var(--color-white) 10%, transparent); }
 .scratchpad-md pre {
   padding: 0.5em 0.65em;
   border-radius: 6px;
   overflow-x: auto;
-  background: rgb(15 23 42 / 0.07);
+  background: color-mix(in oklab, var(--color-slate-900) 7%, transparent);
 }
-.dark .scratchpad-md pre { background: rgb(255 255 255 / 0.08); }
+.dark .scratchpad-md pre { background: color-mix(in oklab, var(--color-white) 8%, transparent); }
 .scratchpad-md pre code { padding: 0; background: none; }
-.scratchpad-md blockquote { border-inline-start: 3px solid rgb(148 163 184); padding-inline-start: 0.6em; opacity: 0.85; }
-.scratchpad-md hr { border-color: rgb(148 163 184 / 0.4); }
+.scratchpad-md blockquote { border-inline-start: 3px solid var(--color-slate-400); padding-inline-start: 0.6em; opacity: 0.85; }
+.scratchpad-md hr { border-color: color-mix(in oklab, var(--color-slate-400) 40%, transparent); }
 .scratchpad-md table { border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
-.scratchpad-md th, .scratchpad-md td { border: 1px solid rgb(148 163 184 / 0.5); padding: 0.15em 0.45em; }
+.scratchpad-md th, .scratchpad-md td { border: 1px solid color-mix(in oklab, var(--color-slate-400) 50%, transparent); padding: 0.15em 0.45em; }
 .scratchpad-md th { font-weight: 600; }
 
 .scratchpad-kbd {
@@ -565,7 +579,7 @@
   font-size: 0.85em;
   padding: 0 0.3em;
   border-radius: 3px;
-  border: 1px solid rgb(148 163 184 / 0.6);
+  border: 1px solid color-mix(in oklab, var(--color-slate-400) 60%, transparent);
 }
 
 @keyframes scratchpad-undo { from { width: 100%; } to { width: 0%; } }
@@ -629,4 +643,26 @@
    negative tracking used for Latin headings makes them collide. */
 :is(:lang(ar), :lang(fa), :lang(ur), :lang(ps), :lang(ckb), :lang(sd), :lang(ug)) * {
   letter-spacing: normal;
+}
+
+/* ── Matrix theme effects ───────────────────────────────────────────────────
+   Faint scanlines over everything and a phosphor glow on headings and the
+   accent. Static (no animation), and never on top of input: the overlay
+   ignores the pointer. */
+[data-theme="matrix"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgb(0 255 65 / 0.035) 0 1px, transparent 1px 3px);
+}
+@layer base {
+  [data-theme="matrix"] :is(h1, h2, h3) {
+    text-shadow: 0 0 6px rgb(0 255 65 / 0.45);
+  }
+  [data-theme="matrix"] ::selection {
+    background: rgb(0 255 65 / 0.35);
+    color: #000;
+  }
 }

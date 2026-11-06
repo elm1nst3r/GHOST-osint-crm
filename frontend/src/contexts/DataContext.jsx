@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect } f
 import { peopleAPI, businessAPI, toolsAPI, todosAPI, customFieldsAPI, propertiesAPI, assetsAPI, cryptoWalletsAPI, transactionsAPI, brandingAPI } from '../utils/api';
 import { DEFAULT_APP_SETTINGS } from '../utils/constants';
 import { useProject } from './ProjectContext';
+import { useTheme } from './ThemeContext';
 
 // Branding + defaults (issue #91) now live server-side in app_settings, so
 // every user/device sees the same app name/logo instead of each browser
@@ -53,12 +54,15 @@ export const DataProvider = ({ children }) => {
   const transactionsLoadedRef = useRef(0);
 
   const [appSettings, setAppSettings] = useState(readCachedAppSettings);
+  const { setInstanceDefaultTheme } = useTheme();
 
   // Load the real, server-side branding once on mount (works before login —
   // the endpoint is public) and let it replace the localStorage cache.
   useEffect(() => {
     brandingAPI.get()
       .then((branding) => {
+        // The admin's default colour theme, for users who haven't picked one.
+        setInstanceDefaultTheme(branding.defaultTheme && branding.defaultTheme !== 'ghost' ? branding.defaultTheme : null);
         setAppSettings((prev) => {
           const updated = {
             ...prev,
@@ -66,13 +70,14 @@ export const DataProvider = ({ children }) => {
             appLogo: branding.appLogo,
             defaultLanguage: branding.defaultLanguage,
             defaultThemeMode: branding.defaultThemeMode,
+            defaultTheme: branding.defaultTheme,
           };
           cacheAppSettings(updated);
           return updated;
         });
       })
       .catch((err) => console.error('Error fetching branding settings:', err));
-  }, []);
+  }, [setInstanceDefaultTheme]);
 
   // Fetch people from a given offset. offset=0 replaces the list; offset>0 appends.
   const fetchPeople = useCallback(async (offset = 0) => {
