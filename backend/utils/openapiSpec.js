@@ -270,6 +270,8 @@ const spec = {
       PersonOsintAppend: toSchema(S.PersonOsintAppendSchema),
       OsintRecordsAdd: toSchema(S.OsintRecordsAddSchema),
       SettingsModules: toSchema(S.SettingsModulesSchema),
+      SsoLink: toSchema(S.SsoLinkSchema),
+      SsoCreate: toSchema(S.SsoCreateSchema),
       CaseCreate: toSchema(S.CaseCreateSchema),
       CaseUpdate: toSchema(S.CaseUpdateSchema),
       ProjectCreate: toSchema(S.ProjectCreateSchema),
@@ -333,7 +335,39 @@ const spec = {
         },
       },
     },
-    '/auth/logout': { post: { ...op('Auth', 'Log out and destroy the session'), security: [] } },
+    '/auth/logout': {
+      post: {
+        ...op('Auth', 'Log out and destroy the session', {
+          description: 'After a single sign-on session, `redirect` is the identity provider\'s sign-out address (OIDC_LOGOUT) for the browser to open.',
+        }),
+        security: [],
+      },
+    },
+    '/auth/methods': {
+      get: { ...op('Auth', 'How users can sign in: password, single sign-on, or both', { mcp: false }), security: [] },
+    },
+    '/auth/oidc/login': {
+      get: {
+        ...op('Auth', 'Single sign-on: send the browser to the identity provider', {
+          mcp: false,
+          description: 'A browser navigation, not an API call (issue #105). Redirects to the OpenID Connect provider (Authorization Code + PKCE).',
+          responses: { 302: { description: 'Redirect to the identity provider, or to /?sso_error=… when single sign-on is off or unreachable' } },
+        }),
+        security: [],
+      },
+    },
+    '/auth/oidc/callback': {
+      get: {
+        ...op('Auth', 'Single sign-on: the identity provider sends the browser back here', {
+          mcp: false,
+          params: [queryParam('error', 'Set by the identity provider when the sign-in was cancelled or failed (it also adds code, state and iss).')],
+          description: 'Checks the answer (state, nonce, PKCE, ID token) and starts a GHOST session for the linked user. '
+            + 'Redirects to / on success, or /?sso_error=not_linked|inactive|email_in_use|expired|denied|failed.',
+          responses: { 302: { description: 'Redirect into GHOST' } },
+        }),
+        security: [],
+      },
+    },
     '/auth/mfa/verify': {
       post: {
         ...op('Auth', 'Second sign-in step: authenticator code or recovery code', {
@@ -1046,6 +1080,33 @@ const spec = {
       get: op('Users', 'Active users (id, username, email) for member pickers', {
         description: 'Available to any signed-in user, unlike the admin-only user list.',
         responseSchema: objectArray,
+      }),
+    },
+    '/users/sso': {
+      get: op('Users', 'Single sign-on status and sign-ins waiting for an admin', {
+        admin: true, mcp: false,
+        description: 'Sign-ins that matched no linked account (issue #105). Link each to an existing user or create a user for it.',
+      }),
+    },
+    '/users/sso/pending/{id}': {
+      delete: op('Users', 'Dismiss a waiting single sign-on request', { admin: true, mcp: false, params: [idParam] }),
+    },
+    '/users/sso/pending/{id}/link': {
+      post: op('Users', 'Link a waiting single sign-on request to an existing user', { admin: true, mcp: false, params: [idParam], body: ref('SsoLink') }),
+    },
+    '/users/sso/pending/{id}/create': {
+      post: op('Users', 'Create a user for a waiting single sign-on request', {
+        admin: true, mcp: false, params: [idParam], body: ref('SsoCreate'),
+        description: 'The user has no GHOST password and signs in with single sign-on only.',
+      }),
+    },
+    '/users/{id}/sso': {
+      get: op('Users', 'Single sign-on identities linked to a user', { admin: true, mcp: false, params: [idParam] }),
+    },
+    '/users/{id}/sso/{identityId}': {
+      delete: op('Users', 'Unlink a single sign-on identity (signs the user out)', {
+        admin: true, mcp: false,
+        params: [idParam, { name: 'identityId', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }],
       }),
     },
     '/users/{id}/two-factor': {

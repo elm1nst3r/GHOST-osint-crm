@@ -1,0 +1,54 @@
+// Single sign-on settings (issue #105), read from the environment. OpenID
+// Connect is off unless OIDC_ENABLED=true and the issuer and client are set.
+//
+//   OIDC_ENABLED=true
+//   OIDC_ISSUER_URL=https://keycloak.example.com/realms/ghost
+//   OIDC_CLIENT_ID=ghost
+//   OIDC_CLIENT_SECRET=...            (empty for a public client: PKCE only)
+//   OIDC_REDIRECT_URI=https://ghost.example.com/api/auth/oidc/callback
+//   OIDC_SCOPES=openid profile email
+//   OIDC_DISPLAY_NAME=Keycloak        (the sign-in button: "Sign in with Keycloak")
+//   OIDC_AUTO_PROVISION=false         (create a GHOST user on first sign-in)
+//   OIDC_ADMIN_GROUP=ghost-admins     (optional: this group makes someone an admin)
+//   OIDC_GROUPS_CLAIM=groups
+//   OIDC_LOGOUT=true                  (signing out of GHOST also signs out at the provider)
+//   OIDC_ALLOW_HTTP=false             (only for local testing against an http:// provider)
+//   LOCAL_LOGIN_ENABLED=true          (GHOST passwords; keep on as a fallback)
+
+const bool = (v, dflt) => (v === undefined || v === '' ? dflt : /^(1|true|yes|on)$/i.test(String(v).trim()));
+
+function readOidcConfig(env = process.env) {
+  const issuer = (env.OIDC_ISSUER_URL || '').trim().replace(/\/+$/, '');
+  const clientId = (env.OIDC_CLIENT_ID || '').trim();
+  const redirectUri = (env.OIDC_REDIRECT_URI || '').trim();
+  const wanted = bool(env.OIDC_ENABLED, false);
+  const problems = [];
+  if (wanted) {
+    if (!issuer) problems.push('OIDC_ISSUER_URL is not set');
+    if (!clientId) problems.push('OIDC_CLIENT_ID is not set');
+    if (!redirectUri) problems.push('OIDC_REDIRECT_URI is not set');
+    else if (!/\/api\/auth\/oidc\/callback$/.test(redirectUri)) problems.push('OIDC_REDIRECT_URI must end in /api/auth/oidc/callback');
+    const allowHttp = bool(env.OIDC_ALLOW_HTTP, false);
+    if (issuer && !issuer.startsWith('https://') && !allowHttp) problems.push('OIDC_ISSUER_URL must use https:// (OIDC_ALLOW_HTTP=true only for local testing)');
+  }
+  const scopes = (env.OIDC_SCOPES || 'openid profile email').split(/[\s,]+/).filter(Boolean);
+  if (!scopes.includes('openid')) scopes.unshift('openid');
+  return {
+    enabled: wanted && problems.length === 0,
+    problems,
+    issuer,
+    clientId,
+    clientSecret: env.OIDC_CLIENT_SECRET || '',
+    redirectUri,
+    scopes: scopes.join(' '),
+    displayName: (env.OIDC_DISPLAY_NAME || 'SSO').trim().slice(0, 40) || 'SSO',
+    autoProvision: bool(env.OIDC_AUTO_PROVISION, false),
+    adminGroup: (env.OIDC_ADMIN_GROUP || '').trim(),
+    groupsClaim: (env.OIDC_GROUPS_CLAIM || 'groups').trim(),
+    logout: bool(env.OIDC_LOGOUT, true),
+    allowHttp: bool(env.OIDC_ALLOW_HTTP, false),
+    localLoginEnabled: bool(env.LOCAL_LOGIN_ENABLED, true),
+  };
+}
+
+module.exports = { readOidcConfig };

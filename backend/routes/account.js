@@ -40,7 +40,22 @@ async function currentUser(userId) {
 
 async function passwordMatches(userId, password) {
   const user = await currentUser(userId);
-  return Boolean(user && password && await bcrypt.compare(password, user.password_hash));
+  return Boolean(user && password && user.password_hash && await bcrypt.compare(password, user.password_hash));
+}
+
+// Confirms it's really the account holder before a sensitive change: their
+// GHOST password, or, for an account without one (single sign-on, #105), a
+// single sign-on from the last 15 minutes. Returns null or the error to send.
+const RECENT_SSO_MS = 15 * 60 * 1000;
+async function confirmIdentity(req, password) {
+  const user = await currentUser(req.session.userId);
+  if (user && !user.password_hash) {
+    const sso = req.session.sso;
+    if (sso && Date.now() - sso.at < RECENT_SSO_MS) return null;
+    return { status: 401, message: 'Sign in again with single sign-on to confirm this change', code: 'reauth_required' };
+  }
+  if (await passwordMatches(req.session.userId, password)) return null;
+  return { status: 401, message: 'Password is incorrect', code: 'password_invalid' };
 }
 
 // Name shown in the authenticator app and the passkey prompt.
@@ -81,10 +96,11 @@ const POLICY_BLOCK = 'Two-factor authentication is required on this server. Add 
 router.get('/security', async (req, res) => {
   try {
     const userId = req.session.userId;
-    const [state, list, required] = await Promise.all([
+    const [state, list, required, account] = await Promise.all([
       security.mfaState(pool, userId),
       security.passkeysFor(pool, userId),
       security.mfaRequiredByPolicy(pool),
+      pool.query('SELECT password_hash IS NOT NULL AS has_password FROM users WHERE id = $1', [userId]),
     ]);
     res.json({
       totp: { enabled: state.totp, enabled_at: state.totp_enabled_at },
@@ -93,6 +109,10 @@ router.get('/security', async (req, res) => {
       enabled: state.enabled,
       required_by_policy: required,
       setup_required: Boolean(req.session.mfaSetupRequired),
+      // Single sign-on accounts (issue #105) have no GHOST password: their
+      // two-step verification happens at the identity provider.
+      has_password: account.rows[0]?.has_password !== false,
+      sso_session: Boolean(req.session.sso),
       // Where passkeys can be used. The page compares this with its own
       // address before offering "Add a passkey".
       passkey_origins: tf.passkeyOrigins().map((o) => o.origin),
@@ -145,7 +165,7 @@ router.post('/totp', validate(TotpEnableSchema), async (req, res) => {
 router.delete('/totp', validate(PasswordConfirmSchema), async (req, res) => {
   try {
     const userId = req.session.userId;
-    if (!(await passwordMatches(userId, req.body.password))) return fail(res, 401, 'Password is incorrect', 'password_invalid');
+    { const denied = await confirmIdentity(req, req.body.password); if (denied) return fail(res, denied.status, denied.message, denied.code); }
     if (await blockedByPolicy(userId, 'totp')) return fail(res, 400, POLICY_BLOCK, 'mfa_required_by_policy');
     await security.disableTotp(pool, userId);
     await security.dropRecoveryCodesIfUnused(pool, userId);
@@ -161,7 +181,7 @@ router.delete('/totp', validate(PasswordConfirmSchema), async (req, res) => {
 router.post('/recovery-codes', validate(PasswordConfirmSchema), async (req, res) => {
   try {
     const userId = req.session.userId;
-    if (!(await passwordMatches(userId, req.body.password))) return fail(res, 401, 'Password is incorrect', 'password_invalid');
+    { const denied = await confirmIdentity(req, req.body.password); if (denied) return fail(res, denied.status, denied.message, denied.code); }
     if (!(await security.mfaState(pool, userId)).enabled) return fail(res, 400, 'Turn on two-factor authentication first.');
     const codes = await security.replaceRecoveryCodes(pool, userId);
     await req.audit.log('user', userId, 'update', 'two_factor', null, 'recovery_codes_replaced');
@@ -223,7 +243,7 @@ router.post('/passkeys', validate(PasskeyCreateSchema), async (req, res) => {
 router.delete('/passkeys/:id', validateIdParam, validate(PasswordConfirmSchema), async (req, res) => {
   try {
     const userId = req.session.userId;
-    if (!(await passwordMatches(userId, req.body.password))) return fail(res, 401, 'Password is incorrect', 'password_invalid');
+    { const denied = await confirmIdentity(req, req.body.password); if (denied) return fail(res, denied.status, denied.message, denied.code); }
     const { rows } = await pool.query('SELECT id, name FROM user_passkeys WHERE id = $1 AND user_id = $2', [req.params.id, userId]);
     if (!rows[0]) return fail(res, 404, 'Passkey not found');
     if (await blockedByPolicy(userId, 'passkey')) return fail(res, 400, POLICY_BLOCK, 'mfa_required_by_policy');
@@ -252,7 +272,7 @@ router.post('/tokens', requireAuth, validate(ApiTokenCreateSchema), async (req, 
   try {
     const userId = req.session.userId;
     const { name, expires_in_days, password } = req.body;
-    if (!(await passwordMatches(userId, password))) return fail(res, 401, 'Password is incorrect', 'password_invalid');
+    { const denied = await confirmIdentity(req, password); if (denied) return fail(res, denied.status, denied.message, denied.code); }
     const { token, record } = await security.createToken(pool, userId, { name, expiresInDays: expires_in_days });
     await req.audit.log('user', userId, 'update', 'api_token', null, `created:${record.name}`);
     res.status(201).json({ token, ...record });

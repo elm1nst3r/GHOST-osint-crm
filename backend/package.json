@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.0.5",
+  "version": "3.1.0",
   "main": "server.js",
   "scripts": {
     "test": "jest --forceExit",
@@ -23,6 +23,7 @@
     "helmet": "^8.3.0",
     "knex": "^3.3.0",
     "multer": "^2.5.0",
+    "openid-client": "^6.8.9",
     "otpauth": "^9.6.0",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",

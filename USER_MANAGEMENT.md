@@ -138,6 +138,51 @@ For the MCP server and scripts. Create one under **Settings → Security → API
 
 Accounts with two-step verification need a token for the MCP server; see [mcp/README.md](mcp/README.md).
 
+### Single sign-on (OpenID Connect)
+GHOST can sign people in through an identity provider that speaks OpenID Connect: Keycloak, Authentik, Authelia, Zitadel, Entra ID, Google and others. Users then sign in with their existing account, and two-step verification, password rules and offboarding happen at the provider. The sign-in page shows a **Sign in with …** button next to (or instead of) the password form.
+
+**How accounts are matched.** GHOST links an identity by the provider's issuer and its permanent user id (`sub`), never by email or username alone.
+- A sign-in that matches no linked account is refused, and appears under **Settings → User Management → Single sign-on** for an admin to **link** to an existing user or **create** a new user for (that user gets no GHOST password).
+- With `OIDC_AUTO_PROVISION=true`, a new identity becomes a new GHOST user on first sign-in, unless a local user already has the same email: then it waits for an admin, so nobody ends up with two accounts.
+- New users start with no project access and see the "no project" screen until someone adds them to a project.
+- With `OIDC_ADMIN_GROUP` set, the provider decides who is an administrator: members of that group get the Administrator role at each sign-in, everyone else User. Project roles (Owner/Manager/Investigator) stay in GHOST.
+- Deactivating a user in GHOST blocks their single sign-on too. Unlinking an identity (edit the user) signs them out.
+- GHOST's own "require two-step verification" setting doesn't apply to single sign-on: the provider does that.
+- Accounts without a GHOST password create API tokens (for the MCP server) right after signing in; after 15 minutes GHOST asks them to sign in again first.
+
+**Settings** (environment variables, see `.env.example`):
+
+| Variable | Meaning |
+|---|---|
+| `OIDC_ENABLED` | `true` to turn it on |
+| `OIDC_ISSUER_URL` | the provider's issuer, e.g. `https://keycloak.example.com/realms/ghost` (must be https) |
+| `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | the client registered for GHOST (leave the secret empty for a public client; PKCE is always used) |
+| `OIDC_REDIRECT_URI` | `https://<your GHOST address>/api/auth/oidc/callback` |
+| `OIDC_SCOPES` | default `openid profile email` |
+| `OIDC_DISPLAY_NAME` | the button text: "Sign in with *Keycloak*" |
+| `OIDC_AUTO_PROVISION` | `true`: create users on first sign-in (default `false`: an admin links them) |
+| `OIDC_ADMIN_GROUP`, `OIDC_GROUPS_CLAIM` | group that makes someone an admin, and the claim that lists groups (default `groups`; nested claims like `realm_access.roles` work) |
+| `OIDC_LOGOUT` | default `true`: signing out of GHOST also signs out at the provider |
+| `LOCAL_LOGIN_ENABLED` | default `true`. Set `false` to allow single sign-on only; set it back to `true` and restart if the provider is ever unreachable |
+
+**Keycloak example.**
+1. In your realm, create a client: *Client ID* `ghost`, *Client authentication* on, *Standard flow* on (nothing else).
+2. *Valid redirect URIs*: `https://ghost.example.com/api/auth/oidc/callback`; *Valid post logout redirect URIs*: `https://ghost.example.com/*`.
+3. Optional, for `OIDC_ADMIN_GROUP`: *Client scopes → ghost-dedicated → Add mapper → Group Membership*, token claim name `groups`, *Full group path* off.
+4. Copy the client secret from the *Credentials* tab, then in GHOST's `.env`:
+   ```
+   OIDC_ENABLED=true
+   OIDC_ISSUER_URL=https://keycloak.example.com/realms/<realm>
+   OIDC_CLIENT_ID=ghost
+   OIDC_CLIENT_SECRET=<secret>
+   OIDC_REDIRECT_URI=https://ghost.example.com/api/auth/oidc/callback
+   OIDC_DISPLAY_NAME=Keycloak
+   OIDC_ADMIN_GROUP=ghost-admins
+   ```
+5. `docker compose up -d`. The status shows under Settings → User Management → Single sign-on.
+
+Other providers work the same way: register a "web" client with the redirect URI above and use the issuer URL from their documentation.
+
 ### Managing Users (Admin only)
 1. Log in as admin
 2. Go to **Settings → User Management**
@@ -147,6 +192,7 @@ Accounts with two-step verification need a token for the MCP server; see [mcp/RE
    - **Activate / Deactivate** — toggle login access without deleting the account
    - **Delete** — permanent removal (cannot delete your own account)
    - **Reset two-step verification** (shield button, shown for users who have it) — removes their authenticator app, passkeys and recovery codes and signs them out, for someone who lost their phone
+   - **Single sign-on** — link waiting sign-ins to users or create users for them; unlink an identity in the user's edit dialog
 
 ### User Fields
 | Field | Required | Notes |

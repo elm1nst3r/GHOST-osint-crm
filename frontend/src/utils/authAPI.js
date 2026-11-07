@@ -25,6 +25,8 @@ export const authAPI = {
   // Login. With two-factor on, the answer is { mfa_required, methods } and
   // one of the mfa* calls below finishes the sign-in (issue #90).
   login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } }),
+  // How this instance signs in: { local, sso: { name, url } | null } (issue #105).
+  methods: () => request('/auth/methods'),
   mfaVerifyCode: (code) => request('/auth/mfa/verify', { method: 'POST', body: { code } }),
   mfaVerifyRecoveryCode: (recoveryCode) => request('/auth/mfa/verify', { method: 'POST', body: { recovery_code: recoveryCode } }),
   mfaPasskeyOptions: () => request('/auth/mfa/passkey/options', { method: 'POST' }),
@@ -120,6 +122,14 @@ export const securitySettingsAPI = {
 export const usersAPI = {
   // Admin: remove a user's authenticator app, passkeys and recovery codes.
   resetTwoFactor: (id) => request(`/users/${id}/two-factor`, { method: 'DELETE' }),
+
+  // Single sign-on (issue #105, admin): status, waiting sign-ins, linking.
+  ssoStatus: () => request('/users/sso'),
+  linkSso: (pendingId, userId) => request(`/users/sso/pending/${pendingId}/link`, { method: 'POST', body: { user_id: userId } }),
+  createFromSso: (pendingId, role) => request(`/users/sso/pending/${pendingId}/create`, { method: 'POST', body: { role } }),
+  dismissSso: (pendingId) => request(`/users/sso/pending/${pendingId}`, { method: 'DELETE' }),
+  ssoIdentities: (userId) => request(`/users/${userId}/sso`),
+  unlinkSso: (userId, identityId) => request(`/users/${userId}/sso/${identityId}`, { method: 'DELETE' }),
 
   // Lightweight directory (any authenticated user) — id/username/email only,
   // for a Project Manager's "add member" picker (issue #84). Not admin-only,

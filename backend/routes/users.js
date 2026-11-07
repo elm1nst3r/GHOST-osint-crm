@@ -9,6 +9,9 @@ const { revokeSessionsForUser } = require('../utils/sessions');
 const { validateIdParam } = require('../middleware/validation');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { mfaStateForAll, resetMfa } = require('../services/accountSecurity');
+const { readOidcConfig } = require('../utils/oidcConfig');
+const { createUserForIdentity } = require('../services/oidc');
+const { validate, SsoLinkSchema, SsoCreateSchema } = require('../middleware/schemas');
 
 
 router.use(apiLimiter);
@@ -16,7 +19,9 @@ router.use(apiLimiter);
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at, updated_at
+      `SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at, updated_at,
+              password_hash IS NOT NULL AS has_password,
+              (SELECT COUNT(*)::int FROM user_identities i WHERE i.user_id = users.id) AS sso_identities
        FROM users
        ORDER BY created_at DESC, id DESC` // id: users created together keep one order
     );
@@ -45,6 +50,130 @@ router.get('/directory', requireAuth, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching user directory:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Single sign-on (issue #105) ──────────────────────────────────────────────
+// Sign-ins that matched no linked account wait here until an admin links
+// them to an existing user or creates one. Linking is always an admin's
+// decision: GHOST never matches an identity to an account by email itself.
+// Declared before /:id so they aren't swallowed by that pattern.
+
+router.get('/sso', requireAdmin, async (req, res) => {
+  try {
+    const cfg = readOidcConfig();
+    const { rows } = await pool.query('SELECT * FROM sso_pending ORDER BY last_attempt_at DESC, id DESC');
+    res.json({
+      config: {
+        enabled: cfg.enabled, wanted: cfg.enabled || cfg.problems.length > 0, problems: cfg.problems,
+        issuer: cfg.issuer || null, name: cfg.displayName, autoProvision: cfg.autoProvision,
+        adminGroup: cfg.adminGroup || null, localLogin: cfg.localLoginEnabled,
+      },
+      pending: rows,
+    });
+  } catch (error) {
+    console.error('Error fetching SSO status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+async function loadPending(id) {
+  const { rows } = await pool.query('SELECT * FROM sso_pending WHERE id = $1', [id]);
+  return rows[0] || null;
+}
+
+router.post('/sso/pending/:id/link', requireAdmin, validateIdParam, validate(SsoLinkSchema), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const pending = await loadPending(req.params.id);
+    if (!pending) return res.status(404).json({ error: 'Sign-in request not found' });
+    const { rows: users } = await client.query('SELECT id, username FROM users WHERE id = $1', [req.body.user_id]);
+    if (!users[0]) return res.status(404).json({ error: 'User not found' });
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO user_identities (user_id, issuer, subject, email, display_name, linked_by)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [users[0].id, pending.issuer, pending.subject, pending.email, pending.display_name, req.session.userId]
+    );
+    await client.query('DELETE FROM sso_pending WHERE id = $1', [pending.id]);
+    await client.query('COMMIT');
+    await req.audit.log('user', users[0].id, 'update', 'sso_identity', null, `${pending.email || pending.subject} at ${pending.issuer}`);
+    res.json({ linked: true, user_id: users[0].id });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (error.constraint === 'user_identities_unique') return res.status(409).json({ error: 'This identity is already linked to a user' });
+    console.error('Error linking SSO identity:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/sso/pending/:id/create', requireAdmin, validateIdParam, validate(SsoCreateSchema), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const pending = await loadPending(req.params.id);
+    if (!pending) return res.status(404).json({ error: 'Sign-in request not found' });
+    await client.query('BEGIN');
+    const user = await createUserForIdentity(client, {
+      issuer: pending.issuer, subject: pending.subject, email: pending.email, display: pending.display_name,
+      preferred: pending.preferred_username, role: req.body.role || 'user', linkedBy: req.session.userId,
+    });
+    await client.query('DELETE FROM sso_pending WHERE id = $1', [pending.id]);
+    await client.query('COMMIT');
+    await req.audit.log('user', user.id, 'create', 'sso', null, pending.issuer);
+    res.status(201).json({ id: user.id, username: user.username, email: user.email, role: user.role });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (error.constraint === 'users_email_key') return res.status(409).json({ error: 'A user with this email already exists. Link the sign-in to that user instead.' });
+    if (error.constraint === 'user_identities_unique') return res.status(409).json({ error: 'This identity is already linked to a user' });
+    console.error('Error creating user from SSO identity:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/sso/pending/:id', requireAdmin, validateIdParam, async (req, res) => {
+  try {
+    const { rowCount } = await pool.query('DELETE FROM sso_pending WHERE id = $1', [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'Sign-in request not found' });
+    res.json({ message: 'Dismissed' });
+  } catch (error) {
+    console.error('Error dismissing SSO request:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/:id/sso', requireAdmin, validateIdParam, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT i.id, i.issuer, i.subject, i.email, i.display_name, i.created_at, i.last_login_at, u.username AS linked_by_username
+       FROM user_identities i LEFT JOIN users u ON u.id = i.linked_by
+       WHERE i.user_id = $1 ORDER BY i.created_at, i.id`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching SSO identities:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Unlinking ends the user's single sign-on: an account without a password
+// can then only be used again after it is linked again (or gets a password).
+router.delete('/:id/sso/:identityId', requireAdmin, validateIdParam, async (req, res) => {
+  const identityId = parseInt(req.params.identityId, 10);
+  if (!Number.isInteger(identityId) || identityId < 1) return res.status(400).json({ error: 'Invalid identity id' });
+  try {
+    const { rows } = await pool.query('DELETE FROM user_identities WHERE id = $1 AND user_id = $2 RETURNING issuer, email, subject', [identityId, req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Identity not found' });
+    await revokeSessionsForUser(pool, Number(req.params.id));
+    await req.audit.log('user', Number(req.params.id), 'update', 'sso_identity', `${rows[0].email || rows[0].subject} at ${rows[0].issuer}`, null);
+    res.json({ message: 'Unlinked' });
+  } catch (error) {
+    console.error('Error unlinking SSO identity:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

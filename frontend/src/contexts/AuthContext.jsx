@@ -68,8 +68,10 @@ export const AuthProvider = ({ children }) => {
 
   // Signed out locally even when the request fails (e.g. server unreachable).
   const handleLogout = async () => {
-    await authAPI.logout().catch(() => {});
+    const result = await authAPI.logout().catch(() => null);
     signedOut();
+    // After single sign-on: also sign out at the identity provider (issue #105).
+    if (result?.redirect) window.location.assign(result.redirect);
   };
 
   const onMount = useEffectEvent(() => {

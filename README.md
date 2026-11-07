@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.0.5-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.1.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -289,7 +289,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.0.5
+GHOST_VERSION=3.1.0
 ```
 
 Without it, the containers track the latest release.
@@ -501,6 +501,7 @@ GHOST-osint-crm/
 - 🔒 **Session fixation protection** — session ID is regenerated on every successful login
 - 🔒 **Two-step verification** — authenticator app or passkey after the password, with recovery codes; admins can require it for every user. Passkeys need HTTPS with a domain name (or localhost) at the address in `FRONTEND_URL` — see [USER_MANAGEMENT.md](USER_MANAGEMENT.md#two-step-verification)
 - 🔒 **Personal API tokens** — for the MCP server and scripts; shown once, stored hashed, revocable, and unable to change security settings
+- 🔑 **Single sign-on** — OpenID Connect with Keycloak, Authentik, Authelia, Zitadel, Entra ID, Google and others; admins link accounts, and the provider's groups can decide who is an administrator — see [USER_MANAGEMENT.md](USER_MANAGEMENT.md#single-sign-on-openid-connect)
 - 🔒 **Session revocation** — changing a user's role, deactivating, deleting, or resetting their password immediately invalidates their active sessions
 - 🔒 **Per-project access control** — non-admin users only see and can act on projects they've been added to, enforced on every project-scoped API route (not just filtered in the UI); membership changes are rank-checked (owner > manager > investigator), only admins appoint owners, and nobody but an admin can change their own membership — see [Roles & Permissions](#-roles--permissions)
 - 🔒 **Rate limiting** — login endpoint limited to 10 attempts/15 min per IP+username (tunable via `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MS` / `LOGIN_RATE_LIMIT_DISABLE`); geocoding endpoints limited to 60 req/min per IP; all authenticated data routes limited to 300 req/min per IP. Login, second-step and tool-search counts are stored in PostgreSQL, so restarts don't reset them and multiple instances share them; IPv6 clients are counted per /56 block
@@ -696,6 +697,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.1.0 (November 2026)
+- 🔑 **Single sign-on** — sign in through Keycloak, Authentik, Authelia, Zitadel, Entra ID, Google or any OpenID Connect provider; admins link accounts, the provider's groups can decide who is an administrator (issue #105)
+
 ### Version 3.0.5 (November 2026)
 - 🎨 **Colour themes** — Catppuccin, Nord, Dracula, Gruvbox, Solarized, Tokyo Night, Rosé Pine and a Matrix theme, all checked for readable contrast; plus collapsible menu groups
 
@@ -735,5 +739,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.0.5
+**Version:** 3.1.0
 **Last Updated:** November 5, 2026

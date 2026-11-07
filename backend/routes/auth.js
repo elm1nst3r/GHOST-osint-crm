@@ -11,6 +11,8 @@ const { revokeSessionsForUser, regenerateSession, saveSession, establishSession 
 const { PENDING_MFA_TTL_MS } = require('../utils/twoFactor');
 const security = require('../services/accountSecurity');
 const passkeys = require('../services/passkeys');
+const { readOidcConfig } = require('../utils/oidcConfig');
+const oidc = require('../services/oidc');
 
 // /login carries its own stricter loginLimiter; everything else (in
 // particular /me, which lets a session re-check current_password before
@@ -39,9 +41,22 @@ async function finishLogin(req, res, user) {
   res.json({ success: true, user: publicUser(user), mfa_setup_required: mfaSetupRequired });
 }
 
+// How to sign in on this instance (issue #105): the sign-in page shows the
+// password form, a single sign-on button, or both.
+router.get('/methods', (req, res) => {
+  const cfg = readOidcConfig();
+  res.json({
+    local: cfg.localLoginEnabled,
+    sso: cfg.enabled ? { name: cfg.displayName, url: '/api/auth/oidc/login' } : null,
+  });
+});
+
 // Login — regenerate session ID on successful auth to prevent session fixation
 router.post('/login', loginLimiter, async (req, res) => {
   try {
+    if (!readOidcConfig().localLoginEnabled) {
+      return res.status(403).json({ error: 'Password sign-in is turned off. Use single sign-on.', code: 'local_login_disabled' });
+    }
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -61,7 +76,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     const user = result.rows[0];
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    // Users created from single sign-on have no GHOST password.
+    const isValidPassword = Boolean(user.password_hash) && await bcrypt.compare(password, user.password_hash);
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -175,15 +191,21 @@ router.post('/mfa/passkey/verify', mfaLimiter, validate(PasskeySignInSchema), as
 
 // Logout. No requireAuth: it also ends a sign-in that is waiting for its
 // second step, or for two-factor setup (issue #90).
-router.post('/logout', (req, res) => {
+// After a single sign-on session, `redirect` is the identity provider's
+// sign-out address (OIDC_LOGOUT), so the browser ends that session too.
+router.post('/logout', async (req, res) => {
   if (!req.session) return res.json({ success: true });
+  const sso = req.session.sso;
+  const redirect = sso
+    ? await oidc.endSessionUrl(readOidcConfig(), sso.idToken, process.env.FRONTEND_URL || undefined)
+    : null;
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
       return res.status(500).json({ error: 'Failed to logout' });
     }
     res.clearCookie('connect.sid');
-    res.json({ success: true });
+    res.json({ success: true, ...(redirect ? { redirect } : {}) });
   });
 });
 
@@ -213,6 +235,7 @@ router.get('/session', async (req, res) => {
     // "Require two-factor" is on and this account has none yet: the app shows
     // only the setup screen until it's done (issue #90).
     mfa_setup_required: Boolean(req.session.mfaSetupRequired),
+    sso: Boolean(req.session.sso),
     user: {
       id: req.session.userId,
       username: req.session.username,
@@ -227,7 +250,10 @@ router.get('/session', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, email, first_name, last_name, role, last_login, created_at, language, theme_mode FROM users WHERE id = $1',
+      `SELECT id, username, email, first_name, last_name, role, last_login, created_at, language, theme_mode,
+              password_hash IS NOT NULL AS has_password,
+              (SELECT COUNT(*)::int FROM user_identities i WHERE i.user_id = users.id) AS sso_identities
+       FROM users WHERE id = $1`,
       [req.session.userId]
     );
 
@@ -235,7 +261,7 @@ router.get('/me', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json({ ...result.rows[0], sso_session: Boolean(req.session.sso) });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -276,6 +302,10 @@ router.put('/me', requireAuth, async (req, res) => {
         [userId]
       );
       const user = userResult.rows[0];
+      // Single sign-on accounts have no password to change (an admin can set one).
+      if (!user.password_hash) {
+        return res.status(400).json({ error: 'This account signs in with single sign-on and has no GHOST password', code: 'sso_only' });
+      }
       const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
 
       if (!isValidPassword) {
