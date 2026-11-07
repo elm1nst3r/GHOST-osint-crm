@@ -13,7 +13,9 @@ import { formatDate } from '../../../utils/format';
 
 const EXPIRY_OPTIONS = [30, 90, 365, null];
 
-const CreateTokenDialog = ({ onClose, onCreated }) => {
+// Accounts without a GHOST password (single sign-on, #105) confirm with a
+// recent sign-in instead; after 15 minutes they sign in again.
+const CreateTokenDialog = ({ onClose, onCreated, hasPassword = true }) => {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [expiresInDays, setExpiresInDays] = useState(90);
@@ -26,9 +28,9 @@ const CreateTokenDialog = ({ onClose, onCreated }) => {
     setBusy(true);
     setError('');
     try {
-      onCreated(await accountAPI.createToken({ name: name.trim(), expiresInDays, password }));
+      onCreated(await accountAPI.createToken({ name: name.trim(), expiresInDays, password: hasPassword ? password : undefined }));
     } catch (err) {
-      setError(securityErrorMessage(t, err));
+      setError(err?.code === 'reauth_required' ? 'reauth' : securityErrorMessage(t, err));
       setBusy(false);
     }
   };
@@ -52,15 +54,21 @@ const CreateTokenDialog = ({ onClose, onCreated }) => {
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="token-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('security.currentPassword')}</label>
-          <input id="token-password" type="password" autoComplete="current-password" required value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputClass} />
-        </div>
-        <ErrorNote>{error}</ErrorNote>
+        {hasPassword && (
+          <div>
+            <label htmlFor="token-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('security.currentPassword')}</label>
+            <input id="token-password" type="password" autoComplete="current-password" required value={password}
+              onChange={(e) => setPassword(e.target.value)} className={inputClass} />
+          </div>
+        )}
+        {error === 'reauth' ? (
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            {t('security.errors.reauthRequired')} <a href="/api/auth/oidc/login" className="underline">{t('security.signInAgain')}</a>
+          </p>
+        ) : <ErrorNote>{error}</ErrorNote>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} disabled={busy} className={buttonClass.secondary}>{t('common.cancel')}</button>
-          <button type="submit" disabled={busy || !name.trim() || !password} className={buttonClass.primary}>
+          <button type="submit" disabled={busy || !name.trim() || (hasPassword && !password)} className={buttonClass.primary}>
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}{t('security.tokens.create')}
           </button>
         </div>
@@ -97,7 +105,7 @@ const NewTokenDialog = ({ created, onDone }) => {
   );
 };
 
-const ApiTokensSection = () => {
+const ApiTokensSection = ({ hasPassword = true }) => {
   const { t } = useTranslation();
   const [tokens, setTokens] = useState(null);
   const [error, setError] = useState('');
@@ -160,7 +168,7 @@ const ApiTokensSection = () => {
           ))}
         </ul>
       )}
-      {creating && <CreateTokenDialog onClose={() => setCreating(false)} onCreated={(c) => { setCreating(false); setCreated(c); load(); }} />}
+      {creating && <CreateTokenDialog hasPassword={hasPassword} onClose={() => setCreating(false)} onCreated={(c) => { setCreating(false); setCreated(c); load(); }} />}
       {created && <NewTokenDialog created={created} onDone={() => setCreated(null)} />}
     </div>
   );

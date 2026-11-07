@@ -83,4 +83,22 @@ const mfaLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
   },
 });
 
-module.exports = { loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter, mfaLimiter };
+// Single sign-on (issue #105). Not the login limiter: that one counts per
+// IP and username, and an SSO request has no username, so everyone behind
+// one IP (an office) would share ten attempts. Credentials are checked at the
+// identity provider; this only stops a flood of redirects. A browser
+// navigation, so the answer is a redirect back to the sign-in page.
+const ssoLimiter = process.env.LOGIN_RATE_LIMIT_DISABLE === 'true'
+  ? (req, res, next) => next()
+  : rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: parseInt(process.env.SSO_RATE_LIMIT_MAX, 10) || 120,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    store: dbStore('sso'),
+    keyGenerator: (req) => ipKeyGenerator(req.ip),
+    handler: (req, res) => res.redirect(302, '/?sso_error=busy'),
+  });
+
+module.exports = {
+  ssoLimiter, loginLimiter, geocodingLimiter, apiLimiter, integrationLimiter, mfaLimiter };

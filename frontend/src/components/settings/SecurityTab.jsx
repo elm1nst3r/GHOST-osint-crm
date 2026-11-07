@@ -46,13 +46,15 @@ const SecurityTab = () => {
             {security.required_by_policy && !security.enabled && (
               <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">{t('security.policy.requiredNotice')}</p>
             )}
-            <TwoFactorSection security={security} reload={reload} username={currentUser?.username} />
+            {security.has_password === false
+              ? <p className="text-sm text-gray-600 dark:text-slate-400">{t('security.ssoTwoFactor')}</p>
+              : <TwoFactorSection security={security} reload={reload} username={currentUser?.username} />}
           </div>
         )}
       </Section>
 
       <Section icon={KeySquare} title={t('security.tokens.title')}>
-        <ApiTokensSection />
+        <ApiTokensSection hasPassword={security?.has_password !== false} />
       </Section>
 
       {currentUser?.role === 'admin' && security && (

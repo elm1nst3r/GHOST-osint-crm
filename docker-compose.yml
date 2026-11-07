@@ -64,6 +64,21 @@ services:
       FILES_MAX_BYTES: ${FILES_MAX_BYTES:-52428800}
       SECRETS_KEY: ${SECRETS_KEY:-}
       INTEGRATIONS_ALLOW_PRIVATE: ${INTEGRATIONS_ALLOW_PRIVATE:-false}
+      # Single sign-on through OpenID Connect (issue #105): off unless set.
+      # See USER_MANAGEMENT.md → Single sign-on.
+      OIDC_ENABLED: ${OIDC_ENABLED:-false}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+      OIDC_SCOPES: ${OIDC_SCOPES:-openid profile email}
+      OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME:-SSO}
+      OIDC_AUTO_PROVISION: ${OIDC_AUTO_PROVISION:-false}
+      OIDC_ADMIN_GROUP: ${OIDC_ADMIN_GROUP:-}
+      OIDC_GROUPS_CLAIM: ${OIDC_GROUPS_CLAIM:-groups}
+      OIDC_LOGOUT: ${OIDC_LOGOUT:-true}
+      OIDC_ALLOW_HTTP: ${OIDC_ALLOW_HTTP:-false}
+      LOCAL_LOGIN_ENABLED: ${LOCAL_LOGIN_ENABLED:-true}
 
     volumes:
       - ./backend/public:/usr/src/app/public

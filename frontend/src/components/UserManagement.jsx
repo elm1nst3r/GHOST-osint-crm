@@ -4,6 +4,7 @@ import { Users, Plus, Edit2, Trash2, Shield, User, Check, X, AlertCircle, Shield
 import { usersAPI } from '../utils/authAPI';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/format';
+import SsoPanel, { SsoIdentities } from './users/SsoPanel';
 
 // "App", "2 passkeys", "App + 1 passkey" (issue #90).
 const twoFactorLabel = (t, tf) => {
@@ -187,6 +188,8 @@ const UserManagement = () => {
         </button>
       </div>
 
+      <SsoPanel users={users} onChanged={loadUsers} />
+
       {error && (
         <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-2">
           <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
@@ -201,6 +204,7 @@ const UserManagement = () => {
               {editingUser ? t('settings.users.editUser') : t('settings.users.addNewUser')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {editingUser && <SsoIdentities userId={editingUser.id} onChanged={loadUsers} />}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {t('settings.users.usernameLabel')}
@@ -359,8 +363,14 @@ const UserManagement = () => {
                       <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </div>
                     <div className="ms-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
                         {user.username}
+                        {user.sso_identities > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" title={t('settings.users.sso.badgeTitle')}>SSO</span>
+                        )}
+                        {user.has_password === false && (
+                          <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">{t('settings.users.sso.noPassword')}</span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {user.first_name} {user.last_name}

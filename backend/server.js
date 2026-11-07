@@ -220,6 +220,7 @@ app.use(auditMiddleware);
 
 // Import and mount routes
 const authRoutes = require('./routes/auth');
+const oidcRoutes = require('./routes/oidc');
 const accountRoutes = require('./routes/account');
 const usersRoutes = require('./routes/users');
 const auditLogsRoutes = require('./routes/auditLogs');
@@ -263,6 +264,7 @@ if (process.env.API_DOCS_ENABLED !== 'false') {
   app.use('/api/docs', require('./routes/apiDocs'));
 }
 
+app.use('/api/auth/oidc', oidcRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/users', usersRoutes);

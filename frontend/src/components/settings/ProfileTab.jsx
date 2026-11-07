@@ -5,7 +5,7 @@ import { authAPI } from '../../utils/authAPI';
 
 const ProfileTab = () => {
   const { t } = useTranslation();
-  const [, setLocalCurrentUser] = useState(null);
+  const [localCurrentUser, setLocalCurrentUser] = useState(null);
   const [profileForm, setProfileForm] = useState({
     username: '', email: '', first_name: '', last_name: '',
     current_password: '', new_password: '', confirm_password: ''
@@ -109,6 +109,12 @@ const ProfileTab = () => {
           </div>
         </div>
 
+        {localCurrentUser?.has_password === false ? (
+          <div className="border-b pb-6">
+            <h4 className="text-md font-medium text-gray-900 dark:text-slate-100 mb-2">{t('settings.profile.changePassword')}</h4>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{t('settings.profile.ssoNoPassword')}</p>
+          </div>
+        ) : (
         <div className="border-b pb-6">
           <h4 className="text-md font-medium text-gray-900 dark:text-slate-100 mb-4">{t('settings.profile.changePassword')}</h4>
           <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{t('settings.profile.changePasswordHint')}</p>
@@ -127,6 +133,7 @@ const ProfileTab = () => {
             </div>
           </div>
         </div>
+        )}
 
         {profileError && (
           <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">

@@ -1,4 +1,4 @@
-import { useState, useTransition, lazy, Suspense } from 'react';
+import { useEffect, useState, useTransition, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LogIn, AlertCircle, ShieldCheck, KeyRound, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -146,6 +146,17 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, startSignIn] = useTransition();
   const [mfaMethods, setMfaMethods] = useState(null);
+  // Password, single sign-on, or both (issue #105). Until known: the password form.
+  const [methods, setMethods] = useState({ local: true, sso: null });
+  // A failed single sign-on comes back as /?sso_error=<code>.
+  const [ssoError] = useState(() => new URLSearchParams(window.location.search).get('sso_error'));
+
+  useEffect(() => {
+    let cancelled = false;
+    authAPI.methods().then((m) => { if (!cancelled && m) setMethods(m); }).catch(() => {});
+    if (ssoError) window.history.replaceState(null, '', window.location.pathname);
+    return () => { cancelled = true; };
+  }, [ssoError]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -187,9 +198,26 @@ const Login = ({ onLogin }) => {
             {t('login.subtitle')}
           </p>
         </div>
+        {!mfaMethods && ssoError && <ErrorBox message={t(`login.ssoErrors.${ssoError}`, { defaultValue: t('login.ssoErrors.failed') })} />}
+        {!mfaMethods && methods.sso && (
+          <div className="space-y-4">
+            <a
+              href={methods.sso.url}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <KeyRound className="h-5 w-5" aria-hidden="true" />
+              {t('login.signInWith', { name: methods.sso.name })}
+            </a>
+            {methods.local && (
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400" aria-hidden="true">
+                <span className="flex-1 border-t border-gray-300 dark:border-gray-700" />{t('login.or')}<span className="flex-1 border-t border-gray-300 dark:border-gray-700" />
+              </div>
+            )}
+          </div>
+        )}
         {mfaMethods ? (
           <SecondStep methods={mfaMethods} onDone={completeLogin} onRestart={restart} />
-        ) : (
+        ) : methods.local && (
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && <ErrorBox message={error} />}
           <div className="rounded-md shadow-xs -space-y-px">

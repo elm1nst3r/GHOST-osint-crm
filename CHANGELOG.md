@@ -5,6 +5,36 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-11-07
+
+### ✨ New
+
+- **Single sign-on through OpenID Connect** (issue #105). Users can sign in
+  with Keycloak, Authentik, Authelia, Zitadel, Entra ID, Google or any
+  other OpenID Connect provider (Authorization Code flow with PKCE, through
+  `openid-client`). Configured with `OIDC_*` environment variables; off by
+  default. Identities are linked by issuer and the provider's permanent user
+  id, never by email. A sign-in without a linked account waits under
+  Settings → User Management → Single sign-on for an admin to link it to an
+  existing user or create one; `OIDC_AUTO_PROVISION=true` creates users on
+  first sign-in instead (except when a local user has the same email).
+  `OIDC_ADMIN_GROUP` lets the provider's groups decide who is an
+  administrator. Single sign-on is exempt from GHOST's "require two-step
+  verification" (the provider handles it), signing out also signs out at
+  the provider (`OIDC_LOGOUT`), and `LOCAL_LOGIN_ENABLED=false` turns
+  password sign-in off. Users created from single sign-on have no GHOST
+  password; they create API tokens for the MCP server after a recent
+  sign-in. Keycloak walkthrough in USER_MANAGEMENT.md.
+- Single sign-on has its own rate limit (`SSO_RATE_LIMIT_MAX`, 120 requests
+  per 15 minutes per IP), so a team behind one address doesn't share the
+  ten password attempts.
+
+### 🔧 Changed
+
+- Database: `users.password_hash` may now be empty (single sign-on
+  accounts), and new tables `user_identities` and `sso_pending`. Applied
+  automatically on start.
+
 ## [3.0.5] - 2026-11-06
 
 ### ✨ New

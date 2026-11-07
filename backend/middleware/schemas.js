@@ -340,6 +340,11 @@ const SettingsToolsSchema = z.object({
   allow_user_tools: z.boolean(),
 });
 
+// Single sign-on (issue #105): an admin links a waiting sign-in to a user,
+// or creates a user for it.
+const SsoLinkSchema = z.object({ user_id: z.number().int().positive() });
+const SsoCreateSchema = z.object({ role: z.enum(['admin', 'user']).optional() });
+
 // Sections switched off for the whole instance (utils/modules.js).
 const SettingsModulesSchema = z.object({
   disabled: z.array(z.enum(require('../utils/modules').SWITCHABLE_MODULES)).max(20),
@@ -793,8 +798,10 @@ const TotpEnableSchema = z.object({
 });
 
 // Removing a sign-in method, new recovery codes: the current password again.
+// The password is left out by accounts without one (single sign-on, #105):
+// those confirm with a recent sign-in instead (routes/account.js).
 const PasswordConfirmSchema = z.object({
-  password: z.string().min(1).max(1024),
+  password: z.string().min(1).max(1024).optional(),
 });
 
 const PasskeyCreateSchema = z.object({
@@ -805,7 +812,7 @@ const PasskeyCreateSchema = z.object({
 const ApiTokenCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   expires_in_days: z.union([z.literal(30), z.literal(90), z.literal(365)]).nullable().default(null),
-  password: z.string().min(1).max(1024),
+  password: z.string().min(1).max(1024).optional(),
 });
 
 const SettingsSecuritySchema = z.object({
@@ -860,6 +867,8 @@ module.exports = {
   FileUpdateSchema,
   OsintRecordsAddSchema,
   SettingsModulesSchema,
+  SsoLinkSchema,
+  SsoCreateSchema,
   TransactionCreateSchema,
   TransactionUpdateSchema,
   SettingsCustomFieldCreateSchema,
