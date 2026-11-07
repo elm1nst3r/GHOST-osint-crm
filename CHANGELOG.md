@@ -5,6 +5,18 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-11-07
+
+### 🌍 Translations
+
+- **Russian** is now nearly complete (2,233 of 2,553 texts, up from 1,842),
+  covering the 3.x features: integrations, saved records, themes, the menu,
+  single sign-on. Thanks to the Crowdin translators.
+- Persian, German, Chinese and Arabic catalogues updated with the newest
+  texts (still in English where no translation exists yet).
+- Persian and Russian translations carried over intact to the Crowdin
+  i18next format introduced in 3.0.
+
 ## [3.1.0] - 2026-11-07
 
 ### ✨ New
