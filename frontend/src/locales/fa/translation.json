@@ -255,6 +255,19 @@
       "passkeyUnsupported": "This browser does not support passkeys. Use a recovery code, or sign in from another browser.",
       "passkeyElsewhere": "Your passkeys were added at a different address of this server. Open GHOST at that address, or use a recovery code.",
       "back": "Back to sign in"
+    },
+    "signInWith": "Sign in with {{name}}",
+    "or": "or",
+    "ssoErrors": {
+      "not_linked": "Your single sign-on account isn’t linked to a GHOST user yet. Ask an administrator to link it (Settings → User Management → Single sign-on).",
+      "email_in_use": "A GHOST account with your email already exists. An administrator needs to link your single sign-on account to it.",
+      "inactive": "This GHOST account is deactivated.",
+      "expired": "The sign-in took too long or was started in another browser. Please try again.",
+      "denied": "Sign-in was cancelled at the identity provider.",
+      "unavailable": "The identity provider can’t be reached right now. Try again later or use your password.",
+      "disabled": "Single sign-on isn’t available on this instance.",
+      "failed": "Single sign-on didn’t work. Please try again; if it keeps failing, ask an administrator to check the server log.",
+      "busy": "Too many sign-ins from this network right now. Please wait a few minutes and try again."
     }
   },
   "settings": {
@@ -314,7 +327,38 @@
       "twoFactorPasskeys_one": "{{count}} passkey",
       "twoFactorPasskeys_other": "{{count}} passkeys",
       "resetTwoFactor": "Reset two-step verification",
-      "confirmResetTwoFactor": "Reset two-step verification for {{username}}? This removes their authenticator app, passkeys and recovery codes and signs them out everywhere. They can sign in with their password and set it up again."
+      "confirmResetTwoFactor": "Reset two-step verification for {{username}}? This removes their authenticator app, passkeys and recovery codes and signs them out everywhere. They can sign in with their password and set it up again.",
+      "sso": {
+        "title": "Single sign-on",
+        "enabled": "Users can sign in with {{name}} ({{issuer}}).",
+        "autoOn": "New accounts are created on first sign-in.",
+        "autoOff": "New sign-ins wait here for you to link them.",
+        "adminGroup": "Members of “{{group}}” are administrators.",
+        "localOff": "Password sign-in is turned off.",
+        "misconfigured": "Single sign-on is switched on but not working: {{problems}}",
+        "notSetUp": "Single sign-on (OpenID Connect: Keycloak, Authentik, Entra ID, …) is not set up.",
+        "howTo": "How to set it up",
+        "waiting_one": "{{count}} sign-in waiting",
+        "waiting_other": "{{count}} sign-ins waiting",
+        "waitingHelp": "These people signed in with single sign-on but aren’t linked to a GHOST user. Link each to an existing user, create a user, or dismiss it.",
+        "reason_not_linked": "not linked",
+        "reason_email_in_use": "a user with this email exists",
+        "attempts_one": "{{count}} attempt, last {{date}}",
+        "attempts_other": "{{count}} attempts, last {{date}}",
+        "unverified": "unverified",
+        "linkTo": "Link to user",
+        "chooseUser": "Link to…",
+        "link": "Link",
+        "newUserRole": "Role for the new user",
+        "createUser": "Create user",
+        "dismiss": "Dismiss",
+        "linked": "Single sign-on",
+        "lastUsed": "last used {{date}}",
+        "unlink": "Unlink",
+        "unlinkHelp": "Unlinking signs the user out. Without a password they can’t sign in until linked again.",
+        "badgeTitle": "Signs in with single sign-on",
+        "noPassword": "no password"
+      }
     },
     "auditLogs": {
       "subtitle": "ردیابی تمام تغییرات و فعالیت‌ها در سیستم",
@@ -391,7 +435,8 @@
       "errorUpdateFailed": "به‌روزرسانی پروفایل ناموفق بود",
       "updateSuccess": "پروفایل با موفقیت به‌روز شد!",
       "saving": "در حال ذخیره...",
-      "saveChanges": "ذخیره تغییرات"
+      "saveChanges": "ذخیره تغییرات",
+      "ssoNoPassword": "You sign in with single sign-on and have no GHOST password. An administrator can set one if you need a fallback."
     },
     "dataModel": {
       "types": {
@@ -2752,8 +2797,11 @@
       "passkeyCancelled": "Passkey cancelled.",
       "setupExpired": "Setup expired. Close this and start again.",
       "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
-      "generic": "Something went wrong. Try again."
-    }
+      "generic": "Something went wrong. Try again.",
+      "reauthRequired": "For your security, sign in again with single sign-on first, then create the token."
+    },
+    "ssoTwoFactor": "You sign in with single sign-on, so two-step verification is handled by your identity provider.",
+    "signInAgain": "Sign in again"
   },
   "records": {
     "title": "Saved records",
