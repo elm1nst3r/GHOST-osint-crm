@@ -256,18 +256,18 @@
       "passkeyElsewhere": "Ваши пароли были добавлены на другой адрес этого сервера. Откройте GHOST на этом адресе или используйте код восстановления.",
       "back": "Вернуться ко входу"
     },
-    "signInWith": "Sign in with {{name}}",
-    "or": "or",
+    "signInWith": "Войти с помощью {{name}}",
+    "or": "или",
     "ssoErrors": {
-      "not_linked": "Your single sign-on account isn’t linked to a GHOST user yet. Ask an administrator to link it (Settings → User Management → Single sign-on).",
-      "email_in_use": "A GHOST account with your email already exists. An administrator needs to link your single sign-on account to it.",
-      "inactive": "This GHOST account is deactivated.",
-      "expired": "The sign-in took too long or was started in another browser. Please try again.",
-      "denied": "Sign-in was cancelled at the identity provider.",
-      "unavailable": "The identity provider can’t be reached right now. Try again later or use your password.",
-      "disabled": "Single sign-on isn’t available on this instance.",
-      "failed": "Single sign-on didn’t work. Please try again; if it keeps failing, ask an administrator to check the server log.",
-      "busy": "Too many sign-ins from this network right now. Please wait a few minutes and try again."
+      "not_linked": "Ваша учетная запись для единого входа (SSO) еще не привязана к пользователю GHOST. Попросите администратора выполнить привязку (Настройки → Управление пользователями → Единый вход).",
+      "email_in_use": "Учетная запись GHOST с вашим адресом электронной почты уже существует. Администратору необходимо связать с ним вашу учетную запись единого входа.",
+      "inactive": "Эта учетная запись GHOST отключена.",
+      "expired": "Вход занял слишком много времени или был запущен в другом браузере. Пожалуйста, попробуйте еще раз.",
+      "denied": "Вход был отменен провайдером идентификации.",
+      "unavailable": "К провайдеру идентификации не удалось подключиться в данный момент. Повторите попытку позже или используйте свой пароль.",
+      "disabled": "Единый вход не доступен в данном экземпляре.",
+      "failed": "Единый вход не работает. Пожалуйста, попробуйте еще раз; если он не работает, попросите администратора проверить журнал сервера.",
+      "busy": "Слишком много входов из этой сети. Пожалуйста, подождите несколько минут и повторите попытку."
     }
   },
   "settings": {
@@ -329,35 +329,35 @@
       "resetTwoFactor": "Сбросить двухэтапную аутентификацию",
       "confirmResetTwoFactor": "Сбросить двухэтапную аутентификацию для {{username}}? Это удалит TOTP, пароли и коды восстановления и сбросит сессии авторизации. Пользователь(-и) могут войти под своим паролем и установить 2FA снова.",
       "sso": {
-        "title": "Single sign-on",
-        "enabled": "Users can sign in with {{name}} ({{issuer}}).",
-        "autoOn": "New accounts are created on first sign-in.",
-        "autoOff": "New sign-ins wait here for you to link them.",
-        "adminGroup": "Members of “{{group}}” are administrators.",
-        "localOff": "Password sign-in is turned off.",
-        "misconfigured": "Single sign-on is switched on but not working: {{problems}}",
-        "notSetUp": "Single sign-on (OpenID Connect: Keycloak, Authentik, Entra ID, …) is not set up.",
-        "howTo": "How to set it up",
-        "waiting_one": "{{count}} sign-in waiting",
-        "waiting_other": "{{count}} sign-ins waiting",
-        "waitingHelp": "These people signed in with single sign-on but aren’t linked to a GHOST user. Link each to an existing user, create a user, or dismiss it.",
-        "reason_not_linked": "not linked",
-        "reason_email_in_use": "a user with this email exists",
-        "attempts_one": "{{count}} attempt, last {{date}}",
-        "attempts_other": "{{count}} attempts, last {{date}}",
-        "unverified": "unverified",
-        "linkTo": "Link to user",
-        "chooseUser": "Link to…",
-        "link": "Link",
-        "newUserRole": "Role for the new user",
-        "createUser": "Create user",
-        "dismiss": "Dismiss",
-        "linked": "Single sign-on",
-        "lastUsed": "last used {{date}}",
-        "unlink": "Unlink",
-        "unlinkHelp": "Unlinking signs the user out. Without a password they can’t sign in until linked again.",
-        "badgeTitle": "Signs in with single sign-on",
-        "noPassword": "no password"
+        "title": "SSO",
+        "enabled": "Пользователи могут войти через {{name}} ({{issuer}}).",
+        "autoOn": "Новые учетные записи создаются при первом входе в систему.",
+        "autoOff": "Здесь вас ожидают новые входы в систему — их нужно привязать.",
+        "adminGroup": "Участники “{{group}}” являются администраторами.",
+        "localOff": "Вход с паролем выключен.",
+        "misconfigured": "Одиночный вход включен, но не работает: {{problems}}",
+        "notSetUp": "Единый вход (OpenID Connect: Keycloak, Authentik, Entra ID, …) не настроен.",
+        "howTo": "Как настроить",
+        "waiting_one": "{{count}} ожидает входа",
+        "waiting_other": "{{count}} ожидают входа",
+        "waitingHelp": "Эти пользователи вошли в систему с помощью единого входа (SSO), но не привязаны к GHOST-пользователю. Привяжите каждого из них к существующему пользователю, создайте нового пользователя или отклоните это действие.",
+        "reason_not_linked": "не привязан",
+        "reason_email_in_use": "пользователь с таким e-mail уже существует",
+        "attempts_one": "{{count}} попытка, последняя {{date}}",
+        "attempts_other": "{{count}} попыток, последняя {{date}}",
+        "unverified": "непроверенный",
+        "linkTo": "Привязать к пользователю",
+        "chooseUser": "Связать с",
+        "link": "Связь",
+        "newUserRole": "Роль для нового пользователя",
+        "createUser": "Создать пользователя",
+        "dismiss": "Отклонить",
+        "linked": "SSO",
+        "lastUsed": "Последнее использование: {{date}}",
+        "unlink": "Отвязать",
+        "unlinkHelp": "Отмена привязки приводит к выходу пользователя из системы. Без пароля он не сможет войти в систему, пока привязка не будет восстановлена.",
+        "badgeTitle": "Войти с помощью единого входа",
+        "noPassword": "без пароля"
       }
     },
     "auditLogs": {
@@ -436,7 +436,7 @@
       "updateSuccess": "Профиль успешно изменен!",
       "saving": "Сохранение...",
       "saveChanges": "Сохранить изменения",
-      "ssoNoPassword": "You sign in with single sign-on and have no GHOST password. An administrator can set one if you need a fallback."
+      "ssoNoPassword": "Вы входите в систему с помощью единого входа (SSO) и у вас нет пароля GHOST. Администратор может задать его, если вам потребуется резервный способ доступа."
     },
     "dataModel": {
       "types": {
@@ -2798,10 +2798,10 @@
       "setupExpired": "Время установки истекло. Закройте это и начните снова.",
       "tooManyAttempts": "Слишком много попыток. Подождите несколько минут и попробуйте снова.",
       "generic": "Что-то пошло не так. Попробуйте снова.",
-      "reauthRequired": "For your security, sign in again with single sign-on first, then create the token."
+      "reauthRequired": "Для вашей безопасности, войдите снова с помощью единого входа и создайте токен."
     },
-    "ssoTwoFactor": "You sign in with single sign-on, so two-step verification is handled by your identity provider.",
-    "signInAgain": "Sign in again"
+    "ssoTwoFactor": "Вы входите с помощью единого входа, так что двухэтапная проверка обрабатывается вашим провайдером.",
+    "signInAgain": "Войдите снова"
   },
   "records": {
     "title": "Записи сохранены",
