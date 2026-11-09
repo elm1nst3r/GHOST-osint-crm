@@ -1433,7 +1433,8 @@
       "osintData": "OSINT данные",
       "tasksTodos": "Задачи / цели",
       "chartsAnalytics": "Диаграммы и аналитика",
-      "businesses": "Организации"
+      "businesses": "Организации",
+      "savedRecords": "Saved records"
     },
     "reportTypeHint": "Устанавливает опции ниже, где вы можете изменить их вручную.",
     "scopeLabel": "Область отчёта",
@@ -1466,7 +1467,10 @@
     "statisticalAnalysis": "Статистический анализ",
     "reportInformation": "Информация об отчете",
     "twoFormatsStrong": "Доступно два формата:",
-    "twoFormatsRest": " Markdown (.md) включает богатые таблицы и форматирование. Word (.docx) максимизирует совместимость с офисными продуктами."
+    "twoFormatsRest": " Markdown (.md) включает богатые таблицы и форматирование. Word (.docx) максимизирует совместимость с офисными продуктами.",
+    "savedRecordsCount_one": "Saved records ({{count}})",
+    "savedRecordsCount_other": "Saved records ({{count}})",
+    "savedRecordsLoading": "Saved records"
   },
   "ledgerReportPanel": {
     "title": "Финансовые данные",
@@ -2196,7 +2200,17 @@
     "subjectLabel": "Предмет",
     "directionLabel": "Направление",
     "endOfLedgerReport": "Окончание финансового отчета",
-    "osintIntelligence": "OSINT РАЗВЕДКА"
+    "osintIntelligence": "OSINT РАЗВЕДКА",
+    "savedRecords": "Saved records",
+    "recordsAddedByHand": "Added by hand",
+    "recordsSearchedFor": "searched for {{queries}}",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records",
+    "foundTimes_one": "found {{count}} time",
+    "foundTimes_other": "found {{count}} times",
+    "colFound": "Found",
+    "recordN": "Record {{n}}",
+    "colField": "Field"
   },
   "updateBanner": {
     "available": "Доступна версия {{version}}.",
@@ -2284,7 +2298,7 @@
     "openInNewTab": "Открыть в новой вкладке",
     "editDescription": "Редактировать описание",
     "descriptionPlaceholder": "Что это за файл? Откуда он поступил?",
-    "confirmDelete": "Удалить «{{name}}»? Это действие нельзя отменить.",
+    "confirmDelete": "Удалить «{name}»? Это действие нельзя отменить.",
     "sha256Title": "SHA-256: {{hash}} (нажмите, чтобы скопировать)",
     "previewLoading": "Загрузка предпросмотра…",
     "previewError": "Предпросмотр не может быть показан. Вы можете скачать файл.",
