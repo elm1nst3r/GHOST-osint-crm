@@ -1433,7 +1433,8 @@
       "osintData": "OSINT Data",
       "tasksTodos": "Tasks / Todos",
       "chartsAnalytics": "Charts & Analytics",
-      "businesses": "Businesses"
+      "businesses": "Businesses",
+      "savedRecords": "Saved records"
     },
     "reportTypeHint": "Sets the sections below. Adjust any of them afterwards.",
     "scopeLabel": "Report scope",
@@ -1466,7 +1467,10 @@
     "statisticalAnalysis": "Statistical Analysis",
     "reportInformation": "Report Information",
     "twoFormatsStrong": "Two formats available:",
-    "twoFormatsRest": " Markdown (.md) includes rich tables and formatting. Word (.docx) maximises compatibility with office suites."
+    "twoFormatsRest": " Markdown (.md) includes rich tables and formatting. Word (.docx) maximises compatibility with office suites.",
+    "savedRecordsCount_one": "Saved records ({{count}})",
+    "savedRecordsCount_other": "Saved records ({{count}})",
+    "savedRecordsLoading": "Saved records"
   },
   "ledgerReportPanel": {
     "title": "Entity Ledger",
@@ -2196,7 +2200,17 @@
     "subjectLabel": "Subject",
     "directionLabel": "Direction",
     "endOfLedgerReport": "End of Ledger Report",
-    "osintIntelligence": "OSINT INTELLIGENCE"
+    "osintIntelligence": "OSINT INTELLIGENCE",
+    "savedRecords": "Saved records",
+    "recordsAddedByHand": "Added by hand",
+    "recordsSearchedFor": "searched for {{queries}}",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records",
+    "foundTimes_one": "found {{count}} time",
+    "foundTimes_other": "found {{count}} times",
+    "colFound": "Found",
+    "recordN": "Record {{n}}",
+    "colField": "Field"
   },
   "updateBanner": {
     "available": "Version {{version}} is available.",
