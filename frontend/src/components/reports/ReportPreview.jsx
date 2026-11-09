@@ -24,6 +24,8 @@ const ReportPreview = ({ data, reportOptions }) => {
   // the downloaded file for a person-profile report.
   const subjects = subjectsOf(people, opts, selectedPerson);
   const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
+  const subjectIds = new Set(subjects.map((p) => p.id));
+  const subjectRecords = (data.records || []).filter((r) => subjectIds.has(r.person_id)).length;
 
   const scopeLabel = selectedCase
     ? t('reportPreview.caseScopeLabel', { name: selectedCase.case_name })
@@ -51,6 +53,7 @@ const ReportPreview = ({ data, reportOptions }) => {
           {opts.includeSummary     && <SectionEntry label={t('reportOptions.sections.executiveSummary')} />}
           {opts.includePeople      && <SectionEntry label={t('reportPreview.peopleProfilesCount', { count: subjects.length })} />}
           {opts.includeOsintData   && <SectionEntry label={t('reportPreview.osintIntelligence')} />}
+          {opts.includeRecords     && <SectionEntry label={t('reportPreview.savedRecordsCount', { count: subjectRecords })} />}
           {opts.includeBusinesses  && <SectionEntry label={t('reportOptions.sections.businesses')} />}
           {opts.includeConnections && <SectionEntry label={t('reportPreview.connectionsAnalysis')} />}
           {opts.includeLocations   && <SectionEntry label={t('reportPreview.locationData')} />}

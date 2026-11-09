@@ -36,3 +36,23 @@ test('a case report downloads as a Word file that opens', async () => {
   expect(text).toContain('Operation Lantern');
   expect(text).toContain('Иван Петрович Иванов');
 });
+
+test('saved records come out as a table in the Word file (#96)', async () => {
+  saved.length = 0;
+  const person = { id: 7, first_name: 'Alex', last_name: 'Example', connections: [], locations: [] };
+  const records = [
+    { person_id: 7, integration_id: 'leaks', tool_name: 'Leak search', operation: 'phone', query: '+10000000001', retrieved_at: '2026-11-05T10:00:00Z', occurrences: 2,
+      data: { FULL_NAME: 'Alex Example', PHONE: '+10000000001', database: 'Sample database B', address: { city: 'Springfield' } } },
+  ];
+  await downloadWord(
+    { people: [person], businesses: [], locations: [], todos: [], records, selectedCase: null, selectedPerson: null },
+    { includeRecords: true },
+  );
+  const bytes = new Uint8Array(await saved[0].blob.arrayBuffer());
+  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
+  expect(html).toContain('<table>');
+  expect(html).toContain('address.city');
+  expect(html).toContain('Springfield');
+  expect(html).toContain('Sample database B');
+  expect(html).toContain('found 2 times');
+});

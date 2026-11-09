@@ -5,6 +5,29 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2026-11-09
+
+### 🧾 Saved records in reports (#96)
+
+Thanks to hunterghoul1 for testing saved records and reporting this.
+
+- Reports have a **Saved records** section, chosen with its own checkbox
+  (on for full and person-profile reports, off for summaries). The preview
+  shows how many records it will include.
+- Records are **normalized**: the records of one tool and search line up in
+  one table, with a column for every field any of them has and blanks where
+  a record lacks it. Nested data becomes readable fields (`address.city`,
+  `phones[1].number`), lists are joined, and fields that differ only in
+  letter case are one. Each record says when it was found and how often.
+- Groups with too many fields for a page are listed record by record.
+- Both Markdown and Word reports.
+
+### 🌍 Translations
+
+- Russian is now 2,502 of 2,599 texts (Crowdin PR #106), Persian 2,258.
+  Thanks to the Crowdin translators.
+- Fixed a Russian placeholder in the file delete confirmation.
+
 ## [3.1.2] - 2026-11-09
 
 Thanks to NickSettler for testing single sign-on against Keycloak and for

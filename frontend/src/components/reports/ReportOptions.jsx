@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, FileText, Users, Building2, Network, MapPin, Shield, Check } from 'lucide-react';
+import { Settings, FileText, Users, Building2, Network, MapPin, Shield, Check, Database } from 'lucide-react';
 import { REPORT_TYPE_PRESETS, matchesPreset } from '../../utils/reportGenerators';
 import { formatPersonName } from '../../utils/personName';
 
@@ -34,6 +34,7 @@ const ReportOptions = ({
     { key: 'includeConnections', label: t('reportOptions.sections.connectionsNetwork'), icon: Network   },
     { key: 'includeLocations',   label: t('reportOptions.sections.locations'),          icon: MapPin    },
     { key: 'includeOsintData',   label: t('reportOptions.sections.osintData'),          icon: Shield    },
+    { key: 'includeRecords',     label: t('reportOptions.sections.savedRecords'),       icon: Database  },
     { key: 'includeTodos',       label: t('reportOptions.sections.tasksTodos'),         icon: Check     },
     { key: 'includeCharts',      label: t('reportOptions.sections.chartsAnalytics'),    icon: FileText  },
   ], [t]);
