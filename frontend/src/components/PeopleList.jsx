@@ -14,6 +14,7 @@ import { useUI } from '../contexts/UIContext';
 import { useProject } from '../contexts/ProjectContext';
 import { formatPersonName } from '../utils/personName';
 import { ageFrom } from '../utils/format';
+import { connectionCount } from '../utils/personConnections';
 
 // From this many people on, the card list is virtualized (VirtualList)
 const VIRTUAL_THRESHOLD = 150;
@@ -47,17 +48,9 @@ const PeopleList = () => {
     }
   };
 
-  const getRelationshipCount = (personId) => {
-    const person = people.find(p => p.id === personId);
-    if (!person) return 0;
-    
-    const directConnections = person.connections?.length || 0;
-    const reverseConnections = people.filter(p => 
-      p.connections?.some(c => c.person_id === personId)
-    ).length;
-    
-    return Math.max(directConnections, reverseConnections);
-  };
+  // Distinct people connected in either direction: A -> B plus B -> A is one
+  // (two-way) connection, not two, and never hidden behind the other.
+  const getRelationshipCount = (personId) => connectionCount(personId, people);
 
   const getFullName = (person) => {
     return formatPersonName(person);

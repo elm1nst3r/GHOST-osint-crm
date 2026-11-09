@@ -12,6 +12,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, RelationshipCreateSchema, RelationshipUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { inTransaction } = require('../utils/transaction');
 
 const ENTITY_TABLE = { person: 'people', business: 'businesses', crypto_wallet: 'crypto_wallets' };
 
@@ -40,41 +41,82 @@ async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetP
 // JSONB write path). Full replace rather than a field-by-field diff: simpler,
 // and GET always recomputes `connections` from these rows anyway, so there's
 // no externally-visible identity to preserve across an edit.
-async function syncPersonConnections(personId, projectId, caseId, connections) {
+// `options.assertMember(projectId)` (async, throws on refusal) guards the
+// two-way rows, which are written into the OTHER person's project: the
+// caller is only known to be a member of this person's project. Returns the
+// connections added back on other people, for their audit history.
+async function syncPersonConnections(personId, projectId, caseId, connections, options = {}) {
+  const typeOf = (value) => (typeof value === 'string' && value.trim() ? value.slice(0, 100) : null);
   const desired = (Array.isArray(connections) ? connections : [])
     .filter((c) => c && c.person_id != null)
     .map((c) => ({
       target_id: parseInt(c.person_id, 10),
       relationship_type: c.type || 'other',
       note: c.note || null,
+      // Transient, never stored on the row: "two-way" asks for the other
+      // person to get a connection back to this one, if they have none yet.
+      mutual: c.mutual === true,
+      reverse_type: typeOf(c.reverse_type) || typeOf(c.type) || 'other',
     }));
 
   // Cross-project check per target, same rule as POST /relationships -- this
   // is the write path AddEditPersonForm actually uses, so skipping it here
   // would let a deep-linked out-of-project edit bypass allow_cross_linking
-  // entirely (issue #83 follow-up).
+  // entirely (issue #83 follow-up). All checks run before any write.
+  const targets = new Map();
   for (const c of desired) {
-    const targetProjectId = await fetchEntityProject('person', c.target_id);
-    if (targetProjectId === null) {
+    const { rows } = await pool.query('SELECT project_id, case_id FROM people WHERE id = $1', [c.target_id]);
+    if (rows.length === 0) {
       const err = new Error(`person ${c.target_id} not found`);
       err.statusCode = 404;
       throw err;
     }
-    await assertLinkAllowed(projectId, projectId, targetProjectId);
+    targets.set(c.target_id, rows[0]);
+    await assertLinkAllowed(projectId, projectId, rows[0].project_id);
+    if (c.mutual && c.target_id !== personId) {
+      // The reverse row belongs to the other person's project, so it is that
+      // project's allow_cross_linking that decides whether it may exist, and
+      // the caller must be allowed to write there.
+      await assertLinkAllowed(rows[0].project_id, rows[0].project_id, projectId);
+      if (options.assertMember) await options.assertMember(rows[0].project_id);
+    }
   }
 
-  await pool.query(
-    `DELETE FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
-    [personId]
-  );
-
-  for (const c of desired) {
-    await pool.query(
-      `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
-       VALUES ($1, $2, 'person', $3, 'person', $4, $5, $6)`,
-      [projectId, caseId || null, personId, c.target_id, c.relationship_type, c.note]
+  // One transaction: a failed insert must not leave the person with their
+  // connections deleted and only half re-added.
+  return inTransaction(async (client) => {
+    await client.query(
+      `DELETE FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
+      [personId]
     );
-  }
+
+    for (const c of desired) {
+      await client.query(
+        `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+         VALUES ($1, $2, 'person', $3, 'person', $4, $5, $6)`,
+        [projectId, caseId || null, personId, c.target_id, c.relationship_type, c.note]
+      );
+    }
+
+    // Only adds: an existing connection back (of any type) is left as it is,
+    // and the other person's connections are never removed from here.
+    const addedBack = [];
+    for (const c of desired) {
+      if (!c.mutual || c.target_id === personId) continue;
+      const target = targets.get(c.target_id);
+      const { rowCount } = await client.query(
+        `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+         SELECT $1, $2, 'person', $3, 'person', $4, $5, $6
+         WHERE NOT EXISTS (
+           SELECT 1 FROM relationships
+           WHERE source_type = 'person' AND source_id = $3 AND target_type = 'person' AND target_id = $4
+         )`,
+        [target.project_id, target.case_id || null, c.target_id, personId, c.reverse_type, c.note]
+      );
+      if (rowCount > 0) addedBack.push({ person_id: c.target_id, connection: { person_id: personId, type: c.reverse_type, note: c.note } });
+    }
+    return addedBack;
+  });
 }
 
 // Same idea for a business's owner_person_id / employees (person_id-backed
@@ -175,6 +217,34 @@ async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusi
   }
 }
 
+// Relationship rows have no foreign keys (source/target are polymorphic), so
+// deleting a person, business or wallet must remove the rows that name it
+// at either end itself -- left behind, they show as "Unknown" connections
+// on everyone linked to it. Call it with the transaction client that runs
+// the entity's own DELETE so both happen or neither does.
+async function removeEntityRelationships(db, entityType, entityId) {
+  await db.query(
+    `DELETE FROM relationships
+     WHERE (source_type = $1 AND source_id = $2) OR (target_type = $1 AND target_id = $2)`,
+    [entityType, entityId]
+  );
+  if (entityType === 'person') {
+    // businesses.employees is still the business form's own list: keep the
+    // entry (name, role, ...) but drop the link to the deleted person, as a
+    // name-only employee. A dangling person_id would make every later save
+    // of that business fail with "person not found".
+    await db.query(
+      `UPDATE businesses
+       SET employees = (
+         SELECT jsonb_agg(CASE WHEN e->>'person_id' = $1::text THEN e || '{"person_id": null}'::jsonb ELSE e END)
+         FROM jsonb_array_elements(employees) AS e
+       )
+       WHERE jsonb_typeof(employees) = 'array'
+         AND EXISTS (SELECT 1 FROM jsonb_array_elements(employees) AS e WHERE e->>'person_id' = $1::text)`,
+      [String(entityId)]
+    );
+  }
+}
 
 router.use(apiLimiter);
 
@@ -279,3 +349,4 @@ module.exports = router;
 module.exports.syncPersonConnections = syncPersonConnections;
 module.exports.syncBusinessRelationships = syncBusinessRelationships;
 module.exports.syncBusinessOwnership = syncBusinessOwnership;
+module.exports.removeEntityRelationships = removeEntityRelationships;

@@ -15,6 +15,7 @@ import { useModelOptions } from '../utils/useModelOptions';
 import BulkRelationshipTool from './BulkRelationshipTool';
 import { formatPersonName } from '../utils/personName';
 import { useProject } from '../contexts/ProjectContext';
+import { connectionCount } from '../utils/personConnections';
 
 const PeopleTableView = ({
   people,
@@ -47,17 +48,9 @@ const PeopleTableView = ({
 
   const getFullName = (person) => formatPersonName(person);
 
-  const getRelationshipCount = (personId) => {
-    const person = people.find(p => p.id === personId);
-    if (!person) return 0;
-
-    const directConnections = person.connections?.length || 0;
-    const reverseConnections = people.filter(p =>
-      p.connections?.some(c => c.person_id === personId)
-    ).length;
-
-    return Math.max(directConnections, reverseConnections);
-  };
+  // Distinct people connected in either direction: A -> B plus B -> A is one
+  // (two-way) connection, not two, and never hidden behind the other.
+  const getRelationshipCount = (personId) => connectionCount(personId, people);
 
   // Start editing a row
   const handleEdit = (person) => {

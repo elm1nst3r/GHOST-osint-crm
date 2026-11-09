@@ -9,7 +9,8 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, PersonCreateSchema, PersonUpdateSchema, PersonOsintAppendSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
-const { syncPersonConnections } = require('./relationships');
+const { syncPersonConnections, removeEntityRelationships } = require('./relationships');
+const { inTransaction } = require('../utils/transaction');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
@@ -34,6 +35,32 @@ async function fetchPersonById(id) {
   );
   return result.rows[0];
 }
+
+// Saves a person's connections. A two-way connection also adds one back on
+// the other person, possibly in another project: the caller must be a
+// member there too, and that person's audit history records the addition.
+async function syncConnections(req, person, connections) {
+  const addedBack = await syncPersonConnections(person.id, person.project_id, person.case_id, connections, {
+    assertMember: async (projectId) => {
+      const accessErr = await requireProjectMember(req, projectId);
+      if (accessErr) {
+        const err = new Error(`Two-way connection refused: ${accessErr}`);
+        err.statusCode = 403;
+        throw err;
+      }
+    },
+  });
+  for (const { person_id, connection } of addedBack) {
+    await logAudit('person', person_id, 'update', {
+      connections: { oldValue: null, newValue: JSON.stringify([connection]) },
+    }, req.session?.userId);
+  }
+}
+
+// What a saved connection is: the request's transient two-way fields
+// (mutual, reverse_type) are not part of it, so they stay out of the audit.
+const storedConnections = (connections) => (Array.isArray(connections) ? connections : [])
+  .map(({ mutual: _mutual, reverse_type: _reverseType, ...c }) => c);
 
 router.use(apiLimiter);
 // GET / — paginated people list
@@ -167,7 +194,7 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     const result = await pool.query(query, values);
     let newPerson = result.rows[0];
 
-    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
+    await syncConnections(req, newPerson, connections);
     newPerson = await fetchPersonById(newPerson.id);
 
     // Log audit
@@ -319,7 +346,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     let result = await pool.query(query, values);
     let newPerson = result.rows[0];
 
-    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
+    await syncConnections(req, newPerson, connections);
     newPerson = await fetchPersonById(personId);
 
     // Log audit changes — scalar fields compared directly, JSON fields by serialisation
@@ -338,7 +365,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     // longer authoritative as of issue #83.
     const jsonFieldMap = [
       ['locations', geocodedLocations, oldPerson.locations],
-      ['connections', connections, oldConnections],
+      ['connections', storedConnections(connections), oldConnections],
       ['osint_data', osintData, oldPerson.osint_data],
     ];
     for (const [field, newVal, oldVal] of jsonFieldMap) {
@@ -500,7 +527,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, oldResult.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    const result = await pool.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
+    // The person's connections (both directions) go with them.
+    const result = await inTransaction(async (client) => {
+      await removeEntityRelationships(client, 'person', personId);
+      return client.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
+    });
     if (result.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
 
     await logAudit('person', personId, 'delete', {

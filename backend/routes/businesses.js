@@ -6,7 +6,8 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
-const { syncBusinessRelationships, syncBusinessOwnership } = require('./relationships');
+const { syncBusinessRelationships, syncBusinessOwnership, removeEntityRelationships } = require('./relationships');
+const { inTransaction } = require('../utils/transaction');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
@@ -293,8 +294,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, business.project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    // Delete the business
-    await pool.query('DELETE FROM businesses WHERE id = $1', [businessId]);
+    // Delete the business, and its relationships in both directions
+    await inTransaction(async (client) => {
+      await removeEntityRelationships(client, 'business', businessId);
+      await client.query('DELETE FROM businesses WHERE id = $1', [businessId]);
+    });
 
     // Log audit
     await logAudit('business', businessId, 'delete', {

@@ -1,5 +1,5 @@
 // File: frontend/src/components/AddEditPersonForm.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, AlertCircle } from 'lucide-react';
 import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
@@ -116,8 +116,12 @@ const AddEditPersonForm = () => {
     }
   }, [formData.caseName, existingCases]);
 
+  const connectionsRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Includes a connection picked in the form but not yet added to the list.
+    const connections = connectionsRef.current?.withPending(formData.connections) ?? formData.connections;
     // project_id is a NOT NULL FK as of issue #83 -- only creation needs it
     // (immutable on update), but there's no create path without a project.
     if (!person && !activeProjectId) {
@@ -135,8 +139,8 @@ const AddEditPersonForm = () => {
       } catch (error) { console.error('Error creating case:', error); }
     }
     try {
-      if (person) await peopleAPI.update(person.id, { ...formData, dateOfBirth: formData.dateOfBirth || null });
-      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null, project_id: activeProjectId });
+      if (person) await peopleAPI.update(person.id, { ...formData, connections, dateOfBirth: formData.dateOfBirth || null });
+      else        await peopleAPI.create({ ...formData, connections, dateOfBirth: formData.dateOfBirth || null, project_id: activeProjectId });
       handleClose();
       fetchPeople();
     } catch (error) {
@@ -336,6 +340,7 @@ const AddEditPersonForm = () => {
           />
 
           <ConnectionsSection
+            ref={connectionsRef}
             connections={formData.connections}
             connectionTypes={tConnectionTypes}
             people={people}

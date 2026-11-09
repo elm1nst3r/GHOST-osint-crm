@@ -12,6 +12,8 @@ const { validate, CryptoWalletCreateSchema, CryptoWalletUpdateSchema } = require
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { removeEntityRelationships } = require('./relationships');
+const { inTransaction } = require('../utils/transaction');
 
 // A wallet has no legacy JSONB connections field to stay backward-compatible
 // with (unlike BUSINESS_CONNECTIONS_SUBQUERY, which is outgoing-only), so
@@ -147,7 +149,10 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    const result = await pool.query('DELETE FROM crypto_wallets WHERE id = $1 RETURNING *', [req.params.id]);
+    const result = await inTransaction(async (client) => {
+      await removeEntityRelationships(client, 'crypto_wallet', req.params.id);
+      return client.query('DELETE FROM crypto_wallets WHERE id = $1 RETURNING *', [req.params.id]);
+    });
     if (result.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
     res.json({ message: 'Crypto wallet deleted successfully' });
   } catch (err) {

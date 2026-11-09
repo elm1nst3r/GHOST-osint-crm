@@ -26,6 +26,7 @@ const SHOWN_SOURCES = 5;
 // Tabs that belong to a module an admin can switch off.
 const TAB_MODULE = { records: 'tools', transactions: 'transactions', ledger: 'transactions', assets: 'assets', files: 'files' };
 import { formatDate, ageFrom } from '../utils/format';
+import { connectionLinks } from '../utils/personConnections';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
@@ -118,42 +119,11 @@ const PersonDetailModal = () => {
     return icons[type] || <Link className="w-5 h-5" />;
   };
 
-  const getConnectedPeople = () => {
-    const connected = [];
-    
-    // Direct connections
-    if (person.connections && Array.isArray(person.connections)) {
-      person.connections.forEach(conn => {
-        const connectedPerson = people.find(p => p.id === conn.person_id);
-        if (connectedPerson) {
-          connected.push({
-            person: connectedPerson,
-            type: conn.type,
-            note: conn.note,
-            direction: 'outgoing'
-          });
-        }
-      });
-    }
-    
-    // Reverse connections
-    people.forEach(p => {
-      if (p.connections && Array.isArray(p.connections)) {
-        p.connections.forEach(conn => {
-          if (conn.person_id === person.id) {
-            connected.push({
-              person: p,
-              type: conn.type,
-              note: conn.note,
-              direction: 'incoming'
-            });
-          }
-        });
-      }
-    });
-    
-    return connected;
-  };
+  // One entry per connected person; A -> B and B -> A together are a single
+  // two-way ('mutual') connection rather than two.
+  const getConnectedPeople = () => connectionLinks(person, people)
+    .map(link => ({ ...link, person: people.find(p => p.id === link.personId) }))
+    .filter(link => link.person);
 
   if (!person) return null;
 
@@ -353,7 +323,8 @@ const PersonDetailModal = () => {
                         </div>
                         {connectedPeople.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.mutualLabel')} <span className="text-green-600 dark:text-green-400">{connectedPeople.filter(c => c.direction === 'mutual').length}</span></div>
                               <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.outgoingLabel')} <span className="text-blue-600 dark:text-blue-400">{connectedPeople.filter(c => c.direction === 'outgoing').length}</span></div>
                               <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.incomingLabel')} <span className="text-accent-secondary">{connectedPeople.filter(c => c.direction === 'incoming').length}</span></div>
                             </div>

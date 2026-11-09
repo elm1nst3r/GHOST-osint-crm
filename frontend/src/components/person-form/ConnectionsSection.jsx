@@ -1,15 +1,16 @@
-import { useRef, useState, useEffect, useEffectEvent } from 'react';
+import { useRef, useState, useEffect, useEffectEvent, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Globe2, Pencil } from 'lucide-react';
+import { Trash2, Globe2, Pencil, ArrowLeftRight, ArrowRight, ArrowLeft, Plus } from 'lucide-react';
 import { peopleAPI } from '../../utils/api';
+import { connectionLinks, isTwoWayByDefault, reverseConnectionType } from '../../utils/personConnections';
 
 const ConnectionsSection = ({
   connections, connectionTypes, people, currentPersonId, currentPersonProjectId,
-  allowCrossLinking = false, otherProjects = [], onChange,
+  allowCrossLinking = false, otherProjects = [], onChange, ref,
 }) => {
   const { t } = useTranslation();
   const defaultType = connectionTypes[0]?.value || 'associate';
-  const emptyDraft = () => ({ person_id: '', type: defaultType, note: '' });
+  const emptyDraft = () => ({ person_id: '', type: defaultType, note: '', mutual: isTwoWayByDefault(defaultType) });
   const [draft, setDraft] = useState(emptyDraft);
   // Index of the connection being edited in the form above the list (#109).
   const [editing, setEditing] = useState(null);
@@ -50,16 +51,58 @@ const ConnectionsSection = ({
   }, [otherProjectId]);
 
   const resolvePerson = (id) => people.find(p => p.id === id) || peopleCache[id];
+  const personName = (p) => (p ? `${p.first_name} ${p.last_name || ''}`.trim() : t('personForm.connections.unknownPerson'));
   const pickPool = crossMode ? otherPeople : people;
 
   const reset = () => { setDraft(emptyDraft()); setEditing(null); };
 
-  const submit = () => {
+  // Who already links to this person (saved data), keyed by their id.
+  const incomingById = new Map(
+    (currentPersonId ? connectionLinks(currentPersonId, people, []) : [])
+      .map(link => [link.personId, link.incoming])
+  );
+  // People linking here whom this person doesn't link back to (yet).
+  const incomingOnly = [...incomingById.entries()]
+    .filter(([id]) => !connections.some(c => c.person_id === id));
+  const draftPersonId = parseInt(draft.person_id, 10) || null;
+  const draftHasReverse = draftPersonId != null && incomingById.has(draftPersonId);
+
+  const entryFromDraft = () => {
     const personId = parseInt(draft.person_id, 10);
-    if (!personId) return;
+    if (!personId) return null;
     const entry = { person_id: personId, type: draft.type, note: draft.note };
-    if (editing === null) onChange([...connections, entry]);
-    else onChange(connections.map((c, i) => (i === editing ? { ...c, ...entry } : c)));
+    // Asks the server to add the connection back on the other person too;
+    // pointless (and ignored) when they already have one.
+    if (draft.mutual && !incomingById.has(personId)) {
+      entry.mutual = true;
+      entry.reverse_type = reverseConnectionType(draft.type);
+    }
+    return entry;
+  };
+  // An edit replaces the two-way request too: unticking it must not leave
+  // the old mutual/reverse_type behind on the entry.
+  const mergeEntry = (list, entry) => (editing === null
+    ? [...list, entry]
+    : list.map((c, i) => {
+        if (i !== editing) return c;
+        const { mutual: _mutual, reverse_type: _reverseType, ...rest } = c;
+        return { ...rest, ...entry };
+      }));
+
+  // A person picked but never added used to be dropped silently on Save; the
+  // form asks for it here and keeps it.
+  useImperativeHandle(ref, () => ({
+    withPending: (list) => {
+      const entry = entryFromDraft();
+      return entry ? mergeEntry(list, entry) : list;
+    },
+  }));
+
+  const submit = () => {
+    const entry = entryFromDraft();
+    if (!entry) return;
+    const personId = entry.person_id;
+    onChange(mergeEntry(connections, entry));
     // Picked person isn't necessarily in `people` (active project's list) --
     // cache it immediately so it renders correctly below without waiting on
     // the resolve effect's round trip.
@@ -71,9 +114,13 @@ const ConnectionsSection = ({
   const startEdit = (i) => {
     const conn = connections[i];
     setEditing(i);
-    setDraft({ person_id: String(conn.person_id ?? ''), type: conn.type || defaultType, note: conn.note || '' });
+    setDraft({ person_id: String(conn.person_id ?? ''), type: conn.type || defaultType, note: conn.note || '', mutual: !!conn.mutual });
     firstField.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     firstField.current?.focus({ preventScroll: true });
+  };
+
+  const connectBack = (personId, incoming) => {
+    onChange([...connections, { person_id: personId, type: reverseConnectionType(incoming.type || defaultType), note: '' }]);
   };
 
   const remove = (i) => {
@@ -139,7 +186,7 @@ const ConnectionsSection = ({
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name || ''}</option>
               ))}
             </select>
-            <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })} className={inputClass}>
+            <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value, mutual: isTwoWayByDefault(e.target.value) })} className={inputClass}>
               {types.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
             </select>
           </div>
@@ -150,6 +197,32 @@ const ConnectionsSection = ({
             placeholder={t('personForm.connections.notesPlaceholder')}
             className={`w-full ${inputClass}`}
           />
+          {draftHasReverse ? (
+            <p className="flex items-center gap-1.5 text-sm text-green-700 dark:text-green-400">
+              <ArrowLeftRight className="w-4 h-4 shrink-0" />
+              {t('personForm.connections.alreadyConnectedBack', { name: personName(resolvePerson(draftPersonId)) })}
+            </p>
+          ) : (
+            <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!draft.mutual}
+                onChange={e => setDraft({ ...draft, mutual: e.target.checked })}
+                className="mt-0.5"
+              />
+              <span>
+                {t('personForm.connections.twoWay')}
+                <span className="block text-xs text-gray-500 dark:text-gray-400">
+                  {draft.mutual
+                    ? t('personForm.connections.twoWayHint', {
+                        name: draftPersonId ? personName(resolvePerson(draftPersonId) || choices.find(p => p.id === draftPersonId)) : t('personForm.connections.theOtherPerson'),
+                        type: types.find(ct => ct.value === reverseConnectionType(draft.type))?.label || reverseConnectionType(draft.type),
+                      })
+                    : t('personForm.connections.oneWayHint')}
+                </span>
+              </span>
+            </label>
+          )}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={submit} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
               {editing === null ? t('personForm.connections.addConnection') : t('personForm.connections.updateConnection')}
@@ -178,6 +251,21 @@ const ConnectionsSection = ({
                 <span className="text-sm text-gray-600 dark:text-gray-400 ms-2">
                   ({connectionTypes.find(ct => ct.value === conn.type)?.label || conn.type})
                 </span>
+                {incomingById.has(conn.person_id) || conn.mutual ? (
+                  <span
+                    title={incomingById.has(conn.person_id) ? t('personForm.connections.twoWayTitle') : t('personForm.connections.twoWayOnSaveTitle')}
+                    className="ms-2 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                  >
+                    <ArrowLeftRight className="w-3 h-3" />{t('personForm.connections.twoWayBadge')}
+                  </span>
+                ) : (
+                  <span
+                    title={t('personForm.connections.oneWayTitle', { name: person ? personName(person) : '' })}
+                    className="ms-2 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300"
+                  >
+                    <ArrowRight className="w-3 h-3" />{t('personForm.connections.oneWayBadge')}
+                  </span>
+                )}
                 {isOtherProject && (
                   <span className="ms-2 text-xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
                     {t('personForm.connections.fromProject', { project: otherProjectMeta?.name || t('personDetailModal.otherProjectUnknown') })}
@@ -197,6 +285,39 @@ const ConnectionsSection = ({
           );
         })}
       </div>
+
+      {incomingOnly.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('personForm.connections.incomingTitle')}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t('personForm.connections.incomingHint')}</p>
+          <div className="space-y-2">
+            {incomingOnly.map(([id, incoming]) => {
+              const other = resolvePerson(id);
+              return (
+                <div key={id} className="flex items-center justify-between gap-x-3 p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+                  <div className="min-w-0">
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <ArrowLeft className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
+                      {personName(other)}
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 ms-2">
+                      ({connectionTypes.find(ct => ct.value === incoming.type)?.label || incoming.type})
+                    </span>
+                    {incoming.note && <p className="text-sm text-gray-600 dark:text-gray-400">{incoming.note}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => connectBack(id, incoming)}
+                    className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                  >
+                    <Plus className="w-4 h-4" />{t('personForm.connections.connectBack')}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

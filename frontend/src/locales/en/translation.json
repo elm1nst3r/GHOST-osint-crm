@@ -864,7 +864,20 @@
       "linkOtherProject": "Link from another project",
       "linkThisProject": "Back to this project",
       "chooseProject": "Choose a project...",
-      "fromProject": "from {{project}}"
+      "fromProject": "from {{project}}",
+      "twoWay": "Two-way connection",
+      "twoWayHint": "{{name}} is also connected back to this person as {{type}}.",
+      "oneWayHint": "One-way: only this person gets the connection.",
+      "theOtherPerson": "The other person",
+      "alreadyConnectedBack": "{{name}} is already connected to this person, so this makes it two-way.",
+      "twoWayBadge": "Two-way",
+      "oneWayBadge": "One-way",
+      "twoWayTitle": "Both people have a connection to each other",
+      "twoWayOnSaveTitle": "The connection back is added when you save",
+      "oneWayTitle": "{{name}} has no connection back to this person",
+      "incomingTitle": "Connected to this person",
+      "incomingHint": "These people have a connection to this person, but not the other way round.",
+      "connectBack": "Connect back"
     },
     "customFields": {
       "label": "Custom Fields",
@@ -2070,7 +2083,8 @@
     "nothingGiven": "Nothing given.",
     "assetsCurrentlyHeld": "Assets Currently Held",
     "noAssetsHeld": "No assets currently held.",
-    "tab_records": "Records"
+    "tab_records": "Records",
+    "mutualLabel": "Two-way:"
   },
   "report": {
     "investigationReport": "INVESTIGATION REPORT",
