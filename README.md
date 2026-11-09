@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.1.1-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.1.2-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -289,7 +289,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.1.1
+GHOST_VERSION=3.1.2
 ```
 
 Without it, the containers track the latest release.
@@ -697,6 +697,12 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.1.2 (November 2026)
+- 🔐 **Single sign-on sessions end with the provider** — signing someone out in Keycloak signs them out of GHOST (back-channel logout, or a check every 5 minutes)
+- ✏️ **Edit what you entered** — addresses, OSINT entries, aliases, connections, employees, wallet links, wireless links and to-dos
+- 🗺️ **Geocoding says what went wrong** — which addresses couldn't be placed and why, lookup while adding an address, and setting a position by hand
+- 🧾 Audit log changes are readable (wrapped, expandable); the two-step policy makes sense with single sign-on
+
 ### Version 3.1.1 (November 2026)
 - 🌍 **Translation update** — Russian now covers almost all of GHOST, including the 3.x features; thanks to our Crowdin translators
 
@@ -742,5 +748,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.1.1
+**Version:** 3.1.2
 **Last Updated:** November 5, 2026

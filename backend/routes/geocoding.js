@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { geocodingLimiter } = require('../middleware/rateLimiters');
+const { addressLine, applyOutcome } = require('../utils/geocodeOutcome');
 
 // Single-address geocode
 router.get('/', requireAuth, async (req, res) => {
@@ -147,7 +148,9 @@ router.post('/batch-enhanced', requireAuth, requireAdmin, async (req, res) => {
       maxConcurrent
     });
 
-    // Group geocoded results by person and write back to people.locations
+    // Write every outcome back to people.locations: coordinates, or the
+    // reason there are none (issue #110), so the map and the person form can
+    // show what went wrong after this dialog is gone.
     const byPerson = {};
     for (const result of results) {
       if (!result.person_id) continue;
@@ -155,31 +158,24 @@ router.post('/batch-enhanced', requireAuth, requireAdmin, async (req, res) => {
       byPerson[result.person_id].push(result);
     }
 
-    for (const [personId, geocodedLocs] of Object.entries(byPerson)) {
+    const names = {};
+    for (const [personId, outcomes] of Object.entries(byPerson)) {
       const personResult = await pool.query(
-        'SELECT locations FROM people WHERE id = $1',
+        'SELECT locations, first_name, last_name FROM people WHERE id = $1',
         [parseInt(personId)]
       );
       if (!personResult.rows.length) continue;
+      const row = personResult.rows[0];
+      names[personId] = [row.first_name, row.last_name].filter(Boolean).join(' ');
 
-      const existingLocations = personResult.rows[0].locations || [];
+      const sameAddress = (a, b) => (a.address || '') === (b.address || '') && (a.city || '') === (b.city || '') && (a.country || '') === (b.country || '');
+      const existingLocations = row.locations || [];
       const updatedLocations = existingLocations.map(loc => {
-        const match = geocodedLocs.find(g =>
-          g.address === loc.address &&
-          g.city === loc.city &&
-          g.country === loc.country
-        );
-        if (match && match.latitude && match.longitude) {
-          return {
-            ...loc,
-            latitude: match.latitude,
-            longitude: match.longitude,
-            geocode_confidence: match.geocode_confidence || 0,
-            geocode_provider: match.geocode_provider || 'nominatim',
-            geocoded_at: new Date().toISOString()
-          };
-        }
-        return loc;
+        // Only addresses that still have no position: never overwrite one set meanwhile.
+        if (loc.latitude && loc.longitude) return loc;
+        const outcome = outcomes.find(o => sameAddress(o, loc));
+        if (!outcome) return loc;
+        return applyOutcome(loc, outcome);
       });
 
       await pool.query(
@@ -188,13 +184,24 @@ router.post('/batch-enhanced', requireAuth, requireAdmin, async (req, res) => {
       );
     }
 
+    const failures = results
+      .filter(r => r.geocode_failure)
+      .map(r => ({
+        person_id: r.person_id || null,
+        person_name: names[r.person_id] || null,
+        address: addressLine(r),
+        reason: r.geocode_failure,
+        message: r.geocode_message,
+        best_match: r.geocode_best_match || null,
+      }));
     const summary = {
       total: results.length,
       geocoded: results.filter(r => r.latitude && r.longitude).length,
-      cached: results.filter(r => r.geocoded_at && r.geocode_confidence > 0).length
+      cached: results.filter(r => r.geocode_cached).length,
+      failed: failures.length,
     };
 
-    res.json({ results, summary });
+    res.json({ results, summary, failures });
   } catch (err) {
     console.error('Error in enhanced batch geocoding:', err);
     res.status(500).json({ error: 'Enhanced batch geocoding failed' });

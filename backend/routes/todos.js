@@ -52,8 +52,13 @@ router.put('/:id', requireAuth, validateIdParam, validate(TodoUpdateSchema), asy
   const todoId = req.params.id;
   const { text, status, last_update_comment, case_id } = req.body;
 
-  const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status), last_update_comment = $3, case_id = COALESCE($4, case_id) WHERE id = $5 RETURNING *;`;
-  const values = [text, status, last_update_comment, case_id, todoId];
+  // The comment changes only when sent (null clears it): editing a to-do's
+  // text or status used to wipe it (#109).
+  const sentComment = Object.prototype.hasOwnProperty.call(req.body, 'last_update_comment');
+  const query = `UPDATE todos SET text = COALESCE($1, text), status = COALESCE($2, status),
+    last_update_comment = CASE WHEN $3 THEN $4 ELSE last_update_comment END,
+    case_id = COALESCE($5, case_id) WHERE id = $6 RETURNING *;`;
+  const values = [text, status, sentComment, last_update_comment ?? null, case_id, todoId];
 
   try {
     const existing = await pool.query('SELECT project_id FROM todos WHERE id = $1', [todoId]);

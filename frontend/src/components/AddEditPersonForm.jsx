@@ -38,6 +38,8 @@ const AddEditPersonForm = () => {
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [newAlias, setNewAlias] = useState('');
+  // Index of the alias being edited in the alias input (issue #109).
+  const [editingAlias, setEditingAlias] = useState(null);
   const [connectionTypes, setConnectionTypes] = useState(CONNECTION_TYPES);
   const [locationTypes, setLocationTypes] = useState(LOCATION_TYPES);
   const [crmStatuses, setCrmStatuses] = useState(CRM_STATUSES);
@@ -146,7 +148,20 @@ const AddEditPersonForm = () => {
   const set = (key, val) => setFormData(f => ({ ...f, [key]: val }));
 
   const addAlias = () => {
-    if (newAlias.trim()) { set('aliases', [...formData.aliases, newAlias.trim()]); setNewAlias(''); }
+    const alias = newAlias.trim();
+    if (!alias) return;
+    set('aliases', editingAlias === null
+      ? [...formData.aliases, alias]
+      : formData.aliases.map((a, i) => (i === editingAlias ? alias : a)));
+    setNewAlias('');
+    setEditingAlias(null);
+  };
+  const editAlias = (i) => { setEditingAlias(i); setNewAlias(formData.aliases[i]); };
+  const cancelAlias = () => { setEditingAlias(null); setNewAlias(''); };
+  const removeAlias = (i) => {
+    set('aliases', formData.aliases.filter((_, idx) => idx !== i));
+    if (editingAlias === i) cancelAlias();
+    else if (editingAlias !== null && i < editingAlias) setEditingAlias(editingAlias - 1);
   };
 
   const getSimilarCases = () => {
@@ -291,13 +306,16 @@ const AddEditPersonForm = () => {
                 placeholder={t('personForm.addAliasPlaceholder')}
                 className="flex-1 px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600"
               />
-              <button type="button" onClick={addAlias} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{t('common.add')}</button>
+              <button type="button" onClick={addAlias} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{editingAlias === null ? t('common.add') : t('common.save')}</button>
+              {editingAlias !== null && (
+                <button type="button" onClick={cancelAlias} className="px-4 py-2 border dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800">{t('common.cancel')}</button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.aliases.map((alias, i) => (
-                <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-slate-700">
-                  {alias}
-                  <button type="button" onClick={() => set('aliases', formData.aliases.filter((_, idx) => idx !== i))} className="ms-2 text-gray-500 dark:text-slate-400 hover:text-red-500">
+                <span key={i} className={`inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-slate-700 ${editingAlias === i ? 'ring-2 ring-blue-500' : ''}`}>
+                  <button type="button" onClick={() => editAlias(i)} title={t('common.edit')} className="hover:underline text-start">{alias}</button>
+                  <button type="button" onClick={() => removeAlias(i)} title={t('common.delete')} aria-label={t('common.delete')} className="ms-2 text-gray-500 dark:text-slate-400 hover:text-red-500">
                     <X className="w-3 h-3" />
                   </button>
                 </span>

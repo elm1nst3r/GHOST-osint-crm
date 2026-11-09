@@ -1,5 +1,5 @@
 // File: frontend/src/components/GlobalMap.jsx
-import { useState, useEffect, useMemo, useEffectEvent } from 'react';
+import { useState, useEffect, useMemo, useEffectEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { forwardArrow } from '../i18n';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -7,8 +7,12 @@ import MarkerClusterGroup from './map/MarkerClusterGroup';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIcons';
-import { Search, RefreshCw, Plus, AlertCircle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
-import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI } from '../utils/api';
+import { Search, RefreshCw, Plus, AlertCircle, AlertTriangle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
+import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI, geocodingAPI, peopleAPI } from '../utils/api';
+import { useUI } from '../contexts/UIContext';
+import { useAuth } from '../contexts/AuthContext';
+import { addressQuery } from '../utils/geocodeReasons';
+import GeocodeReport from './map/GeocodeReport';
 import { useProject } from '../contexts/ProjectContext';
 import { OSM_TILE_URL, OSM_ATTRIBUTION, OSM_TILE_REFERRER_POLICY } from '../utils/mapConstants';
 import { optionLabel } from '../utils/optionLabels';
@@ -71,6 +75,11 @@ const GlobalMap = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  // Geocoding results or the addresses not on the map (issue #110).
+  const [report, setReport] = useState(null);
+  const { selectedPersonForDetail, setSelectedPersonForDetail, editingPerson } = useUI();
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [geocodingStats, setGeocodingStats] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -161,47 +170,65 @@ const GlobalMap = () => {
     }
   };
 
+  // Bulk geocoding (admins): the result, including every address that
+  // couldn't be placed and why, shows in a dialog (issue #110).
   const triggerBatchGeocode = async () => {
     if (geocoding) return;
-    setGeocoding(true);
-    try {
-      const locations = people.flatMap(person =>
-        (person.locations || [])
-          .filter(loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country))
-          .map(loc => ({ ...loc, person_id: person.id }))
-      );
-      if (locations.length === 0) { alert(t('globalMap.allCoordinatesHaveCoords')); return; }
-
-      const res = await fetch(`${API_BASE}/geocode/batch-enhanced`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations, minConfidence: 30, maxConcurrent: 3 }),
-      });
-
-      if (!res.ok) throw new Error('Enhanced geocoding failed');
-      const result = await res.json();
-      alert(`${t('globalMap.geocodingCompletePrefix')}\n${t('globalMap.processedCount', { count: result.summary.total })}\n${t('globalMap.geocodedCount', { count: result.summary.geocoded })}\n${t('globalMap.cachedCount', { count: result.summary.cached })}`);
-      fetchPeople();
-      fetchGeocodingStats();
-    } catch (error) {
-      // Fallback to simple batch
-      try {
-        const res = await fetch(`${API_BASE}/geocode/batch`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
-        if (res.ok) {
-          const result = await res.json();
-          alert(t('globalMap.fallbackGeocodingComplete', { count: result.totalGeocoded }));
-          fetchPeople();
-        } else {
-          throw new Error(t('globalMap.errorBothMethodsFailed'), { cause: error });
-        }
-      } catch (fallbackError) {
-        alert(t('globalMap.errorGeocodeLocations', { message: fallbackError.message }));
-      }
-    } finally {
-      setGeocoding(false);
+    const locations = people.flatMap(person =>
+      (person.locations || [])
+        .filter(loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country))
+        .map(loc => ({ ...loc, person_id: person.id }))
+    );
+    if (locations.length === 0) {
+      setReport({ title: t('globalMap.report.title'), failures: [], message: t('globalMap.report.nothingToDo') });
+      return;
     }
+    setGeocoding(true);
+    let result = null;
+    let error = null;
+    try {
+      result = await geocodingAPI.batch(locations);
+    } catch (err) {
+      error = err;
+    }
+    setGeocoding(false);
+    if (error) {
+      setReport({ title: t('globalMap.report.title'), failures: [], message: t('globalMap.report.error', { message: error.message }) });
+      return;
+    }
+    setReport({ title: t('globalMap.report.title'), summary: result.summary, failures: result.failures || [] });
+    fetchPeople();
+    fetchGeocodingStats();
   };
+
+  // Every address without a position, with the reason from the last try.
+  const showNotOnMap = () => {
+    const failures = people.flatMap(person => (person.locations || [])
+      .filter(loc => (!loc.latitude || !loc.longitude) && (loc.address || loc.city || loc.country))
+      .map(loc => ({
+        person_id: person.id,
+        person_name: [person.first_name, person.last_name].filter(Boolean).join(' '),
+        address: addressQuery(loc),
+        reason: loc.geocode_failure || null,
+        message: loc.geocode_message || '',
+        best_match: loc.geocode_best_match || null,
+      })));
+    setReport({ title: t('globalMap.report.notOnMapTitle'), failures });
+  };
+
+  // Open a person to fix an address, staying on the map; reload the map's
+  // addresses once their dialogs are closed.
+  const openPerson = (id) => {
+    setReport(null);
+    peopleAPI.getById(id).then(setSelectedPersonForDetail).catch(() => {});
+  };
+  const personOpen = Boolean(selectedPersonForDetail || editingPerson);
+  const wasPersonOpen = useRef(false);
+  const onPersonDialogs = useEffectEvent(() => {
+    if (wasPersonOpen.current && !personOpen) fetchPeople();
+    wasPersonOpen.current = personOpen;
+  });
+  useEffect(() => onPersonDialogs(), [personOpen]);
 
   // Search filter
   useEffect(() => {
@@ -365,14 +392,23 @@ const GlobalMap = () => {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 mb-4 transition-colors">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('globalMap.title')}</h1>
-          <div className="flex items-center gap-x-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{t('globalMap.title')}</h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {missingCoordinates > 0 && (
+              <button
+                onClick={showNotOnMap}
+                className="px-3 py-2 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 rounded-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all flex items-center whitespace-nowrap"
+              >
+                <AlertTriangle className="w-4 h-4 me-2" />
+                {t('globalMap.report.showNotOnMap', { count: missingCoordinates })}
+              </button>
+            )}
+            {missingCoordinates > 0 && isAdmin && (
               <button
                 onClick={triggerBatchGeocode}
                 disabled={geocoding}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-sm hover:bg-yellow-700 transition-all flex items-center disabled:opacity-50"
+                className="px-4 py-2 bg-yellow-600 text-white rounded-sm hover:bg-yellow-700 transition-all flex items-center whitespace-nowrap disabled:opacity-50"
                 title={t('globalMap.needsGeocodingTitle', { count: missingCoordinates })}
               >
                 <RefreshCw className={`w-4 h-4 me-2 ${geocoding ? 'animate-spin' : ''}`} />
@@ -576,6 +612,16 @@ const GlobalMap = () => {
           allPeople={allPeople}
           onSuccess={() => { fetchPeople(); fetchGeocodingStats(); }}
           onClose={() => setShowAddLocation(false)}
+        />
+      )}
+      {report && (
+        <GeocodeReport
+          title={report.title}
+          summary={report.summary}
+          failures={report.failures}
+          message={report.message}
+          onOpenPerson={openPerson}
+          onClose={() => setReport(null)}
         />
       )}
     </div>

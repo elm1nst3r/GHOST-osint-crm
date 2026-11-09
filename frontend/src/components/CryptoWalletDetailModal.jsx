@@ -6,7 +6,7 @@
 // unlike ConnectionsSection.js's person<->person path.
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wallet, X, Edit2, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Wallet, X, Edit2, ExternalLink, Plus, Trash2, Pencil, Check } from 'lucide-react';
 import { cryptoWalletsAPI, relationshipsAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
 import { useData } from '../contexts/DataContext';
@@ -74,6 +74,25 @@ const CryptoWalletDetailModal = ({ wallet: initial, onClose }) => {
     }
   };
 
+  // Changing a link's type in place (#109); the rest of the link stays.
+  const [editingLink, setEditingLink] = useState(null); // { id, type }
+  const handleSaveLink = async (e) => {
+    e.preventDefault();
+    const type = editingLink.type.trim();
+    if (!type) return;
+    setSaving(true);
+    setError('');
+    try {
+      await relationshipsAPI.update(editingLink.id, { relationship_type: type });
+      setEditingLink(null);
+      reload();
+    } catch (err) {
+      setError(err.message || t('cryptoWalletDetailModal.errorUpdateRelationship'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleRemoveRelationship = async (relationshipId) => {
     if (!window.confirm(t('cryptoWalletDetailModal.confirmRemoveRelationship'))) return;
     try {
@@ -128,9 +147,21 @@ const CryptoWalletDetailModal = ({ wallet: initial, onClose }) => {
                     <span className="truncate">
                       <span className="text-xs uppercase text-gray-400 me-1.5">[{ENTITY_LABEL[c.entity_type] || c.entity_type}]</span>
                       {entityLabel(c.entity_type, c.entity_id)}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 ms-1.5">({c.type})</span>
+                      {editingLink?.id !== c.relationship_id && <span className="text-xs text-gray-500 dark:text-gray-400 ms-1.5">({c.type})</span>}
                     </span>
-                    <button onClick={() => handleRemoveRelationship(c.relationship_id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                    {editingLink?.id === c.relationship_id ? (
+                      <form onSubmit={handleSaveLink} className="flex items-center gap-1 shrink-0">
+                        <input autoFocus className={`${inputClass} w-32 py-1`} value={editingLink.type} onChange={e => setEditingLink({ ...editingLink, type: e.target.value })}
+                          onKeyDown={e => e.key === 'Escape' && setEditingLink(null)} aria-label={t('cryptoWalletDetailModal.relationshipTypePlaceholder')} />
+                        <button type="submit" disabled={saving} title={t('common.save')} aria-label={t('common.save')} className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-sm"><Check className="w-3.5 h-3.5" /></button>
+                        <button type="button" onClick={() => setEditingLink(null)} title={t('common.cancel')} aria-label={t('common.cancel')} className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm"><X className="w-3.5 h-3.5" /></button>
+                      </form>
+                    ) : (
+                      <span className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => setEditingLink({ id: c.relationship_id, type: c.type || '' })} title={t('common.edit')} aria-label={t('common.edit')} className="p-1 text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleRemoveRelationship(c.relationship_id)} title={t('common.delete')} aria-label={t('common.delete')} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

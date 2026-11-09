@@ -213,6 +213,11 @@ const sessionMiddleware = session({
 });
 app.use((req, res, next) => (req.apiToken ? next() : sessionMiddleware(req, res, next)));
 
+// Single sign-on sessions end when the identity provider's session ends
+// (issue #105); see the middleware for how.
+const { ssoSessionCheck } = require('./middleware/ssoSessionCheck');
+app.use(ssoSessionCheck());
+
 // Import audit logging middleware
 const { auditMiddleware } = require('./middleware/auditLog');
 const { requireAuth, requireAdmin } = require('./middleware/auth');

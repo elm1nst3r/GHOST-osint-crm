@@ -12,6 +12,38 @@ async function revokeSessionsForUser(pool, userId, { keepSessionId } = {}) {
   await pool.query(`DELETE FROM user_sessions WHERE ${where}`, params);
 }
 
+// Ends the single sign-on sessions a provider's logout token names (issue
+// #105): the provider's session (sid), or every session of the user (sub)
+// when there is no sid. Sessions from before sid was stored (3.1.0/3.1.1)
+// have none; they end on any logout for their user.
+//
+// The user's other sessions are checked with the provider on their next
+// request: Keycloak's "sign out" for a whole user sends a single token
+// naming one sid, while signing out one session must leave the others on.
+// Returns the GHOST user id of each ended session.
+async function endSsoSessions(pool, { issuer, sid = null, sub = null }) {
+  const { rows } = await pool.query(
+    `DELETE FROM user_sessions
+     WHERE sess::jsonb->'sso'->>'issuer' = $1
+       AND (
+         ($2::text IS NOT NULL AND sess::jsonb->'sso'->>'sid' = $2::text)
+         OR (($2::text IS NULL OR sess::jsonb->'sso'->>'sid' IS NULL)
+             AND (sess::jsonb->>'userId')::int IN (SELECT user_id FROM user_identities WHERE issuer = $1 AND subject = $3::text))
+       )
+     RETURNING (sess::jsonb->>'userId')::int AS user_id`,
+    [issuer, sid, sub]
+  );
+  if (sid && sub) {
+    await pool.query(
+      `UPDATE user_sessions SET sess = jsonb_set(sess::jsonb, '{sso,recheck}', 'true')::json
+       WHERE sess::jsonb->'sso'->>'issuer' = $1 AND sess::jsonb->'sso' ? 'refresh'
+         AND (sess::jsonb->>'userId')::int IN (SELECT user_id FROM user_identities WHERE issuer = $1 AND subject = $2)`,
+      [issuer, sub]
+    );
+  }
+  return rows.map((r) => r.user_id);
+}
+
 const regenerateSession = (req) => new Promise((resolve, reject) => {
   req.session.regenerate((err) => (err ? reject(err) : resolve()));
 });
@@ -32,4 +64,4 @@ async function establishSession(req, user, { mfaSetupRequired = false } = {}) {
   await saveSession(req);
 }
 
-module.exports = { revokeSessionsForUser, regenerateSession, saveSession, establishSession };
+module.exports = { revokeSessionsForUser, endSsoSessions, regenerateSession, saveSession, establishSession };

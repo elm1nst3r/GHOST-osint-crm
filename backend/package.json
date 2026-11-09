@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "main": "server.js",
   "scripts": {
     "test": "jest --forceExit",
@@ -21,6 +21,7 @@
     "express-rate-limit": "^8.7.3",
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
+    "jose": "^6.2.15",
     "knex": "^3.3.0",
     "multer": "^2.5.0",
     "openid-client": "^6.8.9",

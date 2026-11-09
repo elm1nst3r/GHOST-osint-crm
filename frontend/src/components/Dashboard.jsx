@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Network, Trash2, Check, ChevronDown, FileText } from 'lucide-react';
+import { Network, Trash2, Check, ChevronDown, FileText, Pencil } from 'lucide-react';
 import RelationshipManager from './visualization/RelationshipManager';
 import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
@@ -29,6 +29,8 @@ const Dashboard = () => {
 
   const [newTodo, setNewTodo] = useState('');
   const [editingTodoId, setEditingTodoId] = useState(null);
+  // To-do whose text is being changed in place (#109): { id, text }.
+  const [editingText, setEditingText] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState(null);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const dropdownRef = useRef(null);
@@ -82,6 +84,14 @@ const Dashboard = () => {
       console.error('Error updating todo:', error);
       alert(t('dashboard.errorUpdateTodo'));
     }
+  };
+
+  const saveTodoText = async () => {
+    const { id, text } = editingText;
+    setEditingText(null);
+    const todo = todos.find(td => td.id === id);
+    if (!text.trim() || !todo || text.trim() === todo.text) return;
+    await handleUpdateTodo(id, { text: text.trim() });
   };
 
   const handleDeleteTodo = async (id) => {
@@ -210,11 +220,30 @@ const Dashboard = () => {
                       <Check className="w-3 h-3" />
                     )}
                   </div>
-                  <span className={`flex-1 min-w-0 wrap-break-word ${
-                    (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'
-                  }`}>
-                    {todo.text}
-                  </span>
+                  {editingText?.id === todo.id ? (
+                    <input
+                      autoFocus
+                      value={editingText.text}
+                      onChange={e => setEditingText({ ...editingText, text: e.target.value })}
+                      onKeyDown={e => {
+                        // Leaving the field saves (onBlur), so Enter just leaves it.
+                        if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+                        if (e.key === 'Escape') setEditingText(null);
+                      }}
+                      onBlur={saveTodoText}
+                      aria-label={t('dashboard.editTask')}
+                      className="flex-1 min-w-0 px-2 py-1 -my-1 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={() => setEditingText({ id: todo.id, text: todo.text })}
+                      className={`flex-1 min-w-0 wrap-break-word ${
+                        (todo.status === 'done' || todo.status === 'cancelled') ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'
+                      }`}
+                    >
+                      {todo.text}
+                    </span>
+                  )}
 
                   {/* Status Dropdown */}
                   <div className="relative shrink-0">
@@ -270,6 +299,14 @@ const Dashboard = () => {
                     )}
                   </div>
 
+                  <button
+                    onClick={() => setEditingText({ id: todo.id, text: todo.text })}
+                    className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 reveal-on-hover transition-opacity duration-150 shrink-0"
+                    title={t('dashboard.editTask')}
+                    aria-label={t('dashboard.editTask')}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleDeleteTodo(todo.id)}
                     className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 reveal-on-hover transition-opacity duration-150 shrink-0"

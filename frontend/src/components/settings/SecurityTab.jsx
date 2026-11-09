@@ -59,7 +59,7 @@ const SecurityTab = () => {
 
       {currentUser?.role === 'admin' && security && (
         <Section icon={Users} title={t('security.policy.title')}>
-          <SecurityPolicySection ownTwoFactorEnabled={security.enabled} />
+          <SecurityPolicySection />
         </Section>
       )}
     </div>

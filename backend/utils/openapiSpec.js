@@ -368,6 +368,25 @@ const spec = {
         security: [],
       },
     },
+    '/auth/oidc/backchannel-logout': {
+      post: {
+        ...op('Auth', 'Single sign-on: the identity provider reports that a session ended', {
+          mcp: false,
+          description: 'Called by the OpenID Connect provider, not by browsers or API clients (Back-Channel Logout 1.0, issue #105). '
+            + 'Takes a signed logout token and ends the GHOST sessions it names (by sid, else every session of sub).',
+          responses: { 400: { description: 'Missing or invalid logout token, or single sign-on is off' } },
+        }),
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: { type: 'object', required: ['logout_token'], properties: { logout_token: { type: 'string', description: 'Signed JWT from the identity provider' } } },
+            },
+          },
+        },
+        security: [],
+      },
+    },
     '/auth/mfa/verify': {
       post: {
         ...op('Auth', 'Second sign-in step: authenticator code or recovery code', {
@@ -1063,7 +1082,11 @@ const spec = {
       post: op('Settings', 'Create a model option', { admin: true, body: ref('SettingsModelOptionCreate') }),
     },
     '/settings/security': {
-      get: op('Settings', 'Get sign-in security settings', { admin: true, mcp: false }),
+      get: op('Settings', 'Get sign-in security settings', {
+        admin: true, mcp: false,
+        description: '`can_require`: the caller may turn the requirement on (has two-step verification, or signed in through single sign-on). '
+          + '`local_login`: password sign-in is on; the requirement applies only to password sign-ins.',
+      }),
       put: op('Settings', 'Require two-factor sign-in for every user', { admin: true, body: ref('SettingsSecurity'), mcp: false }),
     },
     '/settings/model-options/{id}': {

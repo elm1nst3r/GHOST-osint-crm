@@ -23,6 +23,7 @@ const {
 const { ALLOW_USER_TOOLS_KEY, allowUserTools } = require('../utils/toolAccess');
 const { SWITCHABLE_MODULES, DISABLED_MODULES_KEY, readDisabledModules } = require('../utils/modules');
 const { MFA_REQUIRED_KEY, mfaRequiredByPolicy, setMfaRequired, mfaState } = require('../services/accountSecurity');
+const { readOidcConfig } = require('../utils/oidcConfig');
 const { apiLimiter } = require('../middleware/rateLimiters');
 
 
@@ -267,9 +268,19 @@ router.put('/modules', requireAdmin, validate(SettingsModulesSchema), async (req
 // "Require two-factor": users without it are held at the setup screen from
 // their next sign-in. The admin turning it on must have two-factor already,
 // so the setting can't take effect on them by surprise.
+//
+// It applies to sign-ins with a GHOST password only: single sign-on leaves
+// two-step verification to the identity provider (#105). So an admin signed
+// in through single sign-on can turn it on without setting up GHOST's own,
+// and with password sign-in off it has no effect at all (#108).
+const canRequireMfa = async (req) => Boolean(req.session.sso) || (await mfaState(pool, req.session.userId)).enabled;
 router.get('/security', requireAdmin, async (req, res) => {
   try {
-    res.json({ mfa_required: await mfaRequiredByPolicy(pool) });
+    res.json({
+      mfa_required: await mfaRequiredByPolicy(pool),
+      can_require: await canRequireMfa(req),
+      local_login: readOidcConfig().localLoginEnabled,
+    });
   } catch (err) {
     console.error('Error fetching security settings:', err);
     res.status(500).json({ error: 'Failed to fetch security settings' });
@@ -279,7 +290,7 @@ router.get('/security', requireAdmin, async (req, res) => {
 router.put('/security', requireAdmin, validate(SettingsSecuritySchema), async (req, res) => {
   const { mfa_required } = req.body;
   try {
-    if (mfa_required && !(await mfaState(pool, req.session.userId)).enabled) {
+    if (mfa_required && !(await canRequireMfa(req))) {
       return res.status(400).json({
         error: 'Set up two-factor authentication for your own account first.',
         code: 'mfa_not_enabled',

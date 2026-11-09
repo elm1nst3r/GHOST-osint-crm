@@ -12,6 +12,7 @@
 //   OIDC_ADMIN_GROUP=ghost-admins     (optional: this group makes someone an admin)
 //   OIDC_GROUPS_CLAIM=groups
 //   OIDC_LOGOUT=true                  (signing out of GHOST also signs out at the provider)
+//   OIDC_SESSION_CHECK_MINUTES=5      (ask the provider this often whether the session is still on; 0 = never)
 //   OIDC_ALLOW_HTTP=false             (only for local testing against an http:// provider)
 //   LOCAL_LOGIN_ENABLED=true          (GHOST passwords; keep on as a fallback)
 
@@ -31,6 +32,9 @@ function readOidcConfig(env = process.env) {
     const allowHttp = bool(env.OIDC_ALLOW_HTTP, false);
     if (issuer && !issuer.startsWith('https://') && !allowHttp) problems.push('OIDC_ISSUER_URL must use https:// (OIDC_ALLOW_HTTP=true only for local testing)');
   }
+  const checkRaw = String(env.OIDC_SESSION_CHECK_MINUTES ?? '').trim();
+  const checkMinutes = checkRaw === '' ? 5 : Number(checkRaw);
+  const sessionCheckMinutes = Number.isFinite(checkMinutes) && checkMinutes > 0 ? Math.max(1, Math.min(checkMinutes, 1440)) : 0;
   const scopes = (env.OIDC_SCOPES || 'openid profile email').split(/[\s,]+/).filter(Boolean);
   if (!scopes.includes('openid')) scopes.unshift('openid');
   return {
@@ -46,6 +50,7 @@ function readOidcConfig(env = process.env) {
     adminGroup: (env.OIDC_ADMIN_GROUP || '').trim(),
     groupsClaim: (env.OIDC_GROUPS_CLAIM || 'groups').trim(),
     logout: bool(env.OIDC_LOGOUT, true),
+    sessionCheckMinutes,
     allowHttp: bool(env.OIDC_ALLOW_HTTP, false),
     localLoginEnabled: bool(env.LOCAL_LOGIN_ENABLED, true),
   };

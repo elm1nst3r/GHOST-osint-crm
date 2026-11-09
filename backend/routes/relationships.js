@@ -231,8 +231,11 @@ router.post('/', requireAuth, validate(RelationshipCreateSchema), async (req, re
   }
 });
 
+// Changes only the fields sent: a client editing the type doesn't need to
+// know the case or note, and leaving them out must not clear them (#109).
 router.put('/:id', requireAuth, validateIdParam, validate(RelationshipUpdateSchema), async (req, res) => {
   const { case_id, relationship_type, note } = req.body;
+  const sent = (key) => Object.prototype.hasOwnProperty.call(req.body, key);
 
   try {
     const existing = await pool.query('SELECT project_id FROM relationships WHERE id = $1', [req.params.id]);
@@ -241,9 +244,12 @@ router.put('/:id', requireAuth, validateIdParam, validate(RelationshipUpdateSche
     if (accessErr) return res.status(403).json({ error: accessErr });
 
     const result = await pool.query(
-      `UPDATE relationships SET case_id = $1, relationship_type = $2, note = $3
-       WHERE id = $4 RETURNING *`,
-      [case_id || null, relationship_type, note || null, req.params.id]
+      `UPDATE relationships SET
+         case_id = CASE WHEN $1 THEN $2::int ELSE case_id END,
+         relationship_type = $3,
+         note = CASE WHEN $4 THEN $5 ELSE note END
+       WHERE id = $6 RETURNING *`,
+      [sent('case_id'), case_id || null, relationship_type, sent('note'), note || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Relationship not found' });
     res.json(result.rows[0]);

@@ -15,9 +15,13 @@
 const { pool } = require('../config/database');
 const { readOidcConfig } = require('../utils/oidcConfig');
 const { usernameBase, uniqueUsername, nameParts, roleFromClaims, displayName } = require('../utils/oidcClaims');
+const { checkLogoutClaims, sessionEndedError } = require('../utils/oidcLogout');
 
+// Both are ES modules, loaded on first use so Jest never loads them.
 let clientLib = null;
 const lib = async () => { clientLib ||= await import('openid-client'); return clientLib; };
+let joseLib = null;
+const jose = async () => { joseLib ||= await import('jose'); return joseLib; };
 
 let configPromise = null;
 let configKey = null;
@@ -57,7 +61,9 @@ async function startSignIn(cfg = readOidcConfig()) {
 }
 
 // Checks the provider's answer (state, nonce, PKCE, ID token signature and
-// audience) and returns the identity's claims and ID token.
+// audience) and returns the identity's claims and tokens. The provider's
+// session id (sid) and the refresh token let GHOST end the session when the
+// provider does (back-channel logout, session checks).
 async function finishCallback(cfg, query, saved) {
   const client = await lib();
   const config = await providerConfig(cfg);
@@ -69,7 +75,8 @@ async function finishCallback(cfg, query, saved) {
     expectedNonce: saved.nonce,
     idTokenExpected: true,
   });
-  let claims = tokens.claims();
+  const idClaims = tokens.claims();
+  let claims = idClaims;
   // Some providers only put groups (or the email) in the userinfo response.
   if (cfg.adminGroup || !claims.email) {
     try {
@@ -77,7 +84,50 @@ async function finishCallback(cfg, query, saved) {
       claims = { ...info, ...claims, ...(info[cfg.groupsClaim] !== undefined ? { [cfg.groupsClaim]: info[cfg.groupsClaim] } : {}) };
     } catch { /* userinfo is optional */ }
   }
-  return { claims, idToken: tokens.id_token, issuer: config.serverMetadata().issuer };
+  return {
+    claims,
+    idToken: tokens.id_token,
+    issuer: config.serverMetadata().issuer,
+    sid: typeof idClaims.sid === 'string' ? idClaims.sid : null,
+    refreshToken: tokens.refresh_token || null,
+  };
+}
+
+// Is the provider's session still on? A refresh token stops working when the
+// provider's session ends (signed out, ended by an admin, idle timeout, user
+// disabled). → { refreshToken, idToken } (the provider may rotate either),
+// or { ended: true }. Throws when the provider can't be asked.
+async function refreshSession(cfg, refreshToken) {
+  const client = await lib();
+  const config = await providerConfig(cfg);
+  try {
+    const tokens = await client.refreshTokenGrant(config, refreshToken);
+    return { refreshToken: tokens.refresh_token || refreshToken, idToken: tokens.id_token || null };
+  } catch (err) {
+    if (sessionEndedError(err)) return { ended: true, reason: err.error_description || err.error };
+    throw err;
+  }
+}
+
+// A logout token from the provider (OpenID Connect Back-Channel Logout 1.0):
+// signed with one of the provider's published keys, for this client, recent.
+// → { issuer, sid, sub }. Throws when it isn't valid.
+const ASYMMETRIC = ['RS256', 'RS384', 'RS512', 'PS256', 'PS384', 'PS512', 'ES256', 'ES384', 'ES512', 'EdDSA', 'Ed25519'];
+const keySets = new Map();
+async function verifyLogoutToken(cfg, token) {
+  const { createRemoteJWKSet, jwtVerify } = await jose();
+  const meta = (await providerConfig(cfg)).serverMetadata();
+  if (!meta.jwks_uri) throw new Error('the provider publishes no signing keys (jwks_uri)');
+  let keys = keySets.get(meta.jwks_uri);
+  if (!keys) { keys = createRemoteJWKSet(new URL(meta.jwks_uri)); keySets.set(meta.jwks_uri, keys); }
+  const { payload } = await jwtVerify(token, keys, {
+    issuer: meta.issuer,
+    audience: cfg.clientId,
+    algorithms: ASYMMETRIC,
+    maxTokenAge: '10 minutes',
+    clockTolerance: 60,
+  });
+  return { issuer: meta.issuer, ...checkLogoutClaims(payload) };
 }
 
 async function endSessionUrl(cfg, idToken, postLogoutRedirect) {
@@ -164,4 +214,4 @@ async function resolveUser(cfg, issuer, claims, db = pool) {
   return { refused: 'not_linked' };
 }
 
-module.exports = { startSignIn, finishCallback, endSessionUrl, resolveUser, createUserForIdentity, providerConfig };
+module.exports = { startSignIn, finishCallback, refreshSession, verifyLogoutToken, endSessionUrl, resolveUser, createUserForIdentity, providerConfig };

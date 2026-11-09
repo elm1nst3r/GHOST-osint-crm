@@ -4,6 +4,40 @@ import { FileText, Filter, User } from 'lucide-react';
 import { auditLogsAPI } from '../utils/authAPI';
 import { formatDateTime } from '../utils/format';
 
+// Old and new values are stored as text, often JSON (a whole address list,
+// or a full record on create/delete). Pretty-printed and wrapped inside the
+// cell; long ones collapsed to a few lines with "Show all" (issue #107).
+const formatValue = (value) => {
+  if (value === null || value === undefined || value === '') return '-';
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null ? JSON.stringify(parsed, null, 2) : String(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const COLLAPSED_LINES = 6;
+const isLong = (text) => text.split('\n').length > COLLAPSED_LINES || text.length > 400;
+
+function ChangeValue({ label, value, toneClass }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const text = formatValue(value);
+  const long = isLong(text);
+  return (
+    <div className="text-xs">
+      <span className="font-medium">{label}</span>
+      <pre dir="ltr" className={`mt-0.5 font-mono whitespace-pre-wrap wrap-break-word ${toneClass} ${long && !open ? 'line-clamp-6' : ''}`}>{text}</pre>
+      {long && (
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mt-0.5 text-blue-600 dark:text-blue-400 hover:underline">
+          {open ? t('settings.auditLogs.showLess') : t('settings.auditLogs.showAll')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 const AuditLogs = () => {
   const { t } = useTranslation();
   const [logs, setLogs] = useState([]);
@@ -53,19 +87,6 @@ const AuditLogs = () => {
 
   const handlePageChange = (newOffset) => {
     setFilters({ ...filters, offset: newOffset });
-  };
-
-  const formatValue = (value) => {
-    if (!value) return '-';
-    try {
-      const parsed = JSON.parse(value);
-      if (typeof parsed === 'object') {
-        return JSON.stringify(parsed, null, 2);
-      }
-      return value;
-    } catch {
-      return value;
-    }
   };
 
   const getActionColor = (action) => {
@@ -241,7 +262,7 @@ const AuditLogs = () => {
         <div className="text-center py-8 text-red-600 dark:text-red-400">{error}</div>
       ) : (
         <>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
@@ -267,7 +288,7 @@ const AuditLogs = () => {
               </thead>
               <tbody data-volatile className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={log.id} className="align-top hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDateTime(log.created_at)}
                     </td>
@@ -290,21 +311,11 @@ const AuditLogs = () => {
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {log.field_name || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 min-w-64 max-w-xl">
                       {log.field_name && (
-                        <div className="space-y-1">
-                          <div className="text-xs">
-                            <span className="font-medium">{t('settings.auditLogs.oldValueLabel')}</span>{' '}
-                            <span className="text-red-600 dark:text-red-400">
-                              {formatValue(log.old_value)}
-                            </span>
-                          </div>
-                          <div className="text-xs">
-                            <span className="font-medium">{t('settings.auditLogs.newValueLabel')}</span>{' '}
-                            <span className="text-green-600 dark:text-green-400">
-                              {formatValue(log.new_value)}
-                            </span>
-                          </div>
+                        <div className="space-y-2">
+                          <ChangeValue label={t('settings.auditLogs.oldValueLabel')} value={log.old_value} toneClass="text-red-600 dark:text-red-400" />
+                          <ChangeValue label={t('settings.auditLogs.newValueLabel')} value={log.new_value} toneClass="text-green-600 dark:text-green-400" />
                         </div>
                       )}
                     </td>
