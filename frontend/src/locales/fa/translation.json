@@ -1433,7 +1433,8 @@
       "osintData": "داده‌های OSINT",
       "tasksTodos": "ماموریت‌ها / کارهای انجام نشده",
       "chartsAnalytics": "نمودارها و تحلیل‌ها",
-      "businesses": "کسب‌وکارها"
+      "businesses": "کسب‌وکارها",
+      "savedRecords": "Saved records"
     },
     "reportTypeHint": "بخش‌های زیر را تنظیم می‌کند. هر یک از آن‌ها را بعداً تغییر دهید.",
     "scopeLabel": "محدوده گزارش",
@@ -1466,7 +1467,10 @@
     "statisticalAnalysis": "تحلیل آماری",
     "reportInformation": "اطلاعات گزارش",
     "twoFormatsStrong": "دو فرمت در دسترس است:",
-    "twoFormatsRest": "Markdown (.md) شامل جداول و فرمت‌های غنی است. Word (.docx) سازگاری حداکثری را با نرم‌افزارهای اداری فراهم می‌کند."
+    "twoFormatsRest": "Markdown (.md) شامل جداول و فرمت‌های غنی است. Word (.docx) سازگاری حداکثری را با نرم‌افزارهای اداری فراهم می‌کند.",
+    "savedRecordsCount_one": "Saved records ({{count}})",
+    "savedRecordsCount_other": "Saved records ({{count}})",
+    "savedRecordsLoading": "Saved records"
   },
   "ledgerReportPanel": {
     "title": "دفترچه حساب",
@@ -2196,7 +2200,17 @@
     "subjectLabel": "موضوع",
     "directionLabel": "جهت",
     "endOfLedgerReport": "پایان گزارش دفترچه حساب",
-    "osintIntelligence": "هوش مصنوعی اطلاعاتی"
+    "osintIntelligence": "هوش مصنوعی اطلاعاتی",
+    "savedRecords": "Saved records",
+    "recordsAddedByHand": "Added by hand",
+    "recordsSearchedFor": "searched for {{queries}}",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records",
+    "foundTimes_one": "found {{count}} time",
+    "foundTimes_other": "found {{count}} times",
+    "colFound": "Found",
+    "recordN": "Record {{n}}",
+    "colField": "Field"
   },
   "updateBanner": {
     "available": "نسخه {{version}} در دسترس است.",
