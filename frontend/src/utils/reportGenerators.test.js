@@ -383,3 +383,38 @@ describe('Word paragraphs follow the report direction', () => {
     expect(Paragraph.mock.calls[0][0]).toEqual({ text: 'گزارش', heading: 'H1', alignment: 'center', bidirectional: true });
   });
 });
+
+describe('saved records in the report (#96)', () => {
+  const alex = { id: 1, first_name: 'Alex', last_name: 'Example', connections: [], locations: [] };
+  const rec = (data, extra = {}) => ({ person_id: 1, integration_id: 'leaks', tool_name: 'Leak search', operation: 'phone', query: '+10000000001', retrieved_at: '2026-11-05T10:00:00Z', occurrences: 1, data, ...extra });
+  const records = [
+    rec({ FULL_NAME: 'Alex Example', PHONE: '+10000000001', database: 'Sample database A' }),
+    rec({ FULL_NAME: 'A. Example', email: 'alex@example.com', note: 'a | b', database: 'Sample database C' }, { occurrences: 3 }),
+    rec(Object.fromEntries('abcdefgh'.split('').map((k) => [k, `v-${k}`])), { integration_id: 'wide', tool_name: 'Wide tool', query: 'x' }),
+    rec({ other: 'zz-not-this-subject' }, { person_id: 99 }),
+  ];
+  const data = { ...BASE_DATA, people: [alex], records };
+
+  test('a table per tool and search, normalized fields, provenance', () => {
+    const md = generateMarkdown(data, { ...BASE_OPTIONS, includeRecords: true });
+    expect(md).toContain('## Saved records');
+    expect(md).toContain('#### Leak search · searched for +10000000001 · 2 records');
+    expect(md).toContain('| FULL_NAME | database | PHONE | email | note | Found |');
+    expect(md).toMatch(/\| A\. Example \| Sample database C \| {2}\| alex@example\.com \| a \\\| b \| .+ · found 3 times \|/);
+    expect(md).not.toContain('zz-not-this-subject'); // another person's record stays out
+  });
+
+  test('wide groups are listed record by record', () => {
+    const md = generateMarkdown(data, { ...BASE_OPTIONS, includeRecords: true });
+    expect(md).toContain('#### Wide tool · searched for x · 1 record');
+    expect(md).toContain('**Record 1**');
+    expect(md).toContain('- **h:** v-h');
+  });
+
+  test('off when the box is unticked; on in the full and person presets', () => {
+    expect(generateMarkdown(data, { ...BASE_OPTIONS, includeRecords: false })).not.toContain('Saved records');
+    expect(REPORT_TYPE_PRESETS.comprehensive.includeRecords).toBe(true);
+    expect(REPORT_TYPE_PRESETS['person-profile'].includeRecords).toBe(true);
+    expect(REPORT_TYPE_PRESETS.summary.includeRecords).toBe(false);
+  });
+});

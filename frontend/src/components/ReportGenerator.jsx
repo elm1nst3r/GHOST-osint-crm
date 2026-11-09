@@ -1,12 +1,25 @@
 import { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, Download, Loader2, X } from 'lucide-react';
-import { peopleAPI, casesAPI, todosAPI, businessesAPI, locationsAPI, ledgerAPI } from '../utils/api';
+import { peopleAPI, casesAPI, todosAPI, businessesAPI, locationsAPI, ledgerAPI, osintRecordsAPI } from '../utils/api';
 import { downloadMarkdown, downloadWord, downloadLedgerMarkdown, downloadLedgerWord, REPORT_TYPE_PRESETS } from '../utils/reportGenerators';
 import ReportOptions from './reports/ReportOptions';
 import ReportPreview from './reports/ReportPreview';
 import LedgerReportPanel from './reports/LedgerReportPanel';
 import { useProject } from '../contexts/ProjectContext';
+
+// Saved records of the project (issue #96), 500 per request.
+const RECORDS_PAGE = 500;
+const RECORDS_MAX = 10000;
+async function fetchAllRecords(projectId) {
+  const all = [];
+  for (let offset = 0; offset < RECORDS_MAX; offset += RECORDS_PAGE) {
+    const page = await osintRecordsAPI.list({ project_id: projectId, limit: RECORDS_PAGE, offset });
+    all.push(...(page?.data || []));
+    if (!page?.meta?.hasMore) break;
+  }
+  return all;
+}
 
 const DEFAULT_OPTIONS = {
   ...REPORT_TYPE_PRESETS.comprehensive,
@@ -44,7 +57,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const [allCases, setAllCases] = useState([]);
   const [allPeople, setAllPeople] = useState([]);
   const [data, setData] = useState({
-    cases: [], people: [], businesses: [], locations: [], todos: [],
+    cases: [], people: [], businesses: [], locations: [], todos: [], records: [],
     selectedCase: null, selectedPerson: null,
   });
 
@@ -64,12 +77,13 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [casesData, peopleRaw, businessesData, locationsData, todosData] = await Promise.all([
+      const [casesData, peopleRaw, businessesData, locationsData, todosData, recordsData] = await Promise.all([
         casesAPI.getAll({ project_id: activeProjectId }),
         peopleAPI.getAll({ limit: 10000, project_id: activeProjectId }),
         businessesAPI.getAll({ project_id: activeProjectId }),
         locationsAPI.getAll({ project_id: activeProjectId }),
         todosAPI.getAll({ project_id: activeProjectId }),
+        fetchAllRecords(activeProjectId).catch(() => []),
       ]);
 
       // peopleAPI.getAll returns { data, meta } due to returnMeta: true
@@ -98,7 +112,7 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
       setData({
         cases: casesData, people: filteredPeople,
         businesses: businessesData, locations: locationsData,
-        todos: todosData, selectedCase, selectedPerson,
+        todos: todosData, records: recordsData, selectedCase, selectedPerson,
       });
     } catch (error) {
       console.error('Error fetching report data:', error);

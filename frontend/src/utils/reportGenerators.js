@@ -1,7 +1,8 @@
-import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, HeadingLevel, AlignmentType, Table, TableRow, TableCell, TextRun, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
 import i18n from '../i18n';
 import { formatPersonName } from './personName';
+import { recordSections } from './recordNormalize';
 import { formatDate as formatLocalDate, formatDateTime as formatLocalDateTime, formatNumber } from './format';
 
 // 12.5 → "12.5" / "12,5" in the report's language.
@@ -56,6 +57,7 @@ export const REPORT_SECTIONS = [
   'includeConnections',
   'includeLocations',
   'includeOsintData',
+  'includeRecords',
   'includeTodos',
   'includeCharts',
 ];
@@ -69,6 +71,7 @@ export const REPORT_TYPE_PRESETS = {
     includeConnections: true,
     includeLocations: true,
     includeOsintData: true,
+    includeRecords: true,
     includeTodos: true,
     includeCharts: true,
   },
@@ -80,6 +83,7 @@ export const REPORT_TYPE_PRESETS = {
     includeConnections: false,
     includeLocations: false,
     includeOsintData: false,
+    includeRecords: false,
     includeTodos: true,
     includeCharts: true,
   },
@@ -91,6 +95,7 @@ export const REPORT_TYPE_PRESETS = {
     includeConnections: true,
     includeLocations: true,
     includeOsintData: true,
+    includeRecords: true,
     includeTodos: false,
     includeCharts: false,
   },
@@ -108,11 +113,21 @@ export const matchesPreset = (options) => {
 // get generated, with nothing rewritten behind their back.
 export const resolveOptions = (options) => options;
 
+// Saved records (issue #96): normalized in recordNormalize.js, rendered as a
+// table per tool + search, or record by record when a group has too many
+// fields for a page. Each record says when it was found and how often.
+const recordTitle = (group) => [group.tool || t('recordsAddedByHand'),
+  group.queries.length ? t('recordsSearchedFor', { queries: group.queries.join(', ') }) : null,
+  t('recordCount', { count: group.rows.length })].filter(Boolean).join(' · ');
+const recordFound = (record) => [record.retrieved_at ? formatDate(record.retrieved_at) : '',
+  record.occurrences > 1 ? t('foundTimes', { count: record.occurrences }) : ''].filter(Boolean).join(' · ');
+const sectionsFor = (subjects, records) => recordSections(subjects, Array.isArray(records) ? records : []);
+
 // ── Markdown generator ──────────────────────────────────────────────────────
 
 export const generateMarkdown = (data, options) => {
   options = resolveOptions(options);
-  const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
+  const { people, businesses, locations, todos, selectedCase, selectedPerson, records } = data;
   const subjects = subjectsOf(people, options, selectedPerson);
   const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
@@ -196,6 +211,35 @@ export const generateMarkdown = (data, options) => {
           md += `| ${item.type || t('unknown')} | ${item.value || ''} | ${item.note || item.notes || ''} |\n`;
         });
         md += `\n`;
+      });
+    }
+  }
+
+  if (options.includeRecords) {
+    const sections = sectionsFor(subjects, records);
+    if (sections.length > 0) {
+      const cell = (v) => String(v ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+      md += `## ${t('savedRecords')}\n\n`;
+      sections.forEach(({ person, groups }) => {
+        md += `### ${getFullName(person)}\n\n`;
+        groups.forEach((g) => {
+          md += `#### ${recordTitle(g)}\n\n`;
+          if (g.layout === 'table') {
+            const head = [...g.columns, t('colFound')];
+            md += `| ${head.map(cell).join(' | ')} |\n|${head.map(() => '---').join('|')}|\n`;
+            g.rows.forEach(({ values, record }) => {
+              md += `| ${[...g.columns.map((c) => values[c] || ''), recordFound(record)].map(cell).join(' | ')} |\n`;
+            });
+            md += `\n`;
+          } else {
+            g.rows.forEach(({ values, record }, i) => {
+              const found = recordFound(record);
+              md += `**${t('recordN', { n: i + 1 })}**${found ? ` · ${found}` : ''}\n\n`;
+              g.columns.filter((c) => values[c]).forEach((c) => { md += `- **${c}:** ${values[c]}\n`; });
+              md += `\n`;
+            });
+          }
+        });
       });
     }
   }
@@ -345,9 +389,23 @@ export const p = (text, heading, alignment) => new Paragraph({
 });
 const blank = () => p('');
 
+// Record tables: small type so a normalized table fits a portrait page.
+const cellText = (text, bold = false) => new Paragraph({
+  children: [new TextRun({ text: String(text ?? ''), bold, size: 16 })],
+  ...(isRtlReport() && { bidirectional: true }),
+});
+const wordTable = (header, rows) => new Table({
+  width: { size: 100, type: WidthType.PERCENTAGE },
+  ...(isRtlReport() && { visuallyRightToLeft: true }),
+  rows: [
+    new TableRow({ tableHeader: true, children: header.map((h) => new TableCell({ children: [cellText(h, true)] })) }),
+    ...rows.map((r) => new TableRow({ children: r.map((c) => new TableCell({ children: [cellText(c)] })) })),
+  ],
+});
+
 export const downloadWord = async (data, options) => {
   options = resolveOptions(options);
-  const { people, businesses, locations, todos, selectedCase, selectedPerson } = data;
+  const { people, businesses, locations, todos, selectedCase, selectedPerson, records } = data;
   const subjects = subjectsOf(people, options, selectedPerson);
   const totalConnections = subjects.reduce((sum, p) => sum + (p.connections?.length || 0), 0);
   const reportTitle = selectedCase ? selectedCase.case_name
@@ -423,6 +481,30 @@ export const downloadWord = async (data, options) => {
           children.push(p(`${item.type || t('unknown')}: ${item.value || ''}${note ? ` — ${note}` : ''}`));
         });
         children.push(blank());
+      });
+    }
+  }
+
+  if (options.includeRecords) {
+    const sections = sectionsFor(subjects, records);
+    if (sections.length > 0) {
+      children.push(p(t('savedRecords'), HeadingLevel.HEADING_1));
+      sections.forEach(({ person, groups }) => {
+        children.push(p(getFullName(person), HeadingLevel.HEADING_2));
+        groups.forEach((g) => {
+          children.push(p(recordTitle(g), HeadingLevel.HEADING_3));
+          if (g.layout === 'table') {
+            children.push(wordTable([...g.columns, t('colFound')],
+              g.rows.map(({ values, record }) => [...g.columns.map((c) => values[c] || ''), recordFound(record)])));
+          } else {
+            g.rows.forEach(({ values, record }, i) => {
+              const found = recordFound(record);
+              children.push(p(`${t('recordN', { n: i + 1 })}${found ? ` · ${found}` : ''}`, HeadingLevel.HEADING_4));
+              children.push(wordTable([t('colField'), t('colValue')], g.columns.filter((c) => values[c]).map((c) => [c, values[c]])));
+            });
+          }
+          children.push(blank());
+        });
       });
     }
   }
