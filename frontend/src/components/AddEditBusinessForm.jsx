@@ -1,7 +1,7 @@
 // File: frontend/src/components/AddEditBusinessForm.jsx
 import { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Plus, Trash2, MapPin, Building2, User, Users, Phone, Mail, Globe } from 'lucide-react';
+import { X, Plus, Trash2, Pencil, MapPin, Building2, User, Users, Phone, Mail, Globe } from 'lucide-react';
 import { businessAPI, peopleAPI } from '../utils/api';
 import { formatPersonName } from '../utils/personName';
 import { useProject } from '../contexts/ProjectContext';
@@ -35,6 +35,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
   });
   
   const [newEmployee, setNewEmployee] = useState({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
+  const [editingEmployee, setEditingEmployee] = useState(null);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   const fetchPeople = async () => {
@@ -78,22 +79,42 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
     }
   };
 
-  const addEmployee = () => {
-    if (newEmployee.name.trim()) {
-      setFormData({
-        ...formData,
-        employees: [...formData.employees, { ...newEmployee, id: Date.now() }]
-      });
-      setNewEmployee({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
-      setShowEmployeeForm(false);
-    }
+  const EMPTY_EMPLOYEE = { name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' };
+  // Employees are matched by position: saved ones carry no id (the server
+  // keeps only the fields in employeeSchema), so matching by id removed every
+  // saved employee at once. editingEmployee: the row loaded into the form (#109).
+  const closeEmployeeForm = () => {
+    setShowEmployeeForm(false);
+    setEditingEmployee(null);
+    setNewEmployee(EMPTY_EMPLOYEE);
   };
 
-  const removeEmployee = (employeeId) => {
+  const addEmployee = () => {
+    if (!newEmployee.name.trim()) return;
     setFormData({
       ...formData,
-      employees: formData.employees.filter(emp => emp.id !== employeeId)
+      employees: editingEmployee === null
+        ? [...formData.employees, { ...newEmployee }]
+        : formData.employees.map((emp, i) => (i === editingEmployee ? { ...emp, ...newEmployee } : emp)),
     });
+    closeEmployeeForm();
+  };
+
+  const editEmployee = (i) => {
+    setEditingEmployee(i);
+    // Saved fields may be null; the inputs need strings.
+    const emp = formData.employees[i];
+    setNewEmployee(Object.fromEntries(Object.entries(EMPTY_EMPLOYEE).map(([k, v]) => [k, emp[k] ?? v])));
+    setShowEmployeeForm(true);
+  };
+
+  const removeEmployee = (index) => {
+    setFormData({
+      ...formData,
+      employees: formData.employees.filter((_, i) => i !== index)
+    });
+    if (editingEmployee === index) closeEmployeeForm();
+    else if (editingEmployee !== null && index < editingEmployee) setEditingEmployee(editingEmployee - 1);
   };
 
   const geocodeAddress = async () => {
@@ -432,7 +453,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
               </h3>
               <button
                 type="button"
-                onClick={() => setShowEmployeeForm(!showEmployeeForm)}
+                onClick={() => (showEmployeeForm ? closeEmployeeForm() : setShowEmployeeForm(true))}
                 className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
               >
                 <Plus className="w-4 h-4 me-1" />
@@ -441,7 +462,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
             </div>
 
             {showEmployeeForm && (
-              <div className="mb-3 p-3 glass rounded-lg border border-gray-300 dark:border-gray-600">
+              <div className={`mb-3 p-3 glass rounded-lg border ${editingEmployee !== null ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 dark:border-gray-600'}`}>
                 <div className="mb-2">
                   <select
                     value={newEmployee.person_id || ''}
@@ -514,10 +535,7 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                 <div className="flex justify-end gap-x-2 mt-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowEmployeeForm(false);
-                      setNewEmployee({ name: '', person_id: null, is_decision_maker: false, role: '', department: '', email: '', notes: '' });
-                    }}
+                    onClick={closeEmployeeForm}
                     className="px-3 py-1 text-gray-700 dark:text-slate-300 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-200 text-sm transition-all"
                   >
                     {t('common.cancel')}
@@ -527,15 +545,15 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                     onClick={addEmployee}
                     className="px-3 py-1 bg-blue-600 text-white dark:bg-blue-500 rounded-lg hover:shadow-md text-sm transition-all"
                   >
-                    {t('common.add')}
+                    {editingEmployee === null ? t('common.add') : t('common.save')}
                   </button>
                 </div>
               </div>
             )}
             
             <div className="space-y-2">
-              {formData.employees.map((employee) => (
-                <div key={employee.id} className="flex items-center justify-between p-3 glass rounded-lg border border-gray-300 dark:border-gray-600">
+              {formData.employees.map((employee, index) => (
+                <div key={index} className={`flex items-center justify-between p-3 glass rounded-lg border ${editingEmployee === index ? 'border-blue-500' : 'border-gray-300 dark:border-gray-600'}`}>
                   <div className="flex items-center gap-x-3">
                     <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <div className="flex-1">
@@ -567,13 +585,14 @@ const AddEditBusinessForm = ({ business, onSave, onCancel }) => {
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeEmployee(employee.id)}
-                    className="text-red-600 hover:text-red-700 transition-colors ms-3"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-x-3 ms-3 shrink-0">
+                    <button type="button" onClick={() => editEmployee(index)} title={t('common.edit')} aria-label={t('common.edit')} className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button type="button" onClick={() => removeEmployee(index)} title={t('common.delete')} aria-label={t('common.delete')} className="text-red-600 hover:text-red-700 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

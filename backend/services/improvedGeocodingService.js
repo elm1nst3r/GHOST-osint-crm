@@ -2,6 +2,7 @@
 const {
   PROVIDER_IDS, DEFAULT_PROVIDER, isValidProvider, getProvider, apiKeySettingKey,
 } = require('./geocodingProviders');
+const { geocodeOutcome } = require('../utils/geocodeOutcome');
 
 class ImprovedGeocodingService {
   constructor(pool) {
@@ -580,15 +581,9 @@ class ImprovedGeocodingService {
         if (!coords || coords.failure) {
           coords = primaryFailed && coords ? coords : { failure: 'not_found', message: 'No results for any fallback level' };
         }
-        
-        return {
-          ...location,
-          latitude: coords?.lat || location.latitude,
-          longitude: coords?.lng || location.longitude,
-          geocode_confidence: coords?.confidence || 0,
-          geocode_provider: coords?.provider || null,
-          geocoded_at: coords ? new Date().toISOString() : null
-        };
+
+        // Coordinates, or why there are none (issue #110: the reason used to be dropped here).
+        return geocodeOutcome(location, coords);
       });
       
       const chunkResults = await Promise.all(promises);

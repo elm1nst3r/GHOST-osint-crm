@@ -267,7 +267,8 @@
       "unavailable": "The identity provider can’t be reached right now. Try again later or use your password.",
       "disabled": "Single sign-on isn’t available on this instance.",
       "failed": "Single sign-on didn’t work. Please try again; if it keeps failing, ask an administrator to check the server log.",
-      "busy": "Too many sign-ins from this network right now. Please wait a few minutes and try again."
+      "busy": "Too many sign-ins from this network right now. Please wait a few minutes and try again.",
+      "session_ended": "Your session has ended. Please sign in again."
     }
   },
   "settings": {
@@ -387,6 +388,8 @@
       "columnEntity": "Entity",
       "columnField": "Field",
       "columnChanges": "Changes",
+      "showAll": "Show all",
+      "showLess": "Show less",
       "oldValueLabel": "Old:",
       "newValueLabel": "New:",
       "showingEntries": "Showing {{from}} to {{to}} of {{total}} entries",
@@ -582,6 +585,7 @@
     "noTasksYet": "No tasks yet. Add one above to get started!",
     "changeStatus": "Change status",
     "deleteTask": "Delete task",
+    "editTask": "Edit task",
     "globalRelationshipOverview": "Global Relationship Overview",
     "viewFullNetwork": "View Full Network →",
     "errorAddTodo": "Failed to add todo",
@@ -828,7 +832,23 @@
       "stateProvince": "State/Province",
       "country": "Country",
       "postalCode": "Postal Code",
-      "addLocation": "Add Location"
+      "addLocation": "Add Location",
+      "updateLocation": "Update Location",
+      "position": "Map position",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "findOnMap": "Find on map",
+      "pickOnMap": "Pick on map",
+      "hideMap": "Hide map",
+      "pickHint": "Click the map or drag the pin to set the position.",
+      "invalidCoords": "Enter both latitude (-90 to 90) and longitude (-180 to 180), or leave both empty.",
+      "found": "Found: {{place}} ({{confidence}}% sure)",
+      "notFound": "Not found on the map: {{reason}}",
+      "closestMatch": "Closest match: {{place}} ({{confidence}}% sure)",
+      "useMatch": "Use this position",
+      "setByHandHint": "Check the address, or set the position by hand (type it or pick it on the map).",
+      "notOnMapReason": "Not on the map: {{reason}}",
+      "notOnMapYet": "Not on the map yet: saving looks it up"
     },
     "osint": {
       "label": "OSINT Data",
@@ -839,6 +859,7 @@
       "selectPerson": "Select a person",
       "notesPlaceholder": "Connection notes (optional)",
       "addConnection": "Add Connection",
+      "updateConnection": "Update Connection",
       "unknownPerson": "Unknown",
       "linkOtherProject": "Link from another project",
       "linkThisProject": "Back to this project",
@@ -1020,6 +1041,7 @@
     "relationshipTypePlaceholder": "Relationship type",
     "confirmRemoveRelationship": "Remove this relationship?",
     "errorAddRelationship": "Failed to add relationship",
+    "errorUpdateRelationship": "Failed to update relationship",
     "errorRemoveRelationship": "Failed to remove relationship"
   },
   "transactionForm": {
@@ -1137,6 +1159,23 @@
       "confidenceMedium": "Medium",
       "confidenceLow": "Low",
       "approximateLocation": "Approximate location"
+    },
+    "report": {
+      "title": "Geocoding results",
+      "notOnMapTitle": "Addresses not on the map",
+      "summary": "{{geocoded}} of {{total}} found",
+      "allFound": "Every address was found.",
+      "failedHeading_one": "{{count}} address could not be placed",
+      "failedHeading_other": "{{count}} addresses could not be placed",
+      "notTriedYet": "not looked up yet",
+      "closestMatch": "Closest match: {{place}} ({{confidence}}% sure)",
+      "fixHint": "Open the person and edit the address: check it, or set the position by hand.",
+      "openPerson": "Open person",
+      "close": "Close",
+      "showNotOnMap_one": "{{count}} not on the map",
+      "showNotOnMap_other": "{{count}} not on the map",
+      "error": "Geocoding failed: {{message}}",
+      "nothingToDo": "Every address already has a position."
     }
   },
   "mapLegend": {
@@ -2390,6 +2429,7 @@
     "searchWithTools": "Search with tools",
     "searchThis": "Search this with integrated tools",
     "provenance": "via {{tool}} · {{date}}",
+    "editedFoundAs": "edited · found as {{value}}",
     "moreSources_one": "+{{count}} more source",
     "moreSources_other": "+{{count}} more sources",
     "unverified": "unverified",
@@ -2775,7 +2815,8 @@
     "policy": {
       "title": "Server policy",
       "requireLabel": "Require two-step verification for every user",
-      "requireDescription": "Users without it are asked to set it up the next time they sign in, before they can use GHOST.",
+      "requireDescription": "Applies to sign-ins with a GHOST password: users without two-step verification are asked to set it up the next time they sign in, before they can use GHOST. Single sign-on users get two-step verification from the identity provider instead.",
+      "ssoOnly": "Everyone signs in with single sign-on (password sign-in is turned off), so two-step verification is set up and enforced at your identity provider.",
       "requiredNotice": "Your administrator requires two-step verification."
     },
     "gate": {
@@ -2831,5 +2872,16 @@
     "foundNote": "{{path}} in a saved record from {{tool}}",
     "addedNew": "Added {{value}} to the OSINT data.",
     "addedExisting": "{{value}} was already in the OSINT data; this record is now one of its sources."
+  },
+  "geocoding": {
+    "reasons": {
+      "not_found": "no match found",
+      "low_confidence": "only an uncertain match",
+      "rate_limited": "the geocoding provider is limiting requests, try again in a minute",
+      "timeout": "the geocoding provider didn't answer in time",
+      "service_error": "the geocoding provider returned an error",
+      "empty": "there is no address to look up",
+      "unknown": "not found"
+    }
   }
 }

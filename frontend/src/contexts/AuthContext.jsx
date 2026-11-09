@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, useEffectEvent } from 'react';
 import { authAPI } from '../utils/authAPI';
+import { SESSION_ENDED_EVENT } from '../utils/api';
 
 const AuthContext = createContext(null);
+
+// Several requests can fail at once when the session ends; leave only once.
+let leaving = false;
 
 // The session check answers { authenticated: false } when nobody is signed
 // in, so a failed request (a 429 from the rate limiter, the server
@@ -78,6 +82,19 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   });
   useEffect(() => onMount(), []);
+
+  // The server ended the session while the app was open. A full reload to
+  // the sign-in screen also drops everything the app kept in memory.
+  const onSessionEnded = useEffectEvent(() => {
+    if (!authenticated || leaving) return;
+    leaving = true;
+    window.location.replace('/?sso_error=session_ended');
+  });
+  useEffect(() => {
+    const handler = () => onSessionEnded();
+    window.addEventListener(SESSION_ENDED_EVENT, handler);
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, handler);
+  }, []);
 
   return (
     <AuthContext.Provider value={{

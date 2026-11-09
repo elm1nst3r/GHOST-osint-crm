@@ -147,6 +147,7 @@ GHOST can sign people in through an identity provider that speaks OpenID Connect
 - New users start with no project access and see the "no project" screen until someone adds them to a project.
 - With `OIDC_ADMIN_GROUP` set, the provider decides who is an administrator: members of that group get the Administrator role at each sign-in, everyone else User. Project roles (Owner/Manager/Investigator) stay in GHOST.
 - Deactivating a user in GHOST blocks their single sign-on too. Unlinking an identity (edit the user) signs them out.
+- Ending a session at the provider (signing out there, an admin ending it, its idle or maximum time running out, the user being disabled) ends the GHOST session too: at once with back-channel logout (step 3 of the Keycloak example), otherwise within `OIDC_SESSION_CHECK_MINUTES`. An open GHOST tab then returns to the sign-in page.
 - GHOST's own "require two-step verification" setting doesn't apply to single sign-on: the provider does that.
 - Accounts without a GHOST password create API tokens (for the MCP server) right after signing in; after 15 minutes GHOST asks them to sign in again first.
 
@@ -163,13 +164,15 @@ GHOST can sign people in through an identity provider that speaks OpenID Connect
 | `OIDC_AUTO_PROVISION` | `true`: create users on first sign-in (default `false`: an admin links them) |
 | `OIDC_ADMIN_GROUP`, `OIDC_GROUPS_CLAIM` | group that makes someone an admin, and the claim that lists groups (default `groups`; nested claims like `realm_access.roles` work) |
 | `OIDC_LOGOUT` | default `true`: signing out of GHOST also signs out at the provider |
+| `OIDC_SESSION_CHECK_MINUTES` | default `5`: how often GHOST asks the provider (with the session's refresh token) whether the session is still on; `0` turns this off. If the provider can't be reached, users stay signed in and GHOST asks again a minute later |
 | `LOCAL_LOGIN_ENABLED` | default `true`. Set `false` to allow single sign-on only; set it back to `true` and restart if the provider is ever unreachable |
 
 **Keycloak example.**
 1. In your realm, create a client: *Client ID* `ghost`, *Client authentication* on, *Standard flow* on (nothing else).
 2. *Valid redirect URIs*: `https://ghost.example.com/api/auth/oidc/callback`; *Valid post logout redirect URIs*: `https://ghost.example.com/*`.
-3. Optional, for `OIDC_ADMIN_GROUP`: *Client scopes → ghost-dedicated → Add mapper → Group Membership*, token claim name `groups`, *Full group path* off.
-4. Copy the client secret from the *Credentials* tab, then in GHOST's `.env`:
+3. *Backchannel logout URL*: `https://ghost.example.com/api/auth/oidc/backchannel-logout`, *Backchannel logout session required* on. Keycloak then tells GHOST when a session ends (Keycloak must be able to reach that address).
+4. Optional, for `OIDC_ADMIN_GROUP`: *Client scopes → ghost-dedicated → Add mapper → Group Membership*, token claim name `groups`, *Full group path* off.
+5. Copy the client secret from the *Credentials* tab, then in GHOST's `.env`:
    ```
    OIDC_ENABLED=true
    OIDC_ISSUER_URL=https://keycloak.example.com/realms/<realm>
@@ -179,9 +182,9 @@ GHOST can sign people in through an identity provider that speaks OpenID Connect
    OIDC_DISPLAY_NAME=Keycloak
    OIDC_ADMIN_GROUP=ghost-admins
    ```
-5. `docker compose up -d`. The status shows under Settings → User Management → Single sign-on.
+6. `docker compose up -d`. The status shows under Settings → User Management → Single sign-on.
 
-Other providers work the same way: register a "web" client with the redirect URI above and use the issuer URL from their documentation.
+Other providers work the same way: register a "web" client with the redirect URI above and use the issuer URL from their documentation. If the provider supports OpenID Connect back-channel logout, give it the back-channel logout URL above.
 
 ### Managing Users (Admin only)
 1. Log in as admin

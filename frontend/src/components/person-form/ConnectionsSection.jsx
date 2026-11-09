@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Globe2 } from 'lucide-react';
+import { Trash2, Globe2, Pencil } from 'lucide-react';
 import { peopleAPI } from '../../utils/api';
 
 const ConnectionsSection = ({
@@ -8,9 +8,12 @@ const ConnectionsSection = ({
   allowCrossLinking = false, otherProjects = [], onChange,
 }) => {
   const { t } = useTranslation();
-  const selectRef = useRef();
-  const typeRef = useRef();
-  const noteRef = useRef();
+  const defaultType = connectionTypes[0]?.value || 'associate';
+  const emptyDraft = () => ({ person_id: '', type: defaultType, note: '' });
+  const [draft, setDraft] = useState(emptyDraft);
+  // Index of the connection being edited in the form above the list (#109).
+  const [editing, setEditing] = useState(null);
+  const firstField = useRef(null);
   // Cross-project picking (issue #83): a second project + person picker,
   // only offered when the subject's own project has allow_cross_linking on.
   const [crossMode, setCrossMode] = useState(false);
@@ -49,25 +52,45 @@ const ConnectionsSection = ({
   const resolvePerson = (id) => people.find(p => p.id === id) || peopleCache[id];
   const pickPool = crossMode ? otherPeople : people;
 
-  const add = () => {
-    const personId = parseInt(selectRef.current.value, 10);
+  const reset = () => { setDraft(emptyDraft()); setEditing(null); };
+
+  const submit = () => {
+    const personId = parseInt(draft.person_id, 10);
     if (!personId) return;
-    onChange([...connections, {
-      person_id: personId,
-      type: typeRef.current.value,
-      note: noteRef.current.value,
-    }]);
+    const entry = { person_id: personId, type: draft.type, note: draft.note };
+    if (editing === null) onChange([...connections, entry]);
+    else onChange(connections.map((c, i) => (i === editing ? { ...c, ...entry } : c)));
     // Picked person isn't necessarily in `people` (active project's list) --
     // cache it immediately so it renders correctly below without waiting on
     // the resolve effect's round trip.
     const picked = pickPool.find(p => p.id === personId);
     if (picked) setPeopleCache(prev => ({ ...prev, [personId]: picked }));
-    selectRef.current.value = '';
-    typeRef.current.value = connectionTypes[0]?.value || 'associate';
-    noteRef.current.value = '';
+    reset();
   };
 
-  const remove = (i) => onChange(connections.filter((_, idx) => idx !== i));
+  const startEdit = (i) => {
+    const conn = connections[i];
+    setEditing(i);
+    setDraft({ person_id: String(conn.person_id ?? ''), type: conn.type || defaultType, note: conn.note || '' });
+    firstField.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    firstField.current?.focus({ preventScroll: true });
+  };
+
+  const remove = (i) => {
+    onChange(connections.filter((_, idx) => idx !== i));
+    if (editing === i) reset();
+    else if (editing !== null && i < editing) setEditing(editing - 1);
+  };
+
+  // While editing, the connected person stays a choice even when they are
+  // not in the list being picked from (another project), and so does a
+  // connection type no longer in the Data Model.
+  const editedPerson = editing !== null ? resolvePerson(parseInt(draft.person_id, 10)) : null;
+  const choices = pickPool.filter(p => !currentPersonId || p.id !== currentPersonId);
+  if (editedPerson && !choices.some(p => p.id === editedPerson.id)) choices.unshift(editedPerson);
+  const types = connectionTypes.some(ct => ct.value === draft.type)
+    ? connectionTypes : [...connectionTypes, { value: draft.type, label: draft.type }];
+  const inputClass = 'px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600';
 
   return (
     <div>
@@ -102,30 +125,42 @@ const ConnectionsSection = ({
             ))}
           </select>
         )}
-        <div className="flex flex-wrap gap-2">
-          <select
-            ref={selectRef}
-            disabled={crossMode && !otherProjectId}
-            className="flex-1 px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600 disabled:opacity-50"
-          >
-            <option value="">{t('personForm.connections.selectPerson')}</option>
-            {pickPool.filter(p => !currentPersonId || p.id !== currentPersonId).map(p => (
-              <option key={p.id} value={p.id}>{p.first_name} {p.last_name || ''}</option>
-            ))}
-          </select>
-          <select ref={typeRef} defaultValue={connectionTypes[0]?.value || 'associate'} className="px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100 dark:border-gray-600">
-            {connectionTypes.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
-          </select>
+        <div className={`space-y-2 ${editing !== null ? 'p-2 rounded-lg ring-2 ring-blue-500' : ''}`}>
+          <div className="flex flex-wrap gap-2">
+            <select
+              ref={firstField}
+              value={draft.person_id}
+              onChange={e => setDraft({ ...draft, person_id: e.target.value })}
+              disabled={crossMode && !otherProjectId && editing === null}
+              className={`flex-1 ${inputClass} disabled:opacity-50`}
+            >
+              <option value="">{t('personForm.connections.selectPerson')}</option>
+              {choices.map(p => (
+                <option key={p.id} value={p.id}>{p.first_name} {p.last_name || ''}</option>
+              ))}
+            </select>
+            <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })} className={inputClass}>
+              {types.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
+            </select>
+          </div>
+          <input
+            type="text"
+            value={draft.note}
+            onChange={e => setDraft({ ...draft, note: e.target.value })}
+            placeholder={t('personForm.connections.notesPlaceholder')}
+            className={`w-full ${inputClass}`}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={submit} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              {editing === null ? t('personForm.connections.addConnection') : t('personForm.connections.updateConnection')}
+            </button>
+            {editing !== null && (
+              <button type="button" onClick={reset} className="px-4 py-2 border dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800">
+                {t('common.cancel')}
+              </button>
+            )}
+          </div>
         </div>
-        <input
-          type="text"
-          ref={noteRef}
-          placeholder={t('personForm.connections.notesPlaceholder')}
-          className="w-full px-3 py-2 border dark:border-gray-600 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-gray-100"
-        />
-        <button type="button" onClick={add} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-          {t('personForm.connections.addConnection')}
-        </button>
       </div>
 
       <div className="space-y-2">
@@ -135,8 +170,8 @@ const ConnectionsSection = ({
             && person.project_id != null && person.project_id !== currentPersonProjectId;
           const otherProjectMeta = isOtherProject && otherProjects.find(p => p.id === person.project_id);
           return (
-            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
-              <div>
+            <div key={i} className={`flex items-center justify-between gap-x-3 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg ${editing === i ? 'ring-1 ring-blue-500' : ''}`}>
+              <div className="min-w-0">
                 <span className="font-medium">
                   {person ? `${person.first_name} ${person.last_name || ''}` : t('personForm.connections.unknownPerson')}
                 </span>
@@ -150,9 +185,14 @@ const ConnectionsSection = ({
                 )}
                 {conn.note && <p className="text-sm text-gray-600 dark:text-gray-400">{conn.note}</p>}
               </div>
-              <button type="button" onClick={() => remove(i)} className="text-red-600 hover:text-red-700">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-x-3 shrink-0">
+                <button type="button" onClick={() => startEdit(i)} title={t('common.edit')} aria-label={t('common.edit')} className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400">
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => remove(i)} title={t('common.delete')} aria-label={t('common.delete')} className="text-red-600 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}

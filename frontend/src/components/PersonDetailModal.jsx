@@ -209,8 +209,10 @@ const PersonDetailModal = () => {
                     close button off the screen entirely (#64). */}
                 <span className="hidden md:inline">{t('personDetailModal.generateReportTitle')}</span>
               </button>
-              <button 
-                onClick={() => onEdit(person)} 
+              <button
+                onClick={() => onEdit(person)}
+                title={t('common.edit')}
+                aria-label={t('common.edit')}
                 className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white transition-all duration-300"
               >
                 <Edit2 className="w-5 h-5" />
@@ -394,6 +396,11 @@ const PersonDetailModal = () => {
                             {osint.notes && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{osint.notes}</p>}
                             {findingsOf(osint).length > 0 && (
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
+                                {osint.original_value && (
+                                  <p>{t('tools.editedFoundAs', { value: osint.original_type && osint.original_type !== osint.type
+                                    ? `${optionLabel(t, 'osint_data_type', osint.original_type)}: ${osint.original_value}`
+                                    : osint.original_value })}</p>
+                                )}
                                 {findingsOf(osint).slice(0, SHOWN_SOURCES).map((s, i) => (
                                   <p key={i}>
                                     {t('tools.provenance', { tool: s.tool_name || s.integration_id, date: (s.retrieved_at || '').slice(0, 10) })}

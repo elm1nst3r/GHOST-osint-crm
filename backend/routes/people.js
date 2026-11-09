@@ -1,5 +1,6 @@
 // File: backend/routes/people.js
 const express = require('express');
+const { applyOutcome } = require('../utils/geocodeOutcome');
 const { mergeOsintFindings } = require('../utils/osintFindings');
 const router = express.Router();
 const { pool } = require('../config/database');
@@ -107,8 +108,9 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
         // Merge geocoded results back by reference into the original array
         for (let i = 0; i < geocoded.length; i++) {
           const idx = geocodedLocations.indexOf(locationsToGeocode[i]);
-          if (idx >= 0 && geocoded[i] && !geocoded[i].failure) {
-            geocodedLocations[idx] = { ...locationsToGeocode[i], ...geocoded[i] };
+          // Coordinates, or why there are none (issue #110).
+          if (idx >= 0 && geocoded[i]) {
+            geocodedLocations[idx] = applyOutcome(locationsToGeocode[i], geocoded[i]);
           }
         }
       } else if (batchGeocode) {
@@ -258,8 +260,9 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
           // Merge geocoded results back by reference into the original array
           for (let i = 0; i < geocoded.length; i++) {
             const idx = geocodedLocations.indexOf(locationsToGeocode[i]);
-            if (idx >= 0 && geocoded[i] && !geocoded[i].failure) {
-              geocodedLocations[idx] = { ...locationsToGeocode[i], ...geocoded[i] };
+            // Coordinates, or why there are none (issue #110).
+            if (idx >= 0 && geocoded[i]) {
+              geocodedLocations[idx] = applyOutcome(locationsToGeocode[i], geocoded[i]);
             }
           }
         } else if (batchGeocode) {

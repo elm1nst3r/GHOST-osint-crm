@@ -5,6 +5,65 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - 2026-11-09
+
+Thanks to NickSettler for testing single sign-on against Keycloak and for
+reporting #107–#110, and to hunterghoul1 for the OSINT editing request.
+
+### 🔐 Single sign-on
+
+- **Sessions end when the identity provider ends them** (#105). Signing a
+  user out at the provider (Keycloak: Sessions → Sign out, or signing out the
+  whole user) now ends their GHOST session too:
+  - at once through **OpenID Connect back-channel logout**: give the provider
+    `https://<GHOST>/api/auth/oidc/backchannel-logout` (Keycloak: client →
+    *Backchannel logout URL*, *Backchannel logout session required* on);
+  - otherwise within `OIDC_SESSION_CHECK_MINUTES` (default 5, `0` turns it
+    off): GHOST checks the session with the provider's refresh token. If the
+    provider can't be reached, users stay signed in.
+  An open tab returns to the sign-in page ("Your session has ended"). SSO
+  sessions now follow the provider's idle and maximum session times.
+- **"Require two-step verification" with single sign-on** (#108). An admin
+  who signs in through single sign-on can turn it on; the setting says it
+  applies to password sign-ins only (the provider handles two-step for
+  single sign-on). With password sign-in off (`LOCAL_LOGIN_ENABLED=false`) a
+  note replaces the setting.
+
+### ✏️ Editing
+
+- **Everything typed into a list can be edited** (#109), not only deleted
+  and re-added: person addresses, OSINT entries, aliases and connections;
+  business employees; crypto wallet link types; the note and confidence of
+  a wireless network's person link; to-do text (pencil or double-click on
+  the dashboard).
+- An edited OSINT value found by a tool keeps its findings and shows what
+  the tool originally found ("edited · found as …").
+- A changed address drops its old map position and is looked up again.
+
+### 🗺️ Geocoding
+
+- **Failures are no longer silent** (#110). Bulk geocoding on the map shows
+  a results dialog listing every address that couldn't be placed, with the
+  reason (no match, only an uncertain match, provider rate limit, provider
+  error such as a rejected API key, timeout) and a link to the person.
+- **"N not on the map"** on the map page lists addresses without a position
+  and the reason from the last attempt (saved on the address).
+- **Person form**: adding or updating an address looks it up right away and
+  shows the result; **Find on map**; **Pick on map** (click or drag the pin)
+  or type latitude/longitude by hand; the closest uncertain match can be
+  used with one click.
+- The bulk geocoding button is shown to admins only (the server always
+  required an admin).
+
+### 🐛 Fixes
+
+- Audit log: long changes wrap and collapse with Show all / Show less
+  instead of being cut off (#107).
+- Business employees: deleting one saved employee removed all of them.
+- To-dos: changing a status on the dashboard erased the to-do's comment.
+- Relationship updates no longer clear the case or note when they aren't
+  sent.
+
 ## [3.1.1] - 2026-11-07
 
 ### 🌍 Translations

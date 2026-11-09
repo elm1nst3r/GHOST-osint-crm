@@ -3,6 +3,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
+// Fired when the server answers 401 to a signed-in request: the session
+// ended on the server (signed out elsewhere, revoked by an admin, or ended at
+// the identity provider, issue #105). AuthContext takes it from there.
+// /auth/ endpoints are left out: there 401 also means "wrong password".
+export const SESSION_ENDED_EVENT = 'ghost:session-ended';
+
 // Generic fetch wrapper with error handling and timeout
 const fetchAPI = async (endpoint, options = {}) => {
   const { timeout = DEFAULT_TIMEOUT_MS, responseType, ...fetchOptions } = options;
@@ -21,6 +27,10 @@ const fetchAPI = async (endpoint, options = {}) => {
     });
 
     clearTimeout(timeoutId);
+
+    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
+      window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -374,6 +384,19 @@ export const uploadLogo = async (file) => {
     console.error('Error uploading logo:', error);
     throw error;
   }
+};
+
+// Geocoding (issue #110): one address, or every address without a position.
+// lookup → { success: true, result: { lat, lng, confidence, displayName, provider } }
+//        | { success: false, reason, message, best_match }
+export const geocodingAPI = {
+  lookup: (address) => fetchAPI('/geocode/address', { method: 'POST', body: JSON.stringify({ address }) }),
+  // → { summary: { total, geocoded, cached, failed }, failures: [{ person_id, person_name, address, reason, message, best_match }] }
+  batch: (locations) => fetchAPI('/geocode/batch-enhanced', {
+    method: 'POST',
+    body: JSON.stringify({ locations, minConfidence: 30, maxConcurrent: 3 }),
+    timeout: 10 * 60 * 1000,
+  }),
 };
 
 // Locations API

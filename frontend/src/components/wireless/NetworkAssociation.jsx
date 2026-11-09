@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Save, X } from 'lucide-react';
+import { User, Save, X, Pencil } from 'lucide-react';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100';
 
 const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
   const { t } = useTranslation();
   const [associating, setAssociating] = useState(false);
-  const [associationData, setAssociationData] = useState({
+  const fromNetwork = () => ({
     person_id: network.person_id || '',
     association_note: network.association_note || '',
     association_confidence: network.association_confidence || 'possible',
   });
+  const [associationData, setAssociationData] = useState(fromNetwork);
+  // Change the note or confidence in place (#109). The person stays: the
+  // server adds people to a list here, so who is linked is changed in the
+  // network's own edit form (associated people).
+  const [editing, setEditing] = useState(false);
+  const startEdit = () => { setAssociationData(fromNetwork()); setEditing(true); setAssociating(true); };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,6 +28,7 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
     if (!associationData.person_id) return;
     await onSave(associationData);
     setAssociating(false);
+    setEditing(false);
   };
 
   const personName = (id) => {
@@ -55,20 +62,33 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
                 <p className="text-sm text-purple-800 dark:text-purple-200 mt-2 italic">"{network.association_note}"</p>
               )}
             </div>
-            <button
-              onClick={onRemove}
-              disabled={saving}
-              className="ms-3 p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-sm transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="ms-3 flex items-center gap-1 shrink-0">
+              <button
+                onClick={startEdit}
+                disabled={saving}
+                title={t('common.edit')}
+                aria-label={t('common.edit')}
+                className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-sm transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onRemove}
+                disabled={saving}
+                title={t('common.delete')}
+                aria-label={t('common.delete')}
+                className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-sm transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       ) : associating ? (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('addLocationModal.selectPerson')}</label>
-            <select name="person_id" value={associationData.person_id} onChange={handleChange} className={inputClass}>
+            <select name="person_id" value={associationData.person_id} onChange={handleChange} disabled={editing} className={`${inputClass} disabled:opacity-60`}>
               <option value="">{t('networkAssociation.selectPersonPlaceholder')}</option>
               {people.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
             </select>
@@ -87,7 +107,7 @@ const NetworkAssociation = ({ network, people, saving, onSave, onRemove }) => {
             <textarea name="association_note" value={associationData.association_note} onChange={handleChange} rows={3} placeholder={t('networkAssociation.associationNotePlaceholder')} className={inputClass} />
           </div>
           <div className="flex items-center justify-end gap-x-3 pt-4">
-            <button onClick={() => setAssociating(false)} disabled={saving} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+            <button onClick={() => { setAssociating(false); setEditing(false); }} disabled={saving} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
               {t('common.cancel')}
             </button>
             <button onClick={handleSave} disabled={saving || !associationData.person_id} className="flex items-center gap-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50">
