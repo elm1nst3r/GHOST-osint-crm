@@ -864,7 +864,18 @@
       "linkOtherProject": "اتصال از پروژه دیگر",
       "linkThisProject": "بازگشت به این پروژه",
       "chooseProject": "انتخاب یک پروژه...",
-      "fromProject": "از {{project}}"
+      "fromProject": "از {{project}}",
+      "typeLabel": "Connection type",
+      "twoWay": "Two-way: also add this connection on {{name}} ({{type}})",
+      "alreadyTwoWay": "Two-way: {{name}} already has a connection to this person",
+      "badgeTwoWay": "Two-way",
+      "badgeOneWay": "One-way",
+      "badgeTwoWayOnSave": "Two-way on save",
+      "badgeIncoming": "Linked to this person",
+      "incomingTitle": "Linked to this person by others",
+      "incomingHint": "These connections belong to the other person. Link back to add this person's own connection to them.",
+      "linkBack": "Link back",
+      "linkBackBlocked": "This person is in another project, and links to other projects are off for this project."
     },
     "customFields": {
       "label": "میدان‌های سفارشی",
@@ -2056,7 +2067,7 @@
     "caseInformation": "اطلاعات پرونده",
     "caseNameLabel": "نام پرونده:",
     "connectionSummary": "خلاصه ارتباطات",
-    "totalConnections": "کل ارتباطات",
+    "totalConnections": "Connected people",
     "outgoingLabel": "خروجی:",
     "incomingLabel": "ورودی:",
     "osintData": "داده‌های OSINT",
@@ -2070,7 +2081,14 @@
     "nothingGiven": "هیچ ارز داده نشده است.",
     "assetsCurrentlyHeld": "دارایی‌های فعلی",
     "noAssetsHeld": "هیچ دارایی فعلی وجود ندارد.",
-    "tab_records": "Records"
+    "tab_records": "Records",
+    "twoWayLabel": "Two-way:",
+    "personNumber": "Person #{{id}}",
+    "direction": {
+      "both": "Two-way",
+      "outgoing": "Outgoing",
+      "incoming": "Incoming"
+    }
   },
   "report": {
     "investigationReport": "گزارش تحقیقاتی",
