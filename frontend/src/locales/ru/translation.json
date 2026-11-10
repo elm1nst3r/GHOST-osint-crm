@@ -864,7 +864,18 @@
       "linkOtherProject": "Ссылка из другого проекта",
       "linkThisProject": "Вернуться к этому проекту",
       "chooseProject": "Выберите проект...",
-      "fromProject": "из {{project}}"
+      "fromProject": "из {{project}}",
+      "typeLabel": "Connection type",
+      "twoWay": "Two-way: also add this connection on {{name}} ({{type}})",
+      "alreadyTwoWay": "Two-way: {{name}} already has a connection to this person",
+      "badgeTwoWay": "Two-way",
+      "badgeOneWay": "One-way",
+      "badgeTwoWayOnSave": "Two-way on save",
+      "badgeIncoming": "Linked to this person",
+      "incomingTitle": "Linked to this person by others",
+      "incomingHint": "These connections belong to the other person. Link back to add this person's own connection to them.",
+      "linkBack": "Link back",
+      "linkBackBlocked": "This person is in another project, and links to other projects are off for this project."
     },
     "customFields": {
       "label": "Пользовательские поля",
@@ -2056,7 +2067,7 @@
     "caseInformation": "Информация по делу",
     "caseNameLabel": "Имя дела:",
     "connectionSummary": "Сводка связей",
-    "totalConnections": "Всего связей",
+    "totalConnections": "Connected people",
     "outgoingLabel": "Исход:",
     "incomingLabel": "Вход:",
     "osintData": "OSINT данные",
@@ -2070,7 +2081,14 @@
     "nothingGiven": "Ничего не отдано.",
     "assetsCurrentlyHeld": "Текущие вещи во владении",
     "noAssetsHeld": "В настоящее время нет вещей во владении.",
-    "tab_records": "Записи"
+    "tab_records": "Записи",
+    "twoWayLabel": "Two-way:",
+    "personNumber": "Person #{{id}}",
+    "direction": {
+      "both": "Two-way",
+      "outgoing": "Outgoing",
+      "incoming": "Incoming"
+    }
   },
   "report": {
     "investigationReport": "ОТЧЁТ О РАССЛЕДОВАНИИ",
@@ -2298,7 +2316,7 @@
     "openInNewTab": "Открыть в новой вкладке",
     "editDescription": "Редактировать описание",
     "descriptionPlaceholder": "Что это за файл? Откуда он поступил?",
-    "confirmDelete": "Удалить «{{name}}»? Это действие нельзя отменить.",
+    "confirmDelete": "Удалить «{name}»? Это действие нельзя отменить.",
     "sha256Title": "SHA-256: {{hash}} (нажмите, чтобы скопировать)",
     "previewLoading": "Загрузка предпросмотра…",
     "previewError": "Предпросмотр не может быть показан. Вы можете скачать файл.",
