@@ -4,6 +4,8 @@
 // assets.js/properties.js (project/case-scoped, no audit logging, same as
 // those siblings rather than people.js's outlier behavior).
 const express = require('express');
+const { inTransaction } = require('../utils/db');
+const { removeEntityLinks } = require('../utils/entityLinks');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
@@ -147,7 +149,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    const result = await pool.query('DELETE FROM crypto_wallets WHERE id = $1 RETURNING *', [req.params.id]);
+    // With its relationships, which have no foreign key (#112).
+    const result = await inTransaction(async (client) => {
+      await removeEntityLinks(client, 'crypto_wallet', req.params.id);
+      return client.query('DELETE FROM crypto_wallets WHERE id = $1 RETURNING *', [req.params.id]);
+    });
     if (result.rows.length === 0) return res.status(404).json({ error: 'Crypto wallet not found' });
     res.json({ message: 'Crypto wallet deleted successfully' });
   } catch (err) {

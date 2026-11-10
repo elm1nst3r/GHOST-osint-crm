@@ -1,5 +1,6 @@
 // File: frontend/src/components/Dashboard.jsx
 import { useState, useEffect, useRef } from 'react';
+import { connectionCount } from '../utils/connectionView';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Network, Trash2, Check, ChevronDown, FileText, Pencil } from 'lucide-react';
@@ -54,12 +55,8 @@ const Dashboard = () => {
     const person = people.find(p => p.id === personId);
     if (!person) return 0;
     
-    const directConnections = person.connections?.length || 0;
-    const reverseConnections = people.filter(p => 
-      p.connections?.some(c => c.person_id === personId)
-    ).length;
-    
-    return Math.max(directConnections, reverseConnections);
+    // Connected people in either direction (#112).
+    return connectionCount(person);
   };
 
   const handleAddTodo = async () => {

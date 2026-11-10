@@ -7,6 +7,8 @@ const { validate, BusinessCreateSchema, BusinessUpdateSchema } = require('../mid
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { syncBusinessRelationships, syncBusinessOwnership } = require('./relationships');
+const { inTransaction } = require('../utils/db');
+const { removeEntityLinks } = require('../utils/entityLinks');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
@@ -153,14 +155,14 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
       project_id
     ];
 
-    const result = await pool.query(query, values);
-    const newBusiness = result.rows[0];
-
-    await syncBusinessRelationships(newBusiness.id, newBusiness.project_id, newBusiness.case_id, {
-      ownerPersonId: owner_person_id,
-      employees,
+    // The business and its relationships commit together, or not at all.
+    const newBusiness = await inTransaction(async (client) => {
+      const { rows } = await client.query(query, values);
+      const b = rows[0];
+      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client);
+      await syncBusinessOwnership(b.id, b.project_id, b.case_id, null, owner_business_id, client);
+      return b;
     });
-    await syncBusinessOwnership(newBusiness.id, newBusiness.project_id, newBusiness.case_id, null, owner_business_id);
 
     // Log audit
     await logAudit('business', newBusiness.id, 'create', {
@@ -249,14 +251,14 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
       JSON.stringify(employees || []), notes || null, case_id || null, businessId
     ];
 
-    const result = await pool.query(query, values);
-    const updatedBusiness = result.rows[0];
-
-    await syncBusinessRelationships(updatedBusiness.id, updatedBusiness.project_id, updatedBusiness.case_id, {
-      ownerPersonId: owner_person_id,
-      employees,
+    // Update and relationship sync commit together (#112).
+    const updatedBusiness = await inTransaction(async (client) => {
+      const { rows } = await client.query(query, values);
+      const b = rows[0];
+      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client);
+      await syncBusinessOwnership(b.id, b.project_id, b.case_id, oldBusiness.owner_business_id, owner_business_id, client);
+      return b;
     });
-    await syncBusinessOwnership(updatedBusiness.id, updatedBusiness.project_id, updatedBusiness.case_id, oldBusiness.owner_business_id, owner_business_id);
 
     // Log audit changes
     const changes = {};
@@ -293,8 +295,11 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, business.project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    // Delete the business
-    await pool.query('DELETE FROM businesses WHERE id = $1', [businessId]);
+    // Delete the business with its links that have no foreign key (#112).
+    await inTransaction(async (client) => {
+      await removeEntityLinks(client, 'business', businessId);
+      await client.query('DELETE FROM businesses WHERE id = $1', [businessId]);
+    });
 
     // Log audit
     await logAudit('business', businessId, 'delete', {

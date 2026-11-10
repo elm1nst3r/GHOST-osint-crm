@@ -12,12 +12,13 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, RelationshipCreateSchema, RelationshipUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { reverseConnectionType } = require('../utils/connectionTypes');
 
 const ENTITY_TABLE = { person: 'people', business: 'businesses', crypto_wallet: 'crypto_wallets' };
 
-async function fetchEntityProject(entityType, entityId) {
+async function fetchEntityProject(entityType, entityId, db = pool) {
   const table = ENTITY_TABLE[entityType];
-  const { rows } = await pool.query(`SELECT project_id FROM ${table} WHERE id = $1`, [entityId]);
+  const { rows } = await db.query(`SELECT project_id FROM ${table} WHERE id = $1`, [entityId]);
   return rows[0]?.project_id ?? null;
 }
 
@@ -25,9 +26,9 @@ async function fetchEntityProject(entityType, entityId) {
 // endpoints are in different projects is only allowed if the relationship's
 // own project has allow_cross_linking on. Throws (with a 409 statusCode) so
 // the caller's request fails loudly instead of silently dropping the link.
-async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetProjectId) {
+async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetProjectId, db = pool) {
   if (sourceProjectId === targetProjectId) return;
-  const { rows } = await pool.query('SELECT allow_cross_linking FROM projects WHERE id = $1', [relationshipProjectId]);
+  const { rows } = await db.query('SELECT allow_cross_linking FROM projects WHERE id = $1', [relationshipProjectId]);
   if (!rows[0] || !rows[0].allow_cross_linking) {
     const err = new Error('Cannot link entities from different projects unless the project has allow_cross_linking enabled');
     err.statusCode = 409;
@@ -40,7 +41,9 @@ async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetP
 // JSONB write path). Full replace rather than a field-by-field diff: simpler,
 // and GET always recomputes `connections` from these rows anyway, so there's
 // no externally-visible identity to preserve across an edit.
-async function syncPersonConnections(personId, projectId, caseId, connections) {
+// `db` is the caller's transaction client, so the person's own update and
+// this replace commit or roll back together.
+async function syncPersonConnections(personId, projectId, caseId, connections, db = pool) {
   const desired = (Array.isArray(connections) ? connections : [])
     .filter((c) => c && c.person_id != null)
     .map((c) => ({
@@ -54,27 +57,72 @@ async function syncPersonConnections(personId, projectId, caseId, connections) {
   // would let a deep-linked out-of-project edit bypass allow_cross_linking
   // entirely (issue #83 follow-up).
   for (const c of desired) {
-    const targetProjectId = await fetchEntityProject('person', c.target_id);
+    const targetProjectId = await fetchEntityProject('person', c.target_id, db);
     if (targetProjectId === null) {
       const err = new Error(`person ${c.target_id} not found`);
       err.statusCode = 404;
       throw err;
     }
-    await assertLinkAllowed(projectId, projectId, targetProjectId);
+    await assertLinkAllowed(projectId, projectId, targetProjectId, db);
   }
 
-  await pool.query(
+  await db.query(
     `DELETE FROM relationships WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person'`,
     [personId]
   );
 
   for (const c of desired) {
-    await pool.query(
+    await db.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
        VALUES ($1, $2, 'person', $3, 'person', $4, $5, $6)`,
       [projectId, caseId || null, personId, c.target_id, c.relationship_type, c.note]
     );
   }
+}
+
+// Two-way connections (#112): ticking "two-way" on A's connection to B also
+// records B's connection to A, read from B's side (employer ↔ employee). It
+// only ever adds: if B already has a connection to A, that one stays exactly
+// as it is. The new row belongs to B and lives in B's project, so the caller
+// must be allowed to edit B there (`canEdit(projectId)` → error text or null).
+// Returns what was added, for the audit trail of each other person.
+async function addReverseConnections(personId, connections, canEdit, db = pool) {
+  const me = parseInt(personId, 10);
+  const added = [];
+  const wanted = (Array.isArray(connections) ? connections : []).filter((c) => c && c.two_way && c.person_id != null);
+  for (const c of wanted) {
+    const otherId = parseInt(c.person_id, 10);
+    if (otherId === me) continue;
+    const { rows } = await db.query('SELECT id, project_id, case_id FROM people WHERE id = $1', [otherId]);
+    const other = rows[0];
+    if (!other) {
+      const err = new Error(`person ${otherId} not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+    const existing = await db.query(
+      `SELECT 1 FROM relationships
+       WHERE source_type = 'person' AND source_id = $1 AND target_type = 'person' AND target_id = $2 LIMIT 1`,
+      [otherId, me]
+    );
+    if (existing.rows.length) continue;
+    const denied = await canEdit(other.project_id);
+    if (denied) {
+      const err = new Error(`Can't add the connection back on person ${otherId}: ${denied}`);
+      err.statusCode = 403;
+      throw err;
+    }
+    const myProjectId = await fetchEntityProject('person', me, db);
+    await assertLinkAllowed(other.project_id, other.project_id, myProjectId, db);
+    const type = reverseConnectionType(c.type);
+    await db.query(
+      `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+       VALUES ($1, $2, 'person', $3, 'person', $4, $5, $6)`,
+      [other.project_id, other.case_id || null, otherId, me, type, c.note || null]
+    );
+    added.push({ person_id: otherId, type, note: c.note || null });
+  }
+  return added;
 }
 
 // Same idea for a business's owner_person_id / employees (person_id-backed
@@ -90,7 +138,7 @@ async function syncPersonConnections(personId, projectId, caseId, connections) {
 // separately, keyed on the specific old/new owner rather than a full
 // converge, since a delete-and-reinsert scoped to the owner would also wipe
 // out that owner's edges to any OTHER businesses it owns.
-async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }) {
+async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }, db = pool) {
   const desired = [];
   if (ownerPersonId) desired.push({ target_type: 'person', target_id: parseInt(ownerPersonId, 10), relationship_type: 'owner', note: null });
   for (const e of Array.isArray(employees) ? employees : []) {
@@ -107,19 +155,19 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
   // Same cross-project guard as syncPersonConnections -- checked before any
   // DELETE so a rejected save doesn't lose existing relationships.
   for (const d of desired) {
-    const targetProjectId = await fetchEntityProject(d.target_type, d.target_id);
+    const targetProjectId = await fetchEntityProject(d.target_type, d.target_id, db);
     if (targetProjectId === null) {
       const err = new Error(`${d.target_type} ${d.target_id} not found`);
       err.statusCode = 404;
       throw err;
     }
-    await assertLinkAllowed(projectId, projectId, targetProjectId);
+    await assertLinkAllowed(projectId, projectId, targetProjectId, db);
   }
 
   // Scoped to the relationship_types this function manages, not every row
   // sourced from this business -- a relationship created directly through
   // POST /relationships (any other type) must survive a businesses.js edit.
-  await pool.query(
+  await db.query(
     `DELETE FROM relationships
      WHERE source_type = 'business' AND source_id = $1
        AND target_type = 'person' AND relationship_type IN ('owner', 'employee', 'board_member')`,
@@ -127,7 +175,7 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
   );
 
   for (const d of desired) {
-    await pool.query(
+    await db.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
        VALUES ($1, $2, 'business', $3, $4, $5, $6, $7)`,
       [projectId, caseId || null, businessId, d.target_type, d.target_id, d.relationship_type, d.note]
@@ -145,13 +193,13 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
 // newOwnerBusinessId may be null, string, or number -- both sides are
 // normalized before comparing so a no-op update (unchanged owner) doesn't
 // do a pointless delete+reinsert.
-async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusinessId, newOwnerBusinessId) {
+async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusinessId, newOwnerBusinessId, db = pool) {
   const oldOwner = oldOwnerBusinessId != null ? parseInt(oldOwnerBusinessId, 10) : null;
   const newOwner = newOwnerBusinessId != null ? parseInt(newOwnerBusinessId, 10) : null;
   if (oldOwner === newOwner) return;
 
   if (oldOwner != null) {
-    await pool.query(
+    await db.query(
       `DELETE FROM relationships
        WHERE source_type = 'business' AND source_id = $1
          AND target_type = 'business' AND target_id = $2 AND relationship_type = 'owner'`,
@@ -160,14 +208,14 @@ async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusi
   }
 
   if (newOwner != null) {
-    const ownerProjectId = await fetchEntityProject('business', newOwner);
+    const ownerProjectId = await fetchEntityProject('business', newOwner, db);
     if (ownerProjectId === null) {
       const err = new Error(`business ${newOwner} not found`);
       err.statusCode = 404;
       throw err;
     }
-    await assertLinkAllowed(projectId, projectId, ownerProjectId);
-    await pool.query(
+    await assertLinkAllowed(projectId, projectId, ownerProjectId, db);
+    await db.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
        VALUES ($1, $2, 'business', $3, 'business', $4, 'owner', NULL)`,
       [projectId, caseId || null, newOwner, businessId]
@@ -277,5 +325,6 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 
 module.exports = router;
 module.exports.syncPersonConnections = syncPersonConnections;
+module.exports.addReverseConnections = addReverseConnections;
 module.exports.syncBusinessRelationships = syncBusinessRelationships;
 module.exports.syncBusinessOwnership = syncBusinessOwnership;

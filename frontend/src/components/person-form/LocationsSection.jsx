@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, useTransition } from 'react';
+import { lazy, Suspense, useImperativeHandle, useRef, useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Crosshair, Loader2, Map as MapIcon, MapPin, Pencil, Plus, Save, Search, Trash2 } from 'lucide-react';
 import { editLocation, GEOCODE_FAILURE_FIELDS } from '../../utils/entryEdits';
@@ -43,7 +43,9 @@ const failureFields = (failed) => ({
   geocode_attempted_at: new Date().toISOString(),
 });
 
-const LocationsSection = ({ locations, locationTypes, onChange }) => {
+// `ref.withPending(list)`: the list with an address still in the form applied,
+// so Save doesn't drop it (#112). No lookup here: saving geocodes it.
+const LocationsSection = ({ ref, locations, locationTypes, onChange }) => {
   const { t } = useTranslation();
   const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
   // Index of the address being edited in the form above the list (issue #109).
@@ -105,6 +107,16 @@ const LocationsSection = ({ locations, locationTypes, onChange }) => {
     }
     reset();
   });
+
+  useImperativeHandle(ref, () => ({
+    withPending: (list) => {
+      if (!newLocation.address.trim()) return list;
+      const c = coordsOf(newLocation);
+      const entry = { ...newLocation, latitude: c.lat, longitude: c.lng };
+      if (editing === null) return [...list, { ...entry, id: Date.now() }];
+      return list.map((loc, i) => (i === editing ? editLocation(loc, entry) : loc));
+    },
+  }));
 
   const startEdit = (i) => {
     reset();

@@ -5,6 +5,49 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.4] - 2026-11-10
+
+### 🔗 Connections from both sides
+
+Thanks to NickSettler for PR #112, which pointed out these problems and
+proposed the fix. We built it ourselves from the description.
+
+- A person's connections now show on **both** people. The person dialog
+  lists everyone connected once, marked **Two-way**, **Outgoing** or
+  **Incoming**, including people in other projects you have access to.
+- Connection counts in the people list, table, dashboard and Advanced Search
+  count connected people (they used to show the larger of "made" or
+  "received").
+- The person form lists **who links to this person**, with a **Link back**
+  button that picks them and the reverse type (employer ↔ employee).
+- A **two-way** box on each connection adds the connection back on the other
+  person when you save. It never changes a connection they already have,
+  needs access to their project and shows in their history.
+- **Save keeps what is still in an add row**: an alias, address, OSINT entry
+  or connection you filled in but did not add is saved too.
+- Saving a person or a business, connections included, either fully succeeds
+  or changes nothing.
+
+### 🧹 Cleaner deletes
+
+- Deleting a person, business or wallet removes its links at both ends.
+  Business employees keep the name but lose the link; wireless networks drop
+  the reference.
+- Deleting a project also removes links into it from other projects.
+- An upgrade step cleans up links left behind by earlier deletes.
+
+### 🐛 Fixed
+
+- Advanced Search showed connections from an old copy that stopped updating
+  in 2.15; it now shows the current ones.
+- Russian file delete confirmation placeholder (again; Crowdin PR #111 brought
+  the old text back).
+
+### 🌍 Translations
+
+- Crowdin PR #111 adds the 3.1.3 texts to every language (English until
+  translated).
+
 ## [3.1.3] - 2026-11-09
 
 ### 🧾 Saved records in reports (#96)
