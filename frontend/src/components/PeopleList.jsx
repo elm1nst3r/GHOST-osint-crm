@@ -1,5 +1,6 @@
 // File: frontend/src/components/PeopleList.jsx
 import { useState, useEffect, useEffectEvent } from 'react';
+import { connectionCount } from '../utils/connectionView';
 import { useTranslation } from 'react-i18next';
 import { isolateList } from '../utils/bidi';
 import { User, Search, Plus, Edit2, Trash2, Eye, Tag, Briefcase, Network, Clock, Users, Grid3x3, Table } from 'lucide-react';
@@ -47,17 +48,9 @@ const PeopleList = () => {
     }
   };
 
-  const getRelationshipCount = (personId) => {
-    const person = people.find(p => p.id === personId);
-    if (!person) return 0;
-    
-    const directConnections = person.connections?.length || 0;
-    const reverseConnections = people.filter(p => 
-      p.connections?.some(c => c.person_id === personId)
-    ).length;
-    
-    return Math.max(directConnections, reverseConnections);
-  };
+  // Connected people in either direction (#112), from the API's
+  // connections + incoming_connections, not just the people on this page.
+  const getRelationshipCount = (personId) => connectionCount(people.find(p => p.id === personId));
 
   const getFullName = (person) => {
     return formatPersonName(person);

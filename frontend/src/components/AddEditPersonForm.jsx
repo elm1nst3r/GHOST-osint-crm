@@ -1,5 +1,5 @@
 // File: frontend/src/components/AddEditPersonForm.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, AlertCircle } from 'lucide-react';
 import { peopleAPI, modelOptionsAPI, casesAPI } from '../utils/api';
@@ -38,6 +38,9 @@ const AddEditPersonForm = () => {
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [newAlias, setNewAlias] = useState('');
+  const locationsRef = useRef(null);
+  const osintRef = useRef(null);
+  const connectionsRef = useRef(null);
   // Index of the alias being edited in the alias input (issue #109).
   const [editingAlias, setEditingAlias] = useState(null);
   const [connectionTypes, setConnectionTypes] = useState(CONNECTION_TYPES);
@@ -134,9 +137,22 @@ const AddEditPersonForm = () => {
         });
       } catch (error) { console.error('Error creating case:', error); }
     }
+    // Whatever is still typed into an add row (an alias, an address, an OSINT
+    // entry, a picked connection) is saved too, instead of silently dropped (#112).
+    const alias = newAlias.trim();
+    const data = {
+      ...formData,
+      aliases: !alias ? formData.aliases
+        : editingAlias === null ? [...formData.aliases, alias]
+          : formData.aliases.map((a, i) => (i === editingAlias ? alias : a)),
+      locations: locationsRef.current?.withPending(formData.locations) ?? formData.locations,
+      osintData: osintRef.current?.withPending(formData.osintData) ?? formData.osintData,
+      connections: connectionsRef.current?.withPending(formData.connections) ?? formData.connections,
+      dateOfBirth: formData.dateOfBirth || null,
+    };
     try {
-      if (person) await peopleAPI.update(person.id, { ...formData, dateOfBirth: formData.dateOfBirth || null });
-      else        await peopleAPI.create({ ...formData, dateOfBirth: formData.dateOfBirth || null, project_id: activeProjectId });
+      if (person) await peopleAPI.update(person.id, data);
+      else        await peopleAPI.create({ ...data, project_id: activeProjectId });
       handleClose();
       fetchPeople();
     } catch (error) {
@@ -324,19 +340,23 @@ const AddEditPersonForm = () => {
           </div>
 
           <LocationsSection
+            ref={locationsRef}
             locations={formData.locations}
             locationTypes={tLocationTypes}
             onChange={val => set('locations', val)}
           />
 
           <OsintSection
+            ref={osintRef}
             osintData={formData.osintData}
             osintDataTypes={tOsintDataTypes}
             onChange={val => set('osintData', val)}
           />
 
           <ConnectionsSection
+            ref={connectionsRef}
             connections={formData.connections}
+            incoming={person?.incoming_connections || []}
             connectionTypes={tConnectionTypes}
             people={people}
             currentPersonId={person?.id}

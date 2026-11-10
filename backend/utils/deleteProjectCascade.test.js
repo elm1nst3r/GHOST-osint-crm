@@ -29,7 +29,7 @@ describe('deleteProjectCascade', () => {
     const client = makeClient();
     await deleteProjectCascade(client, 42);
 
-    const deletes = client.calls.filter((c) => /^DELETE/.test(c.sql));
+    const deletes = client.calls.filter((c) => /^DELETE FROM \w+ WHERE (project_)?id = \$1/.test(c.sql));
     // one per scoped table + the projects row
     expect(deletes).toHaveLength(PROJECT_SCOPED_TABLES.length + 1);
     for (const c of deletes) expect(c.params).toEqual([42]);
@@ -39,6 +39,14 @@ describe('deleteProjectCascade', () => {
     // cases is cleared before the projects row
     const tableOrder = deletes.map((c) => c.sql.match(/DELETE FROM (\w+)/)[1]);
     expect(tableOrder.indexOf('cases')).toBeLessThan(tableOrder.indexOf('projects'));
+  });
+
+  test('then removes links from other projects into the deleted one (#112)', async () => {
+    const client = makeClient();
+    await deleteProjectCascade(client, 42);
+    const projectRow = client.calls.findIndex((c) => /DELETE FROM projects/.test(c.sql));
+    const sweep = client.calls.findIndex((c) => /DELETE FROM relationships r\s+WHERE NOT/.test(c.sql));
+    expect(sweep).toBeGreaterThan(projectRow);
   });
 
   test('getProjectStats sums per-table counts', async () => {

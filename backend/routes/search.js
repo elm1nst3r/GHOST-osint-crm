@@ -4,6 +4,7 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { applyProjectScope } = require('../utils/projectAccess');
+const { connectionsSql, incomingConnectionsSql, isAdmin } = require('../utils/personConnectionsSql');
 
 
 router.use(apiLimiter);
@@ -132,7 +133,16 @@ router.get('/advanced', requireAuth, async (req, res) => {
     const sortBy = allowedSortColumns.includes(req.query.sortBy) ? req.query.sortBy : 'updated_at';
     const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-    query += ` ORDER BY ${sortBy} ${sortOrder}, id ${sortOrder} LIMIT $${++paramCount}`;
+    // Live connections, not the stale people.connections column (#83), and
+    // who links to each person (#112), the same as the people list.
+    let viewerParam = null;
+    if (!isAdmin(req)) {
+      queryParams.push(req.session.userId);
+      viewerParam = `$${++paramCount}`;
+    }
+    query = query.replace('SELECT * FROM people',
+      `SELECT people.*, ${connectionsSql('people')}, ${incomingConnectionsSql('people', viewerParam)} FROM people`);
+    query += ` ORDER BY ${sortBy} ${sortOrder}, people.id ${sortOrder} LIMIT $${++paramCount}`;
     queryParams.push(limit);
 
     const result = await pool.query(query, queryParams);

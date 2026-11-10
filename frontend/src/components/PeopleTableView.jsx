@@ -2,6 +2,7 @@
 // Table view for people with inline editing, quick-add, and bulk operations
 
 import { useState, useRef } from 'react';
+import { connectionCount } from '../utils/connectionView';
 import { useTranslation } from 'react-i18next';
 import Papa from 'papaparse';
 import {
@@ -47,17 +48,9 @@ const PeopleTableView = ({
 
   const getFullName = (person) => formatPersonName(person);
 
-  const getRelationshipCount = (personId) => {
-    const person = people.find(p => p.id === personId);
-    if (!person) return 0;
-
-    const directConnections = person.connections?.length || 0;
-    const reverseConnections = people.filter(p =>
-      p.connections?.some(c => c.person_id === personId)
-    ).length;
-
-    return Math.max(directConnections, reverseConnections);
-  };
+  // Connected people in either direction (#112), from the API's
+  // connections + incoming_connections, not just the people on this page.
+  const getRelationshipCount = (personId) => connectionCount(people.find(p => p.id === personId));
 
   // Start editing a row
   const handleEdit = (person) => {

@@ -1248,4 +1248,19 @@ const spec = {
   },
 };
 
+// Person connections (#112), described once for create, update and reads.
+{
+  const connectionsNote = 'Each `connections` entry is { person_id, type, note }: this person\'s connection to another person. '
+    + 'Add `two_way: true` to also give the other person a connection back (type read from their side: employer ↔ employee); '
+    + 'it never changes a connection they already have, and needs access to their project.';
+  const readNote = 'People come with `connections` (made by this person) and `incoming_connections` '
+    + '(made to this person by people the caller can see, with their names).';
+  const people = spec.paths['/people'];
+  const person = spec.paths['/people/{id}'];
+  people.post.description = connectionsNote;
+  person.put.description = connectionsNote;
+  people.get.description = readNote;
+  person.get.description = readNote;
+}
+
 module.exports = spec;

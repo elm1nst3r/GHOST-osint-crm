@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useImperativeHandle, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { optionLabel } from '../../utils/optionLabels';
 import { editOsintEntry } from '../../utils/entryEdits';
 import { Pencil, Trash2 } from 'lucide-react';
 
-const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
+// `ref.withPending(list)`: the list with an entry still in the form applied,
+// so Save doesn't drop it (#112).
+const OsintSection = ({ ref, osintData, osintDataTypes, onChange }) => {
   const { t } = useTranslation();
   const emptyItem = () => ({ type: osintDataTypes[0]?.value || 'Email', value: '', notes: '' });
   const [newItem, setNewItem] = useState(emptyItem);
@@ -20,6 +22,14 @@ const OsintSection = ({ osintData, osintDataTypes, onChange }) => {
     else onChange(osintData.map((item, i) => (i === editing ? editOsintEntry(item, newItem) : item)));
     reset();
   };
+
+  useImperativeHandle(ref, () => ({
+    withPending: (list) => {
+      if (!newItem.value.trim()) return list;
+      if (editing === null) return [...list, { ...newItem }];
+      return list.map((item, i) => (i === editing ? editOsintEntry(item, newItem) : item));
+    },
+  }));
 
   const startEdit = (i) => {
     const item = osintData[i];

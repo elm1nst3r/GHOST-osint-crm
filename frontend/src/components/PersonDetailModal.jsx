@@ -9,7 +9,8 @@ import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
 import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
-import { transactionsAPI, assetsAPI, toolsAPI, osintRecordsAPI } from '../utils/api';
+import { transactionsAPI, assetsAPI, toolsAPI, osintRecordsAPI, peopleAPI } from '../utils/api';
+import { connectedPeople, connectionSummary } from '../utils/connectionView';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { useProject } from '../contexts/ProjectContext';
@@ -53,6 +54,27 @@ const PersonDetailModal = () => {
   const [search, setSearch] = useState(null);
   // Saved integration records (issue #96): the count for the tab badge.
   const [recordCount, setRecordCount] = useState({ personId: null, count: 0 });
+  // Names of connected people who aren't in the loaded list (another
+  // project) and didn't come with the connection: looked up once (#112).
+  const [linkedNames, setLinkedNames] = useState({});
+  const unnamedIds = connectedPeople(person)
+    .filter(c => !c.name && !people.some(p => p.id === c.person_id))
+    .map(c => c.person_id).join(',');
+  useEffect(() => {
+    if (!unnamedIds) return undefined;
+    let cancelled = false;
+    for (const id of unnamedIds.split(',').map(Number)) {
+      peopleAPI.getById(id)
+        .then(p => { if (!cancelled) setLinkedNames(n => ({ ...n, [id]: formatPersonName(p) })); })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [unnamedIds]);
+  const openPerson = (id) => {
+    const known = people.find(p => p.id === id);
+    if (known) setSelectedPersonForDetail(known);
+    else peopleAPI.getById(id).then(setSelectedPersonForDetail).catch(() => {});
+  };
 
   useEffect(() => {
     if (!person?.id) return undefined;
@@ -118,46 +140,17 @@ const PersonDetailModal = () => {
     return icons[type] || <Link className="w-5 h-5" />;
   };
 
-  const getConnectedPeople = () => {
-    const connected = [];
-    
-    // Direct connections
-    if (person.connections && Array.isArray(person.connections)) {
-      person.connections.forEach(conn => {
-        const connectedPerson = people.find(p => p.id === conn.person_id);
-        if (connectedPerson) {
-          connected.push({
-            person: connectedPerson,
-            type: conn.type,
-            note: conn.note,
-            direction: 'outgoing'
-          });
-        }
-      });
-    }
-    
-    // Reverse connections
-    people.forEach(p => {
-      if (p.connections && Array.isArray(p.connections)) {
-        p.connections.forEach(conn => {
-          if (conn.person_id === person.id) {
-            connected.push({
-              person: p,
-              type: conn.type,
-              note: conn.note,
-              direction: 'incoming'
-            });
-          }
-        });
-      }
-    });
-    
-    return connected;
-  };
-
   if (!person) return null;
 
-  const connectedPeople = getConnectedPeople();
+  const linked = connectedPeople(person);
+  const linkSummary = connectionSummary(linked);
+  const nameFor = (c) => {
+    const known = people.find(p => p.id === c.person_id);
+    if (known) return formatPersonName(known);
+    return c.name || linkedNames[c.person_id] || t('personDetailModal.personNumber', { id: c.person_id });
+  };
+  const typesFor = (c) => [...new Set((c.outgoing.length ? c.outgoing : c.incoming).map(x => x.type))]
+    .map(type => optionLabel(t, 'connection_type', type)).join(', ');
 
   return (
     <>
@@ -243,9 +236,9 @@ const PersonDetailModal = () => {
                   {tab === 'records' && recordsShown > 0 && (
                     <span className="ms-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400 tabular-nums">{recordsShown}</span>
                   )}
-                  {tab === 'relationships' && connectedPeople.length > 0 && (
+                  {tab === 'relationships' && linked.length > 0 && (
                     <span className="ms-2 text-xs glass px-2 py-1 rounded-lg text-blue-600 dark:text-blue-400">
-                      {connectedPeople.length}
+                      {linked.length}
                     </span>
                   )}
                 </button>
@@ -348,15 +341,33 @@ const PersonDetailModal = () => {
                       </h3>
                       <div className="glass rounded-lg-lg p-4">
                         <div className="text-center">
-                          <div className="text-3xl font-bold bg-linear-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">{connectedPeople.length}</div>
+                          <div className="text-3xl font-bold bg-linear-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">{linkSummary.total}</div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('personDetailModal.totalConnections')}</div>
                         </div>
-                        {connectedPeople.length > 0 && (
+                        {linkSummary.total > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.outgoingLabel')} <span className="text-blue-600 dark:text-blue-400">{connectedPeople.filter(c => c.direction === 'outgoing').length}</span></div>
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.incomingLabel')} <span className="text-accent-secondary">{connectedPeople.filter(c => c.direction === 'incoming').length}</span></div>
+                            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.twoWayLabel')} <span className="text-green-700 dark:text-green-400">{linkSummary.both}</span></span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.outgoingLabel')} <span className="text-blue-600 dark:text-blue-400">{linkSummary.outgoing}</span></span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{t('personDetailModal.incomingLabel')} <span className="text-accent-secondary">{linkSummary.incoming}</span></span>
                             </div>
+                            <ul className="mt-3 space-y-1.5 text-sm">
+                              {linked.map(c => (
+                                <li key={c.person_id} className="flex items-center justify-between gap-2">
+                                  <button type="button" onClick={() => openPerson(c.person_id)} className="min-w-0 truncate text-start text-gray-900 dark:text-gray-100 hover:underline">
+                                    <bdi>{nameFor(c)}</bdi>
+                                  </button>
+                                  <span className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{typesFor(c)}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-sm ${c.direction === 'both'
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                                      : 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                      {t(`personDetailModal.direction.${c.direction}`)}
+                                    </span>
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                       </div>

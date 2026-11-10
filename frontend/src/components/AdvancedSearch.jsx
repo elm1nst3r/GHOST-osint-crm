@@ -1,5 +1,6 @@
 // File: frontend/src/components/AdvancedSearch.jsx
 import { useState, useEffect, useEffectEvent } from 'react';
+import { connectionCount as countConnections } from '../utils/connectionView';
 import { useTranslation } from 'react-i18next';
 import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, osintRecordsAPI } from '../utils/api';
 import ReportGenerator from './ReportGenerator';
@@ -212,7 +213,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
       // Connection count filter
       if (searchParams.minConnections || searchParams.maxConnections) {
         filtered = filtered.filter(person => {
-          const connectionCount = person.connections?.length || 0;
+          const connectionCount = countConnections(person);
           
           if (searchParams.minConnections && connectionCount < parseInt(searchParams.minConnections)) {
             return false;
@@ -275,8 +276,8 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
             bValue = new Date(b.updated_at || b.created_at);
             break;
           case 'connections':
-            aValue = a.connections?.length || 0;
-            bValue = b.connections?.length || 0;
+            aValue = countConnections(a);
+            bValue = countConnections(b);
             break;
           default:
             aValue = a[searchParams.sortBy];
@@ -347,7 +348,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
       status: person.status || '',
       crm_status: person.crm_status || '',
       case_name: person.case_name || '',
-      connections_count: person.connections?.length || 0,
+      connections_count: countConnections(person),
       osint_data_count: person.osint_data?.length || 0,
       locations_count: person.locations?.length || 0,
       notes: person.notes || '',

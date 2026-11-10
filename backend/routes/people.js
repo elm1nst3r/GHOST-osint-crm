@@ -9,31 +9,47 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, PersonCreateSchema, PersonUpdateSchema, PersonOsintAppendSchema } = require('../middleware/schemas');
 const logAudit = require('../utils/logAudit');
 const { apiLimiter } = require('../middleware/rateLimiters');
-const { syncPersonConnections } = require('./relationships');
+const { syncPersonConnections, addReverseConnections } = require('./relationships');
+const { inTransaction } = require('../utils/db');
+const { removeEntityLinks } = require('../utils/entityLinks');
+const { connectionsSql, incomingConnectionsSql, isAdmin } = require('../utils/personConnectionsSql');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
 
-// connections is now backed by the relationships table (issue #83), not the
-// stored JSONB column -- read it computed here so 11+ frontend consumers that
-// read person.connections keep working unmodified. Listed AFTER `p.*` on
-// purpose: pg (and the node driver) keeps the LAST column when two share a
-// name, so this silently wins over the raw (now-unused-for-reads) column.
-const PERSON_CONNECTIONS_SUBQUERY = `
-  (SELECT COALESCE(
-     jsonb_agg(jsonb_build_object('person_id', r.target_id, 'type', r.relationship_type, 'note', r.note) ORDER BY r.id),
-     '[]'::jsonb
-   ) FROM relationships r WHERE r.source_type = 'person' AND r.source_id = p.id AND r.target_type = 'person') AS connections
-`;
+// connections is backed by the relationships table (issue #83), not the
+// stored JSONB column -- computed here so frontend consumers that read
+// person.connections keep working. Listed AFTER `p.*` on purpose: pg keeps
+// the LAST column when two share a name, so this wins over the raw column.
+// incoming_connections (#112): connections other people made to this person,
+// so their page shows who links to them even when that person isn't loaded.
+// Both come from utils/personConnectionsSql.js (shared with Advanced Search).
+const PERSON_CONNECTIONS_SUBQUERY = connectionsSql('p');
+const incomingConnectionsSubquery = (viewerParam) => incomingConnectionsSql('p', viewerParam);
 
-async function fetchPersonById(id) {
+async function fetchPersonById(id, req) {
+  const params = [id];
+  if (!isAdmin(req)) params.push(req.session.userId);
   const result = await pool.query(
     `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
-            ${PERSON_CONNECTIONS_SUBQUERY}
+            ${PERSON_CONNECTIONS_SUBQUERY}, ${incomingConnectionsSubquery(isAdmin(req) ? null : '$2')}
      FROM people p WHERE p.id = $1`,
-    [id]
+    params
   );
   return result.rows[0];
 }
+
+// Two-way connections (#112) add a connection on the other person; record it
+// in that person's history, after the save has committed.
+async function auditReverseConnections(personId, added, userId) {
+  for (const a of added) {
+    await logAudit('person', a.person_id, 'update', {
+      connections: { oldValue: null, newValue: `Added "${a.type}" connection to person #${personId} (two-way connection made from person #${personId})` },
+    }, userId);
+  }
+}
+const canEditProject = (req) => (projectId) => requireProjectMember(req, projectId);
+// The two-way tick is an instruction, not part of the stored connection.
+const storedConnections = (connections) => (Array.isArray(connections) ? connections : []).map(({ two_way: _t, ...c }) => c);
 
 router.use(apiLimiter);
 // GET / — paginated people list
@@ -51,12 +67,14 @@ router.get('/', requireAuth, async (req, res) => {
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`p.case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+    const dataParams = isAdmin(req) ? [...params] : [...params, req.session.userId];
+    const viewerParam = isAdmin(req) ? null : `$${dataParams.length}`;
     const [dataResult, countResult] = await Promise.all([
       pool.query(
         `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
-                ${PERSON_CONNECTIONS_SUBQUERY}
-         FROM people p ${whereClause} ORDER BY p.created_at DESC, p.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-        [...params, limit, offset]
+                ${PERSON_CONNECTIONS_SUBQUERY}, ${incomingConnectionsSubquery(viewerParam)}
+         FROM people p ${whereClause} ORDER BY p.created_at DESC, p.id DESC LIMIT $${dataParams.length + 1} OFFSET $${dataParams.length + 2}`,
+        [...dataParams, limit, offset]
       ),
       pool.query(`SELECT COUNT(*)::int AS count FROM people p ${whereClause}`, params),
     ]);
@@ -164,11 +182,15 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
   ];
 
   try {
-    const result = await pool.query(query, values);
-    let newPerson = result.rows[0];
-
-    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
-    newPerson = await fetchPersonById(newPerson.id);
+    // The person and their connections commit together, or not at all.
+    const { created, reverseAdded } = await inTransaction(async (client) => {
+      const { rows } = await client.query(query, values);
+      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client);
+      const added = await addReverseConnections(rows[0].id, connections, canEditProject(req), client);
+      return { created: rows[0], reverseAdded: added };
+    });
+    const newPerson = await fetchPersonById(created.id, req);
+    await auditReverseConnections(newPerson.id, reverseAdded, req.session?.userId);
 
     // Log audit
     await logAudit('person', newPerson.id, 'create', {
@@ -186,22 +208,15 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
 // GET /:id — get single person by ID
 router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
-    const personId = req.params.id;
-    const result = await pool.query(
-      `SELECT p.*, CONCAT_WS(' ', p.first_name, NULLIF(p.patronymic, ''), NULLIF(p.last_name, '')) as full_name,
-              ${PERSON_CONNECTIONS_SUBQUERY}
-       FROM people p WHERE p.id = $1`,
-      [personId]
-    );
-
-    if (result.rows.length === 0) {
+    const person = await fetchPersonById(req.params.id, req);
+    if (!person) {
       return res.status(404).json({ error: 'Person not found' });
     }
 
-    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    const accessErr = await requireProjectMember(req, person.project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    res.json(result.rows[0]);
+    res.json(person);
   } catch (err) {
     console.error('Error fetching person:', err.message);
     res.status(500).json({ error: 'Failed to fetch person' });
@@ -316,11 +331,15 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
       personId
     ];
 
-    let result = await pool.query(query, values);
-    let newPerson = result.rows[0];
-
-    await syncPersonConnections(newPerson.id, newPerson.project_id, newPerson.case_id, connections);
-    newPerson = await fetchPersonById(personId);
+    // The update and the connection replace commit together: a failure can't
+    // leave the connections deleted and only half re-added (#112).
+    const reverseAdded = await inTransaction(async (client) => {
+      const { rows } = await client.query(query, values);
+      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client);
+      return addReverseConnections(rows[0].id, connections, canEditProject(req), client);
+    });
+    const newPerson = await fetchPersonById(personId, req);
+    await auditReverseConnections(personId, reverseAdded, req.session?.userId);
 
     // Log audit changes — scalar fields compared directly, JSON fields by serialisation
     const changes = {};
@@ -338,7 +357,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     // longer authoritative as of issue #83.
     const jsonFieldMap = [
       ['locations', geocodedLocations, oldPerson.locations],
-      ['connections', connections, oldConnections],
+      ['connections', storedConnections(connections), oldConnections],
       ['osint_data', osintData, oldPerson.osint_data],
     ];
     for (const [field, newVal, oldVal] of jsonFieldMap) {
@@ -500,7 +519,12 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, oldResult.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
-    const result = await pool.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
+    // Connections and other links without a foreign key go in the same
+    // transaction (#112), so none are left pointing at nobody.
+    const result = await inTransaction(async (client) => {
+      await removeEntityLinks(client, 'person', personId);
+      return client.query('DELETE FROM people WHERE id = $1 RETURNING *;', [personId]);
+    });
     if (result.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
 
     await logAudit('person', personId, 'delete', {

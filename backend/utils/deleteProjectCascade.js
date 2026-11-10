@@ -20,6 +20,8 @@
 // they must all be cleared before the projects row. Delete order among them
 // is therefore not constraint-critical; it's ordered child-ish -> parent-ish
 // for readability, with `cases` last since many tables SET NULL to it.
+const { sweepOrphanedLinks } = require('./entityLinks');
+
 const PROJECT_SCOPED_TABLES = [
   'relationships',
   'transactions',
@@ -43,6 +45,9 @@ async function deleteProjectCascade(client, projectId) {
     await client.query(`DELETE FROM ${table} WHERE project_id = $1`, [projectId]);
   }
   const result = await client.query('DELETE FROM projects WHERE id = $1 RETURNING *', [projectId]);
+  // Other projects may link into this one (cross-project links): those
+  // relationships, employee links and wireless links now point at nothing.
+  await sweepOrphanedLinks(client);
   return result.rows[0] || null;
 }
 
