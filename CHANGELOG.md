@@ -5,6 +5,29 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.5] - 2026-11-12
+
+### ⬆️ How to update, inside GHOST
+
+The update banner said a new version was out but left you to work out the
+rest. Admins now get **How to update** in the banner and in Settings →
+General:
+
+- The **backup and update commands** for the way this instance runs:
+  published Docker images, built from source, or without Docker. GHOST picks
+  the right one and you can switch. A pinned `GHOST_VERSION` and your own
+  PostgreSQL server are taken into account. Each step has a copy button.
+- The **release notes of every version you are about to get**, newest
+  first. Anything a release asks you to do beforehand, and major versions,
+  are shown at the top.
+- GHOST still never updates itself: you run the commands on the server.
+  An update button that does it for you would need control over Docker from
+  the web app, which turns any security hole into control of the server.
+- Investigators keep the banner with the release notes link.
+
+The dialog ships in this release, so you'll first see it when the next
+version comes out.
+
 ## [3.1.4] - 2026-11-10
 
 ### 🔗 Connections from both sides

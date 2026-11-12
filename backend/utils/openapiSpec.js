@@ -1196,6 +1196,10 @@ const spec = {
     '/version': {
       get: op('System', 'Running version and whether a newer release exists', {
         mcp: false,
+        description:
+          'Admins also get `releases` (every published release newer than the running one, newest first, ' +
+          'with notes and any "before you upgrade" section) and `install` (how this instance runs, for the ' +
+          'update commands the app shows). Nothing is downloaded or installed.',
         params: [queryParam('force', 'Set to 1 to bypass the cached update check', { type: 'string', enum: ['1'] })],
       }),
     },

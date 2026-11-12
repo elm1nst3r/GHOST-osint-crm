@@ -10,6 +10,7 @@ import GeocodingSection from './GeocodingSection';
 import ProjectRetentionSection from './ProjectRetentionSection';
 import GlobalDefaultsSection from './GlobalDefaultsSection';
 import ModulesSection from './ModulesSection';
+import UpdateStatus from '../update/UpdateStatus';
 import { useScratchpad } from '../../contexts/ScratchpadContext';
 import { Toggle } from '../scratchpad/ScratchpadSettingsView';
 
@@ -124,6 +125,7 @@ const GeneralTab = () => {
         <h3 className="text-lg font-semibold mb-4">{t('settings.general.systemInformation')}</h3>
         <div className="space-y-2 text-sm">
           <div><span className="font-medium">{t('settings.general.version')}</span> {__APP_VERSION__}</div>
+          {isAdmin && <UpdateStatus />}
           <div><span className="font-medium">{t('settings.general.database')}</span> PostgreSQL</div>
           <div><span className="font-medium">{t('settings.general.apiUrl')}</span> {import.meta.env.VITE_API_URL || '/api'}</div>
         </div>

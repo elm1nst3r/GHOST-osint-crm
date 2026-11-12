@@ -240,6 +240,7 @@ const searchRoutes = require('./routes/search');
 // Single source of truth for the running version — surfaced by /api/version
 // and used to decide whether a newer release exists.
 const APP_VERSION = require('./package.json').version;
+const { installInfo } = require('./services/updateCheckService');
 
 const settingsRoutes = require('./routes/settings');
 const todosRoutes = require('./routes/todos');
@@ -302,11 +303,15 @@ app.get('/api', (req, res) => {
 });
 
 // Health check endpoint for Docker healthcheck and monitoring
+// Release notes and how this instance is installed (for the update dialog's
+// commands) are for admins only; everyone else gets the version numbers.
 app.get('/api/version', requireAuth, async (req, res) => {
   const service = req.app.locals.updateCheckService;
   if (!service) return res.json({ currentVersion: APP_VERSION, checkEnabled: false, updateAvailable: false });
   try {
-    res.json(await service.getStatus({ force: req.query.force === '1' }));
+    const { releases, ...status } = await service.getStatus({ force: req.query.force === '1' });
+    if (req.session.userRole !== 'admin') return res.json(status);
+    res.json({ ...status, releases: releases || [], install: installInfo() });
   } catch (err) {
     console.error('Error checking for updates:', err.message);
     res.json({ currentVersion: APP_VERSION, checkEnabled: true, updateAvailable: false, checkFailed: true });

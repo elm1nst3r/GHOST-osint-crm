@@ -2,14 +2,18 @@
 //
 // Tells the operator a newer release exists. The check happens server-side —
 // the browser never contacts GitHub — and nothing here downloads or installs
-// anything; updating stays a deliberate command the operator runs.
+// anything; updating stays a deliberate command the operator runs. Admins get
+// "How to update": the commands for this instance and the release notes.
 //
 // Dismissal is per version, so declining 2.13.0 doesn't silence 2.14.0.
 
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpCircle, X } from 'lucide-react';
 import { versionAPI } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
+
+const UpdateDialog = lazy(() => import('./update/UpdateDialog'));
 
 const DISMISSED_KEY = 'ghost_dismissed_update';
 
@@ -17,6 +21,9 @@ const UpdateBanner = () => {
   const { t } = useTranslation();
   const [info, setInfo] = useState(null);
   const [dismissed, setDismissed] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
     versionAPI.get()
@@ -46,7 +53,15 @@ const UpdateBanner = () => {
         <span className="text-blue-800/80 dark:text-blue-300/80">
           {' '}{t('updateBanner.running', { version: info.currentVersion })}
         </span>
-        {info.releaseUrl && (
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={() => setShowDialog(true)}
+            className="ms-2 font-medium underline hover:no-underline"
+          >
+            {t('updateBanner.howToUpdate')}
+          </button>
+        ) : info.releaseUrl && (
           <a
             href={info.releaseUrl}
             target="_blank"
@@ -65,6 +80,11 @@ const UpdateBanner = () => {
       >
         <X className="w-4 h-4" />
       </button>
+      {showDialog && (
+        <Suspense fallback={null}>
+          <UpdateDialog info={info} onClose={() => setShowDialog(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -51,6 +51,8 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
+      # Lets the update dialog show the right commands for a pinned version.
+      GHOST_VERSION: ${GHOST_VERSION:-}
       DB_HOST: ${DB_HOST:-db}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
