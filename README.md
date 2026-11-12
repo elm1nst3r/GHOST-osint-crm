@@ -260,7 +260,10 @@ GHOST still runs its own migrations against it at startup.
 ## 🔄 Updating
 
 GHOST tells you when a new version is released — the server checks the public
-release list and shows a banner. Nothing is downloaded or installed
+release list and shows a banner. Admins get **How to update** there (and in
+Settings → General): the backup and update commands for the way this instance
+runs, ready to copy, plus the notes of every release you're about to get,
+with anything to do beforehand at the top. Nothing is downloaded or installed
 automatically; updating is always your decision.
 
 ```bash

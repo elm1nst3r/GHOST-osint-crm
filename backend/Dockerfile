@@ -13,6 +13,11 @@ RUN npm ci
 # Bundle app source
 COPY . .
 
+# "published" for the release images (set by the publish workflow), "source"
+# for a local build: the update dialog shows the matching commands.
+ARG GHOST_BUILD=source
+ENV GHOST_BUILD=${GHOST_BUILD}
+
 # Install su-exec for user switching in entrypoint
 RUN apk add --no-cache su-exec
 

@@ -19,22 +19,22 @@ const escapeHtml = (s) => String(s)
 
 let taskCounter = 0;
 
-const marked = new Marked({
-  gfm: true,
-  breaks: true,
-  renderer: {
-    // Task-list checkboxes are clickable: each gets its position so a click
-    // can be mapped back to the matching "[ ]" in the source (toggleTask).
-    checkbox({ checked }) {
-      const index = taskCounter++;
-      return `<input type="checkbox" data-task-index="${index}"${checked ? ' checked=""' : ''}> `;
-    },
-    image({ href, text }) {
-      const label = text || href || 'image';
-      return `<a href="${escapeHtml(href || '')}">🖼 ${escapeHtml(label)}</a>`;
-    },
+const renderer = {
+  // Task-list checkboxes are clickable: each gets its position so a click
+  // can be mapped back to the matching "[ ]" in the source (toggleTask).
+  checkbox({ checked }) {
+    const index = taskCounter++;
+    return `<input type="checkbox" data-task-index="${index}"${checked ? ' checked=""' : ''}> `;
   },
-});
+  image({ href, text }) {
+    const label = text || href || 'image';
+    return `<a href="${escapeHtml(href || '')}">🖼 ${escapeHtml(label)}</a>`;
+  },
+};
+
+const marked = new Marked({ gfm: true, breaks: true, renderer });
+// For hard-wrapped text such as release notes: a single newline is a space.
+const markedNoBreaks = new Marked({ gfm: true, breaks: false, renderer });
 
 const PURIFY_CONFIG = {
   FORBID_TAGS: ['img', 'image', 'picture', 'source', 'video', 'audio', 'iframe', 'object', 'embed', 'style', 'link', 'form', 'svg', 'math'],
@@ -58,11 +58,12 @@ function installHooks() {
   });
 }
 
-// Markdown source -> sanitised HTML string.
-export function renderMarkdown(source) {
+// Markdown source -> sanitised HTML string. `breaks: false` for text whose
+// single newlines are only wrapping (release notes).
+export function renderMarkdown(source, { breaks = true } = {}) {
   installHooks();
   taskCounter = 0;
-  const html = marked.parse(String(source || ''), { async: false });
+  const html = (breaks ? marked : markedNoBreaks).parse(String(source || ''), { async: false });
   return DOMPurify.sanitize(html, PURIFY_CONFIG);
 }
 

@@ -6,16 +6,22 @@
 // version numbers. It does not download anything, and nothing in the app can
 // update itself — that would require mounting the Docker socket into a
 // web-facing container, which turns any RCE into host root. Updating stays a
-// deliberate operator action; this only removes the "how would I know?" part.
+// deliberate operator action; the app shows the release notes and the
+// commands to run, and the operator runs them.
 //
 // The check runs server-side (the browser never contacts GitHub), is cached for
 // six hours, and can be switched off completely for deployments that must make
 // no outbound connections. When it's off, no request is made at all.
 
+const fs = require('fs');
+
 const REPO = 'elm1nst3r/GHOST-osint-crm';
-const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+// The list, not /releases/latest: someone a few versions behind should see
+// every release they would skip, including any that needs manual steps.
+const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
 const CACHE_MS = 6 * 60 * 60 * 1000;
 const TIMEOUT_MS = 5000;
+const NOTES_MAX = 20000;
 
 // "v2.12.1" / "2.12.1" -> [2, 12, 1]. Anything unparseable sorts lowest so a
 // malformed tag can never be announced as an upgrade.
@@ -24,15 +30,72 @@ const parseVersion = (raw) => {
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 };
 
-const isNewer = (candidate, current) => {
-  const a = parseVersion(candidate);
-  const b = parseVersion(current);
-  if (!a || !b) return false;
+const compareVersions = (a, b) => {
+  const x = parseVersion(a);
+  const y = parseVersion(b);
   for (let i = 0; i < 3; i++) {
-    if (a[i] > b[i]) return true;
-    if (a[i] < b[i]) return false;
+    if (x[i] !== y[i]) return x[i] - y[i];
   }
-  return false;
+  return 0;
+};
+
+const isNewer = (candidate, current) => {
+  if (!parseVersion(candidate) || !parseVersion(current)) return false;
+  return compareVersions(candidate, current) > 0;
+};
+
+// A release that needs work before updating (say a database move) says so in
+// its notes under a heading such as "### ⚠️ Before you upgrade". Returns that
+// section's text, or null.
+const BEFORE_UPGRADE = /^(#{2,4})[ \t]+[^\n]*\bbefore (?:you )?(?:upgrad|updat)/im;
+const beforeUpgradeSection = (body) => {
+  const text = String(body || '');
+  const m = BEFORE_UPGRADE.exec(text);
+  if (!m) return null;
+  const rest = text.slice(m.index + m[0].length);
+  const startOfBody = rest.indexOf('\n');
+  const after = startOfBody === -1 ? '' : rest.slice(startOfBody + 1);
+  // Ends at the next heading of the same or a higher level.
+  const next = new RegExp(`^#{1,${m[1].length}}[ \\t]`, 'm').exec(after);
+  const section = (next ? after.slice(0, next.index) : after).trim();
+  return section || null;
+};
+
+// GitHub's release list -> the published releases newer than `current`,
+// newest first, with what the update dialog shows.
+const releasesNewerThan = (list, current) => (Array.isArray(list) ? list : [])
+  .filter((r) => r && !r.draft && !r.prerelease)
+  .map((r) => ({ ...r, version: String(r.tag_name || '').replace(/^v/i, '') }))
+  .filter((r) => isNewer(r.version, current))
+  .sort((a, b) => compareVersions(b.version, a.version))
+  .map((r) => {
+    const notes = String(r.body || '');
+    return {
+      version: r.version,
+      name: r.name || null,
+      url: r.html_url || null,
+      publishedAt: r.published_at || null,
+      notes: notes.length > NOTES_MAX ? `${notes.slice(0, NOTES_MAX)}\n\n…` : notes,
+      beforeUpgrade: beforeUpgradeSection(notes),
+      major: parseVersion(r.version)[0] > parseVersion(current)[0],
+    };
+  });
+
+// How this instance runs, so the dialog can show the right commands. Only
+// for admins (the route strips it for everyone else).
+const installInfo = (env = process.env, inDocker = fs.existsSync('/.dockerenv')) => {
+  const dbHost = env.DB_HOST || 'localhost';
+  let method = 'manual';
+  if (inDocker) method = env.GHOST_BUILD === 'published' ? 'images' : 'source';
+  return {
+    method,
+    pinnedVersion: env.GHOST_VERSION || null,
+    database: inDocker && dbHost === 'db' ? 'bundled' : 'external',
+    dbHost,
+    dbPort: env.DB_PORT || '5432',
+    dbUser: env.DB_USER || 'postgres',
+    dbName: env.DB_NAME || 'osint_crm_db',
+  };
 };
 
 class UpdateCheckService {
@@ -79,14 +142,15 @@ class UpdateCheckService {
       });
       if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
 
-      const data = await response.json();
-      const latestVersion = String(data.tag_name || '').replace(/^v/i, '');
+      const releases = releasesNewerThan(await response.json(), this.currentVersion);
+      const latest = releases[0];
       this.cache = {
-        latestVersion: latestVersion || null,
-        updateAvailable: isNewer(latestVersion, this.currentVersion),
-        releaseUrl: data.html_url || null,
-        releaseName: data.name || null,
-        publishedAt: data.published_at || null,
+        latestVersion: latest ? latest.version : this.currentVersion,
+        updateAvailable: Boolean(latest),
+        releaseUrl: latest ? latest.url : null,
+        releaseName: latest ? latest.name : null,
+        publishedAt: latest ? latest.publishedAt : null,
+        releases,
       };
       this.cachedAt = Date.now();
       return { ...base, ...this.cache };
@@ -105,4 +169,6 @@ class UpdateCheckService {
   }
 }
 
-module.exports = { UpdateCheckService, isNewer, parseVersion };
+module.exports = {
+  UpdateCheckService, isNewer, parseVersion, beforeUpgradeSection, releasesNewerThan, installInfo,
+};

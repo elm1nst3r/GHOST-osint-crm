@@ -68,5 +68,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Tells the backend it runs a published image (update dialog commands).
+          build-args: ${{ matrix.component == 'backend' && 'GHOST_BUILD=published' || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
