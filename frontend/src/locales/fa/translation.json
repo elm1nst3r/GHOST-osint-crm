@@ -864,7 +864,18 @@
       "linkOtherProject": "اتصال از پروژه دیگر",
       "linkThisProject": "بازگشت به این پروژه",
       "chooseProject": "انتخاب یک پروژه...",
-      "fromProject": "از {{project}}"
+      "fromProject": "از {{project}}",
+      "typeLabel": "Connection type",
+      "twoWay": "Two-way: also add this connection on {{name}} ({{type}})",
+      "alreadyTwoWay": "Two-way: {{name}} already has a connection to this person",
+      "badgeTwoWay": "Two-way",
+      "badgeOneWay": "One-way",
+      "badgeTwoWayOnSave": "Two-way on save",
+      "badgeIncoming": "Linked to this person",
+      "incomingTitle": "Linked to this person by others",
+      "incomingHint": "These connections belong to the other person. Link back to add this person's own connection to them.",
+      "linkBack": "Link back",
+      "linkBackBlocked": "This person is in another project, and links to other projects are off for this project."
     },
     "customFields": {
       "label": "میدان‌های سفارشی",
@@ -2056,7 +2067,7 @@
     "caseInformation": "اطلاعات پرونده",
     "caseNameLabel": "نام پرونده:",
     "connectionSummary": "خلاصه ارتباطات",
-    "totalConnections": "کل ارتباطات",
+    "totalConnections": "Connected people",
     "outgoingLabel": "خروجی:",
     "incomingLabel": "ورودی:",
     "osintData": "داده‌های OSINT",
@@ -2070,7 +2081,14 @@
     "nothingGiven": "هیچ ارز داده نشده است.",
     "assetsCurrentlyHeld": "دارایی‌های فعلی",
     "noAssetsHeld": "هیچ دارایی فعلی وجود ندارد.",
-    "tab_records": "Records"
+    "tab_records": "Records",
+    "twoWayLabel": "Two-way:",
+    "personNumber": "Person #{{id}}",
+    "direction": {
+      "both": "Two-way",
+      "outgoing": "Outgoing",
+      "incoming": "Incoming"
+    }
   },
   "report": {
     "investigationReport": "گزارش تحقیقاتی",
@@ -2216,7 +2234,43 @@
     "available": "نسخه {{version}} در دسترس است.",
     "running": "شما نسخه {{version}} را اجرا می‌کنید.",
     "viewRelease": "مشاهده یادداشت‌های انتشار",
-    "dismiss": "غیرفعال کردن"
+    "dismiss": "غیرفعال کردن",
+    "howToUpdate": "How to update"
+  },
+  "updateDialog": {
+    "title": "Update to GHOST {{version}}",
+    "intro": "You are running {{version}}. GHOST never updates itself: run these steps on the server, in the GHOST folder (the one with docker-compose.yml).",
+    "attentionTitle": "Read this before you update",
+    "beforeUpgrade": "Version {{version}} needs steps before you update:",
+    "major": "Version {{version}} is a major release. Read its notes below before you update.",
+    "methodLabel": "How GHOST runs here",
+    "method": {
+      "images": "Docker, published images",
+      "source": "Docker, built from source",
+      "manual": "Without Docker"
+    },
+    "detected": "detected",
+    "steps": {
+      "backup": "Back up the database and uploaded files",
+      "backupHint": "They go into a backups folder here. Updating keeps your data, but a backup lets you go back.",
+      "backupExternal": "Back up your database and the uploaded files",
+      "backupExternalHint": "Run pg_dump where it can reach your PostgreSQL server, or use your usual backup.",
+      "backupManual": "Back up the database and the files folder",
+      "backupManualHint": "Copy the folder FILES_DIR points to as well.",
+      "pin": "Change GHOST_VERSION in .env to the new version",
+      "pinHint": "This instance is pinned to a version, so it stays on it until .env names the new one.",
+      "updateImages": "Get the new version and restart",
+      "updateSource": "Get the new code, build and restart",
+      "updateManual": "Get the new code and build it",
+      "restartManual": "Restart the backend the way you started it, then reload this page",
+      "check": "Reload this page when GHOST is back",
+      "checkHint": "It takes about a minute. Database changes run by themselves at start. Settings → General shows the new version."
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "whatsNew": "What's new",
+    "viewOnGitHub": "View on GitHub",
+    "close": "Close"
   },
   "toolImport": {
     "title": "وارد کردن ابزارهای OSINT",
