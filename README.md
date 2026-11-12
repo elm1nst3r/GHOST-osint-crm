@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.1.4-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.1.5-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -292,7 +292,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.1.4
+GHOST_VERSION=3.1.5
 ```
 
 Without it, the containers track the latest release.
@@ -700,6 +700,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.1.5 (November 2026)
+- ⬆️ **How to update, inside GHOST** — the backup and update commands for your setup, ready to copy, plus the notes of every release you're about to get
+
 ### Version 3.1.4 (November 2026)
 - 🔗 **Connections from both sides** — see who links to a person, link back in one click, or save a connection as two-way
 - 🧹 **Cleaner deletes** — deleting a person, business, wallet or project removes its links everywhere
@@ -759,5 +762,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.1.4
-**Last Updated:** November 10, 2026
+**Version:** 3.1.5
+**Last Updated:** November 12, 2026
