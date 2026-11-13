@@ -156,7 +156,7 @@ GHOST can sign people in through an identity provider that speaks OpenID Connect
 | Variable | Meaning |
 |---|---|
 | `OIDC_ENABLED` | `true` to turn it on |
-| `OIDC_ISSUER_URL` | the provider's issuer, e.g. `https://keycloak.example.com/realms/ghost` (must be https) |
+| `OIDC_ISSUER_URL` | the provider's issuer exactly as it writes it, e.g. `https://keycloak.example.com/realms/ghost` (must be https). Authentik's ends in a slash: `https://auth.example.com/application/o/ghost/` |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | the client registered for GHOST (leave the secret empty for a public client; PKCE is always used) |
 | `OIDC_REDIRECT_URI` | `https://<your GHOST address>/api/auth/oidc/callback` |
 | `OIDC_SCOPES` | default `openid profile email` |
@@ -185,6 +185,8 @@ GHOST can sign people in through an identity provider that speaks OpenID Connect
 6. `docker compose up -d`. The status shows under Settings → User Management → Single sign-on.
 
 Other providers work the same way: register a "web" client with the redirect URI above and use the issuer URL from their documentation. If the provider supports OpenID Connect back-channel logout, give it the back-channel logout URL above.
+
+**Behind a reverse proxy.** Single sign-on needs GHOST served over HTTPS. Let the proxy in front of port 8080 terminate HTTPS and send `X-Forwarded-Proto: https` (Caddy, Traefik and most others do by default); GHOST passes it on to the backend. Set `TRUST_PROXY=2` in `.env` so the sign-in limits count each user's own address rather than the proxy's. If the sign-in round trip ends back on the sign-in page with no error, the backend log says whether the request reached it as plain HTTP.
 
 ### Managing Users (Admin only)
 1. Log in as admin

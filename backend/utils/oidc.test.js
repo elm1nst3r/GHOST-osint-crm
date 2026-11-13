@@ -1,4 +1,4 @@
-const { readOidcConfig } = require('./oidcConfig');
+const { readOidcConfig, issuerSlashVariant } = require('./oidcConfig');
 const { usernameBase, uniqueUsername, nameParts, groupsOf, roleFromClaims, displayName } = require('./oidcClaims');
 
 const env = (over = {}) => ({
@@ -10,7 +10,7 @@ describe('OIDC config (#105)', () => {
   test('off unless asked for, and complete', () => {
     expect(readOidcConfig({}).enabled).toBe(false);
     const c = readOidcConfig(env());
-    expect(c).toMatchObject({ enabled: true, issuer: 'https://id.example.com/realms/ghost', scopes: 'openid profile email', displayName: 'SSO', autoProvision: false, localLoginEnabled: true, logout: true });
+    expect(c).toMatchObject({ enabled: true, issuer: 'https://id.example.com/realms/ghost/', scopes: 'openid profile email', displayName: 'SSO', autoProvision: false, localLoginEnabled: true, logout: true });
   });
 
   test('missing or unsafe settings keep it off and say why', () => {
@@ -18,6 +18,18 @@ describe('OIDC config (#105)', () => {
     expect(readOidcConfig(env({ OIDC_REDIRECT_URI: 'https://ghost.example.com/callback' })).enabled).toBe(false);
     expect(readOidcConfig(env({ OIDC_ISSUER_URL: 'http://id.example.com' })).enabled).toBe(false);
     expect(readOidcConfig(env({ OIDC_ISSUER_URL: 'http://localhost:8180/realms/ghost', OIDC_ALLOW_HTTP: 'true' })).enabled).toBe(true);
+  });
+
+  test('the issuer is used as configured; a slash-only difference takes the provider\'s form (#115)', () => {
+    expect(readOidcConfig(env({ OIDC_ISSUER_URL: ' https://auth.example.com/application/o/ghost/ ' })).issuer)
+      .toBe('https://auth.example.com/application/o/ghost/');
+    expect(issuerSlashVariant('https://auth.example.com/application/o/ghost', 'https://auth.example.com/application/o/ghost/'))
+      .toBe('https://auth.example.com/application/o/ghost/');
+    expect(issuerSlashVariant('https://kc.example.com/realms/ghost/', 'https://kc.example.com/realms/ghost'))
+      .toBe('https://kc.example.com/realms/ghost');
+    expect(issuerSlashVariant('https://kc.example.com/realms/ghost', 'https://kc.example.com/realms/other')).toBeNull();
+    expect(issuerSlashVariant('https://kc.example.com/realms/ghost', 'https://kc.example.com/realms/ghost')).toBeNull();
+    expect(issuerSlashVariant('https://kc.example.com/realms/ghost', undefined)).toBeNull();
   });
 
   test('openid is always requested; switches parse', () => {

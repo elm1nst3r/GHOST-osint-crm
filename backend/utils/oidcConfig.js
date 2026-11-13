@@ -3,6 +3,7 @@
 //
 //   OIDC_ENABLED=true
 //   OIDC_ISSUER_URL=https://keycloak.example.com/realms/ghost
+//                                     (exactly as the provider writes it: Authentik's ends in /)
 //   OIDC_CLIENT_ID=ghost
 //   OIDC_CLIENT_SECRET=...            (empty for a public client: PKCE only)
 //   OIDC_REDIRECT_URI=https://ghost.example.com/api/auth/oidc/callback
@@ -19,7 +20,9 @@
 const bool = (v, dflt) => (v === undefined || v === '' ? dflt : /^(1|true|yes|on)$/i.test(String(v).trim()));
 
 function readOidcConfig(env = process.env) {
-  const issuer = (env.OIDC_ISSUER_URL || '').trim().replace(/\/+$/, '');
+  // As configured: the provider's metadata and tokens must name this exact
+  // issuer, and some end in a slash (Authentik: .../application/o/ghost/).
+  const issuer = (env.OIDC_ISSUER_URL || '').trim();
   const clientId = (env.OIDC_CLIENT_ID || '').trim();
   const redirectUri = (env.OIDC_REDIRECT_URI || '').trim();
   const wanted = bool(env.OIDC_ENABLED, false);
@@ -56,4 +59,13 @@ function readOidcConfig(env = process.env) {
   };
 }
 
-module.exports = { readOidcConfig };
+// The provider names its issuer `discovered`, GHOST was given `expected`. If
+// the two differ only by a trailing slash, the provider's form is the right
+// one (#115: an Authentik issuer configured without its slash, or a Keycloak
+// one with an extra slash). → the issuer to use, or null.
+function issuerSlashVariant(expected, discovered) {
+  if (typeof expected !== 'string' || typeof discovered !== 'string' || expected === discovered) return null;
+  return expected.replace(/\/+$/, '') === discovered.replace(/\/+$/, '') ? discovered : null;
+}
+
+module.exports = { readOidcConfig, issuerSlashVariant };
