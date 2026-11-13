@@ -268,7 +268,7 @@
       "disabled": "Единый вход не доступен в данном экземпляре.",
       "failed": "Единый вход не работает. Пожалуйста, попробуйте еще раз; если он не работает, попросите администратора проверить журнал сервера.",
       "busy": "Слишком много входов из этой сети. Пожалуйста, подождите несколько минут и повторите попытку.",
-      "session_ended": "Your session has ended. Please sign in again."
+      "session_ended": "Срок действия сессии истек. Войдите еще раз."
     }
   },
   "settings": {
@@ -388,8 +388,8 @@
       "columnEntity": "Объект",
       "columnField": "Поле",
       "columnChanges": "Изменения",
-      "showAll": "Show all",
-      "showLess": "Show less",
+      "showAll": "Показать все",
+      "showLess": "Показать меньше",
       "oldValueLabel": "Было:",
       "newValueLabel": "Новое:",
       "showingEntries": "Показаны записи с {{from}} по {{to}} из {{total}}",
@@ -585,7 +585,7 @@
     "noTasksYet": "Сейчас нет задач. Добавьте её выше, чтобы начать",
     "changeStatus": "Изменить статус",
     "deleteTask": "Удалить задачу",
-    "editTask": "Edit task",
+    "editTask": "Редактировать задачу",
     "globalRelationshipOverview": "Глобальная доска связей",
     "viewFullNetwork": "Смотреть всю паутину",
     "errorAddTodo": "Не удалось добавить задачу",
@@ -833,22 +833,22 @@
       "country": "Страна",
       "postalCode": "Почтовый индекс",
       "addLocation": "Добавить локацию",
-      "updateLocation": "Update Location",
-      "position": "Map position",
-      "latitude": "Latitude",
-      "longitude": "Longitude",
-      "findOnMap": "Find on map",
-      "pickOnMap": "Pick on map",
-      "hideMap": "Hide map",
-      "pickHint": "Click the map or drag the pin to set the position.",
-      "invalidCoords": "Enter both latitude (-90 to 90) and longitude (-180 to 180), or leave both empty.",
-      "found": "Found: {{place}} ({{confidence}}% sure)",
-      "notFound": "Not found on the map: {{reason}}",
-      "closestMatch": "Closest match: {{place}} ({{confidence}}% sure)",
-      "useMatch": "Use this position",
-      "setByHandHint": "Check the address, or set the position by hand (type it or pick it on the map).",
-      "notOnMapReason": "Not on the map: {{reason}}",
-      "notOnMapYet": "Not on the map yet: saving looks it up"
+      "updateLocation": "Обновить местоположение",
+      "position": "Позиция на карте",
+      "latitude": "Широта",
+      "longitude": "Долгота",
+      "findOnMap": "Найти на карте",
+      "pickOnMap": "Выбрать на карте",
+      "hideMap": "Скрыть карту",
+      "pickHint": "Нажмите на карте или перетащите маркер для установки позиции.",
+      "invalidCoords": "Введите широту (-90 to 90) и долготу (-180 to 180) или оставьте оба поля пустыми.",
+      "found": "Найдено: {{place}} ({{confidence}}% точность)",
+      "notFound": "Не найдено на карте: {{reason}}",
+      "closestMatch": "Ближайшее совпадение: {{place}} ({{confidence}}% точность)",
+      "useMatch": "Использовать эту позицию",
+      "setByHandHint": "Проверьте адрес, или задайте позицию вручную (введите его или выберите на карте).",
+      "notOnMapReason": "Не на карте: {{reason}}",
+      "notOnMapYet": "Еще не на карте: сохранение ищет это"
     },
     "osint": {
       "label": "OSINT данные",
@@ -859,12 +859,23 @@
       "selectPerson": "Выбрать личность",
       "notesPlaceholder": "Заметки о связи (опционально)",
       "addConnection": "Добавить связь",
-      "updateConnection": "Update Connection",
+      "updateConnection": "Обновить соединение",
       "unknownPerson": "Неизвестно",
       "linkOtherProject": "Ссылка из другого проекта",
       "linkThisProject": "Вернуться к этому проекту",
       "chooseProject": "Выберите проект...",
-      "fromProject": "из {{project}}"
+      "fromProject": "из {{project}}",
+      "typeLabel": "Тип соединения",
+      "twoWay": "Двустороннее соединение: также добавьте это соединение на {{name}} ({{type}})",
+      "alreadyTwoWay": "Двусторонний путь: {{name}} уже имеет соединение с этим человеком",
+      "badgeTwoWay": "Двусторонний",
+      "badgeOneWay": "Односторонний",
+      "badgeTwoWayOnSave": "Двухсторонний при сохранении",
+      "badgeIncoming": "Связан с этой личностью",
+      "incomingTitle": "Связано с этой личностью другими",
+      "incomingHint": "Эти связи принадлежат другой личности. Установите обратную ссылку, чтобы добавить к ним собственное соединение этой личности.",
+      "linkBack": "Обратная связь",
+      "linkBackBlocked": "Эта личность находится в другом проекте, и для этого проекта отключены ссылки на другие проекты."
     },
     "customFields": {
       "label": "Пользовательские поля",
@@ -1041,7 +1052,7 @@
     "relationshipTypePlaceholder": "Тип связи",
     "confirmRemoveRelationship": "Удалить эту связь?",
     "errorAddRelationship": "Не удалось добавить связь",
-    "errorUpdateRelationship": "Failed to update relationship",
+    "errorUpdateRelationship": "Не удалось добавить связь",
     "errorRemoveRelationship": "Не удалось удалить связь"
   },
   "transactionForm": {
@@ -1161,21 +1172,21 @@
       "approximateLocation": "Приблизительное местоположение"
     },
     "report": {
-      "title": "Geocoding results",
-      "notOnMapTitle": "Addresses not on the map",
-      "summary": "{{geocoded}} of {{total}} found",
-      "allFound": "Every address was found.",
-      "failedHeading_one": "{{count}} address could not be placed",
-      "failedHeading_other": "{{count}} addresses could not be placed",
-      "notTriedYet": "not looked up yet",
-      "closestMatch": "Closest match: {{place}} ({{confidence}}% sure)",
-      "fixHint": "Open the person and edit the address: check it, or set the position by hand.",
-      "openPerson": "Open person",
-      "close": "Close",
-      "showNotOnMap_one": "{{count}} not on the map",
-      "showNotOnMap_other": "{{count}} not on the map",
-      "error": "Geocoding failed: {{message}}",
-      "nothingToDo": "Every address already has a position."
+      "title": "Результаты геокодирования",
+      "notOnMapTitle": "Адреса не на карте",
+      "summary": "Найдено {{geocoded}} из {{total}}",
+      "allFound": "Все адреса успешно найдены",
+      "failedHeading_one": "{{count}} адрес не может быть сохранен",
+      "failedHeading_other": "{{count}} адресов не может быть сохранено",
+      "notTriedYet": "еще не искали",
+      "closestMatch": "Ближайшее совпадение: {{place}} ({{confidence}}% точность)",
+      "fixHint": "Откройте личность, и отредактируйте адрес: проверьте его или установите позицию вручную.",
+      "openPerson": "Открыть личность",
+      "close": "Закрыть",
+      "showNotOnMap_one": "{{count}} не на карте",
+      "showNotOnMap_other": "{{count}} не на карте",
+      "error": "Ошибка геокодирования: {{message}}",
+      "nothingToDo": "Каждый адрес уже имеет позицию."
     }
   },
   "mapLegend": {
@@ -1196,7 +1207,7 @@
   "addLocationModal": {
     "errorEnterAddressAndPerson": "Пожалуйста, введите адрес и выберите личность",
     "errorGeocodingFailed": "Не удалось геокодировать этот адрес.",
-    "didYouMean": "Вы имели ввиду: \"{{name}}\"?\nЕсли это так, попробуйте указать более точный адрес.",
+    "didYouMean": "\n\nВы имели в виду: \"{{name}}\"?\nЕсли это так, попробуйте указать более точный адрес.",
     "tipsNotFound": "\n\nСоветы:\n• Добавить город и страну (например, \"10 Downing St, London, UK\")\n• Проверка на наличие ошибок написания\n• Попробуйте индекс или zip вместо этого",
     "tipsTimeout": "\n\nСлужба геокодирования не отвечает. Проверьте подключение к Интернету и повторите попытку.",
     "tipsRateLimited": "\n\nПровайдер геокодирования ограничивает количество запросов. Подождите несколько секунд и повторите попытку.",
@@ -1434,7 +1445,7 @@
       "tasksTodos": "Задачи / цели",
       "chartsAnalytics": "Диаграммы и аналитика",
       "businesses": "Организации",
-      "savedRecords": "Saved records"
+      "savedRecords": "Записи сохранены"
     },
     "reportTypeHint": "Устанавливает опции ниже, где вы можете изменить их вручную.",
     "scopeLabel": "Область отчёта",
@@ -1468,9 +1479,9 @@
     "reportInformation": "Информация об отчете",
     "twoFormatsStrong": "Доступно два формата:",
     "twoFormatsRest": " Markdown (.md) включает богатые таблицы и форматирование. Word (.docx) максимизирует совместимость с офисными продуктами.",
-    "savedRecordsCount_one": "Saved records ({{count}})",
-    "savedRecordsCount_other": "Saved records ({{count}})",
-    "savedRecordsLoading": "Saved records"
+    "savedRecordsCount_one": "Сохранено записей ({{count}})",
+    "savedRecordsCount_other": "Сохранено записей ({{count}})",
+    "savedRecordsLoading": "Записи сохранены"
   },
   "ledgerReportPanel": {
     "title": "Финансовые данные",
@@ -2056,7 +2067,7 @@
     "caseInformation": "Информация по делу",
     "caseNameLabel": "Имя дела:",
     "connectionSummary": "Сводка связей",
-    "totalConnections": "Всего связей",
+    "totalConnections": "Связанные личности",
     "outgoingLabel": "Исход:",
     "incomingLabel": "Вход:",
     "osintData": "OSINT данные",
@@ -2070,7 +2081,14 @@
     "nothingGiven": "Ничего не отдано.",
     "assetsCurrentlyHeld": "Текущие вещи во владении",
     "noAssetsHeld": "В настоящее время нет вещей во владении.",
-    "tab_records": "Записи"
+    "tab_records": "Записи",
+    "twoWayLabel": "Двусторонний:",
+    "personNumber": "Личность #{{id}}",
+    "direction": {
+      "both": "Двусторонний",
+      "outgoing": "Исходящий",
+      "incoming": "Входящий"
+    }
   },
   "report": {
     "investigationReport": "ОТЧЁТ О РАССЛЕДОВАНИИ",
@@ -2201,22 +2219,58 @@
     "directionLabel": "Направление",
     "endOfLedgerReport": "Окончание финансового отчета",
     "osintIntelligence": "OSINT РАЗВЕДКА",
-    "savedRecords": "Saved records",
-    "recordsAddedByHand": "Added by hand",
-    "recordsSearchedFor": "searched for {{queries}}",
-    "recordCount_one": "{{count}} record",
-    "recordCount_other": "{{count}} records",
-    "foundTimes_one": "found {{count}} time",
-    "foundTimes_other": "found {{count}} times",
-    "colFound": "Found",
-    "recordN": "Record {{n}}",
-    "colField": "Field"
+    "savedRecords": "Записи сохранены",
+    "recordsAddedByHand": "Добавлено вручную",
+    "recordsSearchedFor": "Найдено по {{queries}}",
+    "recordCount_one": "{{count}} запись",
+    "recordCount_other": "{{count}} записей",
+    "foundTimes_one": "найдено {{count}} раз(а)",
+    "foundTimes_other": "найдено {{count}} раз(а)",
+    "colFound": "Найдено",
+    "recordN": "Запись {{n}}",
+    "colField": "Поле"
   },
   "updateBanner": {
     "available": "Доступна версия {{version}}.",
     "running": "Вы используете версию {{version}}.",
     "viewRelease": "Просмотреть заметки к выпуску",
-    "dismiss": "Отменить"
+    "dismiss": "Отменить",
+    "howToUpdate": "How to update"
+  },
+  "updateDialog": {
+    "title": "Update to GHOST {{version}}",
+    "intro": "You are running {{version}}. GHOST never updates itself: run these steps on the server, in the GHOST folder (the one with docker-compose.yml).",
+    "attentionTitle": "Read this before you update",
+    "beforeUpgrade": "Version {{version}} needs steps before you update:",
+    "major": "Version {{version}} is a major release. Read its notes below before you update.",
+    "methodLabel": "How GHOST runs here",
+    "method": {
+      "images": "Docker, published images",
+      "source": "Docker, built from source",
+      "manual": "Without Docker"
+    },
+    "detected": "detected",
+    "steps": {
+      "backup": "Back up the database and uploaded files",
+      "backupHint": "They go into a backups folder here. Updating keeps your data, but a backup lets you go back.",
+      "backupExternal": "Back up your database and the uploaded files",
+      "backupExternalHint": "Run pg_dump where it can reach your PostgreSQL server, or use your usual backup.",
+      "backupManual": "Back up the database and the files folder",
+      "backupManualHint": "Copy the folder FILES_DIR points to as well.",
+      "pin": "Change GHOST_VERSION in .env to the new version",
+      "pinHint": "This instance is pinned to a version, so it stays on it until .env names the new one.",
+      "updateImages": "Get the new version and restart",
+      "updateSource": "Get the new code, build and restart",
+      "updateManual": "Get the new code and build it",
+      "restartManual": "Restart the backend the way you started it, then reload this page",
+      "check": "Reload this page when GHOST is back",
+      "checkHint": "It takes about a minute. Database changes run by themselves at start. Settings → General shows the new version."
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "whatsNew": "What's new",
+    "viewOnGitHub": "View on GitHub",
+    "close": "Close"
   },
   "toolImport": {
     "title": "Импорт OSINT инструментов",
@@ -2443,7 +2497,7 @@
     "searchWithTools": "Поиск по инструментам",
     "searchThis": "Поиск в интегрированных инструментах",
     "provenance": "с помощью {{tool}} · {{date}}",
-    "editedFoundAs": "edited · found as {{value}}",
+    "editedFoundAs": "Отредактировано · найдено как {{value}}",
     "moreSources_one": "+ Еще{{count}} источник",
     "moreSources_other": "+ Еще{{count}} источников",
     "unverified": "непроверенный",
@@ -2829,8 +2883,8 @@
     "policy": {
       "title": "Политика сервера",
       "requireLabel": "Требовать двухэтапную проверку для каждого пользователя",
-      "requireDescription": "Applies to sign-ins with a GHOST password: users without two-step verification are asked to set it up the next time they sign in, before they can use GHOST. Single sign-on users get two-step verification from the identity provider instead.",
-      "ssoOnly": "Everyone signs in with single sign-on (password sign-in is turned off), so two-step verification is set up and enforced at your identity provider.",
+      "requireDescription": "Это относится к входу в систему с использованием пароля GHOST: пользователям, у которых не настроена двухэтапная проверка, при следующем входе в систему будет предложено выполнить её настройку, прежде чем они смогут воспользоваться GHOST. Для пользователей, использующих единый вход (SSO), двухэтапная проверка обеспечивается поставщиком удостоверений.",
+      "ssoOnly": "Все пользователи входят в систему с помощью единого входа (вход по паролю отключен), поэтому двухэтапная проверка настроена и принудительно применяется на стороне вашего поставщика идентификационных данных.",
       "requiredNotice": "Ваш администратор требует настроить двухэтапную аутентификацию."
     },
     "gate": {
@@ -2889,13 +2943,13 @@
   },
   "geocoding": {
     "reasons": {
-      "not_found": "no match found",
-      "low_confidence": "only an uncertain match",
-      "rate_limited": "the geocoding provider is limiting requests, try again in a minute",
-      "timeout": "the geocoding provider didn't answer in time",
-      "service_error": "the geocoding provider returned an error",
-      "empty": "there is no address to look up",
-      "unknown": "not found"
+      "not_found": "ничего не найдено",
+      "low_confidence": "только неопределенное совпадение",
+      "rate_limited": "поставщик геокодирования ограничивает запросы, повторите попытку через минуту",
+      "timeout": "поставщик геокодирования не ответил вовремя",
+      "service_error": "поставщик геокодирования вернул ошибку",
+      "empty": "нет адресов для поиска",
+      "unknown": "не найдено"
     }
   }
 }
