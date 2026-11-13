@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.1.5-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.1.6-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -292,7 +292,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.1.5
+GHOST_VERSION=3.1.6
 ```
 
 Without it, the containers track the latest release.
@@ -515,7 +515,7 @@ GHOST-osint-crm/
 - 🔒 **KML upload size-limited** — defaults to 5 MB; override with `KML_MAX_BYTES` env var (in bytes)
 - 🔒 **PostgreSQL is not exposed to the host network** by default — only available within the Docker network
 - 🔒 **Session cookies use `SameSite=Strict` and `HttpOnly`** — and become `Secure` automatically when `NODE_ENV=production`
-- ⚠️ **HTTPS is required in production** — because the session cookie is `Secure` when `NODE_ENV=production`, it is **only sent over HTTPS**. If you run production mode over plain HTTP, the browser silently drops the cookie: login returns `200` but no session is established and every protected route reports "Authentication required". Terminate TLS at a reverse proxy / load balancer in front of the container (Caddy, Traefik, nginx-proxy, or a cloud LB). For an HTTP-only internal/test box, run with `NODE_ENV` set to something other than `production` so the cookie is not marked `Secure`.
+- ⚠️ **HTTPS is required in production** — because the session cookie is `Secure` when `NODE_ENV=production`, it is **only sent over HTTPS**. If you run production mode over plain HTTP, the browser silently drops the cookie: login returns `200` but no session is established and every protected route reports "Authentication required". Terminate TLS at a reverse proxy / load balancer in front of the container (Caddy, Traefik, nginx-proxy, or a cloud LB). For an HTTP-only internal/test box, run with `NODE_ENV` set to something other than `production` so the cookie is not marked `Secure`. The proxy must send `X-Forwarded-Proto: https` (most do by default); GHOST passes it on to the backend, and the backend log warns when a sign-in reaches it as plain HTTP. With such a proxy in front, set `TRUST_PROXY=2` in `.env` so the login limits count each user's own address rather than the proxy's.
 - 🔒 **Never commit `.env` files** — contains sensitive credentials
 - 🔒 **Keep `backend/public/uploads/` out of version control** — user-generated content
 - 🔒 **Follow local laws for data collection** — comply with privacy regulations
@@ -700,6 +700,9 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.1.6 (November 2026)
+- 🔐 **Single sign-on behind a reverse proxy** — Authentik issuers ending in `/` work, the sign-in sticks behind an HTTPS proxy, and `TRUST_PROXY` for setups with a second proxy
+
 ### Version 3.1.5 (November 2026)
 - ⬆️ **How to update, inside GHOST** — the backup and update commands for your setup, ready to copy, plus the notes of every release you're about to get
 
@@ -762,5 +765,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.1.5
-**Last Updated:** November 12, 2026
+**Version:** 3.1.6
+**Last Updated:** November 13, 2026

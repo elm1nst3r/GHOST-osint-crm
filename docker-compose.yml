@@ -60,6 +60,9 @@ services:
       DB_PORT: ${DB_PORT:-5432}
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      # Proxies in front of the backend that may name the client's address
+      # (rate limits): 1 = the app's nginx; 2 behind one more reverse proxy.
+      TRUST_PROXY: ${TRUST_PROXY:-1}
       PASSKEY_ORIGINS: ${PASSKEY_ORIGINS:-}
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
       FILES_DIR: /usr/src/app/data/files

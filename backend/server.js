@@ -163,8 +163,11 @@ initializeDatabase().then(() => {
   process.exit(1);
 });
 
-// Trust first proxy (nginx, docker network) so express-rate-limit reads real client IP
-app.set('trust proxy', 1);
+// Proxies allowed to name the client's address for the rate limits: GHOST's
+// nginx by default; TRUST_PROXY=2 behind one more reverse proxy (#115).
+const trustProxy = require('./utils/trustProxy').readTrustProxy(process.env.TRUST_PROXY);
+if (trustProxy.warning) console.warn(trustProxy.warning);
+app.set('trust proxy', trustProxy.value);
 
 // Security headers on every API response (helmet). The frontend's pages get
 // theirs from nginx (frontend/security-headers.conf). The API returns JSON
@@ -211,6 +214,7 @@ const sessionMiddleware = session({
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
   }
 });
+app.use(require('./middleware/insecureCookieHint').insecureCookieHint({ secureCookie: process.env.NODE_ENV === 'production' }));
 app.use((req, res, next) => (req.apiToken ? next() : sessionMiddleware(req, res, next)));
 
 // Single sign-on sessions end when the identity provider's session ends

@@ -13,7 +13,7 @@
 //     (Users → Single sign-on), never matched automatically to an existing
 //     account.
 const { pool } = require('../config/database');
-const { readOidcConfig } = require('../utils/oidcConfig');
+const { readOidcConfig, issuerSlashVariant } = require('../utils/oidcConfig');
 const { usernameBase, uniqueUsername, nameParts, roleFromClaims, displayName } = require('../utils/oidcClaims');
 const { checkLogoutClaims, sessionEndedError } = require('../utils/oidcLogout');
 
@@ -33,9 +33,23 @@ async function providerConfig(cfg = readOidcConfig()) {
     configPromise = (async () => {
       const client = await lib();
       const options = cfg.allowHttp ? { execute: [client.allowInsecureRequests] } : undefined;
-      return cfg.clientSecret
-        ? client.discovery(new URL(cfg.issuer), cfg.clientId, cfg.clientSecret, undefined, options)
-        : client.discovery(new URL(cfg.issuer), cfg.clientId, undefined, client.None(), options);
+      const discover = (issuer) => (cfg.clientSecret
+        ? client.discovery(new URL(issuer), cfg.clientId, cfg.clientSecret, undefined, options)
+        : client.discovery(new URL(issuer), cfg.clientId, undefined, client.None(), options));
+      try {
+        return await discover(cfg.issuer);
+      } catch (err) {
+        // The provider's issuer must match exactly; a missing or extra
+        // trailing slash is the usual slip (#115), so take the provider's.
+        const discovered = err?.cause?.attribute === 'issuer' ? err.cause.body?.issuer : null;
+        const variant = issuerSlashVariant(cfg.issuer, discovered);
+        if (!variant && typeof discovered === 'string') {
+          throw new Error(`the provider's issuer is "${discovered}", but OIDC_ISSUER_URL is "${cfg.issuer}"`, { cause: err });
+        }
+        if (!variant) throw err;
+        console.warn(`Single sign-on: the provider's issuer is "${variant}", OIDC_ISSUER_URL says "${cfg.issuer}". Using the provider's; set OIDC_ISSUER_URL to it to silence this.`);
+        return discover(variant);
+      }
     })();
     configPromise.catch(() => { configPromise = null; });
   }

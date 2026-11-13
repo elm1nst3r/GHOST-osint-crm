@@ -5,6 +5,34 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.6] - 2026-11-13
+
+### 🔐 Single sign-on behind a reverse proxy
+
+Thanks to c-premus for tracking both of these down (#115).
+
+- **Issuers that end in a slash work.** GHOST removed a trailing `/` from
+  `OIDC_ISSUER_URL`, but the provider must name exactly the configured
+  issuer, and Authentik's always ends in `/`. Sign-in failed with "SSO is
+  unavailable". GHOST now uses the issuer as written. If it differs from
+  the provider's only by a trailing slash, GHOST uses the provider's and says
+  so in the log; any other difference is still refused, and the log names
+  both values.
+- **The sign-in sticks behind an HTTPS proxy.** GHOST's own nginx told the
+  backend every request came in over plain HTTP, even when the proxy in
+  front served HTTPS. With `NODE_ENV=production` the backend then left out
+  the session cookie: the sign-in went through and you were back at the
+  sign-in page. nginx now passes on what the proxy reports
+  (`X-Forwarded-Proto`). This affected password sign-in behind such a proxy
+  too. The backend log now warns when a sign-in reaches it over plain HTTP.
+- **`TRUST_PROXY`** for a reverse proxy in front of GHOST: set it to `2` so
+  the login limits count each user's own address rather than the proxy's
+  (the default `1` trusts only GHOST's own nginx). A list of proxy
+  addresses works too.
+
+Nothing to do when updating. Behind a reverse proxy, consider
+`TRUST_PROXY=2` in `.env`.
+
 ## [3.1.5] - 2026-11-12
 
 ### ⬆️ How to update, inside GHOST
