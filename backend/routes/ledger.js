@@ -7,8 +7,20 @@ const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { TX_SELECT, decorateTransaction, fullName, aggregateVenueStats, deriveLedger } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
+const { requireProjectMember } = require('../utils/projectAccess');
 
 const ENTITY_TYPES = { people: 'person', businesses: 'business', properties: 'property' };
+
+// Which project an entity belongs to, or null when it does not exist. Ledger
+// data is project-scoped like every other entity, so membership is checked
+// before any transaction, asset or ledger row is returned.
+const ENTITY_TABLE = { person: 'people', business: 'businesses', property: 'properties' };
+async function entityProjectId(kind, id) {
+  const table = ENTITY_TABLE[kind];
+  if (!table) return null;
+  const { rows } = await pool.query(`SELECT project_id FROM ${table} WHERE id = $1`, [id]);
+  return rows.length ? rows[0].project_id : null;
+}
 
 
 router.use(apiLimiter);
@@ -18,6 +30,10 @@ router.use(apiLimiter);
 router.get('/people/:id/transactions', requireAuth, validateIdParam, async (req, res) => {
   try {
     const id = req.params.id;
+    const projectId = await entityProjectId('person', id);
+    if (projectId == null) return res.status(404).json({ error: 'Entity not found' });
+    const accessErr = await requireProjectMember(req, projectId);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     const result = await pool.query(
       `${TX_SELECT} WHERE t.from_person_id = $1 OR t.to_person_id = $1
        ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, [id]);
@@ -36,6 +52,10 @@ router.get('/people/:id/transactions', requireAuth, validateIdParam, async (req,
 // GET /people/:id/assets — assets currently held by this person (derived)
 router.get('/people/:id/assets', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const projectId = await entityProjectId('person', req.params.id);
+    if (projectId == null) return res.status(404).json({ error: 'Entity not found' });
+    const accessErr = await requireProjectMember(req, projectId);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     const rows = await currentHoldings('person', req.params.id);
     res.json({ data: rows, meta: { total: rows.length } });
   } catch (err) {
@@ -48,6 +68,10 @@ router.get('/people/:id/assets', requireAuth, validateIdParam, async (req, res) 
 router.get('/businesses/:id/transactions', requireAuth, validateIdParam, async (req, res) => {
   try {
     const id = req.params.id;
+    const projectId = await entityProjectId('business', id);
+    if (projectId == null) return res.status(404).json({ error: 'Entity not found' });
+    const accessErr = await requireProjectMember(req, projectId);
+    if (accessErr) return res.status(403).json({ error: accessErr });
     const result = await pool.query(
       `${TX_SELECT} WHERE t.from_business_id = $1 OR t.to_business_id = $1
         OR t.subject_business_id = $1 OR t.location_business_id = $1
@@ -71,8 +95,10 @@ router.get('/businesses/:id/transactions', requireAuth, validateIdParam, async (
 router.get('/businesses/:id/venue-stats', requireAuth, validateIdParam, async (req, res) => {
   try {
     const id = req.params.id;
-    const bizResult = await pool.query('SELECT id, name FROM businesses WHERE id = $1', [id]);
+    const bizResult = await pool.query('SELECT id, name, project_id FROM businesses WHERE id = $1', [id]);
     if (bizResult.rows.length === 0) return res.status(404).json({ error: 'Business not found' });
+    const accessErr = await requireProjectMember(req, bizResult.rows[0].project_id);
+    if (accessErr) return res.status(403).json({ error: accessErr });
 
     const txResult = await pool.query(
       `${TX_SELECT} WHERE t.location_business_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
@@ -109,6 +135,11 @@ router.get('/:entityType/:id/ledger', requireAuth, validateIdParam, async (req, 
   if (!kind) return res.status(400).json({ error: 'Invalid entity type for ledger' });
 
   try {
+    const projectId = await entityProjectId(kind, id);
+    if (projectId == null) return res.status(404).json({ error: 'Entity not found' });
+    const accessErr = await requireProjectMember(req, projectId);
+    if (accessErr) return res.status(403).json({ error: accessErr });
+
     // entity label
     let label = null;
     if (kind === 'person') {
