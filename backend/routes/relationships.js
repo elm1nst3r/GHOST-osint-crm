@@ -36,6 +36,30 @@ async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetP
   }
 }
 
+// A link from a record in projectId to type/id: the target must exist and be
+// in projectId, or, with allow_cross_linking on, in another project. With
+// `canSee` (the caller's membership check: error text or null), a target in
+// a project the caller can't see reads as "not found", like a missing one,
+// so a member of one project can't link to, and read back, another
+// project's people (#116). Targets in `stored` (already linked from this
+// record) skip that check: an edit sends every link back, including ones a
+// colleague made.
+async function checkLinkTarget(type, id, projectId, db = pool, canSee = null, stored = new Set()) {
+  const targetProjectId = await fetchEntityProject(type, id, db);
+  const notFound = () => Object.assign(new Error(`${type} ${id} not found`), { statusCode: 404 });
+  if (targetProjectId === null) throw notFound();
+  if (targetProjectId !== Number(projectId) && canSee && !stored.has(Number(id)) && await canSee(targetProjectId)) throw notFound();
+  await assertLinkAllowed(projectId, projectId, targetProjectId, db);
+}
+
+async function storedTargets(db, sourceType, sourceId, targetType, types = null) {
+  const { rows } = await db.query(
+    `SELECT target_id FROM relationships WHERE source_type = $1 AND source_id = $2 AND target_type = $3
+     ${types ? 'AND relationship_type = ANY($4)' : ''}`,
+    types ? [sourceType, sourceId, targetType, types] : [sourceType, sourceId, targetType]);
+  return new Set(rows.map((r) => Number(r.target_id)));
+}
+
 // Converges a person's person->person relationship rows to match an incoming
 // `connections` array (issue #83's replacement for the old person.connections
 // JSONB write path). Full replace rather than a field-by-field diff: simpler,
@@ -43,7 +67,7 @@ async function assertLinkAllowed(relationshipProjectId, sourceProjectId, targetP
 // no externally-visible identity to preserve across an edit.
 // `db` is the caller's transaction client, so the person's own update and
 // this replace commit or roll back together.
-async function syncPersonConnections(personId, projectId, caseId, connections, db = pool) {
+async function syncPersonConnections(personId, projectId, caseId, connections, db = pool, canSee = null) {
   const desired = (Array.isArray(connections) ? connections : [])
     .filter((c) => c && c.person_id != null)
     .map((c) => ({
@@ -56,14 +80,9 @@ async function syncPersonConnections(personId, projectId, caseId, connections, d
   // is the write path AddEditPersonForm actually uses, so skipping it here
   // would let a deep-linked out-of-project edit bypass allow_cross_linking
   // entirely (issue #83 follow-up).
+  const stored = canSee ? await storedTargets(db, 'person', personId, 'person') : new Set();
   for (const c of desired) {
-    const targetProjectId = await fetchEntityProject('person', c.target_id, db);
-    if (targetProjectId === null) {
-      const err = new Error(`person ${c.target_id} not found`);
-      err.statusCode = 404;
-      throw err;
-    }
-    await assertLinkAllowed(projectId, projectId, targetProjectId, db);
+    await checkLinkTarget('person', c.target_id, projectId, db, canSee, stored);
   }
 
   await db.query(
@@ -138,7 +157,7 @@ async function addReverseConnections(personId, connections, canEdit, db = pool) 
 // separately, keyed on the specific old/new owner rather than a full
 // converge, since a delete-and-reinsert scoped to the owner would also wipe
 // out that owner's edges to any OTHER businesses it owns.
-async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }, db = pool) {
+async function syncBusinessRelationships(businessId, projectId, caseId, { ownerPersonId, employees }, db = pool, canSee = null) {
   const desired = [];
   if (ownerPersonId) desired.push({ target_type: 'person', target_id: parseInt(ownerPersonId, 10), relationship_type: 'owner', note: null });
   for (const e of Array.isArray(employees) ? employees : []) {
@@ -154,14 +173,11 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
 
   // Same cross-project guard as syncPersonConnections -- checked before any
   // DELETE so a rejected save doesn't lose existing relationships.
+  const stored = canSee && businessId
+    ? await storedTargets(db, 'business', businessId, 'person', ['owner', 'employee', 'board_member'])
+    : new Set();
   for (const d of desired) {
-    const targetProjectId = await fetchEntityProject(d.target_type, d.target_id, db);
-    if (targetProjectId === null) {
-      const err = new Error(`${d.target_type} ${d.target_id} not found`);
-      err.statusCode = 404;
-      throw err;
-    }
-    await assertLinkAllowed(projectId, projectId, targetProjectId, db);
+    await checkLinkTarget(d.target_type, d.target_id, projectId, db, canSee, stored);
   }
 
   // Scoped to the relationship_types this function manages, not every row
@@ -193,7 +209,7 @@ async function syncBusinessRelationships(businessId, projectId, caseId, { ownerP
 // newOwnerBusinessId may be null, string, or number -- both sides are
 // normalized before comparing so a no-op update (unchanged owner) doesn't
 // do a pointless delete+reinsert.
-async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusinessId, newOwnerBusinessId, db = pool) {
+async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusinessId, newOwnerBusinessId, db = pool, canSee = null) {
   const oldOwner = oldOwnerBusinessId != null ? parseInt(oldOwnerBusinessId, 10) : null;
   const newOwner = newOwnerBusinessId != null ? parseInt(newOwnerBusinessId, 10) : null;
   if (oldOwner === newOwner) return;
@@ -208,13 +224,7 @@ async function syncBusinessOwnership(businessId, projectId, caseId, oldOwnerBusi
   }
 
   if (newOwner != null) {
-    const ownerProjectId = await fetchEntityProject('business', newOwner, db);
-    if (ownerProjectId === null) {
-      const err = new Error(`business ${newOwner} not found`);
-      err.statusCode = 404;
-      throw err;
-    }
-    await assertLinkAllowed(projectId, projectId, ownerProjectId, db);
+    await checkLinkTarget('business', newOwner, projectId, db, canSee);
     await db.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
        VALUES ($1, $2, 'business', $3, 'business', $4, 'owner', NULL)`,
@@ -257,14 +267,12 @@ router.post('/', requireAuth, validate(RelationshipCreateSchema), async (req, re
   if (accessErr) return res.status(403).json({ error: accessErr });
 
   try {
-    const [sourceProjectId, targetProjectId] = await Promise.all([
-      fetchEntityProject(source_type, source_id),
-      fetchEntityProject(target_type, target_id),
-    ]);
-    if (sourceProjectId === null) return res.status(404).json({ error: `${source_type} ${source_id} not found` });
-    if (targetProjectId === null) return res.status(404).json({ error: `${target_type} ${target_id} not found` });
-
-    await assertLinkAllowed(project_id, sourceProjectId, targetProjectId);
+    // Both ends are checked against the relationship's project (#116):
+    // before, two people of a project the caller isn't in could be linked
+    // from the caller's own project.
+    const canSee = (pid) => requireProjectMember(req, pid);
+    await checkLinkTarget(source_type, source_id, project_id, pool, canSee);
+    await checkLinkTarget(target_type, target_id, project_id, pool, canSee);
 
     const result = await pool.query(
       `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)

@@ -5,10 +5,11 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, AssetCreateSchema, AssetUpdateSchema } = require('../middleware/schemas');
-const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
+const { txSelect, decorateTransaction, geocodeFields, deriveCustody, fullName } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
-const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { applyProjectScope, requireProjectMember, visibleProjectIds, addVisibleParam, inProjects, isVisible } = require('../utils/projectAccess');
+const { checkRefs } = require('../utils/projectRefs');
 
 const LOCATION_MODES = ['with_holder', 'fixed_known', 'fixed_custom', 'unknown'];
 const num = (v) => (v == null ? null : parseFloat(v));
@@ -23,16 +24,18 @@ function holderFromRow(row) {
   return null;
 }
 
-const HOLDER_JOIN = `
+// The asset's latest transaction the viewer may see, and its holder's name
+// when the holder is visible too (#116). `vis`: see txSelect.
+const holderJoin = (vis) => `
   LEFT JOIN LATERAL (
     SELECT tx.to_person_id AS lt_to_person_id, tx.to_business_id AS lt_to_business_id,
            tx.to_external AS lt_to_external, tx.occurred_on AS lt_occurred_on
     FROM transactions tx
-    WHERE tx.subject_asset_id = a.id
+    WHERE tx.subject_asset_id = a.id AND ${inProjects('tx.project_id', vis)}
     ORDER BY tx.occurred_on DESC NULLS LAST, tx.id DESC LIMIT 1
   ) lt ON true
-  LEFT JOIN people     ltp ON lt.lt_to_person_id   = ltp.id
-  LEFT JOIN businesses ltb ON lt.lt_to_business_id = ltb.id
+  LEFT JOIN people     ltp ON lt.lt_to_person_id   = ltp.id AND ${inProjects('ltp.project_id', vis)}
+  LEFT JOIN businesses ltb ON lt.lt_to_business_id = ltb.id AND ${inProjects('ltb.project_id', vis)}
 `;
 const HOLDER_COLS = `
   lt.lt_to_person_id, lt.lt_to_business_id, lt.lt_to_external, lt.lt_occurred_on,
@@ -40,16 +43,19 @@ const HOLDER_COLS = `
   ltb.name AS lt_to_business_name
 `;
 
-// Resolve the live position of an asset based on its location_mode.
-async function resolveAssetLocation(asset, holder) {
+// Resolve the live position of an asset based on its location_mode. A person
+// or business in a project the viewer can't see (`visible`, from
+// visibleProjectIds; null = everything) gives no position (#116).
+async function resolveAssetLocation(asset, holder, visible = null) {
   const mode = asset.location_mode || 'with_holder';
   if (mode === 'fixed_custom') {
     return { mode, latitude: num(asset.latitude), longitude: num(asset.longitude), label: asset.location_name || [asset.city, asset.country].filter(Boolean).join(', ') || null, source: 'asset' };
   }
   if (mode === 'fixed_known') {
     if (asset.location_person_id) {
-      const pr = await pool.query('SELECT locations FROM people WHERE id = $1', [asset.location_person_id]);
-      const locs = (pr.rows[0] && pr.rows[0].locations) || [];
+      const pr = await pool.query('SELECT locations, project_id FROM people WHERE id = $1', [asset.location_person_id]);
+      const seen = pr.rows[0] && isVisible(visible, pr.rows[0].project_id);
+      const locs = (seen && pr.rows[0].locations) || [];
       let entry = null;
       if (asset.location_ref != null) {
         const idx = parseInt(asset.location_ref, 10);
@@ -64,6 +70,13 @@ async function resolveAssetLocation(asset, holder) {
   }
   if (mode === 'with_holder') {
     if (!holder) return { mode, latitude: null, longitude: null, label: null, source: 'unknown' };
+    if (holder.type === 'person' || holder.type === 'business') {
+      const table = holder.type === 'person' ? 'people' : 'businesses';
+      const { rows } = await pool.query(`SELECT project_id FROM ${table} WHERE id = $1`, [holder.id]);
+      if (!rows[0] || !isVisible(visible, rows[0].project_id)) {
+        return { mode, latitude: null, longitude: null, label: holder.label, source: 'holder_unknown', holder };
+      }
+    }
     if (holder.type === 'person') {
       const th = await pool.query(
         `SELECT latitude, longitude, location_name, city, country FROM travel_history
@@ -97,6 +110,8 @@ router.get('/', requireAuth, async (req, res) => {
 
     const where = [];
     const params = [];
+    const visible = await visibleProjectIds(req);
+    const vis = addVisibleParam(params, visible);
     if (req.query.category) { params.push(req.query.category); where.push(`a.category = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); where.push(`a.status = $${params.length}`); }
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`a.case_id = $${params.length}`); }
@@ -117,18 +132,18 @@ router.get('/', requireAuth, async (req, res) => {
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const dataResult = await pool.query(
-      `SELECT a.*, ${HOLDER_COLS} FROM assets a ${HOLDER_JOIN} ${whereSql}
+      `SELECT a.*, ${HOLDER_COLS} FROM assets a ${holderJoin(vis)} ${whereSql}
        ORDER BY a.created_at DESC, a.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset]
     );
     const countResult = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM assets a ${HOLDER_JOIN} ${whereSql}`, params);
+      `SELECT COUNT(*)::int AS count FROM assets a ${holderJoin(vis)} ${whereSql}`, params);
     const total = countResult.rows[0].count;
 
     const data = [];
     for (const row of dataResult.rows) {
       const holder = holderFromRow(row);
-      const location = await resolveAssetLocation(row, holder);
+      const location = await resolveAssetLocation(row, holder, visible);
       const clean = { ...row };
       ['lt_to_person_id', 'lt_to_business_id', 'lt_to_external', 'lt_occurred_on', 'lt_to_person_first', 'lt_to_person_last', 'lt_to_business_name'].forEach(k => delete clean[k]);
       data.push({ ...clean, current_holder: holder, resolved_location: location });
@@ -168,6 +183,13 @@ router.post('/', requireAuth, validate(AssetCreateSchema), async (req, res) => {
 
     const caseErr = await checkCaseProjectConsistency(b.case_id, b.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const ih0 = b.initial_holder || {};
+    const refErr = await checkRefs(req, b.project_id, [
+      { field: 'location_person_id', type: 'person', id: b.location_person_id },
+      { field: 'initial_holder.person_id', type: 'person', id: ih0.person_id },
+      { field: 'initial_holder.business_id', type: 'business', id: ih0.business_id },
+    ]);
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
 
@@ -224,11 +246,15 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
     const accessErr = await requireProjectMember(req, asset.project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
+    const params = [id];
+    const visible = await visibleProjectIds(req);
+    const vis = addVisibleParam(params, visible);
     const txResult = await pool.query(
-      `${TX_SELECT} WHERE t.subject_asset_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
+      `${txSelect(vis)} WHERE t.subject_asset_id = $1 AND ${inProjects('t.project_id', vis)}
+       ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, params);
     const decorated = txResult.rows.map(decorateTransaction);
     const { currentHolder, since, chain } = deriveCustody(decorated);
-    const location = await resolveAssetLocation(asset, currentHolder);
+    const location = await resolveAssetLocation(asset, currentHolder, visible);
 
     res.json({
       ...asset,
@@ -259,6 +285,10 @@ router.put('/:id', requireAuth, validateIdParam, validate(AssetUpdateSchema), as
 
     const caseErr = await checkCaseProjectConsistency(b.case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, existing.rows[0].project_id, [
+      { field: 'location_person_id', type: 'person', id: b.location_person_id },
+    ], { existing: existing.rows[0] });
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude: b.latitude, longitude: b.longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if (mode === 'fixed_custom' && (b.latitude == null || b.longitude == null) && (b.address || b.city || b.country)) {
@@ -311,5 +341,5 @@ router.delete('/:id', requireAuth, validateIdParam, async (req, res) => {
 module.exports = router;
 module.exports.resolveAssetLocation = resolveAssetLocation;
 module.exports.holderFromRow = holderFromRow;
-module.exports.HOLDER_JOIN = HOLDER_JOIN;
+module.exports.holderJoin = holderJoin;
 module.exports.HOLDER_COLS = HOLDER_COLS;

@@ -185,7 +185,7 @@ router.post('/', requireAuth, validate(PersonCreateSchema), async (req, res) => 
     // The person and their connections commit together, or not at all.
     const { created, reverseAdded } = await inTransaction(async (client) => {
       const { rows } = await client.query(query, values);
-      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client);
+      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client, canEditProject(req));
       const added = await addReverseConnections(rows[0].id, connections, canEditProject(req), client);
       return { created: rows[0], reverseAdded: added };
     });
@@ -335,7 +335,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     // leave the connections deleted and only half re-added (#112).
     const reverseAdded = await inTransaction(async (client) => {
       const { rows } = await client.query(query, values);
-      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client);
+      await syncPersonConnections(rows[0].id, rows[0].project_id, rows[0].case_id, connections, client, canEditProject(req));
       return addReverseConnections(rows[0].id, connections, canEditProject(req), client);
     });
     const newPerson = await fetchPersonById(personId, req);

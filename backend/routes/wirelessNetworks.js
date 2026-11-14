@@ -9,6 +9,17 @@ const { validateIdParam } = require('../middleware/validation');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { checkRefs } = require('../utils/projectRefs');
+
+// The people and businesses a network is tied to must be ones this project
+// may point at (#116).
+const ids = (list) => (Array.isArray(list) ? list : []);
+const LINKS_QUERY = 'SELECT project_id, person_id, associated_person_ids, associated_business_ids FROM wireless_networks WHERE id = $1';
+const networkRefs = (body) => [
+  { field: 'person_id', type: 'person', id: body.person_id },
+  ...ids(body.associated_person_ids).map((id) => ({ field: 'associated_person_ids', type: 'person', id })),
+  ...ids(body.associated_business_ids).map((id) => ({ field: 'associated_business_ids', type: 'business', id })),
+];
 
 
 router.use(apiLimiter);
@@ -378,6 +389,8 @@ router.post('/', requireAuth, async (req, res) => {
 
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, project_id, networkRefs(req.body));
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     // If location is provided, both lat and long must be present
     if ((latitude && !longitude) || (!latitude && longitude)) {
@@ -419,12 +432,14 @@ router.put('/:id', requireAuth, validateIdParam, async (req, res) => {
       case_id
     } = req.body;
 
-    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    const existing = await pool.query(LINKS_QUERY, [id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
     const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
     const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, existing.rows[0].project_id, networkRefs(req.body), { existing: existing.rows[0] });
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     const result = await pool.query(
       `UPDATE wireless_networks SET
@@ -485,10 +500,14 @@ router.post('/:id/associate', requireAuth, validateIdParam, async (req, res) => 
       return res.status(400).json({ error: 'person_id or business_id is required' });
     }
 
-    const existing = await pool.query('SELECT project_id FROM wireless_networks WHERE id = $1', [id]);
+    const existing = await pool.query(LINKS_QUERY, [id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Wireless network not found' });
     const accessErr = await requireProjectMember(req, existing.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
+    const refErr = await checkRefs(req, existing.rows[0].project_id, person_id
+      ? [{ field: 'associated_person_ids', type: 'person', id: person_id }]
+      : [{ field: 'associated_business_ids', type: 'business', id: business_id }], { existing: existing.rows[0] });
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let query;
     let params;

@@ -4,7 +4,14 @@
 
 // SELECT fragment for transactions with all label/coordinate joins.
 // Append a WHERE / ORDER BY clause when using it.
-const TX_SELECT = `
+// The transaction row plus the names (and venue positions) of what it points
+// at. `vis` is the placeholder holding the viewer's visible project ids (see
+// projectAccess.visibleProjectIds), or null for an admin: a person, business
+// or place in a project the viewer can't see comes back without its name, as
+// "Person #12" (#116).
+function txSelect(vis = null) {
+  const seen = (a) => (vis ? ` AND ${a}.project_id = ANY(${vis}::int[])` : '');
+  return `
   SELECT t.*,
     fp.first_name AS from_person_first, fp.last_name AS from_person_last,
     fb.name AS from_business_name,
@@ -18,18 +25,19 @@ const TX_SELECT = `
     lb.name AS location_business_name, lb.latitude AS location_business_lat, lb.longitude AS location_business_lng,
     lp.name AS location_property_name, lp.latitude AS location_property_lat, lp.longitude AS location_property_lng
   FROM transactions t
-  LEFT JOIN people     fp ON t.from_person_id     = fp.id
-  LEFT JOIN businesses fb ON t.from_business_id   = fb.id
-  LEFT JOIN crypto_wallets fw ON t.from_wallet_id = fw.id
-  LEFT JOIN people     tp ON t.to_person_id       = tp.id
-  LEFT JOIN businesses tb ON t.to_business_id     = tb.id
-  LEFT JOIN crypto_wallets tw ON t.to_wallet_id   = tw.id
-  LEFT JOIN assets     sa ON t.subject_asset_id   = sa.id
-  LEFT JOIN businesses sb ON t.subject_business_id= sb.id
-  LEFT JOIN properties sp ON t.subject_property_id= sp.id
-  LEFT JOIN businesses lb ON t.location_business_id  = lb.id
-  LEFT JOIN properties lp ON t.location_property_id  = lp.id
+  LEFT JOIN people     fp ON t.from_person_id     = fp.id${seen('fp')}
+  LEFT JOIN businesses fb ON t.from_business_id   = fb.id${seen('fb')}
+  LEFT JOIN crypto_wallets fw ON t.from_wallet_id = fw.id${seen('fw')}
+  LEFT JOIN people     tp ON t.to_person_id       = tp.id${seen('tp')}
+  LEFT JOIN businesses tb ON t.to_business_id     = tb.id${seen('tb')}
+  LEFT JOIN crypto_wallets tw ON t.to_wallet_id   = tw.id${seen('tw')}
+  LEFT JOIN assets     sa ON t.subject_asset_id   = sa.id${seen('sa')}
+  LEFT JOIN businesses sb ON t.subject_business_id= sb.id${seen('sb')}
+  LEFT JOIN properties sp ON t.subject_property_id= sp.id${seen('sp')}
+  LEFT JOIN businesses lb ON t.location_business_id  = lb.id${seen('lb')}
+  LEFT JOIN properties lp ON t.location_property_id  = lp.id${seen('lp')}
 `;
+}
 
 function fullName(first, last) {
   return [first, last].filter(Boolean).join(' ').trim();
@@ -316,7 +324,7 @@ function validateTransactionShape(body) {
 }
 
 module.exports = {
-  TX_SELECT,
+  txSelect,
   FROM_REFS,
   TO_REFS,
   SUBJECT_REFS,

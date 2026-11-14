@@ -115,7 +115,32 @@ async function applyProjectScope(req, alias, where, params) {
   return null;
 }
 
+// The projects whose data the session user may see (#116): null for an admin
+// (everything), else the ids of the projects they are a member of. Used where
+// a record points at people, businesses or places that may sit in another
+// project: their names and positions only come along when visible.
+async function visibleProjectIds(req) {
+  if (req.session.userRole === 'admin') return null;
+  const { rows } = await pool.query(
+    'SELECT project_id FROM project_members WHERE user_id = $1 ORDER BY project_id', [req.session.userId]);
+  return rows.map((r) => r.project_id);
+}
+
+// Adds visibleProjectIds' result to a query's params → its placeholder
+// ("$3"), or null for an admin. `inProjects(col, ph)` is the SQL condition.
+function addVisibleParam(params, visible) {
+  if (!visible) return null;
+  params.push(visible);
+  return `$${params.length}`;
+}
+const inProjects = (col, ph) => (ph ? `${col} = ANY(${ph}::int[])` : 'TRUE');
+const isVisible = (visible, projectId) => !visible || visible.includes(Number(projectId));
+
 module.exports = {
+  visibleProjectIds,
+  addVisibleParam,
+  inProjects,
+  isVisible,
   getUserProjectRole,
   requireProjectMember,
   requireProjectManager,

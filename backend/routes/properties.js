@@ -5,10 +5,14 @@ const { pool } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validation');
 const { validate, PropertyCreateSchema, PropertyUpdateSchema } = require('../middleware/schemas');
-const { TX_SELECT, decorateTransaction, geocodeFields, deriveCustody } = require('../utils/transactionHelpers');
+const { txSelect, decorateTransaction, geocodeFields, deriveCustody } = require('../utils/transactionHelpers');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
-const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { applyProjectScope, requireProjectMember, visibleProjectIds, addVisibleParam, inProjects } = require('../utils/projectAccess');
+const { checkRefs } = require('../utils/projectRefs');
+
+// The owner's name only when the viewer may see the owner's project (#116).
+const ownerJoin = (vis) => `LEFT JOIN people o ON p.owner_person_id = o.id AND ${inProjects('o.project_id', vis)}`;
 
 const OWNERSHIP_TYPES = ['sale', 'purchase', 'transfer', 'acquisition'];
 
@@ -37,14 +41,16 @@ router.get('/', requireAuth, async (req, res) => {
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    const dataParams = [...params, limit, offset];
+    const dataParams = [...params];
+    const vis = addVisibleParam(dataParams, await visibleProjectIds(req));
+    dataParams.push(limit, offset);
     const dataResult = await pool.query(
       `SELECT p.*, CONCAT(o.first_name, ' ', COALESCE(o.last_name, '')) AS owner_name
        FROM properties p
-       LEFT JOIN people o ON p.owner_person_id = o.id
+       ${ownerJoin(vis)}
        ${whereSql}
        ORDER BY p.created_at DESC, p.id DESC
-       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
       dataParams
     );
     const countResult = await pool.query(`SELECT COUNT(*)::int AS count FROM properties p ${whereSql}`, params);
@@ -72,6 +78,8 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
 
     const caseErr = await checkCaseProjectConsistency(case_id, project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, project_id, [{ field: 'owner_person_id', type: 'person', id: owner_person_id }]);
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude, longitude, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
@@ -100,21 +108,25 @@ router.post('/', requireAuth, validate(PropertyCreateSchema), async (req, res) =
 router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
     const id = req.params.id;
+    const params = [id];
+    const vis = addVisibleParam(params, await visibleProjectIds(req));
     const propResult = await pool.query(
       `SELECT p.*, CONCAT(o.first_name, ' ', COALESCE(o.last_name, '')) AS owner_name
-       FROM properties p LEFT JOIN people o ON p.owner_person_id = o.id WHERE p.id = $1`, [id]);
+       FROM properties p ${ownerJoin(vis)} WHERE p.id = $1`, params);
     if (propResult.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
 
     const accessErr = await requireProjectMember(req, propResult.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
     const subjectTx = await pool.query(
-      `${TX_SELECT} WHERE t.subject_property_id = $1 ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, [id]);
+      `${txSelect(vis)} WHERE t.subject_property_id = $1 AND ${inProjects('t.project_id', vis)}
+       ORDER BY t.occurred_on ASC NULLS FIRST, t.id ASC`, params);
     const decoratedSubject = subjectTx.rows.map(decorateTransaction);
     const { currentHolder, since, chain } = deriveCustody(decoratedSubject, OWNERSHIP_TYPES);
 
     const venueTx = await pool.query(
-      `${TX_SELECT} WHERE t.location_property_id = $1 ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, [id]);
+      `${txSelect(vis)} WHERE t.location_property_id = $1 AND ${inProjects('t.project_id', vis)}
+       ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, params);
 
     res.json({
       ...propResult.rows[0],
@@ -146,6 +158,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(PropertyUpdateSchema),
 
     const caseErr = await checkCaseProjectConsistency(case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, existing.rows[0].project_id, [{ field: 'owner_person_id', type: 'person', id: owner_person_id }], { existing: existing.rows[0] });
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude, longitude, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     if ((latitude == null || longitude == null) && (address || city || country)) {
@@ -196,9 +210,11 @@ router.get('/:id/transactions', requireAuth, validateIdParam, async (req, res) =
     const accessErr = await requireProjectMember(req, propCheck.rows[0].project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
 
+    const params = [id];
+    const vis = addVisibleParam(params, await visibleProjectIds(req));
     const result = await pool.query(
-      `${TX_SELECT} WHERE t.subject_property_id = $1 OR t.location_property_id = $1
-       ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, [id]);
+      `${txSelect(vis)} WHERE (t.subject_property_id = $1 OR t.location_property_id = $1) AND ${inProjects('t.project_id', vis)}
+       ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC`, params);
     const rows = result.rows.map(r => {
       const d = decorateTransaction(r);
       d.role = r.subject_property_id === id ? 'subject' : 'venue';
