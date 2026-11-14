@@ -7,13 +7,23 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, TransactionCreateSchema, TransactionUpdateSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
-const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { applyProjectScope, requireProjectMember, visibleProjectIds, addVisibleParam } = require('../utils/projectAccess');
+const { checkRefs, refsFrom, TRANSACTION_REFS } = require('../utils/projectRefs');
+
 
 router.use(apiLimiter);
 const {
-  TX_SELECT, decorateTransaction, geocodeFields,
+  txSelect, decorateTransaction, geocodeFields,
   SUBJECT_REFS, LOCATION_REFS, countSet, validateTransactionShape,
 } = require('../utils/transactionHelpers');
+
+// One transaction, with names only for what the caller may see (#116).
+async function loadTransaction(req, id) {
+  const params = [id];
+  const vis = addVisibleParam(params, await visibleProjectIds(req));
+  const { rows } = await pool.query(`${txSelect(vis)} WHERE t.id = $1`, params);
+  return rows[0] || null;
+}
 
 async function validateTransaction(body) {
   if (!body.transaction_type || typeof body.transaction_type !== 'string' || !body.transaction_type.trim()) {
@@ -79,9 +89,11 @@ router.get('/', requireAuth, async (req, res) => {
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+    const dataParams = [...params];
+    const vis = addVisibleParam(dataParams, await visibleProjectIds(req));
     const dataResult = await pool.query(
-      `${TX_SELECT} ${whereSql} ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset]);
+      `${txSelect(vis)} ${whereSql} ORDER BY t.occurred_on DESC NULLS LAST, t.id DESC LIMIT $${dataParams.length + 1} OFFSET $${dataParams.length + 2}`,
+      [...dataParams, limit, offset]);
     const countResult = await pool.query(`SELECT COUNT(*)::int AS count FROM transactions t ${whereSql}`, params);
     const total = countResult.rows[0].count;
     const data = dataResult.rows.map(decorateTransaction);
@@ -129,6 +141,8 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
 
     const caseErr = await checkCaseProjectConsistency(req.body.case_id, req.body.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, req.body.project_id, refsFrom(req.body, TRANSACTION_REFS));
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: null, geocode_provider: null, geocoded_at: null, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
@@ -145,8 +159,8 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
     const result = await pool.query(
       `INSERT INTO transactions (${insertColumns.join(', ')}) VALUES (${placeholders}) RETURNING id`,
       [...buildValues(req.body, geo), req.body.project_id]);
-    const full = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [result.rows[0].id]);
-    res.status(201).json({ ...decorateTransaction(full.rows[0]), geocode_failure: geo.geocode_failure });
+    const full = await loadTransaction(req, result.rows[0].id);
+    res.status(201).json({ ...decorateTransaction(full), geocode_failure: geo.geocode_failure });
   } catch (e) {
     console.error('Error creating transaction:', e);
     res.status(500).json({ error: 'Failed to create transaction' });
@@ -156,11 +170,11 @@ router.post('/', requireAuth, validate(TransactionCreateSchema), async (req, res
 // GET /:id
 router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
-    const result = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
-    const accessErr = await requireProjectMember(req, result.rows[0].project_id);
+    const tx = await loadTransaction(req, req.params.id);
+    if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+    const accessErr = await requireProjectMember(req, tx.project_id);
     if (accessErr) return res.status(403).json({ error: accessErr });
-    res.json(decorateTransaction(result.rows[0]));
+    res.json(decorateTransaction(tx));
   } catch (err) {
     console.error('Error fetching transaction:', err);
     res.status(500).json({ error: 'Failed to fetch transaction' });
@@ -181,6 +195,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
 
     const caseErr = await checkCaseProjectConsistency(req.body.case_id, existing.rows[0].project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
+    const refErr = await checkRefs(req, existing.rows[0].project_id, refsFrom(req.body, TRANSACTION_REFS), { existing: existing.rows[0] });
+    if (refErr) return res.status(refErr.status).json({ error: refErr.error });
 
     let geo = { latitude: req.body.latitude || null, longitude: req.body.longitude || null, geocode_confidence: existing.rows[0].geocode_confidence, geocode_provider: existing.rows[0].geocode_provider, geocoded_at: existing.rows[0].geocoded_at, geocode_failure: null };
     const hasRefLocation = countSet(req.body, LOCATION_REFS) > 0;
@@ -192,8 +208,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(TransactionUpdateSchem
     values.push(req.params.id);
     await pool.query(
       `UPDATE transactions SET ${setSql}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length}`, values);
-    const full = await pool.query(`${TX_SELECT} WHERE t.id = $1`, [req.params.id]);
-    res.json({ ...decorateTransaction(full.rows[0]), geocode_failure: geo.geocode_failure });
+    const full = await loadTransaction(req, req.params.id);
+    res.json({ ...decorateTransaction(full), geocode_failure: geo.geocode_failure });
   } catch (e) {
     console.error('Error updating transaction:', e);
     res.status(500).json({ error: 'Failed to update transaction' });

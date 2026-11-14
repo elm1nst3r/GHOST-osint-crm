@@ -5,6 +5,42 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.7] - 2026-11-14
+
+### 🔒 Project data stays inside its project
+
+Thanks to Peter Wilfahrt (@p-w) for reporting the first of these (#116).
+Looking into his report turned up more places with the same gap.
+
+- **Ledgers check project membership.** The ledger of a person, business
+  or property (and its transactions, held assets and venue statistics)
+  answered any signed-in user who knew the id, member of that project or
+  not. They now follow the same rule as every other page: members of the
+  project only. A ledger lists only transactions from projects you are in.
+- **Links stay inside the project.** Transactions, assets, properties and
+  wireless networks could be pointed at people, businesses, wallets, assets
+  or properties in a project you are not a member of, and then showed their
+  names, addresses and positions. A new link must now point inside the same
+  project; with cross-project links switched on for the project, it may also
+  point into another project you are a member of. The same rule now applies
+  to person connections, business owners and employees, and relationships.
+  Links that are already there are kept, so editing a record a colleague
+  linked across projects still works.
+- **Hidden even in older data.** Where an older record points into a
+  project you are not in, GHOST shows "Person #12" instead of the name and
+  leaves out addresses and positions.
+- A new test fails when an API route has no access check, so this can't
+  slip back in.
+
+Who was affected: instances with more than one project and users who are
+not admins. Admins see every project anyway. Please update.
+
+### 🌍 Translations
+
+New and updated strings from Crowdin (#114): Russian (109), and the newest
+English strings added to Arabic, German, Persian and Chinese for
+translation.
+
 ## [3.1.6] - 2026-11-13
 
 ### 🔐 Single sign-on behind a reverse proxy

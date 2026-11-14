@@ -10,7 +10,10 @@ const { syncBusinessRelationships, syncBusinessOwnership } = require('./relation
 const { inTransaction } = require('../utils/db');
 const { removeEntityLinks } = require('../utils/entityLinks');
 const { checkCaseProjectConsistency } = require('../utils/projectConsistency');
-const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
+const { applyProjectScope, requireProjectMember, visibleProjectIds, addVisibleParam, inProjects } = require('../utils/projectAccess');
+
+// Links to people and businesses in projects the caller isn't in are refused (#116).
+const canSee = (req) => (projectId) => requireProjectMember(req, projectId);
 
 // Computed from the relationships table (issue #83) -- owner_person_id and
 // employees[] entries with a real person_id were migrated there. Outgoing
@@ -30,6 +33,11 @@ const BUSINESS_CONNECTIONS_SUBQUERY = `
    ) FROM relationships r WHERE r.source_type = 'business' AND r.source_id = b.id) AS connections
 `;
 
+// Owner names only when the viewer may see the owner's project (#116).
+const ownerJoins = (vis) => `
+      LEFT JOIN people p ON b.owner_person_id = p.id AND ${inProjects('p.project_id', vis)}
+      LEFT JOIN businesses ob ON b.owner_business_id = ob.id AND ${inProjects('ob.project_id', vis)}`;
+
 router.use(apiLimiter);
 // GET / — list all businesses
 router.get('/', requireAuth, async (req, res) => {
@@ -40,6 +48,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (scopeErr) return res.status(403).json({ error: scopeErr });
     if (req.query.case_id) { params.push(parseInt(req.query.case_id, 10)); where.push(`b.case_id = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const vis = addVisibleParam(params, await visibleProjectIds(req));
 
     const result = await pool.query(`
       SELECT
@@ -48,8 +57,7 @@ router.get('/', requireAuth, async (req, res) => {
         ob.name as owner_business_name,
         ${BUSINESS_CONNECTIONS_SUBQUERY}
       FROM businesses b
-      LEFT JOIN people p ON b.owner_person_id = p.id
-      LEFT JOIN businesses ob ON b.owner_business_id = ob.id
+      ${ownerJoins(vis)}
       ${whereClause}
       ORDER BY b.created_at DESC, b.id DESC
     `, params);
@@ -63,6 +71,8 @@ router.get('/', requireAuth, async (req, res) => {
 // GET /:id — get single business
 router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
   try {
+    const params = [req.params.id];
+    const vis = addVisibleParam(params, await visibleProjectIds(req));
     const result = await pool.query(`
       SELECT
         b.*,
@@ -70,10 +80,9 @@ router.get('/:id', requireAuth, validateIdParam, async (req, res) => {
         ob.name as owner_business_name,
         ${BUSINESS_CONNECTIONS_SUBQUERY}
       FROM businesses b
-      LEFT JOIN people p ON b.owner_person_id = p.id
-      LEFT JOIN businesses ob ON b.owner_business_id = ob.id
+      ${ownerJoins(vis)}
       WHERE b.id = $1
-    `, [req.params.id]);
+    `, params);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Business not found' });
     }
@@ -159,8 +168,8 @@ router.post('/', requireAuth, validate(BusinessCreateSchema), async (req, res) =
     const newBusiness = await inTransaction(async (client) => {
       const { rows } = await client.query(query, values);
       const b = rows[0];
-      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client);
-      await syncBusinessOwnership(b.id, b.project_id, b.case_id, null, owner_business_id, client);
+      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client, canSee(req));
+      await syncBusinessOwnership(b.id, b.project_id, b.case_id, null, owner_business_id, client, canSee(req));
       return b;
     });
 
@@ -255,8 +264,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(BusinessUpdateSchema),
     const updatedBusiness = await inTransaction(async (client) => {
       const { rows } = await client.query(query, values);
       const b = rows[0];
-      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client);
-      await syncBusinessOwnership(b.id, b.project_id, b.case_id, oldBusiness.owner_business_id, owner_business_id, client);
+      await syncBusinessRelationships(b.id, b.project_id, b.case_id, { ownerPersonId: owner_person_id, employees }, client, canSee(req));
+      await syncBusinessOwnership(b.id, b.project_id, b.case_id, oldBusiness.owner_business_id, owner_business_id, client, canSee(req));
       return b;
     });
 
