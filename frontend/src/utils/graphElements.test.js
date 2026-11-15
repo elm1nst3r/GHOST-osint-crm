@@ -2,7 +2,7 @@
 import { describe, test, expect } from 'vitest';
 import {
   filterGraph, toElements, includeFor, filterOptions, activeFilterCount,
-  DEFAULT_NODE_TYPES, EMPTY_FILTERS,
+  DEFAULT_NODE_TYPES, EMPTY_FILTERS, mergeGraphs, linksOf, edgeEditable, edgeManagedBy,
 } from './graphElements';
 import { DEFAULT_EDGE_LAYERS } from './edgeLayers';
 import { buildStylesheet, FALLBACK_THEME } from './graphStyle';
@@ -61,6 +61,48 @@ describe('filterGraph', () => {
     expect(ids(filterGraph(graph, { types: ALL, solo: 'governance' }).edges)).toEqual(['e2', 'e3']);
     const g = filterGraph(graph, { focusId: 'person:3', filters: { ...EMPTY_FILTERS, searchTerm: 'zzz' } });
     expect(ids(g.nodes)).toEqual(['person:3']);
+    // Around one entity, nodes whose links are all switched off drop out.
+    const around = filterGraph(graph, { types: ALL, focusId: 'person:1', layers: DEFAULT_EDGE_LAYERS });
+    expect(ids(around.nodes)).toEqual(['asset:5', 'business:4', 'identifier:email:a@b.c', 'person:1', 'person:2']);
+    expect(ids(around.edges)).not.toContain('e5');
+  });
+});
+
+describe('phase 2: hidden, kept, merged, links', () => {
+  test('hidden by hand beats everything but the focus; kept beats the switches', () => {
+    expect(ids(filterGraph(graph, { hidden: ['person:2'] }).nodes)).not.toContain('person:2');
+    expect(ids(filterGraph(graph, { hidden: ['person:3'], focusId: 'person:3' }).nodes)).toContain('person:3');
+    const g = filterGraph(graph, { keep: ['asset:5'], layers: DEFAULT_EDGE_LAYERS });
+    expect(ids(g.nodes)).toContain('asset:5');
+    expect(ids(g.edges)).toContain('e3');
+  });
+
+  test('mergeGraphs adds what is new, once', () => {
+    const more = {
+      nodes: [node('person:1', 'person', { label: 'copy' }), node('person:9', 'person')],
+      edges: [{ id: 'x', source: 'person:1', target: 'person:2', type: 'friend' }, { id: 'y', source: 'person:9', target: 'person:1', type: 'family' }],
+    };
+    const m = mergeGraphs(graph, more);
+    expect(m.nodes.filter((n) => n.id === 'person:1')).toHaveLength(1);
+    expect(m.nodes.find((n) => n.id === 'person:1').label).toBe('person:1');
+    expect(ids(m.edges)).toEqual(['e1', 'e2', 'e3', 'e4', 'e5', 'y']);
+    expect(mergeGraphs(graph, { nodes: [], edges: [] })).toBe(graph);
+  });
+
+  test('linksOf lists each link with the other end and its direction', () => {
+    const links = linksOf(graph, 'business:4');
+    expect(links.map((l) => [l.other.id, l.outgoing])).toEqual([['person:1', true], ['person:1', false]]);
+  });
+
+  test('which links are edited where', () => {
+    const rel = (source, type, extra = {}) => ({ kind: 'relationship', relationship_id: 5, source, target: 'person:2', type, ...extra });
+    expect(edgeEditable(rel('person:1', 'friend'))).toBe(true);
+    expect(edgeEditable(rel('business:4', 'employee'))).toBe(false);
+    expect(edgeManagedBy(rel('business:4', 'employee'))).toBe('business:4');
+    expect(edgeManagedBy({ kind: 'relationship', source: 'business:3', target: 'business:4', type: 'owns_business' })).toBe('business:4');
+    expect(edgeManagedBy({ kind: 'relationship', source: 'person:1', target: 'property:7', type: 'owns_property' })).toBe('property:7');
+    expect(edgeEditable({ kind: 'transaction', source: 'person:1', target: 'person:2', type: 'transaction' })).toBe(false);
+    expect(edgeManagedBy(rel('person:1', 'friend'))).toBeNull();
   });
 });
 

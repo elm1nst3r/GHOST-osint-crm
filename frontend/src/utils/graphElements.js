@@ -53,17 +53,22 @@ export const nodeLabel = (node, formatName) =>
   (node.type === 'person' && formatName ? formatName(node) : node.label) || node.label || node.id;
 
 // → { nodes, edges } still in API form, after every filter.
-// `focusId`: the entity view's centre, which no filter removes.
+// `focusId`: the entity view's centre, which no filter removes. `keep`:
+// more ids no filter removes (neighbours someone asked to see). `hidden`:
+// ids hidden by hand, gone whatever else says (graph plan, phase 2).
 export function filterGraph(graph, {
   types = DEFAULT_NODE_TYPES, filters = EMPTY_FILTERS, layers, solo = null,
-  focusId = null, formatName = null, now = new Date(),
+  focusId = null, formatName = null, now = new Date(), keep = [], hidden = [],
 } = {}) {
   const f = { ...EMPTY_FILTERS, ...filters };
   const search = f.searchTerm.trim().toLowerCase();
   const since = cutoff(f.dateRange, now);
+  const kept = new Set([...keep, ...(focusId ? [focusId] : [])]);
+  const gone = new Set(hidden);
 
   const passes = (n) => {
-    if (n.id === focusId) return true;
+    if (gone.has(n.id) && n.id !== focusId) return false;
+    if (kept.has(n.id)) return true;
     if (types[n.type] === false) return false;
     if (n.type === 'identifier') return true; // judged by its holders below
     if (search) {
@@ -86,9 +91,11 @@ export function filterGraph(graph, {
 
   const linked = new Set(edges.flatMap((e) => [e.source, e.target]));
   nodes = nodes.filter((n) => {
-    if (n.id === focusId) return true;
+    if (kept.has(n.id)) return true;
     if (n.type === 'identifier') return linked.has(n.id); // no holder left: nothing to show
-    if (f.connectionTypes.length || !f.showIsolated) return linked.has(n.id);
+    // Around one entity, something whose links are all switched off has
+    // nothing to say about it.
+    if (focusId || f.connectionTypes.length || !f.showIsolated) return linked.has(n.id);
     return true;
   });
   ids = new Set(nodes.map((n) => n.id));
@@ -125,6 +132,43 @@ export function toElements({ nodes, edges }, { formatName = null, focusId = null
       ].filter(Boolean).join(' '),
     })),
   ];
+}
+
+// Two graphs as one (an expansion added to what was loaded); the first one's
+// copy of a node or edge wins.
+export function mergeGraphs(a, b) {
+  if (!b || (!b.nodes.length && !b.edges.length)) return a;
+  const nodeIds = new Set(a.nodes.map((n) => n.id));
+  const edgeKey = (e) => e.relationship_id ? `r${e.relationship_id}` : `${e.source}|${e.target}|${e.type}`;
+  const edgeKeys = new Set(a.edges.map(edgeKey));
+  return {
+    nodes: [...a.nodes, ...b.nodes.filter((n) => !nodeIds.has(n.id))],
+    edges: [...a.edges, ...b.edges.filter((e) => !edgeKeys.has(edgeKey(e)))],
+  };
+}
+
+// The node's links in a graph, for the inspector: [{ edge, other }].
+export function linksOf(graph, nodeId) {
+  const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+  return graph.edges
+    .filter((e) => e.source === nodeId || e.target === nodeId)
+    .map((e) => ({ edge: e, other: byId.get(e.source === nodeId ? e.target : e.source), outgoing: e.source === nodeId }))
+    .filter((l) => l.other);
+}
+
+// Business-managed links (owner, employees, ownership) are edited in the
+// business form; other relationship rows can be edited or deleted directly.
+const BUSINESS_MANAGED = ['owner', 'owns_business', 'employee', 'board_member'];
+export const edgeEditable = (e) =>
+  e.kind === 'relationship' && Boolean(e.relationship_id) && !(e.source.startsWith('business:') && BUSINESS_MANAGED.includes(e.type));
+// Which entity's form holds a link that isn't its own relationship row:
+// a business's owner and staff, the business it's owned by, a property's
+// owner. → node id, or null.
+export function edgeManagedBy(e) {
+  if (edgeEditable(e) || e.kind !== 'relationship') return null;
+  if (e.type === 'owns_business' || e.type === 'owns_property') return e.target;
+  if (e.source.startsWith('business:') && BUSINESS_MANAGED.includes(e.type)) return e.source;
+  return null;
 }
 
 // The values the filter lists offer, from what's in the graph.

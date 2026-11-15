@@ -118,6 +118,8 @@ export function buildStylesheet(theme = FALLBACK_THEME) {
     // Someone from another project (cross-project link): dashed outline.
     { selector: 'node.foreign', style: { 'border-style': 'dashed' } },
     { selector: 'node.focus', style: { 'border-width': 4, 'border-color': t.selected } },
+    // Pinned by hand: a double outline; layouts leave it where it is.
+    { selector: 'node.pinned', style: { 'border-style': 'double', 'border-width': 5 } },
     {
       selector: 'edge',
       style: {

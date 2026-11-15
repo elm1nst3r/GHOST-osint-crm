@@ -5,12 +5,10 @@
 // dialog that saves a new connection.
 import { useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ExternalLink, Crosshair, Search, RotateCcw } from 'lucide-react';
+import { Search, RotateCcw } from 'lucide-react';
 import { EDGE_LAYERS, typesInLayer } from '../../utils/edgeLayers';
 import { NODE_TYPES, EMPTY_FILTERS, nodeLabel } from '../../utils/graphElements';
 import { relationshipsAPI } from '../../utils/api';
-import { formatDate } from '../../utils/format';
-import { canOpen } from './useOpenEntity';
 import { optionLabel } from '../../utils/optionLabels';
 
 const chip = (on) => `px-2 py-0.5 rounded-full border text-xs flex items-center gap-x-1.5 transition ${
@@ -149,79 +147,6 @@ export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
       <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className="btn btn-ghost px-2.5 py-1.5 text-xs mt-2 flex items-center gap-x-1">
         <RotateCcw className="w-3.5 h-3.5" />{t('graph.resetFilters')}
       </button>
-    </div>
-  );
-}
-
-const cardShell = 'absolute top-3 start-3 z-20 w-72 max-w-[calc(100%-4.5rem)] max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur shadow-xl border border-slate-200 dark:border-slate-700 p-4 text-sm';
-
-export function SelectionCard({ selection, graph, edgeLabel, formatName, colors, onOpen, onCentre, onClose }) {
-  const { t } = useTranslation();
-  const byId = new Map(graph.nodes.map((n) => [n.id, n]));
-  const name = (id) => { const n = byId.get(id); return n ? nodeLabel(n, formatName) : id; };
-  const close = (
-    <button type="button" onClick={onClose} className="absolute top-2 end-2 p-1 rounded-sm text-slate-400 hover:text-slate-600" aria-label={t('common.close')}>
-      <X className="w-4 h-4" />
-    </button>
-  );
-
-  if (selection.kind === 'edge') {
-    const e = selection.data;
-    return (
-      <div className={cardShell} role="dialog" aria-label={t('graph.connection')}>
-        {close}
-        <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{t('graph.connection')}</div>
-        <div className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{edgeLabel(e.type)}</div>
-        <div className="mt-2 text-slate-700 dark:text-slate-300"><bdi>{name(e.source)}</bdi> → <bdi>{name(e.target)}</bdi></div>
-        {e.note && <p className="mt-2 text-slate-600 dark:text-slate-400" dir="auto">{e.note}</p>}
-        {e.matched_by_name && <p className="mt-2 text-amber-700 dark:text-amber-300">{t('graph.matchedByName')}</p>}
-        {e.kind === 'transaction' && (
-          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-slate-600 dark:text-slate-400">
-            <dt>{t('graph.transactions')}</dt><dd className="tabular-nums">{e.count}</dd>
-            {e.transaction_types?.length > 0 && (<><dt>{t('graph.kinds')}</dt><dd>{e.transaction_types.join(', ')}</dd></>)}
-            {e.first_at && (<><dt>{t('graph.period')}</dt><dd>{formatDate(e.first_at)} – {formatDate(e.last_at)}</dd></>)}
-          </dl>
-        )}
-      </div>
-    );
-  }
-
-  const n = selection.data;
-  const holders = n.type === 'identifier'
-    ? graph.edges.filter((e) => e.target === n.id).map((e) => e.source)
-    : [];
-  return (
-    <div className={cardShell} role="dialog" aria-label={nodeLabel(n, formatName)}>
-      {close}
-      <div className="flex items-center gap-x-1.5 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        <Dot color={colors.node[n.type]} square={n.type !== 'person'} />
-        {n.type === 'identifier' ? t(`graph.identifierKinds.${n.kind}`) : t(`graph.types.${n.type}`)}
-      </div>
-      <div className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5 pe-6 break-words"><bdi>{nodeLabel(n, formatName)}</bdi></div>
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-slate-600 dark:text-slate-400">
-        {n.category && (<><dt>{t('graph.category')}</dt><dd>{n.category}</dd></>)}
-        {n.status && (<><dt>{t('graph.status')}</dt><dd>{n.status}</dd></>)}
-        <dt>{t('graph.connections')}</dt><dd className="tabular-nums">{n.degree || 0}</dd>
-      </dl>
-      {n.foreign && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t('graph.otherProject')}</p>}
-      {holders.length > 0 && (
-        <div className="mt-2">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('graph.heldBy', { count: holders.length })}</div>
-          <ul className="mt-1 space-y-0.5">{holders.map((h) => <li key={h} className="text-slate-700 dark:text-slate-300"><bdi>{name(h)}</bdi></li>)}</ul>
-        </div>
-      )}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {canOpen(n.type) && (
-          <button type="button" onClick={() => onOpen(n)} className="btn btn-primary px-2.5 py-1.5 text-xs flex items-center gap-x-1">
-            <ExternalLink className="w-3.5 h-3.5" />{t('graph.open')}
-          </button>
-        )}
-        {onCentre && n.type !== 'identifier' && (
-          <button type="button" onClick={() => onCentre(n)} className="btn btn-ghost px-2.5 py-1.5 text-xs flex items-center gap-x-1">
-            <Crosshair className="w-3.5 h-3.5" />{t('graph.centreHere')}
-          </button>
-        )}
-      </div>
     </div>
   );
 }

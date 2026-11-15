@@ -461,7 +461,7 @@ const PersonDetailModal = () => {
             {activeTab === 'relationships' && (
               <div className="h-[500px]">
                 <Suspense fallback={null}>
-                  <GraphView focus={`person:${person.id}`} variant="embedded" />
+                  <GraphView key={person.id} focus={`person:${person.id}`} variant="embedded" />
                 </Suspense>
               </div>
             )}

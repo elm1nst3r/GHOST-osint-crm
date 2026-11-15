@@ -37,6 +37,7 @@ function placeNear(cy, added) {
 const GraphCanvas = forwardRef(function GraphCanvas({
   elements, stylesheet, layout = 'force', connectMode = false, focusId = null, resetKey = null,
   canConnect = () => false, onSelect, onOpen, onConnect, minimap = true, minimapColors = {},
+  pinned = [], placeHint = null, onPlaced, onContextMenu, onSelectionChange, onMoved,
 }, ref) {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
@@ -63,6 +64,35 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     relayout: () => runLayout(layout, { randomize: true }),
     png: () => cyRef.current?.png({ full: true, scale: 2, bg: getComputedStyle(containerRef.current).backgroundColor }),
     cy: () => cyRef.current,
+    // Lay out only the selected nodes, where they are.
+    layoutSelected: () => {
+      const cy = cyRef.current;
+      const sel = cy?.nodes(':selected');
+      if (!sel || sel.length < 2) return;
+      const bb = sel.boundingBox();
+      sel.layout({ ...(LAYOUTS[layout] || LAYOUTS.force), fit: false, randomize: false, boundingBox: { x1: bb.x1, y1: bb.y1, w: Math.max(bb.w, 200), h: Math.max(bb.h, 200) } }).run();
+    },
+    positions: (ids) => Object.fromEntries(ids.map((id) => [id, { ...cyRef.current?.getElementById(id).position() }])),
+    setPositions: (map) => {
+      const cy = cyRef.current;
+      if (!cy) return;
+      cy.batch(() => Object.entries(map).forEach(([id, p]) => {
+        const n = cy.getElementById(id);
+        if (n.nonempty()) { const locked = n.locked(); n.unlock(); n.position(p); if (locked) n.lock(); }
+      }));
+    },
+    select: (ids) => {
+      const cy = cyRef.current;
+      if (!cy) return;
+      cy.batch(() => { cy.elements().unselect(); ids.forEach((id) => cy.getElementById(id).select()); });
+    },
+    unselectAll: () => cyRef.current?.elements().unselect(),
+    // A rendered (screen) point → graph coordinates.
+    toModel: ({ x, y }) => {
+      const cy = cyRef.current;
+      const pan = cy.pan(); const zoom = cy.zoom();
+      return { x: (x - pan.x) / zoom, y: (y - pan.y) / zoom };
+    },
   }));
 
   const emitSelect = useEffectEvent((sel) => onSelect?.(sel));
@@ -70,6 +100,11 @@ const GraphCanvas = forwardRef(function GraphCanvas({
   const emitConnect = useEffectEvent((a, b) => onConnect?.(a, b));
   const checkConnect = useEffectEvent((a, b) => canConnect(a, b));
   const redrawMinimap = useEffectEvent(() => minimapRef.current?.());
+  const emitMenu = useEffectEvent((menu) => onContextMenu?.(menu));
+  const emitSelection = useEffectEvent((ids) => onSelectionChange?.(ids));
+  const emitMoved = useEffectEvent((before) => onMoved?.(before));
+  const emitPlaced = useEffectEvent(() => onPlaced?.());
+  const hint = useEffectEvent(() => placeHint);
   const layoutNow = useEffectEvent((opts) => runLayout(layout, opts));
 
   // Create once.
@@ -81,14 +116,64 @@ const GraphCanvas = forwardRef(function GraphCanvas({
       minZoom: 0.05,
       maxZoom: 4,
       boxSelectionEnabled: true,
-      selectionType: 'single',
+      selectionType: 'single', // Shift/Ctrl/Cmd-click adds or removes (below)
     });
     cyRef.current = cy;
 
-    cy.on('tap', 'node', (e) => emitSelect({ kind: 'node', data: e.target.data() }));
+    // Shift/Ctrl/Cmd-click toggles a node in the selection: Cytoscape's own
+    // single selection runs first, then the earlier selection is put back.
+    let before = cy.collection();
+    cy.on('tapstart', 'node', () => { before = cy.nodes(':selected'); });
+    cy.on('tap', 'node', (e) => {
+      const ev = e.originalEvent || {};
+      const node = e.target;
+      if (ev.shiftKey || ev.ctrlKey || ev.metaKey) {
+        const keep = before;
+        const wasSelected = keep.contains(node);
+        setTimeout(() => cy.batch(() => {
+          keep.difference(node).select();
+          if (wasSelected) node.unselect(); else node.select();
+        }), 0);
+      }
+      emitSelect({ kind: 'node', data: node.data() });
+    });
     cy.on('tap', 'edge', (e) => emitSelect({ kind: 'edge', data: e.target.data() }));
     cy.on('tap', (e) => { if (e.target === cy) emitSelect(null); });
     cy.on('dbltap', 'node', (e) => emitOpen(e.target.data()));
+
+    // Right-click, or a long press on touch screens: the context menu.
+    const menu = (e) => {
+      const target = e.target;
+      const kind = target === cy ? 'canvas' : target.isNode() ? 'node' : 'edge';
+      if (kind === 'node' && !target.selected()) { cy.elements().unselect(); target.select(); }
+      emitMenu({ kind, data: kind === 'canvas' ? null : target.data(), x: e.renderedPosition.x, y: e.renderedPosition.y, model: { ...e.position } });
+    };
+    cy.on('cxttap', menu);
+    cy.on('taphold', menu);
+
+    // What's selected (box select, Shift-click), reported once per change.
+    let selTimer = null;
+    cy.on('select unselect', 'node', () => {
+      clearTimeout(selTimer);
+      selTimer = setTimeout(() => emitSelection(cy.nodes(':selected').map((n) => n.id())), 30);
+    });
+
+    // Moves by hand, for undo.
+    let grabbed = null;
+    cy.on('grab', 'node', () => {
+      const moving = cy.nodes(':selected').union(cy.nodes(':grabbed'));
+      grabbed = Object.fromEntries(moving.map((n) => [n.id(), { ...n.position() }]));
+    });
+    cy.on('free', 'node', () => {
+      if (!grabbed) return;
+      const before = grabbed;
+      grabbed = null;
+      const moved = Object.entries(before).some(([id, p]) => {
+        const now = cy.getElementById(id).position();
+        return Math.abs(now.x - p.x) > 1 || Math.abs(now.y - p.y) > 1;
+      });
+      if (moved) emitMoved(before);
+    });
 
     // Hover: the node and its neighbours stay, the rest fades.
     cy.on('mouseover', 'node', (e) => {
@@ -129,6 +214,7 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     return () => {
       resize.disconnect();
       clearTimeout(pending);
+      clearTimeout(selTimer);
       layoutRef.current?.stop();
       eh.destroy();
       cy.destroy();
@@ -161,6 +247,13 @@ const GraphCanvas = forwardRef(function GraphCanvas({
         if (el.group === 'edges' && cy.getElementById(el.data.id).empty()) cy.add(el);
       }
     });
+    // Something just created at a spot on the canvas starts there.
+    const at = hint();
+    if (at && added.nonempty() && hadNodes) {
+      added.filter((n) => n.neighborhood('node').difference(added).empty()).position({ ...at });
+      emitPlaced();
+      return; // leave everything else where it is
+    }
     // A new centre or depth is a new picture: lay it all out afresh.
     const reset = lastResetKey.current !== resetKey;
     lastResetKey.current = resetKey;
@@ -172,6 +265,17 @@ const GraphCanvas = forwardRef(function GraphCanvas({
   });
   useEffect(() => { syncElements(); }, [elements]);
   useEffect(() => { layoutNow(); }, [layout]);
+
+  // Pinned nodes stay where they are, through layouts too.
+  const applyPins = useEffectEvent(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const set = new Set(pinned);
+    cy.batch(() => cy.nodes().forEach((n) => {
+      if (set.has(n.id())) n.lock().addClass('pinned'); else n.unlock().removeClass('pinned');
+    }));
+  });
+  useEffect(() => { applyPins(); }, [pinned, elements]);
 
   useEffect(() => {
     const eh = ehRef.current;

@@ -62,7 +62,7 @@ const BusinessDetailModal = ({ business, onClose }) => {
           {tab === 'graph' && (
             <div className="h-[60vh] min-h-[360px]">
               <Suspense fallback={null}>
-                <GraphView focus={`business:${business.id}`} variant="embedded" />
+                <GraphView key={business.id} focus={`business:${business.id}`} variant="embedded" />
               </Suspense>
             </div>
           )}
