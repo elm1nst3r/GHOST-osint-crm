@@ -660,6 +660,12 @@ export const relationshipsAPI = {
   remove: (id) => fetchAPI(`/relationships/${id}`, { method: 'DELETE' }),
 };
 
+// The project graph, or the graph around one entity (graph plan):
+// { project_id, include, identifiers } or { focus: 'person:12', depth }.
+export const graphAPI = {
+  get: (params = {}) => fetchAPI(`/graph${buildQuery(params)}`),
+};
+
 // Transactions API
 export const transactionsAPI = {
   getAll: (params = {}) => fetchAPI(`/transactions${buildQuery(params)}`),

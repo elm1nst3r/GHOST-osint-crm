@@ -81,7 +81,7 @@ function inputKindForOsint(type, value) {
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'email';
   if (net.isIP(v)) return 'ip';
   if (/e-?mail|почт/.test(t)) return 'email';
-  if (/phone|tel|mobile|телеф/.test(t)) return 'phone';
+  if (/phone|\btel\b|mobile|телеф/.test(t)) return 'phone'; // not "Telegram" (graph plan)
   if (/\bip\b|ip address/.test(t)) return 'ip';
   if (/domain|website|web site|site|url|сайт|домен/.test(t)) {
     return /^[a-z]+:\/\//i.test(v) && /\/[^/]/.test(v.replace(/^[a-z]+:\/\/[^/]+/i, '')) ? 'url' : 'domain';

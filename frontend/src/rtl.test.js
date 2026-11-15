@@ -19,19 +19,15 @@ const SRC = path.dirname(fileURLToPath(import.meta.url));
 // Exact occurrence counts per file, so a new physical class in one of these
 // files is still caught.
 const ALLOWED = {
-  // left-1/2 + -translate-x-1/2 centers; the translate is physical, so
-  // inset-s-1/2 would push it off-center in RTL.
-  'components/visualization/ObsidianGraph.jsx': { 'left-1/2': 1 },
   // The corner picker draws each corner where it lands on screen; it maps the
   // stored corner through screenCorner() itself.
   'components/scratchpad/ScratchpadSettingsView.jsx': { 'left-1': 1, 'right-1': 1 },
-  // Map and diagram overlays sit around Leaflet's and React Flow's own
-  // controls, which are placed physically and don't mirror.
+  // Map overlays sit around Leaflet's own controls, which are placed
+  // physically and don't mirror.
   'components/GlobalMap.jsx': { 'right-4': 1 },
   'components/WirelessNetworkMap.jsx': { 'left-4': 1 },
   'components/map/MapLegend.jsx': { 'right-4': 1 },
   'components/map/MapStats.jsx': { 'left-4': 1 },
-  'components/RelationshipDiagram.jsx': { 'left-4': 2, 'right-4': 1 },
 };
 
 // A class token starts after whitespace, a quote, a backtick, `{`, or a

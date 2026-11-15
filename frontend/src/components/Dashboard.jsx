@@ -1,10 +1,10 @@
 // File: frontend/src/components/Dashboard.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { connectionCount } from '../utils/connectionView';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Network, Trash2, Check, ChevronDown, FileText, Pencil } from 'lucide-react';
-import RelationshipManager from './visualization/RelationshipManager';
+const GraphView = lazy(() => import('./graph/GraphView'));
 import ReportGenerator from './ReportGenerator';
 import { todosAPI } from '../utils/api';
 import { useData } from '../contexts/DataContext';
@@ -331,10 +331,10 @@ const Dashboard = () => {
           </button>
         </div>
         <div className="h-96" style={{ minHeight: '384px' }}>
-          {/* Embedded in the dashboard, not a modal — showInModal={true} hid the
-              fullscreen button and instead showed a Close button wired to a
-              no-op handler, so the only visible control did nothing (#79). */}
-          <RelationshipManager showInModal={false} />
+          {/* A small interactive graph; the button above opens the full one. */}
+          <Suspense fallback={null}>
+            <GraphView variant="compact" />
+          </Suspense>
         </div>
       </div>
       )}

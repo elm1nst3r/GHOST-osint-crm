@@ -217,6 +217,7 @@ const spec = {
     { name: 'Files', description: 'Documents attached to a person or to a project. Any project member may upload, download and edit them; deleting needs the uploader, a project owner or manager, or an admin. Every upload, download and delete is audit-logged.' },
     { name: 'Transactions', description: 'Transfers of value between people, businesses and external parties.' },
     { name: 'Ledger', description: 'Read-only views derived from transactions and asset holdings.' },
+    { name: 'Graph', description: 'The project as a network: entities as nodes, and relationships, ownership, employment, holdings, wireless associations, transactions and shared identifiers (emails, phones, usernames, domains) as edges. Only data from projects the caller is a member of.' },
     { name: 'Wireless Networks', description: 'Wi-Fi/Bluetooth/cell observations, WiGLE KML import, and person associations.' },
     { name: 'Locations', description: 'Aggregated mappable locations across entities.' },
     { name: 'Geocoding', description: 'Address lookup through the configured geocoding provider.' },
@@ -787,6 +788,24 @@ const spec = {
           idParam,
           caseParam,
           ...dateRangeParams('transactions that occurred'),
+        ],
+      }),
+    },
+
+    // ── Graph ──
+    '/graph': {
+      get: op('Graph', 'The project graph, or the graph around one entity', {
+        description:
+          'Nodes have ids like "person:12" or "identifier:email:ann@example.com" and a `type`; ' +
+          'edges have `source`, `target`, `kind` (relationship, holder, association, transaction, identifier) and `type`. ' +
+          'Employees known only by name are linked when exactly one person in the project has that name (`matched_by_name`). ' +
+          'With `focus`, everything within `depth` links of that entity, every type included.',
+        params: [
+          queryParam('project_id', 'The project (required unless focus is given). Non-admins must be a member.', { type: 'integer' }),
+          queryParam('focus', 'An entity to centre on: <type>:<id>, type one of person, business, crypto_wallet, asset, property, wireless_network'),
+          queryParam('depth', 'Links out from the focus, 1-3', { type: 'integer', default: 1 }),
+          queryParam('include', 'Comma-separated extras for the project graph: asset, property, wireless_network, transactions, identifiers'),
+          queryParam('identifiers', '"shared" (default: only identifiers two or more entities have) or "all"'),
         ],
       }),
     },

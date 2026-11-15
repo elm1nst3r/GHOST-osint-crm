@@ -1,5 +1,5 @@
 // File: frontend/src/components/BusinessDetailModal.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, X, Edit2, Users, Calendar, FileText, MapPin } from 'lucide-react';
 import { transactionsAPI, ledgerAPI } from '../utils/api';
@@ -9,6 +9,8 @@ import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
 import { useModules } from '../contexts/ModulesContext';
 import { formatDate } from '../utils/transactionFormat';
+
+const GraphView = lazy(() => import('./graph/GraphView'));
 
 const BusinessDetailModal = ({ business, onClose }) => {
   const { t } = useTranslation();
@@ -25,7 +27,12 @@ const BusinessDetailModal = ({ business, onClose }) => {
 
   const { isOn: moduleOn } = useModules();
   // Transactions and the ledger go when the Transactions module is off.
-  const tabs = moduleOn('transactions') ? ['venue', 'transactions', 'ledger'] : ['venue'];
+  const tabs = [
+    'venue',
+    ...(moduleOn('transactions') ? ['transactions', 'ledger'] : []),
+    // The graph around this business (graph plan).
+    ...(moduleOn('relationships') ? ['graph'] : []),
+  ];
 
   return (
     <>
@@ -52,7 +59,14 @@ const BusinessDetailModal = ({ business, onClose }) => {
             ))}
           </div>
 
-          <div className="overflow-y-auto p-5" style={{ maxHeight: 'calc(90vh - 170px)' }}>
+          {tab === 'graph' && (
+            <div className="h-[60vh] min-h-[360px]">
+              <Suspense fallback={null}>
+                <GraphView focus={`business:${business.id}`} variant="embedded" />
+              </Suspense>
+            </div>
+          )}
+          <div className={`overflow-y-auto p-5 ${tab === 'graph' ? 'hidden' : ''}`} style={{ maxHeight: 'calc(90vh - 170px)' }}>
             {tab === 'venue' && (
               venue ? (
                 <div className="space-y-4">

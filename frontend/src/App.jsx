@@ -36,7 +36,7 @@ const AddEditPersonForm = lazy(() => import('./components/AddEditPersonForm'));
 const ToolsList = lazy(() => import('./components/ToolsList'));
 const AddEditToolForm = lazy(() => import('./components/AddEditToolForm'));
 const SettingsPage = lazy(() => import('./components/SettingsPage'));
-const RelationshipManager = lazy(() => import('./components/visualization/RelationshipManager'));
+const GraphView = lazy(() => import('./components/graph/GraphView'));
 const GlobalMap = lazy(() => import('./components/GlobalMap'));
 const AdvancedSearch = lazy(() => import('./components/AdvancedSearch'));
 const BusinessList = lazy(() => import('./components/BusinessList'));
@@ -102,7 +102,7 @@ const EntityNetworkSection = () => {
       </div>
       <div className="flex-1 min-h-0 relative">
         <div className="absolute inset-0 overflow-hidden">
-          <RelationshipManager showInModal={false} onClose={() => {}} />
+          <GraphView variant="full" />
         </div>
       </div>
     </div>
