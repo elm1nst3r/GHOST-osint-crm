@@ -809,6 +809,48 @@ const spec = {
         ],
       }),
     },
+    '/graph/path': {
+      get: op('Graph', 'The shortest chain of links between two entities', {
+        description:
+          'Breadth-first over the project graph of `from`, links taken in either direction. ' +
+          'Returns the entities and links on the way (`nodes`, `edges`, in order) and `length` (number of links), ' +
+          'or found: false when nothing connects them. By default every type, transactions and shared identifiers ' +
+          '(a phone two people have links them) are included.',
+        params: [
+          queryParam('from', 'Start entity: <type>:<id>, type one of person, business, crypto_wallet, asset, property, wireless_network'),
+          queryParam('to', 'End entity, same form'),
+          queryParam('include', 'Comma-separated: asset, property, wireless_network, transactions, identifiers (default: all of them)'),
+        ],
+      }),
+    },
+    '/graph/layouts': {
+      get: op('Graph', "The caller's saved layout of a graph view", {
+        mcp: false,
+        params: [
+          queryParam('project_id', 'The project', { type: 'integer' }),
+          queryParam('view', '"project", or "focus:<type>:<id>" for the graph around one entity'),
+        ],
+      }),
+      put: op('Graph', "Save the caller's layout of a graph view (replaces the saved one)", {
+        mcp: false,
+        body: {
+          type: 'object',
+          required: ['project_id', 'view', 'positions'],
+          properties: {
+            project_id: { type: 'integer' },
+            view: { type: 'string' },
+            positions: { type: 'object', additionalProperties: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } } },
+          },
+        },
+      }),
+      delete: op('Graph', "Forget the caller's saved layout of a graph view", {
+        mcp: false,
+        params: [
+          queryParam('project_id', 'The project', { type: 'integer' }),
+          queryParam('view', '"project", or "focus:<type>:<id>"'),
+        ],
+      }),
+    },
 
     // ── Search ──
     '/search': {

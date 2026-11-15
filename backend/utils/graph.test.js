@@ -1,6 +1,6 @@
 // The project graph and identifiers (graph plan, phase 1).
 const { identifierOf, businessIdentifiers } = require('./identifiers');
-const { buildProjectGraph, buildFocusGraph, neighbourhood } = require('./graph');
+const { buildProjectGraph, buildFocusGraph, neighbourhood, shortestPath } = require('./graph');
 
 describe('identifierOf', () => {
   test.each([
@@ -194,4 +194,59 @@ describe('the graph around one entity', () => {
     const g = await buildFocusGraph(db, 1, 'person:1', { visible: [1] });
     expect(ids(g.nodes)).toEqual(['identifier:phone:123456', 'person:1', 'property:30']);
   });
+});
+
+describe('shortestPath (phase 3)', () => {
+  const n = (id) => ({ id, type: 'person' });
+  const e = (id, source, target) => ({ id, source, target, type: 'friend' });
+  // a - b - c - d, and a longer way round a - x - y - z - d; e on its own.
+  const g = {
+    nodes: ['a', 'b', 'c', 'd', 'x', 'y', 'z', 'e'].map(n),
+    edges: [e('ab', 'a', 'b'), e('cb', 'c', 'b'), e('cd', 'c', 'd'), e('ax', 'a', 'x'), e('xy', 'x', 'y'), e('yz', 'y', 'z'), e('zd', 'z', 'd')],
+  };
+
+  test('fewest links, either direction, nodes and edges in order', () => {
+    expect(shortestPath(g, 'a', 'd')).toEqual({ nodes: ['a', 'b', 'c', 'd'], edges: ['ab', 'cb', 'cd'] });
+    expect(shortestPath(g, 'd', 'a')).toEqual({ nodes: ['d', 'c', 'b', 'a'], edges: ['cd', 'cb', 'ab'] });
+  });
+
+  test('no way through, unknown ends, the same node', () => {
+    expect(shortestPath(g, 'a', 'e')).toBeNull();
+    expect(shortestPath(g, 'a', 'nobody')).toBeNull();
+    expect(shortestPath(g, 'a', 'a')).toEqual({ nodes: ['a'], edges: [] });
+  });
+
+  test('ties: the first link in edge order wins, every time', () => {
+    const tie = { nodes: ['a', 'b', 'c', 'd'].map(n), edges: [e('ac', 'a', 'c'), e('ab', 'a', 'b'), e('bd', 'b', 'd'), e('cd', 'c', 'd')] };
+    expect(shortestPath(tie, 'a', 'd').nodes).toEqual(['a', 'c', 'd']);
+  });
+
+  test('through a shared identifier, over a real project graph', async () => {
+    const db = fakeDb({
+      people: [
+        { id: 1, project_id: 1, first_name: 'Frodo', osint_data: [{ type: 'Phone', value: '+31 6 1234 5678' }] },
+        { id: 2, project_id: 1, first_name: 'Sam', osint_data: [{ type: 'Phone', value: '+31612345678' }] },
+        { id: 3, project_id: 1, first_name: 'Gollum', osint_data: [] },
+      ],
+    });
+    const graph = await buildProjectGraph(db, 1, { include: ['identifiers'] });
+    expect(shortestPath(graph, 'person:1', 'person:2').nodes).toEqual(['person:1', 'identifier:phone:+31612345678', 'person:2']);
+    expect(shortestPath(graph, 'person:1', 'person:3')).toBeNull();
+  });
+});
+
+test('link ids stay the same whatever else is switched on (the One Ring lost Frodo)', async () => {
+  const db = fakeDb({
+    people: [{ id: 1, project_id: 1, first_name: 'Bilbo' }, { id: 2, project_id: 1, first_name: 'Frodo' }],
+    businesses: [{ id: 5, project_id: 1, name: 'Bag End Ltd', owner_person_id: 1, employees: [] }],
+    assets: [{ id: 43, project_id: 1, name: 'The One Ring' }],
+    transactions: [{ id: 49, project_id: 1, from_person_id: 1, to_person_id: 2, subject_asset_id: 43, occurred_on: '2025-09-22', transaction_type: 'transfer' }],
+  });
+  const plain = await buildProjectGraph(db, 1, {});
+  const more = await buildProjectGraph(db, 1, { include: ['asset', 'transactions'] });
+  const owner = (g) => g.edges.find((e) => e.type === 'owner');
+  expect(owner(more).id).toBe(owner(plain).id);
+  const ids = more.edges.map((e) => e.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  expect(more.edges.find((e) => e.type === 'holds')).toMatchObject({ source: 'person:2', target: 'asset:43' });
 });

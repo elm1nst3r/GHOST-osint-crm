@@ -2,10 +2,12 @@
 //
 // The pieces around the graph canvas (graph plan, phase 1): type and layer
 // switches, filters, the card for what's selected, the legend, and the
-// dialog that saves a new connection.
-import { useState, useTransition } from 'react';
+// dialog that saves a new connection. Phase 3: find, the View and Export
+// menus, the as-of-date bar and the focus breadcrumbs.
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, RotateCcw } from 'lucide-react';
+import { Search, RotateCcw, ChevronUp, ChevronDown, X, ChevronRight } from 'lucide-react';
+import { formatDate } from '../../utils/format';
 import { EDGE_LAYERS, typesInLayer } from '../../utils/edgeLayers';
 import { NODE_TYPES, EMPTY_FILTERS, nodeLabel } from '../../utils/graphElements';
 import { relationshipsAPI } from '../../utils/api';
@@ -220,5 +222,189 @@ export function ConnectDialog({ source, target, formatName, connectionTypes, onC
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Phase 3 ──────────────────────────────────────────────────────────────────
+
+// Find: what matches is highlighted and the rest fades (nothing is removed);
+// Enter steps through, Shift+Enter back, Escape clears.
+export function FindBox({ inputRef, term, onTerm, count, index, onStep }) {
+  const { t } = useTranslation();
+  const keys = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); onStep(e.shiftKey ? -1 : 1); }
+    if (e.key === 'Escape') { e.preventDefault(); onTerm(''); e.currentTarget.blur(); }
+  };
+  const step = 'p-0.5 rounded-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 disabled:opacity-40';
+  return (
+    <div className="relative flex items-center">
+      <Search className="absolute start-2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+      <input
+        ref={inputRef}
+        type="search"
+        value={term}
+        onChange={(e) => onTerm(e.target.value)}
+        onKeyDown={keys}
+        placeholder={t('graph.findPlaceholder')}
+        aria-label={t('graph.find')}
+        title={t('graph.findTitle')}
+        className="input-base ps-7 pe-2 py-1 text-sm w-36 sm:w-44"
+      />
+      {term.trim() && (
+        <span className="flex items-center gap-x-0.5 ms-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums" aria-live="polite">
+          {!count ? t('graph.findNone') : index < 0 ? t('graph.findCount', { count }) : t('graph.findPosition', { index: index + 1, count })}
+          <button type="button" className={step} disabled={!count} onClick={() => onStep(-1)} aria-label={t('graph.findPrevious')}><ChevronUp className="w-3.5 h-3.5" /></button>
+          <button type="button" className={step} disabled={!count} onClick={() => onStep(1)} aria-label={t('graph.findNext')}><ChevronDown className="w-3.5 h-3.5" /></button>
+        </span>
+      )}
+    </div>
+  );
+}
+
+// A toolbar button with a panel under it; closes on a click elsewhere or Escape.
+export function Popover({ icon: Icon, label, active = false, children, className = '' }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        className={`p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 ${active ? 'text-accent-ink' : ''}`}
+      >
+        <Icon className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className={`absolute end-0 top-full mt-1 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 p-3 text-sm ${className}`}
+          role="dialog" aria-label={label}>
+          {typeof children === 'function' ? children(() => setOpen(false)) : children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SIZE_BY = ['uniform', 'connections', 'pagerank', 'betweenness'];
+const GROUP_BY = ['none', 'case', 'component'];
+
+// How the graph is drawn: node size, groups, folding, the saved layout.
+export function ViewOptions({ sizeBy, onSizeBy, groupBy, onGroupBy, canGroupByCase, collapse, onCollapse, layout, onSaveLayout, onForgetLayout }) {
+  const { t } = useTranslation();
+  const label = 'block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1';
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className={label} htmlFor="graph-size-by">{t('graph.sizeBy')}</label>
+        <select id="graph-size-by" value={sizeBy} onChange={(e) => onSizeBy(e.target.value)} className="input-base py-1 text-sm">
+          {SIZE_BY.map((v) => <option key={v} value={v}>{t(`graph.sizeByOptions.${v}`)}</option>)}
+        </select>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(`graph.sizeByHelp.${sizeBy}`)}</p>
+      </div>
+      <div>
+        <label className={label} htmlFor="graph-group-by">{t('graph.groupBy')}</label>
+        <select id="graph-group-by" value={groupBy} onChange={(e) => onGroupBy(e.target.value)} className="input-base py-1 text-sm">
+          {GROUP_BY.filter((v) => v !== 'case' || canGroupByCase).map((v) => <option key={v} value={v}>{t(`graph.groupByOptions.${v}`)}</option>)}
+        </select>
+      </div>
+      <label className="flex items-start gap-x-2 text-sm text-slate-700 dark:text-slate-300">
+        <input type="checkbox" checked={collapse} onChange={(e) => onCollapse(e.target.checked)} className="mt-0.5" />
+        <span>{t('graph.collapseLeaves')}<span className="block text-xs text-slate-500 dark:text-slate-400">{t('graph.collapseLeavesHelp')}</span></span>
+      </label>
+      {layout && (
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div className={label}>{t('graph.savedLayout')}</div>
+          <p className="text-xs text-slate-500 dark:text-slate-400" data-volatile>
+            {layout.saved ? t('graph.savedLayoutOn', { date: formatDate(layout.updated_at) }) : t('graph.savedLayoutOff')}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" onClick={onSaveLayout} disabled={layout.busy} className="btn btn-secondary px-2.5 py-1.5 text-xs">{t('graph.saveLayout')}</button>
+            {layout.saved && (
+              <button type="button" onClick={onForgetLayout} disabled={layout.busy} className="btn btn-ghost px-2.5 py-1.5 text-xs">{t('graph.resetLayout')}</button>
+            )}
+          </div>
+          {layout.error && <p className="mt-1 text-xs text-red-600 dark:text-red-400" role="alert">{layout.error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ExportOptions({ onExport, close }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-0.5 -m-1.5">
+      {['png', 'graphml', 'json'].map((format) => (
+        <button key={format} type="button" onClick={() => { close(); onExport(format); }}
+          className="w-full px-2 py-1.5 rounded-md text-start hover:bg-slate-100 dark:hover:bg-slate-700">
+          <span className="block text-slate-800 dark:text-slate-200">{t(`graph.exportFormats.${format}`)}</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`graph.exportHelp.${format}`)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// The graph as it was on a date: a slider from the first date to today.
+const DAY = 86400000;
+const toDay = (iso) => Date.parse(`${iso}T00:00:00Z`) / DAY;
+const fromDay = (n) => new Date(n * DAY).toISOString().slice(0, 10);
+
+export function AsOfBar({ span, date, onDate, onClose }) {
+  const { t } = useTranslation();
+  const today = new Date().toISOString().slice(0, 10);
+  const min = toDay(span?.min || today);
+  const max = Math.max(toDay(today), min);
+  const value = date ? toDay(date) : max;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 bg-sky-50 dark:bg-sky-950/30 text-xs shrink-0">
+      <label htmlFor="graph-as-of" className="font-medium text-slate-700 dark:text-slate-300">{t('graph.asOf')}</label>
+      <input
+        id="graph-as-of"
+        type="range"
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(e) => { const n = Number(e.target.value); onDate(n >= max ? null : fromDay(n)); }}
+        className="flex-1 min-w-[8rem] max-w-md accent-accent-primary"
+        aria-valuetext={date ? formatDate(date) : t('graph.asOfNow')}
+      />
+      <span className="tabular-nums font-medium text-slate-800 dark:text-slate-200 min-w-[6rem]" data-volatile>{date ? formatDate(date) : t('graph.asOfNow')}</span>
+      {date && <button type="button" onClick={() => onDate(null)} className="text-accent-ink hover:underline">{t('graph.asOfReset')}</button>}
+      <span className="text-slate-500 dark:text-slate-400 hidden lg:inline">{t('graph.asOfHelp')}</span>
+      <button type="button" onClick={onClose} className="ms-auto p-1 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t('common.close')}><X className="w-3.5 h-3.5" /></button>
+    </div>
+  );
+}
+
+// Focus: where you are, and the way back.
+export function FocusTrail({ trail, nameOf, onGo, onClear }) {
+  const { t } = useTranslation();
+  return (
+    <nav className="flex flex-wrap items-center gap-x-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs shrink-0" aria-label={t('graph.focusTrail')}>
+      <button type="button" onClick={onClear} className="text-accent-ink hover:underline">{t('graph.focusAll')}</button>
+      {trail.map((step, i) => (
+        <span key={`${step.id}-${i}`} className="flex items-center gap-x-1">
+          <ChevronRight className="w-3 h-3 text-slate-400 rtl:rotate-180" />
+          {i < trail.length - 1 ? (
+            <button type="button" onClick={() => onGo(i)} className="text-accent-ink hover:underline"><bdi>{nameOf(step.id)}</bdi></button>
+          ) : (
+            <span className="font-medium text-slate-800 dark:text-slate-200" aria-current="location"><bdi>{nameOf(step.id)}</bdi></span>
+          )}
+          <span className="text-slate-500 dark:text-slate-400">({t('graph.depthHops', { count: step.hops })})</span>
+        </span>
+      ))}
+    </nav>
   );
 }

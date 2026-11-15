@@ -2,12 +2,13 @@
 //
 // Working from the graph (graph plan, phase 2): the inspector for what's
 // selected, the right-click menu, the bar for a multiple selection, and the
-// transactions behind a money link.
+// transactions behind a money link. Phase 3: the shortest path and the
+// statistics panels, focus and path actions.
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X, ExternalLink, Crosshair, Pencil, Trash2, EyeOff, Eye, Pin, PinOff, Search, Link2, Expand,
-  LayoutGrid, List, Plus, Undo2, Scan,
+  LayoutGrid, List, Plus, Undo2, Scan, Route, Focus, UnfoldVertical,
 } from 'lucide-react';
 import { nodeLabel, linksOf, edgeEditable, edgeManagedBy } from '../../utils/graphElements';
 import { relationshipsAPI, transactionsAPI } from '../../utils/api';
@@ -84,7 +85,17 @@ function NodeDetails({ node: n, graph, edgeLabel, formatName, colors, actions, c
         {n.type === 'person' && actions.canSearch && (
           <button type="button" onClick={() => actions.search(n)} className={`${smallButton} btn-ghost`}><Search className="w-3.5 h-3.5" />{t('graph.runSearch')}</button>
         )}
+        <button type="button" onClick={() => actions.focus(n, 1)} className={`${smallButton} btn-ghost`}><Focus className="w-3.5 h-3.5" />{t('graph.focusHere')}</button>
+        <button type="button" onClick={() => actions.pathFrom(n)} className={`${smallButton} btn-ghost`}><Route className="w-3.5 h-3.5" />{t('graph.pathFromHere')}</button>
       </div>
+      {actions.foldedCount(n.id) > 0 && (
+        <div className="mt-2 flex items-center gap-x-2 text-xs text-slate-600 dark:text-slate-400">
+          {t('graph.foldedHere', { count: actions.foldedCount(n.id) })}
+          <button type="button" onClick={() => actions.unfold(n.id)} className="flex items-center gap-x-1 text-accent-ink hover:underline">
+            <UnfoldVertical className="w-3.5 h-3.5" />{t('graph.unfold')}
+          </button>
+        </div>
+      )}
 
       {links.length > 0 && (
         <div className="mt-4">
@@ -292,7 +303,7 @@ function MultiList({ ids, graph, formatName, colors, actions, close }) {
 
 // ── Multiple selection ───────────────────────────────────────────────────────
 
-export function SelectionBar({ count, onHide, onShowOnly, onPin, onLayout, onList, onClear }) {
+export function SelectionBar({ count, onHide, onShowOnly, onPin, onLayout, onList, onClear, onPath }) {
   const { t } = useTranslation();
   const b = 'px-2 py-1 rounded-md text-xs flex items-center gap-x-1 text-white/90 hover:bg-white/15';
   return (
@@ -303,6 +314,7 @@ export function SelectionBar({ count, onHide, onShowOnly, onPin, onLayout, onLis
       <button type="button" onClick={onPin} className={b}><Pin className="w-3.5 h-3.5" />{t('graph.pin')}</button>
       <button type="button" onClick={onLayout} className={b}><LayoutGrid className="w-3.5 h-3.5" />{t('graph.layOutThese')}</button>
       <button type="button" onClick={onList} className={b}><List className="w-3.5 h-3.5" />{t('graph.list')}</button>
+      {count === 2 && onPath && <button type="button" onClick={onPath} className={b}><Route className="w-3.5 h-3.5" />{t('graph.shortestPath')}</button>}
       <button type="button" onClick={onClear} className={b} aria-label={t('graph.clearSelection')}><X className="w-3.5 h-3.5" /></button>
     </div>
   );
@@ -342,6 +354,7 @@ export function ContextMenu({ menu, graph, multi, formatName, actions, onClose }
 
   const items = [];
   if (menu.kind === 'node' && multi.length > 1) {
+    if (multi.length === 2) items.push(item(Route, t('graph.shortestPath'), () => actions.pathBetween(multi[0], multi[1])));
     items.push(
       item(EyeOff, t('graph.hideSelected', { count: multi.length }), () => actions.hide(multi)),
       item(Eye, t('graph.showOnlyThese'), () => actions.showOnly(multi)),
@@ -358,6 +371,13 @@ export function ContextMenu({ menu, graph, multi, formatName, actions, onClose }
     if (n.type === 'person' && actions.canSearch) items.push(item(Search, t('graph.runSearch'), () => actions.search(n)));
     items.push(item(actions.isPinned(n.id) ? PinOff : Pin, actions.isPinned(n.id) ? t('graph.unpin') : t('graph.pin'), () => actions.togglePin([n.id])));
     if (actions.canHide(n)) items.push(item(EyeOff, t('graph.hide'), () => actions.hide([n.id])));
+    items.push(
+      item(Focus, t('graph.focusHops', { count: 1 }), () => actions.focus(n, 1)),
+      item(Focus, t('graph.focusHops', { count: 2 }), () => actions.focus(n, 2)),
+    );
+    if (actions.pathStart && actions.pathStart !== n.id) items.push(item(Route, t('graph.pathToHere'), () => actions.pathBetween(actions.pathStart, n.id)));
+    else items.push(item(Route, t('graph.pathFromHere'), () => actions.pathFrom(n)));
+    if (actions.foldedCount(n.id) > 0) items.push(item(UnfoldVertical, t('graph.unfold'), () => actions.unfold(n.id)));
   } else if (menu.kind === 'edge') {
     const e = menu.data;
     const byId = new Map(graph.nodes.map((x) => [x.id, x]));
@@ -382,11 +402,120 @@ export function ContextMenu({ menu, graph, multi, formatName, actions, onClose }
         ref={ref}
         role="menu"
         onKeyDown={closeOnKey}
-        className="absolute z-40 min-w-[13rem] max-w-[18rem] py-1 rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
+        className="absolute z-40 min-w-[13rem] max-w-[18rem] max-h-[calc(100%-1rem)] overflow-y-auto py-1 rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
         style={style}
       >
         {items}
       </div>
     </>
+  );
+}
+
+// ── Shortest path ────────────────────────────────────────────────────────────
+
+// The chain of links between two entities, over what's shown. `path` is
+// { nodes, edges } (ids) or null; `to` null while the other end is picked.
+export function PathPanel({ from, to, path, graph, edgeLabel, formatName, colors, actions, onClose }) {
+  const { t } = useTranslation();
+  const nodes = new Map(graph.nodes.map((n) => [n.id, n]));
+  const edges = new Map(graph.edges.map((e) => [e.id, e]));
+  const name = (id) => (nodes.get(id) ? nodeLabel(nodes.get(id), formatName) : id);
+  const nodeRow = (id) => {
+    const n = nodes.get(id);
+    return (
+      <button type="button" onClick={() => actions.selectNode(id)}
+        className="w-full flex items-center gap-x-2 px-1.5 py-1 rounded-md text-start text-sm hover:bg-slate-100 dark:hover:bg-slate-700/60">
+        {n && <Dot color={colors.node[n.type]} square={n.type !== 'person'} />}
+        <bdi className="flex-1 truncate text-slate-800 dark:text-slate-200">{name(id)}</bdi>
+      </button>
+    );
+  };
+  return (
+    <div className="relative" role="region" aria-label={t('graph.shortestPath')}>
+      <button type="button" onClick={onClose} className="absolute top-0 end-0 p-1 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t('graph.clearPath')}>
+        <X className="w-4 h-4" />
+      </button>
+      <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{t('graph.shortestPath')}</div>
+      {!to ? (
+        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300 pe-6">{t('graph.pickPathEnd', { name: name(from) })}</p>
+      ) : !path ? (
+        <>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5 pe-6"><bdi>{name(from)}</bdi> → <bdi>{name(to)}</bdi></h3>
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">{t('graph.noPath')}</p>
+        </>
+      ) : (
+        <>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5 pe-6">{t('graph.pathLength', { count: path.edges.length })}</h3>
+          <ol className="mt-2">
+            {path.nodes.map((id, i) => {
+              const e = edges.get(path.edges[i]);
+              return (
+                <li key={id}>
+                  {nodeRow(id)}
+                  {e && (
+                    <button type="button" onClick={() => actions.selectEdge(e)}
+                      className="ms-3 ps-3 py-0.5 border-s-2 border-slate-300 dark:border-slate-600 text-xs text-slate-500 dark:text-slate-400 hover:text-accent-ink text-start">
+                      {e.source === id ? '↓ ' : '↑ '}{edgeLabel(e.type)}{e.count > 1 ? ` ×${e.count}` : ''}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Statistics ───────────────────────────────────────────────────────────────
+
+export function StatsPanel({ stats, approximate, formatName, graph, colors, actions, onClose }) {
+  const { t } = useTranslation();
+  const nodes = new Map(graph.nodes.map((n) => [n.id, n]));
+  const list = (title, rows, value = null) => (rows.length > 0 && (
+    <div className="mt-3">
+      <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</h4>
+      <ol className="mt-1 space-y-0.5">
+        {rows.map((r) => {
+          const n = nodes.get(r.id);
+          if (!n) return null;
+          return (
+            <li key={r.id}>
+              <button type="button" onClick={() => actions.selectNode(r.id)}
+                className="w-full flex items-center gap-x-2 px-1.5 py-1 rounded-md text-start text-sm hover:bg-slate-100 dark:hover:bg-slate-700/60">
+                <Dot color={colors.node[n.type]} square={n.type !== 'person'} />
+                <bdi className="flex-1 truncate text-slate-800 dark:text-slate-200">{nodeLabel(n, formatName)}</bdi>
+                {value && <span className="text-xs tabular-nums text-slate-500 dark:text-slate-400">{value(r.value)}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  ));
+  const figure = (label, n) => (
+    <div className="rounded-lg bg-slate-100 dark:bg-slate-700/50 px-2 py-1.5">
+      <div className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatNumber(n)}</div>
+      <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
+    </div>
+  );
+  return (
+    <div className="relative" role="region" aria-label={t('graph.stats')}>
+      <button type="button" onClick={onClose} className="absolute top-0 end-0 p-1 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t('common.close')}>
+        <X className="w-4 h-4" />
+      </button>
+      <h3 className="font-semibold text-slate-900 dark:text-slate-100 pe-6">{t('graph.stats')}</h3>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{t('graph.statsOfShown')}</p>
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        {figure(t('graph.statsEntities'), stats.nodes)}
+        {figure(t('graph.statsLinks'), stats.edges)}
+        {figure(t('graph.statsGroups'), stats.groups)}
+        {figure(t('graph.statsIsolated'), stats.isolated.length)}
+      </div>
+      {list(t('graph.mostConnected'), stats.mostConnected, (v) => formatNumber(v))}
+      {list(approximate ? t('graph.mostBetweenApprox') : t('graph.mostBetween'), stats.mostBetween, (v) => `${formatNumber(Math.round(v * 1000) / 10)} %`)}
+      {list(t('graph.isolatedList', { count: stats.isolated.length }), stats.isolated.slice(0, 10).map((id) => ({ id })))}
+    </div>
   );
 }

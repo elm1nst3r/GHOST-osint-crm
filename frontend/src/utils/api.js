@@ -664,6 +664,13 @@ export const relationshipsAPI = {
 // { project_id, include, identifiers } or { focus: 'person:12', depth }.
 export const graphAPI = {
   get: (params = {}) => fetchAPI(`/graph${buildQuery(params)}`),
+  path: (params = {}) => fetchAPI(`/graph/path${buildQuery(params)}`),
+  // The caller's saved layout of a view ("project" or "focus:<type>:<id>").
+  getLayout: (projectId, view) => fetchAPI(`/graph/layouts${buildQuery({ project_id: projectId, view })}`),
+  saveLayout: (projectId, view, positions) => fetchAPI('/graph/layouts', {
+    method: 'PUT', body: JSON.stringify({ project_id: projectId, view, positions }),
+  }),
+  deleteLayout: (projectId, view) => fetchAPI(`/graph/layouts${buildQuery({ project_id: projectId, view })}`, { method: 'DELETE' }),
 };
 
 // Transactions API

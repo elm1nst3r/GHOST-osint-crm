@@ -3,6 +3,10 @@
 // Pure, so it's unit-tested without a canvas.
 import { isTypeVisible, layerForType } from './edgeLayers';
 
+// Past this many entities a graph is "big": lighter layout and highlighting
+// (graph plan, phase 3; measured on 5,000 entities).
+export const LARGE_GRAPH = 500;
+
 export const NODE_TYPES = ['person', 'business', 'crypto_wallet', 'asset', 'property', 'wireless_network', 'identifier'];
 
 // What the project graph shows unless switched (the entity view shows all).
@@ -104,24 +108,57 @@ export function filterGraph(graph, {
 }
 
 // API nodes/edges → Cytoscape element definitions.
-export function toElements({ nodes, edges }, { formatName = null, focusId = null, edgeLabel = (type) => type } = {}) {
+// Phase 3 options:
+//   weights   Map id → 0..1 node size (default: links in the project);
+//   marks     { match: Set, path: Set (node and edge ids), active }: while
+//             active, what's neither found nor on the path fades;
+//   folded    Map hub id → leaf ids folded into it ("+N" on its name);
+//   groupColor Map id → colour (connected groups);
+//   cases     [{ id, case_name }] → each case a box around its entities.
+export function toElements({ nodes, edges }, {
+  formatName = null, focusId = null, edgeLabel = (type) => type,
+  weights = null, marks = null, folded = null, groupColor = null, cases = null,
+} = {}) {
   const maxDegree = Math.max(1, ...nodes.map((n) => n.degree || 0));
+  const caseNames = cases ? new Map(cases.map((c) => [c.id, c.case_name])) : null;
+  const groups = new Map(); // case id → parent node
+  if (caseNames) {
+    for (const n of nodes) {
+      if (n.case_id == null || !caseNames.has(n.case_id) || groups.has(n.case_id)) continue;
+      groups.set(n.case_id, {
+        group: 'nodes',
+        data: { id: `group:case:${n.case_id}`, type: 'group', label: caseNames.get(n.case_id) },
+        classes: 'grp',
+      });
+    }
+  }
+  const dim = (id) => marks?.active && !marks.match?.has(id) && !marks.path?.has(id);
   return [
-    ...nodes.map((n) => ({
-      group: 'nodes',
-      data: {
-        ...n,
-        label: nodeLabel(n, formatName),
-        // 0..1, for size and for which labels show first when zoomed out
-        weight: Math.sqrt((n.degree || 0) / maxDegree),
-      },
-      classes: [
-        `t-${n.type}`,
-        n.type === 'identifier' ? `k-${n.kind}` : '',
-        n.foreign ? 'foreign' : '',
-        n.id === focusId ? 'focus' : '',
-      ].filter(Boolean).join(' '),
-    })),
+    ...groups.values(),
+    ...nodes.map((n) => {
+      const name = nodeLabel(n, formatName);
+      const hidden = folded?.get(n.id)?.length;
+      return {
+        group: 'nodes',
+        data: {
+          ...n,
+          label: hidden ? `${name}  +${hidden}` : name,
+          // 0..1, for size and for which labels show first when zoomed out
+          weight: weights?.has(n.id) ? weights.get(n.id) : Math.sqrt((n.degree || 0) / maxDegree),
+          ...(groupColor?.has(n.id) ? { groupColor: groupColor.get(n.id) } : {}),
+          ...(groups.has(n.case_id) ? { parent: `group:case:${n.case_id}` } : {}),
+        },
+        classes: [
+          `t-${n.type}`,
+          n.type === 'identifier' ? `k-${n.kind}` : '',
+          n.foreign ? 'foreign' : '',
+          n.id === focusId ? 'focus' : '',
+          marks?.match?.has(n.id) ? 'match' : '',
+          marks?.path?.has(n.id) ? 'on-path' : '',
+          dim(n.id) ? 'dimmed' : '',
+        ].filter(Boolean).join(' '),
+      };
+    }),
     ...edges.map((e) => ({
       group: 'edges',
       data: { ...e, layer: layerForType(e.type), typeLabel: edgeLabel(e.type) },
@@ -129,6 +166,8 @@ export function toElements({ nodes, edges }, { formatName = null, focusId = null
         `l-${layerForType(e.type)}`,
         `k-${e.kind}`,
         e.matched_by_name ? 'by-name' : '',
+        marks?.path?.has(e.id) ? 'on-path' : '',
+        marks?.active && !marks.path?.has(e.id) ? 'dimmed' : '',
       ].filter(Boolean).join(' '),
     })),
   ];

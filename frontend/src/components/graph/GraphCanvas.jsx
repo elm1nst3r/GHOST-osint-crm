@@ -5,6 +5,7 @@
 // reports taps, double-taps and new connections.
 import { forwardRef, useEffect, useEffectEvent, useImperativeHandle, useRef } from 'react';
 import cytoscape from './cytoscape';
+import { LARGE_GRAPH } from '../../utils/graphElements';
 
 export const LAYOUTS = {
   force: {
@@ -21,23 +22,51 @@ export const LAYOUTS = {
   grid: { name: 'grid', animate: true, animationDuration: 450, fit: true, padding: 40 },
 };
 
+// Past this many entities the graph is "big" (graph plan, phase 3, measured
+// on 5,000): the force layout's full quality grows with the square of the
+// size (2 s at 600 entities, 13 s at 1,500, two minutes at 5,000, all of it
+// blocking the page), its draft quality takes half a second. So big graphs
+// get the draft, no animations, and edges hidden while panning.
+const LARGE = LARGE_GRAPH;
+const INTERNAL_DATA = new Set(['id', 'source', 'target', 'parent']);
 
 // Puts nodes that are new next to a neighbour already on the canvas, so the
-// layout only has to settle them instead of starting over.
+// layout only has to settle them instead of starting over. → the nodes that
+// had no placed neighbour.
 function placeNear(cy, added) {
+  let lonely = cy.collection();
   added.forEach((node) => {
     const placed = node.neighborhood('node').filter((n) => !added.contains(n));
     if (placed.length) {
       const p = placed[0].position();
       node.position({ x: p.x + (Math.random() - 0.5) * 80, y: p.y + (Math.random() - 0.5) * 80 });
-    }
+    } else lonely = lonely.union(node);
   });
+  return lonely;
+}
+
+// A saved layout (graph plan, phase 3): known nodes go where they were
+// saved, new ones next to a neighbour, the rest in a row underneath.
+// → false when the layout knows none of these nodes.
+function applySaved(cy, positions) {
+  const nodes = cy.nodes(':childless');
+  const known = nodes.filter((n) => positions[n.id()]);
+  if (known.empty()) return false;
+  cy.batch(() => {
+    known.forEach((n) => { n.position({ ...positions[n.id()] }); });
+    const lonely = placeNear(cy, nodes.difference(known));
+    const bb = known.boundingBox();
+    lonely.forEach((n, i) => { n.position({ x: bb.x1 + (i % 12) * 70, y: bb.y2 + 90 + Math.floor(i / 12) * 70 }); });
+  });
+  cy.fit(undefined, 40);
+  return true;
 }
 
 const GraphCanvas = forwardRef(function GraphCanvas({
   elements, stylesheet, layout = 'force', connectMode = false, focusId = null, resetKey = null,
   canConnect = () => false, onSelect, onOpen, onConnect, minimap = true, minimapColors = {},
   pinned = [], placeHint = null, onPlaced, onContextMenu, onSelectionChange, onMoved,
+  savedPositions = null,
 }, ref) {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
@@ -50,7 +79,10 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     const cy = cyRef.current;
     if (!cy || cy.nodes().length === 0) return;
     layoutRef.current?.stop();
-    layoutRef.current = cy.layout({ ...(LAYOUTS[name] || LAYOUTS.force), ...opts });
+    const base = LAYOUTS[name] || LAYOUTS.force;
+    const big = cy.nodes().length > LARGE
+      ? { animate: false, ...(base.name === 'fcose' ? { quality: 'draft', randomize: true } : {}) } : {};
+    layoutRef.current = cy.layout({ ...base, ...opts, ...big });
     layoutRef.current.run();
   };
 
@@ -87,6 +119,26 @@ const GraphCanvas = forwardRef(function GraphCanvas({
       cy.batch(() => { cy.elements().unselect(); ids.forEach((id) => cy.getElementById(id).select()); });
     },
     unselectAll: () => cyRef.current?.elements().unselect(),
+    // Every entity's position (not the case boxes, which follow their contents).
+    allPositions: () => Object.fromEntries((cyRef.current?.nodes(':childless') || []).map((n) => [n.id(), { ...n.position() }])),
+    centreOn: (id) => {
+      const cy = cyRef.current;
+      const node = cy?.getElementById(id);
+      if (!node || node.empty()) return;
+      cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 1) }, { duration: 300 });
+    },
+    fitTo: (ids) => {
+      const cy = cyRef.current;
+      if (!cy || !ids.length) return;
+      const eles = cy.collection(ids.map((id) => cy.getElementById(id)).filter((e) => e.nonempty()));
+      if (eles.empty()) return;
+      // A few entities: don't zoom right in on them.
+      const max = cy.maxZoom();
+      cy.maxZoom(1.5);
+      cy.animate({ fit: { eles, padding: 80 } }, { duration: 300, complete: () => cy.maxZoom(max) });
+    },
+    // Settle the layout from where things are (after grouping changes).
+    settle: () => runLayout(layout, { randomize: false }),
     // A rendered (screen) point → graph coordinates.
     toModel: ({ x, y }) => {
       const cy = cyRef.current;
@@ -106,6 +158,7 @@ const GraphCanvas = forwardRef(function GraphCanvas({
   const emitPlaced = useEffectEvent(() => onPlaced?.());
   const hint = useEffectEvent(() => placeHint);
   const layoutNow = useEffectEvent((opts) => runLayout(layout, opts));
+  const saved = useEffectEvent(() => savedPositions);
 
   // Create once.
   useEffect(() => {
@@ -127,6 +180,7 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     cy.on('tap', 'node', (e) => {
       const ev = e.originalEvent || {};
       const node = e.target;
+      if (node.hasClass('grp')) { emitSelect(null); return; }
       if (ev.shiftKey || ev.ctrlKey || ev.metaKey) {
         const keep = before;
         const wasSelected = keep.contains(node);
@@ -139,12 +193,18 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     });
     cy.on('tap', 'edge', (e) => emitSelect({ kind: 'edge', data: e.target.data() }));
     cy.on('tap', (e) => { if (e.target === cy) emitSelect(null); });
-    cy.on('dbltap', 'node', (e) => emitOpen(e.target.data()));
+    // Cytoscape calls any two quick clicks a double click, even on two
+    // different things: open only when both were on this node.
+    let lastTap = null; let tapBefore = null;
+    cy.on('tap', (e) => { tapBefore = lastTap; lastTap = e.target === cy ? null : e.target.id(); });
+    cy.on('dbltap', 'node', (e) => {
+      if (!e.target.hasClass('grp') && tapBefore === e.target.id()) emitOpen(e.target.data());
+    });
 
     // Right-click, or a long press on touch screens: the context menu.
     const menu = (e) => {
       const target = e.target;
-      const kind = target === cy ? 'canvas' : target.isNode() ? 'node' : 'edge';
+      const kind = target === cy || target.hasClass('grp') ? 'canvas' : target.isNode() ? 'node' : 'edge';
       if (kind === 'node' && !target.selected()) { cy.elements().unselect(); target.select(); }
       emitMenu({ kind, data: kind === 'canvas' ? null : target.data(), x: e.renderedPosition.x, y: e.renderedPosition.y, model: { ...e.position } });
     };
@@ -155,7 +215,7 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     let selTimer = null;
     cy.on('select unselect', 'node', () => {
       clearTimeout(selTimer);
-      selTimer = setTimeout(() => emitSelection(cy.nodes(':selected').map((n) => n.id())), 30);
+      selTimer = setTimeout(() => emitSelection(cy.nodes(':selected').not('.grp').map((n) => n.id())), 30);
     });
 
     // Moves by hand, for undo.
@@ -175,17 +235,24 @@ const GraphCanvas = forwardRef(function GraphCanvas({
       if (moved) emitMoved(before);
     });
 
-    // Hover: the node and its neighbours stay, the rest fades.
+    // Hover: the node and its neighbours stay, the rest fades. On a big
+    // graph only the node and its links light up: fading means restyling
+    // thousands of elements every time the pointer crosses a node.
     cy.on('mouseover', 'node', (e) => {
       const node = e.target;
+      if (node.hasClass('grp')) return;
       cy.batch(() => {
-        cy.elements().difference(node.closedNeighborhood()).addClass('faded');
+        if (cy.nodes().length <= LARGE) cy.elements().difference(node.closedNeighborhood()).addClass('faded');
         node.connectedEdges().addClass('highlighted');
         node.addClass('hovered');
       });
     });
-    cy.on('mouseout', 'node', () => {
-      cy.batch(() => cy.elements().removeClass('faded highlighted hovered'));
+    cy.on('mouseout', 'node', (e) => {
+      cy.batch(() => {
+        if (cy.nodes().length <= LARGE) cy.elements('.faded').removeClass('faded');
+        e.target.connectedEdges().removeClass('highlighted');
+        e.target.removeClass('hovered');
+      });
     });
 
     const eh = cy.edgehandles({
@@ -229,17 +296,45 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     const cy = cyRef.current;
     if (!cy) return;
     const wanted = new Map(elements.map((el) => [el.data.id, el]));
-    const hadNodes = cy.nodes().length > 0;
-    let added = cy.collection();
+    const hadNodes = cy.nodes(':childless').length > 0;
+    const addedList = [];
     cy.batch(() => {
+      // Case boxes first: entities move into them, out of the ones going away
+      // (removing a box would take its contents with it).
+      for (const el of elements) {
+        if (el.group === 'nodes' && el.classes === 'grp' && cy.getElementById(el.data.id).empty()) cy.add(el);
+      }
+      cy.nodes(':childless').forEach((n) => {
+        const el = wanted.get(n.id());
+        if (!el) return;
+        const want = el.data.parent ?? null;
+        if ((n.data('parent') ?? null) !== want) n.move({ parent: want });
+      });
       cy.elements().filter((el) => !wanted.has(el.id())).remove();
       for (const el of elements) {
         const existing = cy.getElementById(el.data.id);
-        if (existing.nonempty()) {
-          existing.data(el.data);
-          existing.classes(el.classes || '');
+        // A link's ends can't change in place: one that now joins other
+        // nodes is removed here and added again below.
+        if (existing.nonempty() && el.group === 'edges'
+          && (existing.data('source') !== el.data.source || existing.data('target') !== el.data.target)) {
+          existing.remove();
+        } else if (existing.nonempty()) {
+          // Only what changed (a big graph has thousands of elements, most
+          // unchanged), and keys no longer there go (a group colour).
+          const now = existing.data();
+          const changed = {};
+          let any = false;
+          for (const [key, value] of Object.entries(el.data)) {
+            if (!INTERNAL_DATA.has(key) && now[key] !== value) { changed[key] = value; any = true; }
+          }
+          if (any) existing.data(changed);
+          for (const key of Object.keys(now)) {
+            if (!INTERNAL_DATA.has(key) && !(key in el.data)) existing.removeData(key);
+          }
+          const classes = el.classes || '';
+          if (existing.classes().join(' ') !== classes) existing.classes(classes);
         } else if (el.group === 'nodes') {
-          added = added.union(cy.add(el));
+          addedList.push(cy.add(el));
         }
       }
       // Edges after nodes: both ends must exist.
@@ -247,6 +342,11 @@ const GraphCanvas = forwardRef(function GraphCanvas({
         if (el.group === 'edges' && cy.getElementById(el.data.id).empty()) cy.add(el);
       }
     });
+    let added = cy.collection(addedList).not('.grp');
+    const big = cy.nodes().length > LARGE;
+    // The renderer reads this on every frame (an init option otherwise).
+    const renderer = cy.renderer?.();
+    if (renderer) renderer.hideEdgesOnViewport = big;
     // Something just created at a spot on the canvas starts there.
     const at = hint();
     if (at && added.nonempty() && hadNodes) {
@@ -254,13 +354,21 @@ const GraphCanvas = forwardRef(function GraphCanvas({
       emitPlaced();
       return; // leave everything else where it is
     }
-    // A new centre or depth is a new picture: lay it all out afresh.
+    // A new centre or depth is a new picture: the saved layout, or a fresh one.
     const reset = lastResetKey.current !== resetKey;
     lastResetKey.current = resetKey;
-    if (!hadNodes || reset) layoutNow({ randomize: true });
-    else if (added.nonempty()) {
-      placeNear(cy, added);
-      layoutNow(layout === 'force' ? { randomize: false } : {});
+    if (!hadNodes || reset) {
+      const positions = saved();
+      if (!(positions && applySaved(cy, positions))) layoutNow({ randomize: true });
+    } else if (added.nonempty()) {
+      // A big graph's draft layout can't refine from where things are: the
+      // new ones just go next to a neighbour.
+      const lonely = placeNear(cy, added);
+      if (!big) layoutNow(layout === 'force' ? { randomize: false } : {});
+      else if (lonely.nonempty()) {
+        const bb = cy.nodes(':childless').difference(lonely).boundingBox();
+        lonely.forEach((n, i) => { n.position({ x: bb.x1 + (i % 40) * 60, y: bb.y2 + 80 + Math.floor(i / 40) * 60 }); });
+      }
     }
   });
   useEffect(() => { syncElements(); }, [elements]);
@@ -283,12 +391,14 @@ const GraphCanvas = forwardRef(function GraphCanvas({
     if (connectMode) { eh.enable(); eh.enableDrawMode(); } else { eh.disableDrawMode(); eh.disable(); }
   }, [connectMode]);
 
-  // Centre on the focus entity once it's laid out.
+  // Select the focus entity once it's there: once per focus, not on every
+  // change of the elements (that would add it to whatever you select next).
+  const focusSelected = useRef(null);
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy || !focusId) return;
+    if (!cy || !focusId || focusSelected.current === focusId) return;
     const node = cy.getElementById(focusId);
-    if (node.nonempty()) node.select();
+    if (node.nonempty()) { node.select(); focusSelected.current = focusId; }
   }, [focusId, elements]);
 
   return (
@@ -319,7 +429,7 @@ function Minimap({ cyRef, colors, redrawRef }) {
     canvas.height = H * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    const nodes = cy.nodes(':visible');
+    const nodes = cy.nodes(':visible:childless');
     if (nodes.empty()) return;
     const bb = nodes.boundingBox();
     const scale = Math.min((W - 8) / Math.max(bb.w, 1), (H - 8) / Math.max(bb.h, 1));

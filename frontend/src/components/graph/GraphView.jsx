@@ -15,15 +15,24 @@
 // multiple selection, neighbours brought in on request, hide and pin with
 // undo, editing and deleting links, new entities created where you click,
 // tool searches on a person.
-import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
+//
+// Phase 3 (analysis): find (`/`), shortest path, focus with a breadcrumb,
+// size by connections / PageRank / betweenness, folded leaves, cases as
+// boxes or colour by connected group, saved layouts per user, statistics,
+// the graph as of a date, and GraphML / JSON export. The pipeline: loaded →
+// as of the date → filters → focus → (path, find, sizes) → folding → drawn.
+import { lazy, Suspense, useDeferredValue, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Network, Filter, RefreshCw, Maximize2, Minimize2, ZoomIn, ZoomOut, Scan, Link2, Download,
-  Loader2, AlertCircle, ArrowLeft, Shuffle, SlidersHorizontal, Undo2, Eye,
+  Loader2, AlertCircle, ArrowLeft, Shuffle, SlidersHorizontal, Undo2, Eye, Settings2, CalendarClock, ChartColumn,
 } from 'lucide-react';
 import GraphCanvas from './GraphCanvas';
-import { Legend, FilterPanel, ConnectDialog, TypeSwitches, LayerSwitches } from './GraphPanels';
-import { Inspector, ContextMenu, SelectionBar } from './GraphActions';
+import {
+  Legend, FilterPanel, ConnectDialog, TypeSwitches, LayerSwitches,
+  FindBox, Popover, ViewOptions, ExportOptions, AsOfBar, FocusTrail,
+} from './GraphPanels';
+import { Inspector, ContextMenu, SelectionBar, PathPanel, StatsPanel } from './GraphActions';
 import { useGraphEdits } from './useGraphEdits';
 import { graphAPI, casesAPI, toolsAPI, peopleAPI } from '../../utils/api';
 import { runnableTools } from '../../utils/integrations';
@@ -34,17 +43,32 @@ import { DEFAULT_EDGE_LAYERS } from '../../utils/edgeLayers';
 import { formatPersonName } from '../../utils/personName';
 import { useModelOptions } from '../../utils/useModelOptions';
 import { optionLabel } from '../../utils/optionLabels';
+import { formatDate } from '../../utils/format';
 import {
   NODE_TYPES, DEFAULT_NODE_TYPES, EMPTY_FILTERS, includeFor, filterGraph, toElements,
-  filterOptions, activeFilterCount, countByType, mergeGraphs,
+  filterOptions, activeFilterCount, countByType, mergeGraphs, LARGE_GRAPH,
 } from '../../utils/graphElements';
 import { buildStylesheet, readGraphTheme, FALLBACK_THEME } from '../../utils/graphStyle';
+import {
+  findMatches, shortestPath, neighbourhoodOf, pageRank, betweenness, sizeWeights, groupColors,
+  collapseLeaves, atDate, dateSpan, graphStats, toGraphML, toGraphJSON,
+} from '../../utils/graphAnalysis';
 import { useOpenEntity, useEntityForms } from './useOpenEntity';
 
 const ToolRunModal = lazy(() => import('../tools/ToolRunModal'));
 
 const ALL_TYPES = Object.fromEntries(NODE_TYPES.map((type) => [type, true]));
 const LINKABLE = ['person', 'business', 'crypto_wallet'];
+
+// Saves a text file the browser downloads.
+function download(text, name, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 const toolButton = 'p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40';
 const pressed = 'bg-accent-primary text-white hover:bg-accent-primary';
@@ -98,6 +122,23 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const [toolRun, setToolRun] = useState(null);
   const [placeAt, setPlaceAt] = useState(null);
   const pointerInside = useRef(false);
+  // Phase 3
+  const findRef = useRef(null);
+  const [findTerm, setFindTerm] = useState('');
+  const [findIndex, setFindIndex] = useState(-1);
+  const [pathEnds, setPathEnds] = useState(null); // { from, to } (to null while picking)
+  const [trail, setTrail] = useState([]); // focus steps: [{ id, hops }]
+  const [sizeBy, setSizeBy] = useState('connections');
+  const [groupBy, setGroupBy] = useState('none');
+  const [collapse, setCollapse] = useState(false);
+  const [unfolded, setUnfolded] = useState([]);
+  const [asOf, setAsOf] = useState(null);
+  const [showAsOf, setShowAsOf] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [graphProject, setGraphProject] = useState(null);
+  const [savedLayout, setSavedLayout] = useState({ saved: false, positions: null });
+  const [layoutState, setLayoutState] = useState({ busy: false, error: null });
+  const viewKey = focusId ? `focus:${focusId}` : 'project';
 
   // ── Data ──
   const include = includeFor(focusId ? ALL_TYPES : types, layers, solo).join(',');
@@ -110,9 +151,16 @@ export default function GraphView({ focus = null, variant = 'full' }) {
       ? { focus: focusId, depth }
       : { project_id: activeProjectId, include, identifiers: identifierMode };
     graphAPI.get(params)
+      // The caller's saved layout of this view comes with it.
       .then((data) => {
+        const projectId = data.meta?.project_id ?? activeProjectId;
+        return graphAPI.getLayout(projectId, viewKey).catch(() => null).then((saved) => ({ data, projectId, saved }));
+      })
+      .then(({ data, projectId, saved }) => {
         if (cancelled) return;
         setGraph({ nodes: data.nodes || [], edges: data.edges || [] });
+        setGraphProject(projectId);
+        setSavedLayout(saved?.saved ? saved : { saved: false, positions: null });
         setLoadedFor(`${focusId}|${depth}`);
         setLoading(false);
         // A "new … here" that was cancelled leaves nothing to place.
@@ -136,10 +184,17 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   });
   useEffect(() => afterForm(), [forms.open]);
 
-  // Ctrl/Cmd+Z undoes graph edits while the pointer is over this graph.
+  // Ctrl/Cmd+Z undoes graph edits while the pointer is over this graph; `/`
+  // goes to Find (over this graph, or anywhere on the Relationships page).
   const onKey = useEffectEvent((e) => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+    if (e.key === '/' && !typing && findRef.current && (pointerInside.current || (full && e.target === document.body))) {
+      e.preventDefault();
+      findRef.current.focus();
+      return;
+    }
     if (!pointerInside.current) return;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName)) return;
+    if (typing) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); edits.undo(); }
     if (e.key === 'Escape') { setMenu(null); setSelection(null); setMulti([]); canvasRef.current?.unselectAll(); }
   });
@@ -149,11 +204,15 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Cases: for the filters (full view) and to draw them as boxes.
+  const casesProject = graphProject || activeProjectId;
   const loadCases = useEffectEvent(() => {
-    if (!full || !activeProjectId) return;
-    casesAPI.getAll({ project_id: activeProjectId }).then((rows) => setCases(Array.isArray(rows) ? rows : [])).catch(() => {});
+    if (!(full || groupBy === 'case') || !casesProject) return;
+    casesAPI.getAll({ project_id: casesProject }).then((rows) => setCases(Array.isArray(rows) ? rows : [])).catch(() => {});
   });
-  useEffect(() => loadCases(), [activeProjectId]);
+  const casesAsBoxes = groupBy === 'case';
+  const settledBoxes = useRef(false); // boxes were drawn: settle again when they go
+  useEffect(() => loadCases(), [casesProject, casesAsBoxes]);
 
   // ── Theme → stylesheet ──
   const themeKey = `${theme?.id}|${darkMode}|${darkFlavour}`;
@@ -161,7 +220,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     if (rootRef.current) setGraphTheme(readGraphTheme(rootRef.current, { matrix: theme?.id === 'matrix' }));
   });
   useEffect(() => readTheme(), [themeKey]);
-  const stylesheet = buildStylesheet(graphTheme);
+
 
   // ── What's drawn ──
   const edgeLabel = (type) => {
@@ -172,16 +231,71 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const formatName = (node) => formatPersonName(node, node.label);
   // Memoised by the React Compiler: recomputed only when what they read changes.
   const combined = mergeGraphs(graph, extra);
-  const visible = filterGraph(combined, { types, filters, layers, solo, focusId, formatName, keep: edits.keep, hidden: edits.hidden });
-  const elements = toElements(visible, { formatName, focusId, edgeLabel });
-  const counts = countByType(visible.nodes);
+  const dated = atDate(combined, asOf);
+  const visible = filterGraph(dated, { types, filters, layers, solo, focusId, formatName, keep: edits.keep, hidden: edits.hidden });
+  const focusStep = trail[trail.length - 1];
+  const shown = focusStep && visible.nodes.some((n) => n.id === focusStep.id)
+    ? neighbourhoodOf(visible, focusStep.id, focusStep.hops) : visible;
+  const path = pathEnds?.to ? shortestPath(shown, pathEnds.from, pathEnds.to) : null;
+  // Typing stays quick on big graphs: matching follows a moment later.
+  const findDeferred = useDeferredValue(findTerm);
+  const matches = findMatches(shown.nodes, findDeferred, formatName);
+  const needBetween = sizeBy === 'betweenness' || showStats;
+  // The costly ones only when asked for (the compiler keeps them until `shown` changes).
+  const between = needBetween ? betweenness(shown) : null;
+  const pagerank = sizeBy === 'pagerank' ? pageRank(shown) : null;
+  const weights = sizeWeights(shown, sizeBy, { pagerank, between: between?.scores });
+  // Folding leaves never hides what's found, on the path, selected or kept.
+  // (Only worked out while folding: otherwise a selection would redraw.)
+  const folding = collapse ? collapseLeaves(shown, {
+    keep: new Set([
+      ...matches, ...(path?.nodes || []), ...multi, ...edits.keep,
+      ...(selection?.kind === 'node' ? [selection.data.id] : []), ...(focusId ? [focusId] : []),
+    ]),
+    unfolded: new Set(unfolded),
+  }) : null;
+  const drawn = folding ? folding.graph : shown;
+  const folded = folding ? folding.folded : null;
+  // A big graph doesn't fade the rest: that restyles thousands of elements.
+  const marks = {
+    match: new Set(matches),
+    path: new Set([...(path?.nodes || []), ...(path?.edges || [])]),
+    active: (matches.length > 0 || Boolean(path)) && drawn.nodes.length <= LARGE_GRAPH,
+  };
+  const elements = toElements(drawn, {
+    formatName, focusId, edgeLabel, weights, marks, folded,
+    groupColor: groupBy === 'component' ? groupColors(drawn) : null,
+    cases: groupBy === 'case' ? cases : null,
+  });
+  const counts = countByType(drawn.nodes);
+  const stylesheet = buildStylesheet(graphTheme, { transitions: drawn.nodes.length <= LARGE_GRAPH });
   const options = filterOptions(graph);
+  const stats = showStats ? graphStats(shown, { between: between?.scores }) : null;
+  const span = showAsOf ? dateSpan(combined) : null;
+
+  // Found or a path: bring it into view.
+  const matchKey = matches.join('|');
+  const pathKey = path ? path.nodes.join('|') : '';
+  const trailKey = trail.map((s) => `${s.id}/${s.hops}`).join('|');
+  const showFound = useEffectEvent(() => { if (matches.length) canvasRef.current?.fitTo(matches); });
+  useEffect(() => showFound(), [matchKey]);
+  const showPath = useEffectEvent(() => { if (path) canvasRef.current?.fitTo(path.nodes); });
+  useEffect(() => showPath(), [pathKey]);
+  const settle = useEffectEvent(() => { canvasRef.current?.settle(); });
+  // Boxes appear or go: the layout settles around them.
+  const boxCount = elements.filter((el) => el.classes === 'grp').length;
+  useEffect(() => { if (boxCount || settledBoxes.current) settle(); settledBoxes.current = boxCount > 0; }, [boxCount]);
+  const showFocus = useEffectEvent(() => { canvasRef.current?.fit(); });
+  useEffect(() => { if (trailKey) showFocus(); }, [trailKey]);
 
   // ── Actions ──
   // A new centre: hand edits and brought-in neighbours start over. (A new
   // project or dialog entity mounts a new GraphView: the section and the
   // dialogs key it.)
-  const startOver = () => { edits.reset(); setExtra({ nodes: [], edges: [] }); setSelection(null); setMulti([]); setMenu(null); };
+  const startOver = () => {
+    edits.reset(); setExtra({ nodes: [], edges: [] }); setSelection(null); setMulti([]); setMenu(null);
+    setTrail([]); setPathEnds(null); setUnfolded([]);
+  };
   const centreOn = (nodeId) => { startOver(); setCentre(nodeId); };
   const backToProject = () => { startOver(); setCentre(null); };
   const reload = () => setReloadKey((k) => k + 1);
@@ -206,7 +320,36 @@ export default function GraphView({ focus = null, variant = 'full' }) {
       .then(([person, tools]) => setToolRun({ person, tools: runnableTools(tools) }))
       .catch((err) => setError(err.message));
   };
-  const allIds = visible.nodes.map((n) => n.id);
+  const allIds = drawn.nodes.map((n) => n.id);
+  const changeFind = (term) => { setFindTerm(term); setFindIndex(-1); };
+  const stepFind = (dir) => {
+    if (!matches.length) return;
+    const i = findIndex < 0 ? (dir > 0 ? 0 : matches.length - 1) : (findIndex + dir + matches.length) % matches.length;
+    setFindIndex(i);
+    selectNode(matches[i]);
+    canvasRef.current?.centreOn(matches[i]);
+  };
+  const pickSelection = (sel) => {
+    // Picking the other end of a path.
+    if (pathEnds && !pathEnds.to && sel?.kind === 'node' && sel.data.id !== pathEnds.from) {
+      setPathEnds({ from: pathEnds.from, to: sel.data.id });
+    }
+    setSelection(sel);
+    setListMulti(false);
+  };
+  const saveLayout = () => {
+    setLayoutState({ busy: true, error: null });
+    const positions = canvasRef.current?.allPositions() || {};
+    graphAPI.saveLayout(graphProject, viewKey, positions)
+      .then((r) => { setSavedLayout({ saved: true, positions, updated_at: r.updated_at }); setLayoutState({ busy: false, error: null }); })
+      .catch((err) => setLayoutState({ busy: false, error: err.message }));
+  };
+  const forgetLayout = () => {
+    setLayoutState({ busy: true, error: null });
+    graphAPI.deleteLayout(graphProject, viewKey)
+      .then(() => { setSavedLayout({ saved: false, positions: null }); setLayoutState({ busy: false, error: null }); canvasRef.current?.relayout(); })
+      .catch((err) => setLayoutState({ busy: false, error: err.message }));
+  };
   const actions = {
     open: (n) => openEntity(n.type, n.entity_id),
     edit: (n) => n && forms.edit(n.type, n.entity_id),
@@ -233,15 +376,47 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     createAt: (type, model) => { setPlaceAt(model); forms.create(type); },
     connectionTypes,
     changed: () => { setSelection(null); reload(); },
+    // Phase 3
+    focus: (n, hops) => setTrail((tr) => [...tr.filter((s) => s.id !== n.id), { id: n.id, hops }]),
+    pathFrom: (n) => setPathEnds({ from: n.id, to: null }),
+    pathBetween: (a, b) => setPathEnds({ from: a, to: b }),
+    pathStart: pathEnds && !pathEnds.to ? pathEnds.from : null,
+    foldedCount: (id) => folded?.get(id)?.length || 0,
+    unfold: (id) => setUnfolded((u) => [...u, id]),
   };
-  const exportPng = () => {
-    const uri = canvasRef.current?.png();
-    if (!uri) return;
-    const a = document.createElement('a');
-    a.href = uri;
-    a.download = `ghost-graph-${new Date().toISOString().slice(0, 10)}.png`;
-    a.click();
+  const exportAs = (format) => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === 'png') {
+      const uri = canvasRef.current?.png();
+      if (!uri) return;
+      const a = document.createElement('a');
+      a.href = uri;
+      a.download = `ghost-graph-${stamp}.png`;
+      a.click();
+      return;
+    }
+    const positions = canvasRef.current?.allPositions() || {};
+    if (format === 'graphml') download(toGraphML(shown, { formatName, edgeLabel, positions }), `ghost-graph-${stamp}.graphml`, 'application/xml');
+    else download(toGraphJSON(shown, { formatName, positions, meta: { project_id: graphProject, view: viewKey, as_of: asOf } }), `ghost-graph-${stamp}.json`, 'application/json');
   };
+  const nameOf = (id) => { const n = combined.nodes.find((x) => x.id === id); return n ? formatName(n) || n.label : id; };
+  const panels = (
+    <div className="space-y-5">
+      {pathEnds && (
+        <PathPanel from={pathEnds.from} to={pathEnds.to} path={path} graph={combined} edgeLabel={edgeLabel} formatName={formatName}
+          colors={graphTheme} actions={actions} onClose={() => setPathEnds(null)} />
+      )}
+      {(selection || listMulti) && (
+        <Inspector selection={selection} graph={combined} multi={listMulti ? multi : []} edgeLabel={edgeLabel} formatName={formatName}
+          colors={graphTheme} actions={actions} onClose={() => { setSelection(null); setListMulti(false); }} />
+      )}
+      {stats && (
+        <StatsPanel stats={stats} approximate={between?.approximate} formatName={formatName} graph={combined}
+          colors={graphTheme} actions={actions} onClose={() => setShowStats(false)} />
+      )}
+    </div>
+  );
+  const hasPanels = Boolean(selection || listMulti || pathEnds || stats);
   const zoomIn = () => canvasRef.current?.zoomBy(1.3);
   const zoomOut = () => canvasRef.current?.zoomBy(1 / 1.3);
   const fit = () => canvasRef.current?.fit();
@@ -263,8 +438,10 @@ export default function GraphView({ focus = null, variant = 'full' }) {
           )}
           <span className="flex items-center gap-x-2 text-sm text-slate-600 dark:text-slate-300 me-auto" data-volatile>
             <Network className="w-4 h-4 text-accent-ink" />
-            {t('graph.summary', { nodes: visible.nodes.length, edges: visible.edges.length })}
+            {t('graph.summary', { nodes: drawn.nodes.length, edges: drawn.edges.length })}
+            {asOf && <span className="text-sky-700 dark:text-sky-300">· {t('graph.asOfShort', { date: formatDate(asOf) })}</span>}
           </span>
+          <FindBox inputRef={findRef} term={findTerm} onTerm={changeFind} count={matches.length} index={findIndex} onStep={stepFind} />
 
           {focusId && (
             <label className="flex items-center gap-x-1 text-sm text-slate-600 dark:text-slate-300">
@@ -274,7 +451,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
               </select>
             </label>
           )}
-          <select value={layout} onChange={(e) => setLayout(e.target.value)} className="py-1 text-sm" aria-label={t('graph.layout')}>
+          <select value={layout} onChange={(e) => setLayout(e.target.value)} className="py-1 text-sm w-auto" aria-label={t('graph.layout')}>
             {['force', 'hierarchical', 'concentric', 'circle', 'grid'].map((l) => <option key={l} value={l}>{t(`graph.layouts.${l}`)}</option>)}
           </select>
           <button type="button" className={toolButton} onClick={() => canvasRef.current?.relayout()} title={t('graph.relayout')} aria-label={t('graph.relayout')}><Shuffle className="w-4 h-4" /></button>
@@ -315,7 +492,26 @@ export default function GraphView({ focus = null, variant = 'full' }) {
             </button>
           )}
           <button type="button" className={toolButton} onClick={edits.undo} disabled={!edits.canUndo} title={t('graph.undoTitle')} aria-label={t('graph.undo')}><Undo2 className="w-4 h-4" /></button>
-          <button type="button" className={toolButton} onClick={exportPng} title={t('graph.exportPng')} aria-label={t('graph.exportPng')}><Download className="w-4 h-4" /></button>
+          <Popover icon={Settings2} label={t('graph.viewOptions')} active={sizeBy !== 'connections' || groupBy !== 'none' || collapse}>
+            <ViewOptions
+              sizeBy={sizeBy} onSizeBy={setSizeBy}
+              groupBy={groupBy} onGroupBy={setGroupBy} canGroupByCase
+              collapse={collapse} onCollapse={(on) => { setCollapse(on); setUnfolded([]); }}
+              layout={graphProject ? { ...savedLayout, ...layoutState } : null}
+              onSaveLayout={saveLayout} onForgetLayout={forgetLayout}
+            />
+          </Popover>
+          <button type="button" className={`${toolButton} ${showAsOf ? pressed : ''}`} aria-pressed={showAsOf}
+            onClick={() => { if (showAsOf) setAsOf(null); setShowAsOf(!showAsOf); }} title={t('graph.asOfTitle')} aria-label={t('graph.asOf')}>
+            <CalendarClock className="w-4 h-4" />
+          </button>
+          <button type="button" className={`${toolButton} ${showStats ? pressed : ''}`} aria-pressed={showStats}
+            onClick={() => setShowStats(!showStats)} title={t('graph.stats')} aria-label={t('graph.stats')}>
+            <ChartColumn className="w-4 h-4" />
+          </button>
+          <Popover icon={Download} label={t('graph.export')} className="w-72">
+            {(close) => <ExportOptions onExport={exportAs} close={close} />}
+          </Popover>
           <button type="button" className={toolButton} onClick={() => setReloadKey((k) => k + 1)} title={t('graph.refresh')} aria-label={t('graph.refresh')}><RefreshCw className="w-4 h-4" /></button>
           <button
             type="button"
@@ -348,6 +544,12 @@ export default function GraphView({ focus = null, variant = 'full' }) {
         <FilterPanel filters={filters} onChange={setFilters} cases={cases} options={options} edgeLabel={edgeLabel} />
       )}
 
+      {showAsOf && !compact && <AsOfBar span={span} date={asOf} onDate={setAsOf} onClose={() => { setAsOf(null); setShowAsOf(false); }} />}
+
+      {trail.length > 0 && !compact && (
+        <FocusTrail trail={trail} nameOf={nameOf} onGo={(i) => setTrail(trail.slice(0, i + 1))} onClear={() => setTrail([])} />
+      )}
+
       {connectMode && (
         <div className="px-3 py-1.5 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-b border-amber-200 dark:border-amber-900 shrink-0">
           {t('graph.connectHint')}
@@ -372,7 +574,8 @@ export default function GraphView({ focus = null, variant = 'full' }) {
           focusId={focusId}
           resetKey={loadedFor}
           canConnect={canConnect}
-          onSelect={(sel) => { setSelection(sel); setListMulti(false); }}
+          onSelect={pickSelection}
+          savedPositions={savedLayout.positions}
           onOpen={(node) => openEntity(node.type, node.entity_id)}
           onConnect={(a, b) => setConnecting({ source: a, target: b })}
           pinned={edits.pinned}
@@ -395,7 +598,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
             <div className="flex items-center gap-x-2 text-sm text-red-300"><AlertCircle className="w-5 h-5" />{error}</div>
           </div>
         )}
-        {!loading && !error && visible.nodes.length === 0 && (
+        {!loading && !error && drawn.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center p-6 text-sm text-white/60 text-center pointer-events-none">
             {graph.nodes.length ? t('graph.nothingMatches') : t('graph.empty')}
           </div>
@@ -417,14 +620,14 @@ export default function GraphView({ focus = null, variant = 'full' }) {
             onLayout={actions.layoutSelected}
             onList={() => { setSelection(null); setListMulti(true); }}
             onClear={() => { canvasRef.current?.unselectAll(); setMulti([]); }}
+            onPath={() => actions.pathBetween(multi[0], multi[1])}
           />
         )}
 
         {/* Dialogs and the dashboard: the inspector as a card on the canvas */}
-        {!full && (selection || listMulti) && (
+        {!full && hasPanels && (
           <div className="absolute top-3 start-3 z-20 w-80 max-w-[calc(100%-4.5rem)] max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur shadow-xl border border-slate-200 dark:border-slate-700 p-4">
-            <Inspector selection={selection} graph={combined} multi={listMulti ? multi : []} edgeLabel={edgeLabel} formatName={formatName}
-              colors={graphTheme} actions={actions} onClose={() => { setSelection(null); setListMulti(false); }} />
+            {panels}
           </div>
         )}
 
@@ -436,11 +639,10 @@ export default function GraphView({ focus = null, variant = 'full' }) {
       </div>
 
       {/* The full view: the inspector beside the canvas (a sheet over it on phones) */}
-      {full && (selection || listMulti) && (
+      {full && hasPanels && (
         <aside className="absolute md:static inset-x-0 bottom-0 z-20 max-h-[55%] md:max-h-none md:w-80 shrink-0 overflow-y-auto p-4 bg-white dark:bg-slate-800 border-t md:border-t-0 md:border-s border-slate-200 dark:border-slate-700 shadow-xl md:shadow-none"
           aria-label={t('graph.inspector')}>
-          <Inspector selection={selection} graph={combined} multi={listMulti ? multi : []} edgeLabel={edgeLabel} formatName={formatName}
-            colors={graphTheme} actions={actions} onClose={() => { setSelection(null); setListMulti(false); }} />
+          {panels}
         </aside>
       )}
       </div>

@@ -54,8 +54,11 @@ const LAYER_LINE = {
 // Types whose direction means something get an arrow.
 const DIRECTED = ['owner', 'owns_business', 'owns_property', 'board_member', 'employee', 'employer', 'holds', 'transaction'];
 
-export function buildStylesheet(theme = FALLBACK_THEME) {
+// `transitions: false` for big graphs: Cytoscape animates a style transition
+// element by element, which on thousands of elements takes seconds.
+export function buildStylesheet(theme = FALLBACK_THEME, { transitions = true } = {}) {
   const t = { ...FALLBACK_THEME, ...theme };
+  const fade = (props) => (transitions ? { 'transition-property': props, 'transition-duration': 150 } : {});
   const muted = (color) => mix(color, t.bg, 0.22); // fill: a dark tint of the type colour
   const styles = [
     {
@@ -83,8 +86,7 @@ export function buildStylesheet(theme = FALLBACK_THEME) {
         // theirs longest because their font is larger.
         'min-zoomed-font-size': 8,
         'overlay-opacity': 0,
-        'transition-property': 'opacity, border-width, border-color',
-        'transition-duration': 150,
+        ...fade('opacity, border-width, border-color'),
       },
     },
     // Mappings only where the data exists: connect mode adds bare helper nodes.
@@ -130,8 +132,7 @@ export function buildStylesheet(theme = FALLBACK_THEME) {
         'arrow-scale': 0.8,
         opacity: 0.85,
         'overlay-opacity': 0,
-        'transition-property': 'opacity, width',
-        'transition-duration': 150,
+        ...fade('opacity, width'),
       },
     },
   );
@@ -155,6 +156,24 @@ export function buildStylesheet(theme = FALLBACK_THEME) {
     // Hover: the node and its neighbours stay, the rest fades.
     { selector: '.faded', style: { opacity: 0.12, 'text-opacity': 0 } },
     { selector: 'node.hovered', style: { 'border-color': t.hover, 'border-width': 3 } },
+    // Phase 3. Colour by connected group: the outline takes the group's colour.
+    { selector: 'node[groupColor]', style: { 'border-color': 'data(groupColor)', 'border-width': 3 } },
+    // A case drawn as a box around its entities.
+    {
+      selector: 'node.grp',
+      style: {
+        shape: 'round-rectangle', 'background-color': t.text, 'background-opacity': 0.05, 'background-image': 'none',
+        'border-width': 1.5, 'border-style': 'dashed', 'border-color': mix(t.text, t.bg, 0.45),
+        'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -4, 'font-size': 12, 'font-weight': 600,
+        color: mix(t.text, t.bg, 0.8), padding: 18,
+      },
+    },
+    // Found, and the shortest path: the rest fades back.
+    { selector: '.dimmed', style: { opacity: 0.15, 'text-opacity': 0 } },
+    { selector: 'node.match', style: { 'border-color': t.selected, 'border-width': 5, 'z-index': 10 } },
+    { selector: 'node.on-path', style: { 'border-color': t.selected, 'border-width': 5, 'z-index': 10 } },
+    { selector: 'edge.on-path', style: { 'line-color': t.selected, 'target-arrow-color': t.selected, width: 4, opacity: 1, 'z-index': 10 } },
+    { selector: 'edge.on-path[typeLabel]', style: { label: 'data(typeLabel)', 'font-size': 10, color: t.text, 'text-rotation': 'autorotate', 'text-outline-color': t.bg, 'text-outline-width': 2 } },
     { selector: 'edge.highlighted', style: { opacity: 1, width: 3 } },
     { selector: 'edge.highlighted[typeLabel]', style: { label: 'data(typeLabel)', 'font-size': 10, color: t.text, 'text-rotation': 'autorotate', 'text-outline-color': t.bg, 'text-outline-width': 2 } },
     { selector: 'node:selected', style: { 'border-color': t.selected, 'border-width': 4 } },

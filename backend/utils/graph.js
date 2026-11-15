@@ -83,10 +83,13 @@ class GraphBuilder {
 
   // Same pair and type once: a business owner arrives both as the business's
   // owner_person_id and as the relationships row synced from it.
+  // Ids never depend on what else is in the graph (a numbered id shifted
+  // when a type was switched on, and the canvas, which updates links by id,
+  // kept the old ends: the One Ring lost its link to Frodo).
   addEdge(edge) {
     const key = `${edge.source}|${edge.target}|${edge.type}`;
     if (this.edges.has(key)) return;
-    this.edges.set(key, { id: edge.id || `e:${this.edges.size + 1}`, ...edge });
+    this.edges.set(key, { id: edge.id || `${edge.kind}:${key}`, ...edge });
   }
 }
 
@@ -317,6 +320,48 @@ function neighbourhood(graph, focusId, depth = 1) {
   };
 }
 
+// The shortest chain of links between two nodes, links taken either way
+// (graph plan, phase 3). Breadth-first, neighbours in edge order, so the
+// answer is stable; the graph view runs the same algorithm over what it
+// shows (frontend utils/graphAnalysis.js shortestPath: keep them the same).
+// → { nodes: [ids], edges: [ids] } from `from` to `to`, or null.
+function shortestPath(graph, from, to) {
+  const ids = new Set(graph.nodes.map((n) => n.id));
+  if (!ids.has(from) || !ids.has(to)) return null;
+  if (from === to) return { nodes: [from], edges: [] };
+  const adjacent = new Map();
+  const add = (a, b, edge) => {
+    if (!adjacent.has(a)) adjacent.set(a, []);
+    adjacent.get(a).push({ other: b, edge });
+  };
+  for (const e of graph.edges) {
+    if (!ids.has(e.source) || !ids.has(e.target)) continue;
+    add(e.source, e.target, e);
+    add(e.target, e.source, e);
+  }
+  const prev = new Map([[from, null]]);
+  let frontier = [from];
+  while (frontier.length && !prev.has(to)) {
+    const next = [];
+    for (const id of frontier) {
+      for (const { other, edge } of adjacent.get(id) || []) {
+        if (prev.has(other)) continue;
+        prev.set(other, { from: id, edge });
+        next.push(other);
+      }
+    }
+    frontier = next;
+  }
+  if (!prev.has(to)) return null;
+  const nodes = [to];
+  const edges = [];
+  for (let at = to; prev.get(at); at = prev.get(at).from) {
+    edges.unshift(prev.get(at).edge.id);
+    nodes.unshift(prev.get(at).from);
+  }
+  return { nodes, edges };
+}
+
 // The graph around one entity: its project with every type and identifier,
 // cut down to the neighbourhood. Degrees stay those of the whole project.
 async function buildFocusGraph(db, projectId, focusId, { visible = null, depth = 1 } = {}) {
@@ -328,5 +373,5 @@ async function buildFocusGraph(db, projectId, focusId, { visible = null, depth =
 
 module.exports = {
   ENTITY_TYPES, OPTIONAL_TYPES, TABLES, nodeId,
-  buildProjectGraph, buildFocusGraph, neighbourhood,
+  buildProjectGraph, buildFocusGraph, neighbourhood, shortestPath,
 };

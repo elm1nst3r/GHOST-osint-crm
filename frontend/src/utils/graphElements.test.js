@@ -167,5 +167,8 @@ describe('buildStylesheet', () => {
     const rules = buildStylesheet(FALLBACK_THEME);
     expect(rules.find((r) => r.selector === 'node.t-person').style['background-image']).toMatch(/^data:image\/svg\+xml;utf8,/);
     expect(buildStylesheet({ ...FALLBACK_THEME, matrix: true }).length).toBe(rules.length + 2);
+    // Big graphs: no transitions (Cytoscape animates them element by element).
+    expect(rules.find((r) => r.selector === 'node').style['transition-property']).toBeTruthy();
+    expect(buildStylesheet(FALLBACK_THEME, { transitions: false }).some((r) => 'transition-property' in r.style)).toBe(false);
   });
 });
