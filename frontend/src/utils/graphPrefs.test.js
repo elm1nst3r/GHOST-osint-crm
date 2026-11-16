@@ -20,7 +20,6 @@ describe('graph preferences', () => {
       sizeBy: 'pagerank',
       filters: { ...DEFAULT_PREFS.filters, searchTerm: 'Baggins', caseIds: [3], categories: ['Suspect'] },
       showFilters: true,
-      showPanel: false,
     });
     const p = readGraphPrefs(7);
     expect(p.types.identifier).toBe(false);
@@ -29,8 +28,6 @@ describe('graph preferences', () => {
     expect(p.sizeBy).toBe('pagerank');
     expect(p.filters).toMatchObject({ searchTerm: 'Baggins', caseIds: [], categories: ['Suspect'] });
     expect(p.showFilters).toBe(true);
-    expect(p.showPanel).toBe(false);
-    expect(cleanPrefs({}).showPanel).toBe(true);
     expect(readGraphPrefs(8)).toBe(DEFAULT_PREFS);
   });
 

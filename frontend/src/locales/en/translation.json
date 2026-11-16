@@ -3051,11 +3051,7 @@
     "showInGraph": "Show in graph",
     "openInNetwork": "Open in Entity Network",
     "hideFilters": "Hide filters",
-    "detailsPanel": "Details panel",
-    "showDetails": "Show the details panel",
-    "hideDetails": "Hide the details panel",
-    "panelEmptyTitle": "Nothing selected",
-    "panelEmptyText": "Click an entity or a link to see it here. Right-click for what you can do with it.",
+    "detailsPanel": "Details",
     "shortcuts": {
       "title": "Keyboard shortcuts",
       "open": "Keyboard shortcuts (?)",
@@ -3074,7 +3070,7 @@
         "zoom": "Zoom in, out",
         "relayout": "Lay out again",
         "filters": "Filters panel",
-        "details": "Details panel",
+        "details": "Fold the details in or out",
         "stats": "Statistics",
         "asOf": "As of a date",
         "hide": "Hide what is selected",
@@ -3097,6 +3093,9 @@
         "rightClick": "right-click",
         "doubleClick": "double-click"
       }
-    }
+    },
+    "collapseDetails": "Fold the details away",
+    "expandDetails": "Show the details",
+    "closeDetails": "Close (clears the selection)"
   }
 }

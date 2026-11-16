@@ -8,7 +8,7 @@ import { useEffect, useEffectEvent, useRef, useState, useTransition } from 'reac
 import { useTranslation } from 'react-i18next';
 import {
   X, ExternalLink, Crosshair, Pencil, Trash2, EyeOff, Eye, Pin, PinOff, Search, Link2, Expand,
-  LayoutGrid, List, Plus, Undo2, Scan, Route, Focus, UnfoldVertical, MousePointerClick, Keyboard,
+  LayoutGrid, List, Plus, Undo2, Scan, Route, Focus, UnfoldVertical,
 } from 'lucide-react';
 import { nodeLabel, linksOf, edgeEditable, edgeManagedBy } from '../../utils/graphElements';
 import { relationshipsAPI, transactionsAPI } from '../../utils/api';
@@ -27,7 +27,9 @@ const SHOWN_LINKS = 40;
 
 export function Inspector({ selection, graph, multi, edgeLabel, formatName, colors, actions, onClose }) {
   const { t } = useTranslation();
-  const close = (
+  // No close of its own when the panel around it has one (the only card in
+  // the Entity Network's details panel).
+  const close = onClose && (
     <button type="button" onClick={onClose} className="absolute top-2 end-2 p-1 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t('common.close')}>
       <X className="w-4 h-4" />
     </button>
@@ -516,22 +518,6 @@ export function StatsPanel({ stats, approximate, formatName, graph, colors, acti
       {list(t('graph.mostConnected'), stats.mostConnected, (v) => formatNumber(v))}
       {list(approximate ? t('graph.mostBetweenApprox') : t('graph.mostBetween'), stats.mostBetween, (v) => `${formatNumber(Math.round(v * 1000) / 10)} %`)}
       {list(t('graph.isolatedList', { count: stats.isolated.length }), stats.isolated.slice(0, 10).map((id) => ({ id })))}
-    </div>
-  );
-}
-
-// ── The details panel with nothing in it (phase 4) ───────────────────────────
-
-export function PanelEmpty({ onShortcuts }) {
-  const { t } = useTranslation();
-  return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-2 py-8">
-      <MousePointerClick className="w-8 h-8 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-      <h3 className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">{t('graph.panelEmptyTitle')}</h3>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem]">{t('graph.panelEmptyText')}</p>
-      <button type="button" onClick={onShortcuts} className="mt-4 inline-flex items-center gap-x-1.5 text-xs text-accent-ink hover:underline">
-        <Keyboard className="w-3.5 h-3.5" />{t('graph.shortcuts.open')}
-      </button>
     </div>
   );
 }

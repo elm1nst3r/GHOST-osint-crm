@@ -27,14 +27,14 @@ import { useSearchParams } from 'react-router';
 import {
   Network, Filter, RefreshCw, Maximize2, Minimize2, ZoomIn, ZoomOut, Scan, Link2, Download,
   Loader2, AlertCircle, ArrowLeft, Shuffle, SlidersHorizontal, Undo2, Eye, Settings2, CalendarClock, ChartColumn,
-  PanelRightClose, PanelRightOpen, Keyboard, SquareArrowOutUpRight,
+  PanelRightClose, PanelRightOpen, Keyboard, SquareArrowOutUpRight, X, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import GraphCanvas from './GraphCanvas';
 import {
   Legend, FilterPanel, ConnectDialog, TypeSwitches, LayerSwitches,
   FindBox, Popover, ViewOptions, ExportOptions, AsOfBar, FocusTrail, ShortcutsDialog,
 } from './GraphPanels';
-import { Inspector, ContextMenu, SelectionBar, PathPanel, StatsPanel, PanelEmpty } from './GraphActions';
+import { Inspector, ContextMenu, SelectionBar, PathPanel, StatsPanel } from './GraphActions';
 import { useShowInGraph, FOCUS_RE } from '../../utils/useShowInGraph';
 import { useWide } from '../../utils/useWide';
 import { useGraphEdits } from './useGraphEdits';
@@ -156,7 +156,9 @@ export default function GraphView({ focus = null, variant = 'full', title = null
   const [sizeBy, setSizeBy] = useState(remembered.sizeBy);
   const [groupBy, setGroupBy] = useState(remembered.groupBy);
   const [collapse, setCollapse] = useState(remembered.collapse);
-  const [showPanel, setShowPanel] = useState(remembered.showPanel);
+  // The details panel folded down to a strip; anything newly selected
+  // unfolds it again.
+  const [panelFolded, setPanelFolded] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [unfolded, setUnfolded] = useState([]);
   const [asOf, setAsOf] = useState(null);
@@ -170,8 +172,8 @@ export default function GraphView({ focus = null, variant = 'full', title = null
   const saveScope = full ? currentUser?.id : undefined;
   useEffect(() => {
     if (saveScope === undefined) return;
-    writeGraphPrefs(saveScope, { types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters, showPanel });
-  }, [saveScope, types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters, showPanel]);
+    writeGraphPrefs(saveScope, { types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters });
+  }, [saveScope, types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters]);
 
   // ── Data ──
   const include = includeFor(focusId ? ALL_TYPES : types, layers, solo).join(',');
@@ -443,7 +445,7 @@ export default function GraphView({ focus = null, variant = 'full', title = null
       '-': () => canvasRef.current?.zoomBy(1 / 1.3),
       l: () => canvasRef.current?.relayout(),
       f: () => full && setShowFilters((v) => !v),
-      d: () => full && setShowPanel((v) => !v),
+      d: () => full && (selection || listMulti || pathEnds || showStats) && setPanelFolded((v) => !v),
       s: () => setShowStats((v) => !v),
       t: () => { if (showAsOf) setAsOf(null); setShowAsOf(!showAsOf); },
       c: () => setConnectMode((v) => !v),
@@ -470,7 +472,8 @@ export default function GraphView({ focus = null, variant = 'full', title = null
       )}
       {(selection || listMulti) && (
         <Inspector selection={selection} graph={combined} multi={listMulti ? multi : []} edgeLabel={edgeLabel} formatName={formatName}
-          colors={graphTheme} actions={actions} onClose={() => { setSelection(null); setListMulti(false); }} />
+          colors={graphTheme} actions={actions}
+          onClose={full && !pathEnds && !stats ? null : () => { setSelection(null); setListMulti(false); }} />
       )}
       {stats && (
         <StatsPanel stats={stats} approximate={between?.approximate} formatName={formatName} graph={combined}
@@ -479,6 +482,18 @@ export default function GraphView({ focus = null, variant = 'full', title = null
     </div>
   );
   const hasPanels = Boolean(selection || listMulti || pathEnds || stats);
+  // Something new to show (a click, a path, statistics): the panel unfolds.
+  const panelContent = [selection?.kind, selection?.data?.id, listMulti && multi.join(), pathEnds?.from, pathEnds?.to, showStats].join('|');
+  const [seenContent, setSeenContent] = useState(panelContent);
+  if (panelContent !== seenContent) {
+    setSeenContent(panelContent);
+    if (panelFolded) setPanelFolded(false);
+  }
+  // Close: the panel goes, and with it what it was showing.
+  const closePanels = () => {
+    setSelection(null); setListMulti(false); setPathEnds(null); setShowStats(false); setPanelFolded(false);
+    canvasRef.current?.unselectAll();
+  };
   const sideFilters = full && showFilters && wide;
   const zoomIn = () => canvasRef.current?.zoomBy(1.3);
   const zoomOut = () => canvasRef.current?.zoomBy(1 / 1.3);
@@ -567,12 +582,6 @@ export default function GraphView({ focus = null, variant = 'full', title = null
               onClick={() => setShowStats(!showStats)} title={t('graph.stats')} aria-label={t('graph.stats')}>
               <ChartColumn className="w-4 h-4" />
             </button>
-            {full && (
-              <button type="button" className={`${ui.icon} hidden md:inline-flex ${showPanel ? ui.pressed : ''}`} aria-pressed={showPanel}
-                onClick={() => setShowPanel(!showPanel)} title={showPanel ? t('graph.hideDetails') : t('graph.showDetails')} aria-label={t('graph.detailsPanel')}>
-                {showPanel ? <PanelRightClose className="w-4 h-4 rtl:-scale-x-100" /> : <PanelRightOpen className="w-4 h-4 rtl:-scale-x-100" />}
-              </button>
-            )}
           </div>
           <span className={ui.divider} aria-hidden="true" />
 
@@ -751,13 +760,63 @@ export default function GraphView({ focus = null, variant = 'full', title = null
         {!compact && <Legend counts={counts} colors={graphTheme} layers={layers} solo={solo} />}
       </div>
 
-      {/* The full view: the inspector beside the canvas (a sheet over it on phones) */}
-      {full && (wide ? showPanel : hasPanels) && (
-        <aside className="absolute md:static inset-x-0 bottom-0 z-20 max-h-[55%] md:max-h-none md:w-80 shrink-0 overflow-y-auto p-4 bg-white dark:bg-slate-800 border-t md:border-t-0 md:border-s border-slate-200 dark:border-slate-700 shadow-xl md:shadow-none"
-          aria-label={t('graph.inspector')}>
-          {hasPanels ? panels : <PanelEmpty onShortcuts={() => setShowShortcuts(true)} />}
+      {/* The full view: details beside the canvas (a sheet over it on
+          phones). It slides in when something is selected, folds to a strip
+          (the selection stays), and closes with what it showed. */}
+      {full && wide && (
+        <aside
+          aria-label={t('graph.inspector')}
+          aria-hidden={!hasPanels}
+          className={`shrink-0 overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 transition-[width] duration-200 ease-out ${
+            !hasPanels ? 'w-0' : panelFolded ? 'w-11 border-s' : 'w-80 border-s'}`}
+        >
+          {hasPanels && (panelFolded ? (
+            <div className="h-full flex flex-col items-center py-2">
+              <button type="button" onClick={() => setPanelFolded(false)} className={ui.icon}
+                title={t('graph.expandDetails')} aria-label={t('graph.expandDetails')} aria-expanded="false">
+                <PanelRightOpen className="w-4 h-4 rtl:-scale-x-100" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-80 h-full flex flex-col">
+              <div className="flex items-center gap-x-1 px-4 h-11 shrink-0 border-b border-slate-200 dark:border-slate-700">
+                <span className={`${ui.rowLabel} me-auto`}>{t('graph.detailsPanel')}</span>
+                <button type="button" onClick={() => setPanelFolded(true)} className={`${ui.icon} h-7 w-7`}
+                  title={t('graph.collapseDetails')} aria-label={t('graph.collapseDetails')} aria-expanded="true">
+                  <PanelRightClose className="w-4 h-4 rtl:-scale-x-100" />
+                </button>
+                <button type="button" onClick={closePanels} className={`${ui.icon} h-7 w-7 -me-1.5`}
+                  title={t('graph.closeDetails')} aria-label={t('graph.closeDetails')}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4">{panels}</div>
+            </div>
+          ))}
         </aside>
       )}
+      {full && !wide && hasPanels && (panelFolded ? (
+        <button type="button" onClick={() => setPanelFolded(false)}
+          className="absolute bottom-3 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 z-20 inline-flex items-center gap-x-1.5 h-9 px-4 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200">
+          <ChevronUp className="w-4 h-4" />{t('graph.expandDetails')}
+        </button>
+      ) : (
+        <aside className="absolute inset-x-0 bottom-0 z-20 max-h-[55%] flex flex-col bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-xl"
+          aria-label={t('graph.inspector')}>
+          <div className="flex items-center gap-x-1 px-4 h-11 shrink-0 border-b border-slate-200 dark:border-slate-700">
+            <span className={`${ui.rowLabel} me-auto`}>{t('graph.detailsPanel')}</span>
+            <button type="button" onClick={() => setPanelFolded(true)} className={`${ui.icon} h-7 w-7`}
+              title={t('graph.collapseDetails')} aria-label={t('graph.collapseDetails')}>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={closePanels} className={`${ui.icon} h-7 w-7 -me-1.5`}
+              title={t('graph.closeDetails')} aria-label={t('graph.closeDetails')}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-4">{panels}</div>
+        </aside>
+      ))}
       </div>
 
       {connecting && (
