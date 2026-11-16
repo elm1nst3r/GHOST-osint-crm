@@ -1964,11 +1964,6 @@
     "themeAccent": "Акцент {{name}}",
     "themeAccentShort": "Тема"
   },
-  "darkModeToggle": {
-    "switchToLight": "Переключиться в светлый режим",
-    "switchToDark": "Переключиться в темный режим",
-    "darkOnly": "{{name}} только темный"
-  },
   "projectSelector": {
     "title": "Активные проекты",
     "noneSelected": "Нет выбранных проектов",

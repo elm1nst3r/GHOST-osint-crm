@@ -44,3 +44,13 @@ export function writeCollapsedGroups(list) {
 }
 
 export const itemsShown = (items, collapsed, activeId) => (collapsed ? items.filter((id) => id === activeId) : items);
+
+// ── Narrow sidebar ───────────────────────────────────────────────────────────
+// The sidebar folded down to its icons (desktop only), per browser.
+const RAIL_KEY = 'ghost-nav-rail';
+export function readNavRail() {
+  try { return localStorage.getItem(RAIL_KEY) === '1'; } catch { return false; }
+}
+export function writeNavRail(on) {
+  try { localStorage.setItem(RAIL_KEY, on ? '1' : '0'); } catch { /* private mode */ }
+}

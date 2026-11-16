@@ -8,19 +8,14 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, RotateCcw, ChevronUp, ChevronDown, X, ChevronRight } from 'lucide-react';
 import { formatDate } from '../../utils/format';
+import { ui } from './graphUi';
 import { EDGE_LAYERS, typesInLayer } from '../../utils/edgeLayers';
 import { NODE_TYPES, EMPTY_FILTERS, nodeLabel } from '../../utils/graphElements';
 import { relationshipsAPI } from '../../utils/api';
 import { optionLabel } from '../../utils/optionLabels';
 
-const chip = (on) => `px-2 py-0.5 rounded-full border text-xs flex items-center gap-x-1.5 transition ${
-  on
-    ? 'border-accent-primary/60 bg-accent-primary/10 text-slate-800 dark:text-slate-100'
-    : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'
-}`;
-
 const Dot = ({ color, square = false }) => (
-  <span className={`inline-block w-2.5 h-2.5 ${square ? 'rounded-sm' : 'rounded-full'}`} style={{ background: color }} />
+  <span className={`inline-block w-2.5 h-2.5 shrink-0 ${square ? 'rounded-sm' : 'rounded-full'}`} style={{ background: color }} />
 );
 
 export function TypeSwitches({ types, onChange, counts, colors, identifierMode, onIdentifierMode }) {
@@ -33,18 +28,18 @@ export function TypeSwitches({ types, onChange, counts, colors, identifierMode, 
           type="button"
           aria-pressed={types[type] !== false}
           onClick={() => onChange({ ...types, [type]: types[type] === false })}
-          className={chip(types[type] !== false)}
+          className={ui.chip(types[type] !== false)}
         >
           <Dot color={colors[type]} square={type !== 'person'} />
           {t(`graph.types.${type}`)}
-          {types[type] !== false && counts[type] > 0 && <span className="tabular-nums opacity-70">{counts[type]}</span>}
+          {types[type] !== false && counts[type] > 0 && <span className="tabular-nums opacity-60">{counts[type]}</span>}
         </button>
       ))}
       {identifierMode && types.identifier !== false && (
         <select
           value={identifierMode}
           onChange={(e) => onIdentifierMode(e.target.value)}
-          className="py-0.5 text-xs"
+          className={ui.selectSmall}
           aria-label={t('graph.identifierModeLabel')}
         >
           <option value="shared">{t('graph.identifiersShared')}</option>
@@ -55,34 +50,42 @@ export function TypeSwitches({ types, onChange, counts, colors, identifierMode, 
   );
 }
 
+// Each kind of link: a chip that switches it on or off, and "only" to show
+// just that kind ("all" undoes it).
 export function LayerSwitches({ layers, onChange, solo, onSolo, colors }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1" role="group" aria-label={t('graph.layersLabel')}>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('graph.layersLabel')}>
       {EDGE_LAYERS.map((layer) => {
         const soloed = solo === layer;
+        const on = solo ? soloed : layers[layer] !== false;
         const sample = colors[typesInLayer(layer)[0]] || colors.other;
+        const name = t(`graph.layers.${layer}`);
         return (
-          <span key={layer} className="flex items-center gap-x-1">
-            <label className={`flex items-center gap-x-1 cursor-pointer text-slate-700 dark:text-slate-300 ${solo && !soloed ? 'opacity-40' : ''}`}>
-              <input
-                type="checkbox"
-                checked={layers[layer] !== false}
-                disabled={!!solo}
-                onChange={(e) => onChange({ ...layers, [layer]: e.target.checked })}
-                className="h-3 w-3"
-              />
-              <span className="inline-block w-3 h-0.5" style={{ background: sample }} />
-              {t(`graph.layers.${layer}`)}
-            </label>
+          <span key={layer} className={`inline-flex items-stretch h-7 rounded-full border text-xs overflow-hidden transition-colors ${
+            on ? 'border-accent-primary/50 bg-accent-primary/10' : 'border-slate-300 dark:border-slate-600'}`}>
+            <button
+              type="button"
+              aria-pressed={on}
+              disabled={Boolean(solo)}
+              onClick={() => onChange({ ...layers, [layer]: layers[layer] === false })}
+              className={`inline-flex items-center gap-x-1.5 ps-2.5 pe-2 focus-visible:outline-hidden focus-visible:bg-accent-primary/15 ${
+                on ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'} disabled:cursor-default`}
+            >
+              <span className="inline-block w-3 h-0.5 rounded-full" style={{ background: sample }} />
+              {name}
+            </button>
             <button
               type="button"
               onClick={() => onSolo(soloed ? null : layer)}
-              title={t('graph.soloLayerTitle')}
               aria-pressed={soloed}
-              className={`px-1 rounded border text-[10px] leading-4 ${soloed ? 'bg-accent-primary text-white border-accent-primary' : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'}`}
+              title={soloed ? t('graph.soloOffTitle') : t('graph.soloLayerTitle')}
+              aria-label={soloed ? t('graph.soloOffTitle') : `${t('graph.soloLayerTitle')}: ${name}`}
+              className={`px-2 border-s text-[11px] focus-visible:outline-hidden focus-visible:bg-accent-primary/15 ${
+                on ? 'border-accent-primary/30' : 'border-slate-300 dark:border-slate-600'} ${
+                soloed ? 'bg-accent-primary text-white' : 'text-slate-400 dark:text-slate-500 hover:text-accent-ink hover:bg-accent-primary/10'}`}
             >
-              {t('graph.soloLayerShort')}
+              {soloed ? t('graph.soloOff') : t('graph.soloLayerShort')}
             </button>
           </span>
         );
@@ -96,10 +99,10 @@ function ChipList({ label, values, selected, onChange, render = (v) => v }) {
   const toggle = (v) => onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
   return (
     <div>
-      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{label}</div>
-      <div className="flex flex-wrap gap-1">
+      <div className={ui.label}>{label}</div>
+      <div className="flex flex-wrap gap-1.5">
         {values.map((v) => (
-          <button key={v} type="button" aria-pressed={selected.includes(v)} onClick={() => toggle(v)} className={chip(selected.includes(v))}>
+          <button key={v} type="button" aria-pressed={selected.includes(v)} onClick={() => toggle(v)} className={ui.chip(selected.includes(v))}>
             {render(v)}
           </button>
         ))}
@@ -112,33 +115,37 @@ export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
   const { t } = useTranslation();
   const set = (patch) => onChange({ ...filters, ...patch });
   return (
-    <div className="px-3 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 max-h-[40%] overflow-y-auto shrink-0">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" htmlFor="graph-search">{t('graph.search')}</label>
+    <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 max-h-[40%] overflow-y-auto shrink-0">
+      {/* Fields on one line, the lists of values in even columns under it. */}
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+        <div className="w-full sm:w-64">
+          <label className={ui.label} htmlFor="graph-search">{t('graph.search')}</label>
           <div className="relative">
-            <Search className="absolute start-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input id="graph-search" type="search" value={filters.searchTerm} onChange={(e) => set({ searchTerm: e.target.value })}
-              placeholder={t('graph.searchPlaceholder')} className="input-base ps-7 py-1 text-sm" />
+              placeholder={t('graph.searchPlaceholder')} className={`${ui.input} w-full ps-8`} />
           </div>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-xs text-slate-600 dark:text-slate-400">
-            <span className="block font-medium mb-1">{t('graph.minConnections')}</span>
-            <input type="number" min="0" value={filters.minConnections}
-              onChange={(e) => set({ minConnections: Math.max(0, parseInt(e.target.value, 10) || 0) })} className="w-20 py-1 text-sm" />
-          </label>
-          <label className="text-xs text-slate-600 dark:text-slate-400">
-            <span className="block font-medium mb-1">{t('graph.updated')}</span>
-            <select value={filters.dateRange} onChange={(e) => set({ dateRange: e.target.value })} className="py-1 text-sm">
-              {['all', 'week', 'month', 'year'].map((r) => <option key={r} value={r}>{t(`graph.dateRange.${r}`)}</option>)}
-            </select>
-          </label>
-          <label className="flex items-center gap-x-1.5 text-xs text-slate-600 dark:text-slate-400 pb-1.5">
-            <input type="checkbox" checked={filters.showIsolated} onChange={(e) => set({ showIsolated: e.target.checked })} />
-            {t('graph.showIsolated')}
-          </label>
+        <div>
+          <label className={ui.label} htmlFor="graph-min-links">{t('graph.minConnections')}</label>
+          <input id="graph-min-links" type="number" min="0" value={filters.minConnections}
+            onChange={(e) => set({ minConnections: Math.max(0, parseInt(e.target.value, 10) || 0) })} className={`${ui.input} w-24`} />
         </div>
+        <div>
+          <label className={ui.label} htmlFor="graph-updated">{t('graph.updated')}</label>
+          <select id="graph-updated" value={filters.dateRange} onChange={(e) => set({ dateRange: e.target.value })} className={ui.select}>
+            {['all', 'week', 'month', 'year'].map((r) => <option key={r} value={r}>{t(`graph.dateRange.${r}`)}</option>)}
+          </select>
+        </div>
+        <label className="flex items-center gap-x-2 h-8 text-sm text-slate-700 dark:text-slate-300">
+          <input type="checkbox" checked={filters.showIsolated} onChange={(e) => set({ showIsolated: e.target.checked })} />
+          {t('graph.showIsolated')}
+        </label>
+        <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className={`${ui.button} ms-auto`}>
+          <RotateCcw className="w-3.5 h-3.5" />{t('graph.resetFilters')}
+        </button>
+      </div>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 items-start gap-4">
         <ChipList label={t('graph.cases')} values={cases.map((c) => c.id)} selected={filters.caseIds}
           onChange={(caseIds) => set({ caseIds })} render={(id) => cases.find((c) => c.id === id)?.case_name || id} />
         <ChipList label={t('graph.categories')} values={options.categories} selected={filters.categories} onChange={(categories) => set({ categories })} />
@@ -146,9 +153,6 @@ export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
         <ChipList label={t('graph.connectionTypes')} values={options.connectionTypes} selected={filters.connectionTypes}
           onChange={(connectionTypes) => set({ connectionTypes })} render={edgeLabel} />
       </div>
-      <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className="btn btn-ghost px-2.5 py-1.5 text-xs mt-2 flex items-center gap-x-1">
-        <RotateCcw className="w-3.5 h-3.5" />{t('graph.resetFilters')}
-      </button>
     </div>
   );
 }
@@ -235,10 +239,10 @@ export function FindBox({ inputRef, term, onTerm, count, index, onStep }) {
     if (e.key === 'Enter') { e.preventDefault(); onStep(e.shiftKey ? -1 : 1); }
     if (e.key === 'Escape') { e.preventDefault(); onTerm(''); e.currentTarget.blur(); }
   };
-  const step = 'p-0.5 rounded-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 disabled:opacity-40';
+  const step = 'inline-flex items-center justify-center h-6 w-6 rounded-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40';
   return (
     <div className="relative flex items-center">
-      <Search className="absolute start-2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+      <Search className="absolute start-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
       <input
         ref={inputRef}
         type="search"
@@ -248,10 +252,10 @@ export function FindBox({ inputRef, term, onTerm, count, index, onStep }) {
         placeholder={t('graph.findPlaceholder')}
         aria-label={t('graph.find')}
         title={t('graph.findTitle')}
-        className="input-base ps-7 pe-2 py-1 text-sm w-36 sm:w-44"
+        className={`${ui.input} ps-8 w-40 sm:w-48`}
       />
       {term.trim() && (
-        <span className="flex items-center gap-x-0.5 ms-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums" aria-live="polite">
+        <span className="flex items-center gap-x-0.5 ms-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums whitespace-nowrap" aria-live="polite">
           {!count ? t('graph.findNone') : index < 0 ? t('graph.findCount', { count }) : t('graph.findPosition', { index: index + 1, count })}
           <button type="button" className={step} disabled={!count} onClick={() => onStep(-1)} aria-label={t('graph.findPrevious')}><ChevronUp className="w-3.5 h-3.5" /></button>
           <button type="button" className={step} disabled={!count} onClick={() => onStep(1)} aria-label={t('graph.findNext')}><ChevronDown className="w-3.5 h-3.5" /></button>
@@ -281,12 +285,12 @@ export function Popover({ icon: Icon, label, active = false, children, className
         aria-expanded={open}
         aria-label={label}
         title={label}
-        className={`p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 ${active ? 'text-accent-ink' : ''}`}
+        className={`${ui.icon} ${active || open ? ui.pressed : ''}`}
       >
         <Icon className="w-4 h-4" />
       </button>
       {open && (
-        <div className={`absolute end-0 top-full mt-1 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 p-3 text-sm ${className}`}
+        <div className={`absolute end-0 top-full mt-2 z-40 w-72 max-w-[calc(100vw-2rem)] rounded-(--radius-card) bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 p-4 text-sm ${className}`}
           role="dialog" aria-label={label}>
           {typeof children === 'function' ? children(() => setOpen(false)) : children}
         </div>
@@ -301,19 +305,19 @@ const GROUP_BY = ['none', 'case', 'component'];
 // How the graph is drawn: node size, groups, folding, the saved layout.
 export function ViewOptions({ sizeBy, onSizeBy, groupBy, onGroupBy, canGroupByCase, collapse, onCollapse, layout, onSaveLayout, onForgetLayout }) {
   const { t } = useTranslation();
-  const label = 'block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1';
+  const label = ui.label;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <label className={label} htmlFor="graph-size-by">{t('graph.sizeBy')}</label>
-        <select id="graph-size-by" value={sizeBy} onChange={(e) => onSizeBy(e.target.value)} className="input-base py-1 text-sm">
+        <select id="graph-size-by" value={sizeBy} onChange={(e) => onSizeBy(e.target.value)} className={`${ui.select} w-full`}>
           {SIZE_BY.map((v) => <option key={v} value={v}>{t(`graph.sizeByOptions.${v}`)}</option>)}
         </select>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(`graph.sizeByHelp.${sizeBy}`)}</p>
       </div>
       <div>
         <label className={label} htmlFor="graph-group-by">{t('graph.groupBy')}</label>
-        <select id="graph-group-by" value={groupBy} onChange={(e) => onGroupBy(e.target.value)} className="input-base py-1 text-sm">
+        <select id="graph-group-by" value={groupBy} onChange={(e) => onGroupBy(e.target.value)} className={`${ui.select} w-full`}>
           {GROUP_BY.filter((v) => v !== 'case' || canGroupByCase).map((v) => <option key={v} value={v}>{t(`graph.groupByOptions.${v}`)}</option>)}
         </select>
       </div>
@@ -322,15 +326,15 @@ export function ViewOptions({ sizeBy, onSizeBy, groupBy, onGroupBy, canGroupByCa
         <span>{t('graph.collapseLeaves')}<span className="block text-xs text-slate-500 dark:text-slate-400">{t('graph.collapseLeavesHelp')}</span></span>
       </label>
       {layout && (
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
           <div className={label}>{t('graph.savedLayout')}</div>
           <p className="text-xs text-slate-500 dark:text-slate-400" data-volatile>
             {layout.saved ? t('graph.savedLayoutOn', { date: formatDate(layout.updated_at) }) : t('graph.savedLayoutOff')}
           </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <button type="button" onClick={onSaveLayout} disabled={layout.busy} className="btn btn-secondary px-2.5 py-1.5 text-xs">{t('graph.saveLayout')}</button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={onSaveLayout} disabled={layout.busy} className="btn btn-secondary h-8 px-3 py-0 text-xs">{t('graph.saveLayout')}</button>
             {layout.saved && (
-              <button type="button" onClick={onForgetLayout} disabled={layout.busy} className="btn btn-ghost px-2.5 py-1.5 text-xs">{t('graph.resetLayout')}</button>
+              <button type="button" onClick={onForgetLayout} disabled={layout.busy} className="btn btn-ghost h-8 px-3 py-0 text-xs">{t('graph.resetLayout')}</button>
             )}
           </div>
           {layout.error && <p className="mt-1 text-xs text-red-600 dark:text-red-400" role="alert">{layout.error}</p>}
@@ -343,7 +347,7 @@ export function ViewOptions({ sizeBy, onSizeBy, groupBy, onGroupBy, canGroupByCa
 export function ExportOptions({ onExport, close }) {
   const { t } = useTranslation();
   return (
-    <div className="space-y-0.5 -m-1.5">
+    <div className="space-y-0.5 -m-2">
       {['png', 'graphml', 'json'].map((format) => (
         <button key={format} type="button" onClick={() => { close(); onExport(format); }}
           className="w-full px-2 py-1.5 rounded-md text-start hover:bg-slate-100 dark:hover:bg-slate-700">
@@ -367,8 +371,8 @@ export function AsOfBar({ span, date, onDate, onClose }) {
   const max = Math.max(toDay(today), min);
   const value = date ? toDay(date) : max;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 bg-sky-50 dark:bg-sky-950/30 text-xs shrink-0">
-      <label htmlFor="graph-as-of" className="font-medium text-slate-700 dark:text-slate-300">{t('graph.asOf')}</label>
+    <div className={`${ui.row} bg-sky-50 dark:bg-sky-950/30 text-xs`}>
+      <label htmlFor="graph-as-of" className={ui.rowLabel}>{t('graph.asOf')}</label>
       <input
         id="graph-as-of"
         type="range"
@@ -383,7 +387,7 @@ export function AsOfBar({ span, date, onDate, onClose }) {
       <span className="tabular-nums font-medium text-slate-800 dark:text-slate-200 min-w-[6rem]" data-volatile>{date ? formatDate(date) : t('graph.asOfNow')}</span>
       {date && <button type="button" onClick={() => onDate(null)} className="text-accent-ink hover:underline">{t('graph.asOfReset')}</button>}
       <span className="text-slate-500 dark:text-slate-400 hidden lg:inline">{t('graph.asOfHelp')}</span>
-      <button type="button" onClick={onClose} className="ms-auto p-1 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t('common.close')}><X className="w-3.5 h-3.5" /></button>
+      <button type="button" onClick={onClose} className={`${ui.icon} ms-auto h-7 w-7`} aria-label={t('common.close')}><X className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
@@ -392,7 +396,7 @@ export function AsOfBar({ span, date, onDate, onClose }) {
 export function FocusTrail({ trail, nameOf, onGo, onClear }) {
   const { t } = useTranslation();
   return (
-    <nav className="flex flex-wrap items-center gap-x-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs shrink-0" aria-label={t('graph.focusTrail')}>
+    <nav className={`${ui.row} gap-x-1 bg-slate-50 dark:bg-slate-900/60 text-xs`} aria-label={t('graph.focusTrail')}>
       <button type="button" onClick={onClear} className="text-accent-ink hover:underline">{t('graph.focusAll')}</button>
       {trail.map((step, i) => (
         <span key={`${step.id}-${i}`} className="flex items-center gap-x-1">

@@ -31,7 +31,9 @@
       "analysis": "Analysis",
       "sources": "Sources"
     },
-    "logoutAs": "Log out ({{name}})"
+    "logoutAs": "Log out ({{name}})",
+    "collapseSidebar": "Collapse the menu",
+    "expandSidebar": "Expand the menu"
   },
   "common": {
     "loading": "Loading...",
@@ -1832,11 +1834,6 @@
     "themeAccent": "The accent of {{name}}",
     "themeAccentShort": "Theme"
   },
-  "darkModeToggle": {
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode",
-    "darkOnly": "{{name}} is dark only"
-  },
   "projectSelector": {
     "title": "Active project",
     "noneSelected": "No project selected",
@@ -2830,7 +2827,7 @@
     "layouts": {
       "force": "Force",
       "hierarchical": "Hierarchy",
-      "concentric": "Most connected in the middle",
+      "concentric": "Rings",
       "circle": "Circle",
       "grid": "Grid"
     },
@@ -2878,8 +2875,8 @@
       "digital": "Identifiers and networks",
       "other": "Other"
     },
-    "soloLayerShort": "S",
-    "soloLayerTitle": "Show only this kind",
+    "soloLayerShort": "only",
+    "soloLayerTitle": "Show only this kind of link",
     "edgeType": {
       "owner": "Owner",
       "owns_business": "Owns business",
@@ -3045,6 +3042,10 @@
       "png": "The whole graph as an image.",
       "graphml": "For Gephi, yEd or Cytoscape Desktop, with positions.",
       "json": "GHOST's own format: entities, links and positions."
-    }
+    },
+    "soloOff": "all",
+    "soloOffTitle": "Show every kind of link again",
+    "showRow": "Show",
+    "linksRow": "Links"
   }
 }

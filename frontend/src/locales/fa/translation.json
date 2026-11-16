@@ -1964,11 +1964,6 @@
     "themeAccent": "The accent of {{name}}",
     "themeAccentShort": "Theme"
   },
-  "darkModeToggle": {
-    "switchToLight": "تغییر به حالت روشن",
-    "switchToDark": "تغییر به حالت تاریک",
-    "darkOnly": "{{name}} is dark only"
-  },
   "projectSelector": {
     "title": "پروژه فعال",
     "noneSelected": "پرونده‌ای انتخاب نشده است",

@@ -39,13 +39,15 @@ import { runnableTools } from '../../utils/integrations';
 import { useModules } from '../../contexts/ModulesContext';
 import { useProject } from '../../contexts/ProjectContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { DEFAULT_EDGE_LAYERS } from '../../utils/edgeLayers';
+import { useAuth } from '../../contexts/AuthContext';
+import { readGraphPrefs, writeGraphPrefs, DEFAULT_PREFS } from '../../utils/graphPrefs';
+import { ui } from './graphUi';
 import { formatPersonName } from '../../utils/personName';
 import { useModelOptions } from '../../utils/useModelOptions';
 import { optionLabel } from '../../utils/optionLabels';
 import { formatDate } from '../../utils/format';
 import {
-  NODE_TYPES, DEFAULT_NODE_TYPES, EMPTY_FILTERS, includeFor, filterGraph, toElements,
+  NODE_TYPES, includeFor, filterGraph, toElements,
   filterOptions, activeFilterCount, countByType, mergeGraphs, LARGE_GRAPH,
 } from '../../utils/graphElements';
 import { buildStylesheet, readGraphTheme, FALLBACK_THEME } from '../../utils/graphStyle';
@@ -57,6 +59,8 @@ import { useOpenEntity, useEntityForms } from './useOpenEntity';
 
 const ToolRunModal = lazy(() => import('../tools/ToolRunModal'));
 
+// A labelled row of chips: the chips wrap beside the label, not under it.
+const switchRow = 'flex items-start gap-x-3 px-4 py-2 border-b border-slate-200 dark:border-slate-700';
 const ALL_TYPES = Object.fromEntries(NODE_TYPES.map((type) => [type, true]));
 const LINKABLE = ['person', 'business', 'crypto_wallet'];
 
@@ -70,8 +74,6 @@ function download(text, name, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const toolButton = 'p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40';
-const pressed = 'bg-accent-primary text-white hover:bg-accent-primary';
 
 export default function GraphView({ focus = null, variant = 'full' }) {
   const { t } = useTranslation();
@@ -80,6 +82,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const openEntity = useOpenEntity();
   const forms = useEntityForms();
   const { isOn: moduleOn } = useModules();
+  const { currentUser } = useAuth();
   const connectionTypes = useModelOptions('connection_type');
   const canvasRef = useRef(null);
   const rootRef = useRef(null);
@@ -98,14 +101,18 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   // Which centre and depth the loaded graph is for; a new one is laid out afresh.
   const [loadedFor, setLoadedFor] = useState(null);
 
-  const [types, setTypes] = useState(focus ? ALL_TYPES : DEFAULT_NODE_TYPES);
-  const [identifierMode, setIdentifierMode] = useState('shared');
-  // Around one entity its money matters: transaction links on from the start.
-  const [layers, setLayers] = useState(focus ? { ...DEFAULT_EDGE_LAYERS, financial: true } : DEFAULT_EDGE_LAYERS);
-  const [solo, setSolo] = useState(null);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [showFilters, setShowFilters] = useState(false);
-  const [layout, setLayout] = useState('force');
+  // Everything on to start with; the Relationships section remembers what
+  // the user switched off or filtered (per user, this browser), the
+  // dashboard follows its types and links, a dialog always shows it all.
+  const [prefs] = useState(() => (focus ? DEFAULT_PREFS : readGraphPrefs(currentUser?.id)));
+  const remembered = full ? prefs : DEFAULT_PREFS;
+  const [types, setTypes] = useState(prefs.types);
+  const [identifierMode, setIdentifierMode] = useState(remembered.identifierMode);
+  const [layers, setLayers] = useState(prefs.layers);
+  const [solo, setSolo] = useState(remembered.solo);
+  const [filters, setFilters] = useState(remembered.filters);
+  const [showFilters, setShowFilters] = useState(remembered.showFilters);
+  const [layout, setLayout] = useState(remembered.layout);
   const [connectMode, setConnectMode] = useState(false);
   const [selection, setSelection] = useState(null);
   const [connecting, setConnecting] = useState(null);
@@ -128,9 +135,9 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const [findIndex, setFindIndex] = useState(-1);
   const [pathEnds, setPathEnds] = useState(null); // { from, to } (to null while picking)
   const [trail, setTrail] = useState([]); // focus steps: [{ id, hops }]
-  const [sizeBy, setSizeBy] = useState('connections');
-  const [groupBy, setGroupBy] = useState('none');
-  const [collapse, setCollapse] = useState(false);
+  const [sizeBy, setSizeBy] = useState(remembered.sizeBy);
+  const [groupBy, setGroupBy] = useState(remembered.groupBy);
+  const [collapse, setCollapse] = useState(remembered.collapse);
   const [unfolded, setUnfolded] = useState([]);
   const [asOf, setAsOf] = useState(null);
   const [showAsOf, setShowAsOf] = useState(false);
@@ -139,6 +146,12 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const [savedLayout, setSavedLayout] = useState({ saved: false, positions: null });
   const [layoutState, setLayoutState] = useState({ busy: false, error: null });
   const viewKey = focusId ? `focus:${focusId}` : 'project';
+
+  const saveScope = full ? currentUser?.id : undefined;
+  useEffect(() => {
+    if (saveScope === undefined) return;
+    writeGraphPrefs(saveScope, { types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters });
+  }, [saveScope, types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters]);
 
   // ── Data ──
   const include = includeFor(focusId ? ALL_TYPES : types, layers, solo).join(',');
@@ -428,115 +441,135 @@ export default function GraphView({ focus = null, variant = 'full' }) {
 
   return (
     <div ref={rootRef} className={containerClass}>
-      {/* Toolbar */}
+      {/* Toolbar: what's shown on the left; then find, layout, view, edit
+          and output, each group set apart by a divider. */}
       {!compact && (
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
           {centre && (
-            <button type="button" onClick={backToProject} className="btn btn-ghost px-2.5 py-1.5 text-sm flex items-center gap-x-1">
+            <button type="button" onClick={backToProject} className={ui.button}>
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />{focus ? t('graph.back') : t('graph.wholeProject')}
             </button>
           )}
-          <span className="flex items-center gap-x-2 text-sm text-slate-600 dark:text-slate-300 me-auto" data-volatile>
-            <Network className="w-4 h-4 text-accent-ink" />
+          <span className="flex items-center gap-x-2 h-8 text-sm text-slate-600 dark:text-slate-300 tabular-nums me-auto" data-volatile>
+            <Network className="w-4 h-4 text-accent-ink shrink-0" />
             {t('graph.summary', { nodes: drawn.nodes.length, edges: drawn.edges.length })}
             {asOf && <span className="text-sky-700 dark:text-sky-300">· {t('graph.asOfShort', { date: formatDate(asOf) })}</span>}
           </span>
-          <FindBox inputRef={findRef} term={findTerm} onTerm={changeFind} count={matches.length} index={findIndex} onStep={stepFind} />
 
-          {focusId && (
-            <label className="flex items-center gap-x-1 text-sm text-slate-600 dark:text-slate-300">
-              {t('graph.depth')}
-              <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="py-1 text-sm">
+          <FindBox inputRef={findRef} term={findTerm} onTerm={changeFind} count={matches.length} index={findIndex} onStep={stepFind} />
+          <span className={ui.divider} aria-hidden="true" />
+
+          <div className="flex items-center gap-1">
+            {focusId && (
+              <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} className={ui.select} aria-label={t('graph.depth')} title={t('graph.depth')}>
                 {[1, 2, 3].map((d) => <option key={d} value={d}>{t('graph.depthHops', { count: d })}</option>)}
               </select>
-            </label>
-          )}
-          <select value={layout} onChange={(e) => setLayout(e.target.value)} className="py-1 text-sm w-auto" aria-label={t('graph.layout')}>
-            {['force', 'hierarchical', 'concentric', 'circle', 'grid'].map((l) => <option key={l} value={l}>{t(`graph.layouts.${l}`)}</option>)}
-          </select>
-          <button type="button" className={toolButton} onClick={() => canvasRef.current?.relayout()} title={t('graph.relayout')} aria-label={t('graph.relayout')}><Shuffle className="w-4 h-4" /></button>
-          <button
-            type="button"
-            className={`${toolButton} md:hidden ${showSwitches ? pressed : ''}`}
-            onClick={() => setShowSwitches(!showSwitches)}
-            aria-pressed={showSwitches}
-            aria-label={t('graph.entityTypes')}
-            title={t('graph.entityTypes')}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
-          {full && (
+            )}
+            <select value={layout} onChange={(e) => setLayout(e.target.value)} className={ui.select} aria-label={t('graph.layout')} title={t('graph.layout')}>
+              {['force', 'hierarchical', 'concentric', 'circle', 'grid'].map((l) => <option key={l} value={l}>{t(`graph.layouts.${l}`)}</option>)}
+            </select>
+            <button type="button" className={ui.icon} onClick={() => canvasRef.current?.relayout()} title={t('graph.relayout')} aria-label={t('graph.relayout')}><Shuffle className="w-4 h-4" /></button>
+          </div>
+          <span className={ui.divider} aria-hidden="true" />
+
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className={`btn ${showFilters ? 'btn-primary' : 'btn-ghost'} px-2.5 py-1.5 text-sm flex items-center gap-x-1`}
+              className={`${ui.icon} md:hidden ${showSwitches ? ui.pressed : ''}`}
+              onClick={() => setShowSwitches(!showSwitches)}
+              aria-pressed={showSwitches}
+              aria-label={t('graph.entityTypes')}
+              title={t('graph.entityTypes')}
             >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('graph.filters')}</span>
-              {activeFilterCount(filters) > 0 && <span className="px-1.5 rounded-full text-xs bg-white/90 text-accent-ink">{activeFilterCount(filters)}</span>}
+              <SlidersHorizontal className="w-4 h-4" />
             </button>
-          )}
-          <button
-            type="button"
-            className={`${toolButton} ${connectMode ? pressed : ''}`}
-            onClick={() => setConnectMode(!connectMode)}
-            aria-pressed={connectMode}
-            title={t('graph.connectModeTitle')}
-            aria-label={t('graph.connectMode')}
-          >
-            <Link2 className="w-4 h-4" />
-          </button>
-          {edits.hidden.length > 0 && (
-            <button type="button" onClick={edits.unhideAll} className="btn btn-ghost px-2.5 py-1.5 text-sm flex items-center gap-x-1">
-              <Eye className="w-4 h-4" />{t('graph.showHidden', { count: edits.hidden.length })}
+            {full && (
+              <button type="button" onClick={() => setShowFilters(!showFilters)} aria-pressed={showFilters}
+                className={`${ui.button} ${showFilters ? ui.pressed : ''}`}>
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('graph.filters')}</span>
+                {activeFilterCount(filters) > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[11px] font-semibold bg-accent-primary text-white tabular-nums">{activeFilterCount(filters)}</span>
+                )}
+              </button>
+            )}
+            <Popover icon={Settings2} label={t('graph.viewOptions')} active={sizeBy !== 'connections' || groupBy !== 'none' || collapse}>
+              <ViewOptions
+                sizeBy={sizeBy} onSizeBy={setSizeBy}
+                groupBy={groupBy} onGroupBy={setGroupBy} canGroupByCase
+                collapse={collapse} onCollapse={(on) => { setCollapse(on); setUnfolded([]); }}
+                layout={graphProject ? { ...savedLayout, ...layoutState } : null}
+                onSaveLayout={saveLayout} onForgetLayout={forgetLayout}
+              />
+            </Popover>
+            <button type="button" className={`${ui.icon} ${showAsOf ? ui.pressed : ''}`} aria-pressed={showAsOf}
+              onClick={() => { if (showAsOf) setAsOf(null); setShowAsOf(!showAsOf); }} title={t('graph.asOfTitle')} aria-label={t('graph.asOf')}>
+              <CalendarClock className="w-4 h-4" />
             </button>
-          )}
-          <button type="button" className={toolButton} onClick={edits.undo} disabled={!edits.canUndo} title={t('graph.undoTitle')} aria-label={t('graph.undo')}><Undo2 className="w-4 h-4" /></button>
-          <Popover icon={Settings2} label={t('graph.viewOptions')} active={sizeBy !== 'connections' || groupBy !== 'none' || collapse}>
-            <ViewOptions
-              sizeBy={sizeBy} onSizeBy={setSizeBy}
-              groupBy={groupBy} onGroupBy={setGroupBy} canGroupByCase
-              collapse={collapse} onCollapse={(on) => { setCollapse(on); setUnfolded([]); }}
-              layout={graphProject ? { ...savedLayout, ...layoutState } : null}
-              onSaveLayout={saveLayout} onForgetLayout={forgetLayout}
-            />
-          </Popover>
-          <button type="button" className={`${toolButton} ${showAsOf ? pressed : ''}`} aria-pressed={showAsOf}
-            onClick={() => { if (showAsOf) setAsOf(null); setShowAsOf(!showAsOf); }} title={t('graph.asOfTitle')} aria-label={t('graph.asOf')}>
-            <CalendarClock className="w-4 h-4" />
-          </button>
-          <button type="button" className={`${toolButton} ${showStats ? pressed : ''}`} aria-pressed={showStats}
-            onClick={() => setShowStats(!showStats)} title={t('graph.stats')} aria-label={t('graph.stats')}>
-            <ChartColumn className="w-4 h-4" />
-          </button>
-          <Popover icon={Download} label={t('graph.export')} className="w-72">
-            {(close) => <ExportOptions onExport={exportAs} close={close} />}
-          </Popover>
-          <button type="button" className={toolButton} onClick={() => setReloadKey((k) => k + 1)} title={t('graph.refresh')} aria-label={t('graph.refresh')}><RefreshCw className="w-4 h-4" /></button>
-          <button
-            type="button"
-            className={toolButton}
-            onClick={() => setFullScreen(!fullScreen)}
-            title={fullScreen ? t('graph.exitFullscreen') : t('graph.fullscreen')}
-            aria-label={fullScreen ? t('graph.exitFullscreen') : t('graph.fullscreen')}
-          >
-            {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
+            <button type="button" className={`${ui.icon} ${showStats ? ui.pressed : ''}`} aria-pressed={showStats}
+              onClick={() => setShowStats(!showStats)} title={t('graph.stats')} aria-label={t('graph.stats')}>
+              <ChartColumn className="w-4 h-4" />
+            </button>
+          </div>
+          <span className={ui.divider} aria-hidden="true" />
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className={`${ui.icon} ${connectMode ? ui.pressed : ''}`}
+              onClick={() => setConnectMode(!connectMode)}
+              aria-pressed={connectMode}
+              title={t('graph.connectModeTitle')}
+              aria-label={t('graph.connectMode')}
+            >
+              <Link2 className="w-4 h-4" />
+            </button>
+            {edits.hidden.length > 0 && (
+              <button type="button" onClick={edits.unhideAll} className={ui.button}>
+                <Eye className="w-4 h-4" />{t('graph.showHidden', { count: edits.hidden.length })}
+              </button>
+            )}
+            <button type="button" className={ui.icon} onClick={edits.undo} disabled={!edits.canUndo} title={t('graph.undoTitle')} aria-label={t('graph.undo')}><Undo2 className="w-4 h-4" /></button>
+          </div>
+          <span className={ui.divider} aria-hidden="true" />
+
+          <div className="flex items-center gap-1">
+            <Popover icon={Download} label={t('graph.export')}>
+              {(close) => <ExportOptions onExport={exportAs} close={close} />}
+            </Popover>
+            <button type="button" className={ui.icon} onClick={() => setReloadKey((k) => k + 1)} title={t('graph.refresh')} aria-label={t('graph.refresh')}><RefreshCw className="w-4 h-4" /></button>
+            <button
+              type="button"
+              className={ui.icon}
+              onClick={() => setFullScreen(!fullScreen)}
+              title={fullScreen ? t('graph.exitFullscreen') : t('graph.fullscreen')}
+              aria-label={fullScreen ? t('graph.exitFullscreen') : t('graph.fullscreen')}
+            >
+              {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Types and layers */}
+      {/* What to show and which links: two labelled rows (on phones behind
+          the switches button). */}
       {!compact && (
-        <div className={`${showSwitches ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs shrink-0`}>
-          <TypeSwitches
-            types={types}
-            onChange={setTypes}
-            counts={counts}
-            colors={graphTheme.node}
-            identifierMode={focusId ? null : identifierMode}
-            onIdentifierMode={setIdentifierMode}
-          />
-          <LayerSwitches layers={layers} onChange={setLayers} solo={solo} onSolo={setSolo} colors={graphTheme.edge} />
+        <div className={`${showSwitches ? 'block' : 'hidden'} md:block bg-slate-50 dark:bg-slate-900/60 shrink-0`}>
+          <div className={switchRow}>
+            <span className={`${ui.rowLabel} w-12 h-7 flex items-center`}>{t('graph.showRow')}</span>
+            <div className="flex-1 min-w-0"><TypeSwitches
+              types={types}
+              onChange={setTypes}
+              counts={counts}
+              colors={graphTheme.node}
+              identifierMode={focusId ? null : identifierMode}
+              onIdentifierMode={setIdentifierMode}
+            /></div>
+          </div>
+          <div className={switchRow}>
+            <span className={`${ui.rowLabel} w-12 h-7 flex items-center`}>{t('graph.linksRow')}</span>
+            <div className="flex-1 min-w-0"><LayerSwitches layers={layers} onChange={setLayers} solo={solo} onSolo={setSolo} colors={graphTheme.edge} /></div>
+          </div>
         </div>
       )}
 
@@ -551,7 +584,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
       )}
 
       {connectMode && (
-        <div className="px-3 py-1.5 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-b border-amber-200 dark:border-amber-900 shrink-0">
+        <div className="px-4 py-2 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-b border-amber-200 dark:border-amber-900 shrink-0">
           {t('graph.connectHint')}
         </div>
       )}

@@ -1,8 +1,8 @@
 // File: frontend/src/App.jsx
-import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent } from 'react';
+import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import { peopleAPI, businessAPI } from './utils/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -12,11 +12,10 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 import { ScratchpadProvider } from './contexts/ScratchpadContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
-import { visibleNavGroups, readCollapsedGroups, writeCollapsedGroups, itemsShown } from './utils/modules';
+import { visibleNavGroups, readCollapsedGroups, writeCollapsedGroups, itemsShown, readNavRail, writeNavRail } from './utils/modules';
 import { changeLanguage } from './i18n';
 
 import UpdateBanner from './components/UpdateBanner';
-import DarkModeToggle from './components/DarkModeToggle';
 import ProjectSelector from './components/ProjectSelector';
 import ProjectGate from './components/ProjectGate';
 import SystemHealth from './components/SystemHealth';
@@ -74,29 +73,45 @@ const navigationItemIds = [
   { id: 'settings',      icon: Settings },
 ];
 
-const NavItem = ({ item, active, onSelect }) => {
+// `rail`: the narrow sidebar, icon only; the name is the tooltip and stays
+// readable to screen readers.
+const NavItem = ({ item, active, onSelect, rail = false }) => {
   const Icon = item.icon;
   return (
     <button
       onClick={() => onSelect(item.id)}
       aria-current={active ? 'page' : undefined}
-      className={`nav-item ${
+      title={rail ? item.label : undefined}
+      className={`nav-item ${rail ? 'justify-center px-0' : ''} ${
         active
           ? 'bg-accent-primary/10 text-accent-ink'
           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
       }`}
     >
       <Icon className={`shrink-0 transition-colors duration-150 ${active ? 'text-accent-ink' : 'text-slate-500 dark:text-slate-400'}`} style={{ width: 18, height: 18 }} />
-      <span>{item.label}</span>
+      <span className={rail ? 'sr-only' : ''}>{item.label}</span>
     </button>
   );
 };
+
+// Square icon buttons in the sidebar header.
+const sideIconButton = 'inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-(--radius-control) text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors';
+
+// Desktop width (Tailwind's md), for the narrow sidebar: phones always get
+// the full drawer.
+const WIDE = '(min-width: 48rem)';
+const subscribeWide = (onChange) => {
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+};
+const isWide = () => window.matchMedia(WIDE).matches;
 
 const EntityNetworkSection = () => {
   const { t } = useTranslation();
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4 shrink-0">
+      <div className="border-b border-slate-200 dark:border-slate-700 px-4 pb-4 shrink-0">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('app.entityNetworkTitle')}</h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">{t('app.entityNetworkSubtitle')}</p>
       </div>
@@ -221,6 +236,11 @@ const AppShell = () => {
   // statically positioned there, so this only governs the off-canvas panel.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const selectSection = (id) => { setActiveSection(id); setMobileNavOpen(false); };
+  // The sidebar folded to its icons (desktop), remembered in this browser.
+  const [navRail, setNavRail] = useState(readNavRail);
+  const wide = useSyncExternalStore(subscribeWide, isWide, () => true);
+  const rail = navRail && wide;
+  const toggleRail = () => setNavRail((on) => { writeNavRail(!on); return !on; });
 
   // Sections opened since sign-in (see SECTIONS). Cleared on sign-out, so
   // nothing one user had open survives into the next session.
@@ -363,11 +383,36 @@ const AppShell = () => {
           flex flex-col glass-card shrink-0
           transform transition-transform duration-200 ease-out
           ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'}
-          md:static md:translate-x-0 md:rtl:translate-x-0 md:max-w-none md:m-4 md:w-64 lg:w-72
+          md:relative md:z-30 md:translate-x-0 md:rtl:translate-x-0 md:max-w-none md:m-4
+          md:transition-[width] ${rail ? 'md:w-[4.5rem]' : 'md:w-64 lg:w-72'}
           md:rounded-(--radius-card) md:border`}
       >
+        {rail ? (
+          <div className="p-3 flex flex-col items-center gap-2 border-b border-slate-200 dark:border-slate-800">
+            {appSettings.appLogo ? (
+              <img src={appSettings.appLogo} alt={appSettings.appName} title={appSettings.appName} className="h-10 w-10 object-contain rounded-lg" />
+            ) : (
+              <div className="p-2 rounded-lg bg-accent-primary" title={appSettings.appName}>
+                <Shield className="w-6 h-6 text-white" aria-label={appSettings.appName} />
+              </div>
+            )}
+            <button type="button" onClick={toggleRail} className={sideIconButton} aria-label={t('app.expandSidebar')} title={t('app.expandSidebar')} aria-expanded="false">
+              <PanelLeftOpen className="rtl:-scale-x-100" style={{ width: 18, height: 18 }} />
+            </button>
+            <ProjectSelector iconOnly />
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSearch(true)}
+              className={sideIconButton}
+              aria-label={t('searchFilters.advancedSearch')}
+              title={t('searchFilters.advancedSearch')}
+            >
+              <Search className="w-4 h-4 text-accent-ink" />
+            </button>
+          </div>
+        ) : (
         <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-x-3 min-w-0">
               {appSettings.appLogo ? (
                 <img src={appSettings.appLogo} alt={t('app.logoAlt')} className="h-10 w-10 object-contain rounded-lg" />
@@ -376,23 +421,23 @@ const AppShell = () => {
                   <Shield className="w-6 h-6 text-white" />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight md:leading-7 wrap-break-word">{appSettings.appName}</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('app.suiteSubtitle')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <DarkModeToggle />
-              <button
-                onClick={() => setMobileNavOpen(false)}
-                className="md:hidden p-2 rounded-(--radius-control) text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-label={t('app.closeNavigation')}
-              >
-                <X style={{ width: 18, height: 18 }} />
-              </button>
-            </div>
+            <button type="button" onClick={toggleRail} className={`hidden md:inline-flex ${sideIconButton}`} aria-label={t('app.collapseSidebar')} title={t('app.collapseSidebar')} aria-expanded="true">
+              <PanelLeftClose className="rtl:-scale-x-100" style={{ width: 18, height: 18 }} />
+            </button>
+            <button
+              onClick={() => setMobileNavOpen(false)}
+              className={`md:hidden ${sideIconButton}`}
+              aria-label={t('app.closeNavigation')}
+            >
+              <X style={{ width: 18, height: 18 }} />
+            </button>
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <ProjectSelector />
           </div>
           <button
@@ -403,15 +448,18 @@ const AppShell = () => {
             <span>{t('searchFilters.advancedSearch')}</span>
           </button>
         </div>
+        )}
 
-        <nav className="p-3 flex-1 overflow-y-auto" aria-label={t('app.navigation')}>
-          {navGroups.map((group) => {
-            const collapsed = Boolean(group.heading) && collapsedGroups.includes(group.heading);
+        <nav className={`${rail ? 'p-2' : 'p-3'} flex-1 overflow-y-auto`} aria-label={t('app.navigation')}>
+          {navGroups.map((group, gi) => {
+            // The narrow sidebar has no headings: every item shows, groups
+            // are set apart by a line.
+            const collapsed = !rail && Boolean(group.heading) && collapsedGroups.includes(group.heading);
             const shownIds = itemsShown(group.items.map((item) => item.id), collapsed, activeSection);
             const listId = `nav-group-${group.heading || 'top'}`;
             return (
-              <div key={group.heading || 'top'} className={group.heading ? 'pt-3' : ''}>
-                {group.heading && (
+              <div key={group.heading || 'top'} className={rail ? (gi > 0 ? 'mt-2 pt-2 border-t border-slate-200 dark:border-slate-800' : '') : (group.heading ? 'pt-3' : '')}>
+                {group.heading && !rail && (
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.heading)}
@@ -423,9 +471,9 @@ const AppShell = () => {
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${collapsed ? '-rotate-90 rtl:rotate-90' : ''}`} aria-hidden="true" />
                   </button>
                 )}
-                <div id={listId} className="space-y-0.5">
+                <div id={listId} className="space-y-0.5" role={rail && group.heading ? 'group' : undefined} aria-label={rail && group.heading ? t(`app.navGroup.${group.heading}`) : undefined}>
                   {group.items.filter((item) => shownIds.includes(item.id)).map((item) => (
-                    <NavItem key={item.id} item={item} active={activeSection === item.id} onSelect={selectSection} />
+                    <NavItem key={item.id} item={item} active={activeSection === item.id} onSelect={selectSection} rail={rail} />
                   ))}
                 </div>
               </div>
@@ -435,17 +483,17 @@ const AppShell = () => {
         </nav>
 
         {/* Pinned under the menu, so they stay visible when the list scrolls. */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1">
-          <div className="flex-1 min-w-0">
-            <NavItem item={settingsItem} active={activeSection === 'settings'} onSelect={selectSection} />
+        <div className={`${rail ? 'p-2 flex-col' : 'p-3'} border-t border-slate-200 dark:border-slate-800 flex items-center gap-1`}>
+          <div className={rail ? 'w-full' : 'flex-1 min-w-0'}>
+            <NavItem item={settingsItem} active={activeSection === 'settings'} onSelect={selectSection} rail={rail} />
           </div>
           <button
             onClick={handleLogout}
             title={t('app.logoutAs', { name: currentUser?.username || '' })}
             aria-label={t('app.logoutAs', { name: currentUser?.username || '' })}
-            className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-(--radius-control) text-sm text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className={`shrink-0 flex items-center justify-center gap-2 py-2 rounded-(--radius-control) text-sm text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors ${rail ? 'w-full px-0' : 'px-3'}`}
           >
-            <span className="text-xs max-w-24 truncate">{currentUser?.username}</span>
+            {!rail && <span className="text-xs max-w-24 truncate">{currentUser?.username}</span>}
             <LogOut className="shrink-0 rtl:-scale-x-100" style={{ width: 18, height: 18 }} />
           </button>
         </div>

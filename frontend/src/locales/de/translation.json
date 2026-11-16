@@ -1964,11 +1964,6 @@
     "themeAccent": "The accent of {{name}}",
     "themeAccentShort": "Theme"
   },
-  "darkModeToggle": {
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode",
-    "darkOnly": "{{name}} is dark only"
-  },
   "projectSelector": {
     "title": "Active project",
     "noneSelected": "No project selected",

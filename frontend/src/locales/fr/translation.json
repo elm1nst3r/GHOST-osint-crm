@@ -1812,10 +1812,6 @@
     "glass": "Glass",
     "preferencesStoredNote": "Theme mode is saved to your account and follows you to other devices. Accent, density and surface style are stored in this browser only."
   },
-  "darkModeToggle": {
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode"
-  },
   "projectSelector": {
     "title": "Active project",
     "noneSelected": "No project selected",
