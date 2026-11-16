@@ -1,10 +1,10 @@
 // File: frontend/src/components/PersonDetailModal.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { optionLabel } from '../utils/optionLabels';
 import { isolateList } from '../utils/bidi';
 import { User, Edit2, X, Database, Mail, Phone, Globe, MapPin, Hash, Link, Briefcase, Tag, Network, FileText, Trash2, Search } from 'lucide-react';
-import RelationshipManager from './visualization/RelationshipManager';
+const GraphView = lazy(() => import('./graph/GraphView'));
 import ReportGenerator from './ReportGenerator';
 import TravelPatternAnalysis from './TravelPatternAnalysis';
 import TransactionTable from './TransactionTable';
@@ -27,6 +27,7 @@ const SHOWN_SOURCES = 5;
 // Tabs that belong to a module an admin can switch off.
 const TAB_MODULE = { records: 'tools', transactions: 'transactions', ledger: 'transactions', assets: 'assets', files: 'files' };
 import { formatDate, ageFrom } from '../utils/format';
+import ShowInGraphButton from './ShowInGraphButton';
 
 const PersonDetailModal = () => {
   const { t } = useTranslation();
@@ -202,6 +203,7 @@ const PersonDetailModal = () => {
                     close button off the screen entirely (#64). */}
                 <span className="hidden md:inline">{t('personDetailModal.generateReportTitle')}</span>
               </button>
+              <ShowInGraphButton type="person" id={person.id} />
               <button
                 onClick={() => onEdit(person)}
                 title={t('common.edit')}
@@ -460,11 +462,9 @@ const PersonDetailModal = () => {
             
             {activeTab === 'relationships' && (
               <div className="h-[500px]">
-                <RelationshipManager 
-                  personId={person.id} 
-                  showInModal={true}
-                  onClose={() => setActiveTab('details')}
-                />
+                <Suspense fallback={null}>
+                  <GraphView key={person.id} focus={`person:${person.id}`} variant="embedded" />
+                </Suspense>
               </div>
             )}
             

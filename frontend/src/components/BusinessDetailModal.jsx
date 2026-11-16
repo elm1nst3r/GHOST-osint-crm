@@ -1,5 +1,5 @@
 // File: frontend/src/components/BusinessDetailModal.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, X, Edit2, Users, Calendar, FileText, MapPin } from 'lucide-react';
 import { transactionsAPI, ledgerAPI } from '../utils/api';
@@ -9,6 +9,9 @@ import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
 import { useModules } from '../contexts/ModulesContext';
 import { formatDate } from '../utils/transactionFormat';
+
+const GraphView = lazy(() => import('./graph/GraphView'));
+import ShowInGraphButton from './ShowInGraphButton';
 
 const BusinessDetailModal = ({ business, onClose }) => {
   const { t } = useTranslation();
@@ -25,7 +28,12 @@ const BusinessDetailModal = ({ business, onClose }) => {
 
   const { isOn: moduleOn } = useModules();
   // Transactions and the ledger go when the Transactions module is off.
-  const tabs = moduleOn('transactions') ? ['venue', 'transactions', 'ledger'] : ['venue'];
+  const tabs = [
+    'venue',
+    ...(moduleOn('transactions') ? ['transactions', 'ledger'] : []),
+    // The graph around this business (graph plan).
+    ...(moduleOn('relationships') ? ['graph'] : []),
+  ];
 
   return (
     <>
@@ -41,6 +49,7 @@ const BusinessDetailModal = ({ business, onClose }) => {
             </div>
             <div className="flex gap-x-2">
               <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title={t('businessDetailModal.ledgerReportTitle')}><FileText className="w-5 h-5" /></button>
+              <ShowInGraphButton type="business" id={business.id} />
               <button onClick={() => { onClose(); setEditingBusiness(business); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
               <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
@@ -52,7 +61,14 @@ const BusinessDetailModal = ({ business, onClose }) => {
             ))}
           </div>
 
-          <div className="overflow-y-auto p-5" style={{ maxHeight: 'calc(90vh - 170px)' }}>
+          {tab === 'graph' && (
+            <div className="h-[60vh] min-h-[360px]">
+              <Suspense fallback={null}>
+                <GraphView key={business.id} focus={`business:${business.id}`} variant="embedded" />
+              </Suspense>
+            </div>
+          )}
+          <div className={`overflow-y-auto p-5 ${tab === 'graph' ? 'hidden' : ''}`} style={{ maxHeight: 'calc(90vh - 170px)' }}>
             {tab === 'venue' && (
               venue ? (
                 <div className="space-y-4">

@@ -9,6 +9,7 @@ import TransactionTable from './TransactionTable';
 import EntityLedger from './EntityLedger';
 import ReportGenerator from './ReportGenerator';
 import { formatDate } from '../utils/format';
+import ShowInGraphButton from './ShowInGraphButton';
 
 const PropertyDetailModal = ({ property: initial, onClose }) => {
   const { t } = useTranslation();
@@ -39,6 +40,7 @@ const PropertyDetailModal = ({ property: initial, onClose }) => {
             </div>
             <div className="flex gap-x-2">
               <button onClick={() => setShowReport(true)} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white" title={t('businessDetailModal.ledgerReportTitle')}><FileText className="w-5 h-5" /></button>
+              <ShowInGraphButton type="property" id={property.id} />
               <button onClick={() => { onClose(); setEditingProperty(property); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
               <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
             </div>

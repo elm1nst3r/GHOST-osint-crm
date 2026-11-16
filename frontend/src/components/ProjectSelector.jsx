@@ -16,7 +16,8 @@ import DeleteProjectModal from './DeleteProjectModal';
 
 const EMPTY_EDIT = { name: '', icon: '', status: 'active', allow_cross_linking: false };
 
-const ProjectSelector = ({ compact = false }) => {
+// compact: the phone top bar. iconOnly: the narrow sidebar (the name is the tooltip).
+const ProjectSelector = ({ compact = false, iconOnly = false }) => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
@@ -88,17 +89,21 @@ const ProjectSelector = ({ compact = false }) => {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm w-full'}`}
-        title={t('projectSelector.title')}
+        className={`flex items-center gap-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${
+          iconOnly ? 'h-9 w-9 justify-center text-sm' : compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm w-full'}`}
+        title={iconOnly ? `${t('projectSelector.title')}: ${activeProject ? activeProject.name : t('projectSelector.noneSelected')}` : t('projectSelector.title')}
+        aria-label={iconOnly ? `${t('projectSelector.title')}: ${activeProject ? activeProject.name : t('projectSelector.noneSelected')}` : undefined}
       >
         {activeProject?.icon ? (
           <span className="shrink-0 leading-none">{activeProject.icon}</span>
         ) : (
           <FolderKanban className={compact ? 'w-3.5 h-3.5 text-slate-500 shrink-0' : 'w-4 h-4 text-slate-500 shrink-0'} />
         )}
-        <span className="truncate font-medium text-slate-700 dark:text-slate-200">
-          {activeProject ? activeProject.name : t('projectSelector.noneSelected')}
-        </span>
+        {!iconOnly && (
+          <span className="truncate font-medium text-slate-700 dark:text-slate-200">
+            {activeProject ? activeProject.name : t('projectSelector.noneSelected')}
+          </span>
+        )}
       </button>
 
       {open && (

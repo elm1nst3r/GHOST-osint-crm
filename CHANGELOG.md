@@ -5,6 +5,76 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-11-16
+
+### 🕸️ A new graph: work from the network
+
+The Entity Network is rebuilt on Cytoscape.js and replaces both old views
+(the D3 graph and the React Flow diagram). The graph-first way of working
+was inspired by [Trace](https://github.com/dlxarl/Trace); the code is our
+own.
+
+- **Everything in one picture.** People, businesses, wallets, assets,
+  properties, wireless networks, and identifiers (emails, phones,
+  usernames, domains, websites, IP addresses) as entities. Links from
+  relationships, ownership, employment, holdings, money, wireless networks
+  and shared identifiers: two people with the same phone number are joined
+  through it. Employees known only by name are drawn faded, "matched by
+  name, not confirmed".
+- **Around one entity.** The graph in the person and business dialogs, and
+  "Centre here" anywhere, shows everything that maps onto that entity, one
+  to three links out.
+- **Work from the graph.** Click for details beside the graph, right-click
+  (or long-press) for actions: open, edit, show neighbours, pin, hide, run
+  an OSINT search, connect to another entity. Edit or delete a link in
+  place, and create a person, business or wallet where you clicked. Select
+  several with Shift-click or Shift-drag. Hiding, pinning and moving can
+  be undone (Ctrl/⌘+Z).
+- **Analysis.**
+  - Find (`/`): matches light up, the rest fades.
+  - Shortest path between two entities, with every step listed.
+  - Focus 1 or 2 links around an entity, with a way back.
+  - Size by connections, influence (PageRank) or go-between
+    (betweenness).
+  - Fold entities with one link into "+N".
+  - Cases as boxes, or colour by connected group.
+  - Statistics: groups, entities without links, most connected, most in
+    between.
+  - The graph as it was on a date.
+- **Your layout, your view.** Save a layout and it opens like that for
+  you. The graph starts with everything on and remembers what you switch
+  off or filter.
+- **Export** as PNG, GraphML (Gephi, yEd, Cytoscape Desktop) or JSON.
+- **A workspace.** The Entity Network section uses the whole page: filters
+  in a panel on the left, details on the right (they slide in when you
+  click something and fold away), and keyboard shortcuts (`?` lists them).
+- **Show in graph** from the person, business, wallet, asset and property
+  dialogs. The address (`/relationships?focus=person:12`) can be
+  bookmarked and shared with colleagues in the project.
+- **Large projects.** 5,000 entities and 10,000 links draw in about a
+  second and a half.
+
+For the API and MCP: `GET /api/graph` (the project graph or the graph
+around one entity) and `GET /api/graph/path` (the shortest chain of links
+between two entities) are new tools for the MCP server. Both follow
+project membership.
+
+### ⚙️ Your start page, a narrower menu
+
+- **Start page:** choose where GHOST opens after sign-in (Settings →
+  General), for example straight into the Entity Network.
+- **The menu folds down to its icons** (the button beside the logo). Names
+  show as tooltips; phones keep the full menu.
+- The light/dark button left the menu: the choice is in Settings →
+  Appearance.
+
+### 🐛 Fixed
+
+- OSINT entries of type "Telegram" were read as phone numbers (the "tel"
+  in the name), so phone tools were offered for them.
+
+New text is in English for now; translations follow through Crowdin.
+
 ## [3.1.7] - 2026-11-14
 
 ### 🔒 Project data stays inside its project

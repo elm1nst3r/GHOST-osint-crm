@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.1.7-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.2.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
 
@@ -52,13 +52,12 @@ If this project is ever shelved, this section will be updated and the repository
 - **Custom fields**: Extend person profiles with custom data fields
 - **Advanced search**: Multi-parameter search with filters
 
-### 🔗 Entity Network Visualization
-- **Interactive relationship diagrams**: Visual network mapping with React Flow
-- **Multi-entity support**: People, businesses, locations, phones, emails
-- **Connection types**: Family, Business, Criminal, Social, Known Associates
-- **Drag-and-drop interface**: Intuitive node manipulation
-- **Real-time updates**: Live relationship mapping
-- **Network filtering**: Focus on specific entity types and relationships
+### 🔗 Entity Network
+- **One graph of the project** (Cytoscape.js): people, businesses, wallets, assets, properties, wireless networks and identifiers (emails, phones, usernames, domains, IPs), linked by relationships, ownership, employment, holdings, money and shared identifiers
+- **Work from the graph**: details beside it, right-click actions, edit links in place, create entities where you click, multiple selection, undo
+- **Analysis**: find, shortest path, focus, size by connections / PageRank / betweenness, folded leaves, cases as boxes, connected groups, statistics, the graph as of a date
+- **Your view**: saved layouts per user, remembered filters, a full-page workspace with keyboard shortcuts (`?`), "Show in graph" from any record
+- **Export**: PNG, GraphML (Gephi, yEd, Cytoscape Desktop), JSON
 
 ### 🗺️ Global Intelligence Map
 - **Geocoded locations**: Automatically geocode addresses with database caching
@@ -199,7 +198,6 @@ administrator can change their own membership. Full details in
 - **Professional colorway**: Business-appropriate aesthetics
 - **Smooth animations**: Apple-inspired interactions
 - **Enhanced readability**: All text elements have proper contrast in both light and dark modes
-- **Centered visualizations**: Relationship graphs center properly on load
 
 ## 🚀 Quick Start (Docker)
 
@@ -292,7 +290,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.1.7
+GHOST_VERSION=3.2.0
 ```
 
 Without it, the containers track the latest release.
@@ -399,7 +397,7 @@ GHOST-osint-crm/
 │   │   │   ├── reports/         # ReportGenerator panels
 │   │   │   ├── search/          # AdvancedSearch panels
 │   │   │   ├── settings/        # SettingsPage tabs
-│   │   │   ├── visualization/   # Graphs and diagrams
+│   │   │   ├── graph/           # The entity graph (Cytoscape.js)
 │   │   │   └── wireless/        # WirelessNetworkDetail panels
 │   │   ├── contexts/            # AuthContext, DataContext, ProjectContext, UIContext
 │   │   ├── locales/             # Translation catalogs (en + Crowdin-managed languages)
@@ -462,11 +460,11 @@ GHOST-osint-crm/
 - Filter networks by various criteria
 
 ### Entity Network Mapping
-1. Navigate to "Entity Network" section
-2. View interactive relationship diagram
-3. Filter by entity types and relationships
-4. Click nodes for details
-5. Add connections between entities
+1. Open the "Entity Network" section (or "Show in graph" on any record)
+2. Switch entity types and kinds of links on or off; filters are on the left
+3. Click an entity or a link for details, right-click for actions
+4. Find (`/`), shortest path, focus and statistics; `?` lists the shortcuts
+5. Draw a connection in connect mode, or right-click → "Connect to…"
 
 ## ⚡ Performance Notes
 
@@ -671,7 +669,7 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 - Tailwind CSS 4 (dark mode, right-to-left)
 - i18next 26 / react-i18next (translations, synced with Crowdin)
 - Leaflet + react-leaflet 5 (maps)
-- React Flow 12 and D3 (diagrams, entity graph)
+- Cytoscape.js 3 with fcose and dagre layouts (entity graph)
 - react-window 2 (virtualised lists)
 - docx 9 + file-saver (report export)
 - papaparse (CSV parsing)
@@ -699,6 +697,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 ---
 
 ## 📋 Recent Changes
+
+### Version 3.2.0 (November 2026)
+- 🕸️ **A new graph** — one Cytoscape.js graph replaces both old views: every entity type and identifier, details and actions beside the graph, shortest path, find, focus, statistics, the graph as of a date, saved layouts, GraphML export and a full-page workspace (inspired by Trace)
+- ⚙️ **Start page and a narrower menu** — choose where GHOST opens; the menu folds down to its icons
 
 ### Version 3.1.7 (November 2026)
 - 🔒 **Project data stays inside its project** — ledgers check project membership, and links to people and businesses in other projects follow the project rules (thanks to Peter Wilfahrt for the report)

@@ -1,6 +1,6 @@
 {
   "name": "osint-crm",
-  "version": "3.1.7",
+  "version": "3.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
-    "@xyflow/react": "^12.12.1",
-    "d3": "^7.9.2",
+    "cytoscape": "^3.35.0",
+    "cytoscape-dagre": "^4.1.0",
+    "cytoscape-edgehandles": "^4.0.1",
+    "cytoscape-fcose": "^2.2.0",
     "docx": "^9.15.2",
     "dompurify": "3.4.17",
     "file-saver": "^2.0.5",

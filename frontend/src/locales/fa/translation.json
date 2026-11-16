@@ -5,7 +5,6 @@
     "workspace": "فضای کاری",
     "logout": "خروج",
     "entityNetworkTitle": "شبکه روابط موجودیت‌ها",
-    "entityNetworkSubtitle": "تصویرسازی ارتباطات بین افراد و کسب‌وکارها",
     "nav": {
       "dashboard": "داشبورد",
       "cases": "پرونده‌ها",
@@ -1963,11 +1962,6 @@
     "darkOnlyHint": "{{name}} is dark only, so the mode doesn’t change it.",
     "themeAccent": "The accent of {{name}}",
     "themeAccentShort": "Theme"
-  },
-  "darkModeToggle": {
-    "switchToLight": "تغییر به حالت روشن",
-    "switchToDark": "تغییر به حالت تاریک",
-    "darkOnly": "{{name}} is dark only"
   },
   "projectSelector": {
     "title": "پروژه فعال",

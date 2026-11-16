@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { NAV_GROUPS, SWITCHABLE_MODULES, isModuleOn, visibleNavGroups } from './modules';
+import { NAV_GROUPS, SWITCHABLE_MODULES, isModuleOn, visibleNavGroups, startSection, START_PAGES } from './modules';
 
 describe('sidebar modules', () => {
   test('every menu section is in exactly one group', () => {
@@ -34,5 +34,17 @@ describe('collapsible groups', () => {
     expect(readCollapsedGroups()).toEqual(['money', 'analysis']);
     localStorage.setItem('ghost-nav-collapsed', 'not json');
     expect(readCollapsedGroups()).toEqual([]);
+  });
+});
+
+describe('start page', () => {
+  test('the chosen section, if it exists and is on; the dashboard otherwise', () => {
+    expect(startSection('relationships', [])).toBe('relationships');
+    expect(startSection('relationships', ['relationships'])).toBe('dashboard');
+    expect(startSection('people', ['relationships'])).toBe('people');
+    expect(startSection(null, [])).toBe('dashboard');
+    expect(startSection('nowhere', [])).toBe('dashboard');
+    expect(START_PAGES).toContain('dashboard');
+    expect(START_PAGES).not.toContain('settings');
   });
 });

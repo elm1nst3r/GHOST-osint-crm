@@ -6,6 +6,7 @@ import { assetsAPI } from '../utils/api';
 import { useUI } from '../contexts/UIContext';
 import ChainOfCustodyTimeline from './ChainOfCustodyTimeline';
 import { formatMoney, formatDate, prettyType } from '../utils/transactionFormat';
+import ShowInGraphButton from './ShowInGraphButton';
 
 const AssetDetailModal = ({ asset: initial, onClose }) => {
   const { t } = useTranslation();
@@ -31,6 +32,7 @@ const AssetDetailModal = ({ asset: initial, onClose }) => {
             </div>
           </div>
           <div className="flex gap-x-2">
+            <ShowInGraphButton type="asset" id={asset.id} />
             <button onClick={() => { onClose(); setEditingAsset(asset); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
             <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
           </div>

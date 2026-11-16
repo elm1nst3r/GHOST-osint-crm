@@ -5,7 +5,6 @@
     "workspace": "Рабочее место",
     "logout": "Выйти",
     "entityNetworkTitle": "Глобальная паутина связей",
-    "entityNetworkSubtitle": "Визуализировать связи между личностями и организациями",
     "nav": {
       "dashboard": "Главная",
       "cases": "Дела",
@@ -1963,11 +1962,6 @@
     "darkOnlyHint": "{{name}} только темный, поэтому режим не меняет его.",
     "themeAccent": "Акцент {{name}}",
     "themeAccentShort": "Тема"
-  },
-  "darkModeToggle": {
-    "switchToLight": "Переключиться в светлый режим",
-    "switchToDark": "Переключиться в темный режим",
-    "darkOnly": "{{name}} только темный"
   },
   "projectSelector": {
     "title": "Активные проекты",

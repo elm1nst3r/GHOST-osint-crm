@@ -5,7 +5,6 @@
     "workspace": "Workspace",
     "logout": "Logout",
     "entityNetworkTitle": "Entity Relationship Network",
-    "entityNetworkSubtitle": "Visualize connections between people and businesses",
     "nav": {
       "dashboard": "Dashboard",
       "cases": "Cases",
@@ -1811,10 +1810,6 @@
     "solid": "Solid",
     "glass": "Glass",
     "preferencesStoredNote": "Theme mode is saved to your account and follows you to other devices. Accent, density and surface style are stored in this browser only."
-  },
-  "darkModeToggle": {
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode"
   },
   "projectSelector": {
     "title": "Active project",

@@ -29,7 +29,9 @@ const publicUser = (user) => ({
   // Per-user overrides of the global defaults (issue #91). NULL means
   // "no override" — the frontend falls back to /settings/branding.
   language: user.language,
-  theme_mode: user.theme_mode
+  theme_mode: user.theme_mode,
+  // The section to open after sign-in (graph plan, phase 4); NULL = dashboard.
+  start_page: user.start_page ?? null,
 });
 
 // The user is fully signed in from here: last login, session, response.
@@ -221,10 +223,11 @@ router.get('/session', async (req, res) => {
   // just the next login.
   let language = null;
   let theme_mode = null;
+  let start_page = null;
   try {
-    const result = await pool.query('SELECT language, theme_mode FROM users WHERE id = $1', [req.session.userId]);
+    const result = await pool.query('SELECT language, theme_mode, start_page FROM users WHERE id = $1', [req.session.userId]);
     if (result.rows.length > 0) {
-      ({ language, theme_mode } = result.rows[0]);
+      ({ language, theme_mode, start_page } = result.rows[0]);
     }
   } catch (err) {
     console.error('Error fetching user preferences for session:', err);
@@ -241,7 +244,8 @@ router.get('/session', async (req, res) => {
       username: req.session.username,
       role: req.session.userRole,
       language,
-      theme_mode
+      theme_mode,
+      start_page,
     }
   });
 });
@@ -250,7 +254,7 @@ router.get('/session', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, first_name, last_name, role, last_login, created_at, language, theme_mode,
+      `SELECT id, username, email, first_name, last_name, role, last_login, created_at, language, theme_mode, start_page,
               password_hash IS NOT NULL AS has_password,
               (SELECT COUNT(*)::int FROM user_identities i WHERE i.user_id = users.id) AS sso_identities
        FROM users WHERE id = $1`,
@@ -271,7 +275,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // Update current user's profile
 router.put('/me', requireAuth, async (req, res) => {
   try {
-    const { email, first_name, last_name, current_password, new_password, language, theme_mode } = req.body;
+    const { email, first_name, last_name, current_password, new_password, language, theme_mode, start_page } = req.body;
     const userId = req.session.userId;
 
     // Personal overrides of the global defaults (issue #91). Self-service —
@@ -285,6 +289,12 @@ router.put('/me', requireAuth, async (req, res) => {
     if (theme_mode !== undefined && theme_mode !== null && theme_mode !== '' && !['light', 'dark', 'system'].includes(theme_mode)) {
       return res.status(400).json({ error: 'Invalid theme_mode' });
     }
+    // A section id; which ones exist (and are switched on) is the frontend's
+    // business, so only the form is checked here.
+    if (start_page !== undefined && start_page !== null && start_page !== '' && !/^[a-z][a-z-]{0,39}$/.test(start_page)) {
+      return res.status(400).json({ error: 'Invalid start_page' });
+    }
+    const startPageValue = start_page === '' ? null : start_page;
     const languageValue = language === '' ? null : language;
     const themeModeValue = theme_mode === '' ? null : theme_mode;
 
@@ -337,10 +347,12 @@ router.put('/me', requireAuth, async (req, res) => {
         first_name = COALESCE($2, first_name),
         last_name = COALESCE($3, last_name),
         language = CASE WHEN $4 THEN $5 ELSE language END,
-        theme_mode = CASE WHEN $6 THEN $7 ELSE theme_mode END
+        theme_mode = CASE WHEN $6 THEN $7 ELSE theme_mode END,
+        start_page = CASE WHEN $9 THEN $10 ELSE start_page END
       WHERE id = $8
-      RETURNING id, username, email, first_name, last_name, role, language, theme_mode`,
-      [email, first_name, last_name, language !== undefined, languageValue, theme_mode !== undefined, themeModeValue, userId]
+      RETURNING id, username, email, first_name, last_name, role, language, theme_mode, start_page`,
+      [email, first_name, last_name, language !== undefined, languageValue, theme_mode !== undefined, themeModeValue, userId,
+        start_page !== undefined, startPageValue]
     );
 
     res.json(result.rows[0]);

@@ -12,6 +12,7 @@ import { useUI } from '../contexts/UIContext';
 import { useData } from '../contexts/DataContext';
 import { useProject } from '../contexts/ProjectContext';
 import { optionLabel } from '../utils/optionLabels';
+import ShowInGraphButton from './ShowInGraphButton';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-hidden focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm';
 
@@ -115,6 +116,7 @@ const CryptoWalletDetailModal = ({ wallet: initial, onClose }) => {
             </div>
           </div>
           <div className="flex gap-x-2 shrink-0">
+            <ShowInGraphButton type="crypto_wallet" id={wallet.id} />
             <button onClick={() => { onClose(); setEditingCryptoWallet(wallet); }} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"><Edit2 className="w-5 h-5" /></button>
             <button onClick={onClose} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
           </div>

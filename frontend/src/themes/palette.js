@@ -71,8 +71,8 @@ export function accentPair(color, v) {
   return { bg, hover: mix(bg, n[10], 0.85), ink };
 }
 
-// The relationship graph is always a dark canvas (ObsidianGraph.jsx reads
-// these with its own colours as fallbacks). Light themes draw it in their
+// The relationship graph is always a dark canvas (components/graph reads
+// these through utils/graphStyle.js). Light themes draw it in their
 // darkest ink; nodes and edges use the bright 400 shades either way.
 function graphVars(v, n, hues) {
   const bright = (h, i = 4) => hues[h][i];
@@ -85,12 +85,16 @@ function graphVars(v, n, hues) {
     '--graph-badge': bright('blue'),
     '--graph-node-default': bright('indigo'), '--graph-node-person': bright('blue'), '--graph-node-business': bright('green'),
     '--graph-node-wallet': bright('purple'), '--graph-node-selected': bright('amber'), '--graph-node-hover': bright('rose'),
+    '--graph-node-asset': bright('orange'), '--graph-node-property': bright('teal'), '--graph-node-wireless': bright('sky'),
+    '--graph-node-identifier': v.dark ? n[3] : n[2],
     '--graph-node-text': v.dark ? n[1] : n[0],
     '--graph-edge-family': bright('emerald'), '--graph-edge-friend': bright('blue'), '--graph-edge-enemy': bright('red'),
     '--graph-edge-associate': v.dark ? n[4] : n[3], '--graph-edge-employer': bright('violet'), '--graph-edge-employee': bright('violet', 3),
     '--graph-edge-suspect': bright('red'), '--graph-edge-witness': bright('amber'), '--graph-edge-victim': bright('pink'),
     '--graph-edge-owner': bright('green'), '--graph-edge-owns-business': bright('green', 5), '--graph-edge-board-member': bright('purple', 5),
     '--graph-edge-transaction': bright('cyan'), '--graph-edge-other': v.dark ? n[5] : n[4],
+    '--graph-edge-holds': bright('orange', 5), '--graph-edge-owns-property': bright('teal', 5),
+    '--graph-edge-uses-network': bright('sky', 5), '--graph-edge-identifier': v.dark ? n[5] : n[4],
     '--graph-cat-poi': bright('red'), '--graph-cat-client': bright('emerald'), '--graph-cat-witness': bright('amber'),
     '--graph-cat-victim': bright('pink'), '--graph-cat-suspect': bright('red', 5),
   };

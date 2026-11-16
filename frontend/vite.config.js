@@ -63,7 +63,8 @@ export default defineConfig({
               'react', 'react-dom/client', 'react/jsx-dev-runtime', 'react/compiler-runtime', 'vitest-browser-react',
               'i18next', 'react-i18next', 'lucide-react', '@simplewebauthn/browser',
               'docx', 'file-saver', 'mammoth/mammoth.browser', 'marked', 'dompurify', 'react-window',
-              'react-router', 'leaflet', 'react-leaflet', 'react-leaflet-cluster', '@xyflow/react', 'd3', 'papaparse',
+              'react-router', 'leaflet', 'react-leaflet', 'react-leaflet-cluster', 'papaparse',
+              'cytoscape', 'cytoscape-fcose', 'cytoscape-dagre', 'cytoscape-edgehandles',
             ],
           },
           browser: {

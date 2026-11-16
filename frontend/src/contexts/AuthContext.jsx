@@ -39,6 +39,9 @@ export const AuthProvider = ({ children }) => {
     setAuthenticated(!setupRequired);
   }, []);
 
+  // A profile setting saved elsewhere (Settings → General: start page).
+  const updateCurrentUser = useCallback((patch) => setCurrentUser((u) => (u ? { ...u, ...patch } : u)), []);
+
   const signedOut = useCallback(() => {
     setAuthenticated(false);
     setCurrentUser(null);
@@ -100,6 +103,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       authenticated,
       currentUser,
+      updateCurrentUser,
       authLoading,
       mfaSetupRequired,
       handleLogin,

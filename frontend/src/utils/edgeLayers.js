@@ -13,18 +13,22 @@
 // Every edge type must map to exactly one layer; unknown types fall to `other`
 // so a user-created connection type can never be silently invisible.
 
-export const EDGE_LAYERS = ['governance', 'employment', 'financial', 'social', 'investigative', 'other'];
+export const EDGE_LAYERS = ['governance', 'employment', 'financial', 'social', 'investigative', 'digital', 'other'];
 
 const TYPES_BY_LAYER = {
   // Who controls the entity: ownership (person→business and business→business)
   // and board seats / decision-making roles.
-  governance: ['owner', 'owns_business', 'board_member'],
+  // Holding an asset counts as possession, so it's here and not with money.
+  governance: ['owner', 'owns_business', 'board_member', 'owns_property', 'holds'],
   employment: ['employer', 'employee'],
   // "Broadly an exchange of value or gifts" — includes endorsements, not just
   // cash, per zbyte64's newspaper-endorsement example.
   financial: ['transaction'],
   social: ['family', 'friend', 'associate', 'enemy'],
   investigative: ['suspect', 'witness', 'victim'],
+  // Shared identifiers (emails, phones, usernames…) and wireless networks
+  // (graph plan): traces rather than relationships.
+  digital: ['identifier', 'uses_network'],
   other: ['other'],
 };
 
@@ -43,6 +47,7 @@ export const DEFAULT_EDGE_LAYERS = {
   financial: false, // off by default: transaction edges are dense and aggregate
   social: true,
   investigative: true,
+  digital: true,
   other: true,
 };
 
