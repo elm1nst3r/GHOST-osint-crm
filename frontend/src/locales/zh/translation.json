@@ -5,7 +5,6 @@
     "workspace": "Workspace",
     "logout": "Logout",
     "entityNetworkTitle": "Entity Relationship Network",
-    "entityNetworkSubtitle": "Visualize connections between people and businesses",
     "nav": {
       "dashboard": "Dashboard",
       "cases": "Cases",

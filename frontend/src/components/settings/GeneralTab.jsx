@@ -13,10 +13,13 @@ import ModulesSection from './ModulesSection';
 import UpdateStatus from '../update/UpdateStatus';
 import { useScratchpad } from '../../contexts/ScratchpadContext';
 import { Toggle } from '../scratchpad/ScratchpadSettingsView';
+import { useModules } from '../../contexts/ModulesContext';
+import { START_PAGES, startSection } from '../../utils/modules';
 
 const GeneralTab = () => {
   const { appSettings, setAppSettings, handleAppNameChange } = useData();
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
+  const { disabled: disabledModules, isOn: moduleOn } = useModules();
   const isAdmin = currentUser?.role === 'admin';
   const { t, i18n } = useTranslation();
   const { settings: scratchpadSettings, updateSettings: updateScratchpadSettings } = useScratchpad();
@@ -45,6 +48,16 @@ const GeneralTab = () => {
   const handleLanguageChange = (code) => {
     changeLanguage(code);
     authAPI.updateProfile({ language: code }).catch((err) => console.error('Error saving language preference:', err));
+  };
+
+  // Where GHOST opens after sign-in (graph plan, phase 4); per account.
+  const [startError, setStartError] = useState(null);
+  const startPage = startSection(currentUser?.start_page, disabledModules);
+  const handleStartPageChange = (id) => {
+    setStartError(null);
+    updateCurrentUser({ start_page: id === 'dashboard' ? null : id });
+    authAPI.updateProfile({ start_page: id === 'dashboard' ? '' : id })
+      .catch((err) => { setStartError(err.message); updateCurrentUser({ start_page: currentUser?.start_page ?? null }); });
   };
 
   return (
@@ -109,6 +122,21 @@ const GeneralTab = () => {
             ))}
           </select>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.languageHelp')}</p>
+        </div>
+        <div className="mt-5">
+          <label htmlFor="settings-start-page" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('settings.general.startPage')}</label>
+          <select
+            id="settings-start-page"
+            value={startPage}
+            onChange={(e) => handleStartPageChange(e.target.value)}
+            className="w-full max-w-xs px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+          >
+            {START_PAGES.filter((id) => moduleOn(id)).map((id) => (
+              <option key={id} value={id}>{t(`app.nav.${id}`)}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{t('settings.general.startPageHelp')}</p>
+          {startError && <p className="text-xs text-red-600 dark:text-red-400 mt-1" role="alert">{startError}</p>}
         </div>
         {/* Per-user, saved server-side with the rest of the scratchpad's settings */}
         <div className="mt-5 max-w-md">

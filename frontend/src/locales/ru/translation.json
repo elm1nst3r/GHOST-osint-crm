@@ -5,7 +5,6 @@
     "workspace": "Рабочее место",
     "logout": "Выйти",
     "entityNetworkTitle": "Глобальная паутина связей",
-    "entityNetworkSubtitle": "Визуализировать связи между личностями и организациями",
     "nav": {
       "dashboard": "Главная",
       "cases": "Дела",

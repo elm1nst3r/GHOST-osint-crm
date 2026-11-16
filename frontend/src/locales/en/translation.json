@@ -5,7 +5,6 @@
     "workspace": "Workspace",
     "logout": "Logout",
     "entityNetworkTitle": "Entity Relationship Network",
-    "entityNetworkSubtitle": "Visualize connections between people and businesses",
     "nav": {
       "dashboard": "Dashboard",
       "cases": "Cases",
@@ -415,7 +414,9 @@
       "apiUrl": "API URL:",
       "scratchpad": "Scratchpad",
       "scratchpadToggle": "Show the scratchpad",
-      "scratchpadHelp": "A floating notepad for pasting and quick notes while you work. Private to you."
+      "scratchpadHelp": "A floating notepad for pasting and quick notes while you work. Private to you.",
+      "startPage": "Start page",
+      "startPageHelp": "Where GHOST opens after you sign in. Saved with your account."
     },
     "profile": {
       "title": "My Profile",
@@ -3046,6 +3047,56 @@
     "soloOff": "all",
     "soloOffTitle": "Show every kind of link again",
     "showRow": "Show",
-    "linksRow": "Links"
+    "linksRow": "Links",
+    "showInGraph": "Show in graph",
+    "openInNetwork": "Open in Entity Network",
+    "hideFilters": "Hide filters",
+    "detailsPanel": "Details panel",
+    "showDetails": "Show the details panel",
+    "hideDetails": "Hide the details panel",
+    "panelEmptyTitle": "Nothing selected",
+    "panelEmptyText": "Click an entity or a link to see it here. Right-click for what you can do with it.",
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "open": "Keyboard shortcuts (?)",
+      "groups": {
+        "find": "Find",
+        "view": "View",
+        "work": "Work",
+        "mouse": "Mouse",
+        "help": "Help"
+      },
+      "keys": {
+        "find": "Find in the graph",
+        "findNext": "Next match (Shift: previous)",
+        "clear": "Clear the selection, close",
+        "fit": "Show everything",
+        "zoom": "Zoom in, out",
+        "relayout": "Lay out again",
+        "filters": "Filters panel",
+        "details": "Details panel",
+        "stats": "Statistics",
+        "asOf": "As of a date",
+        "hide": "Hide what is selected",
+        "pin": "Pin or unpin what is selected",
+        "connect": "Connect mode",
+        "undo": "Undo",
+        "addToSelection": "Add to the selection",
+        "boxSelect": "Select an area",
+        "menu": "Actions for it",
+        "open": "Open it",
+        "help": "This list"
+      },
+      "keyNames": {
+        "click": "click",
+        "drag": "drag",
+        "Shift": "Shift",
+        "Enter": "Enter",
+        "Esc": "Esc",
+        "Ctrl": "Ctrl",
+        "rightClick": "right-click",
+        "doubleClick": "double-click"
+      }
+    }
   }
 }

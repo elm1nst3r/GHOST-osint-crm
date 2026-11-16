@@ -111,14 +111,25 @@ function ChipList({ label, values, selected, onChange, render = (v) => v }) {
   );
 }
 
-export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
+// `side`: the workspace's left panel (everything in one column); otherwise
+// a strip over the canvas (phones).
+export function FilterPanel({ filters, onChange, cases, options, edgeLabel, side = false, onClose }) {
   const { t } = useTranslation();
   const set = (patch) => onChange({ ...filters, ...patch });
   return (
-    <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 max-h-[40%] overflow-y-auto shrink-0">
-      {/* Fields on one line, the lists of values in even columns under it. */}
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-        <div className="w-full sm:w-64">
+    <div className={side
+      ? 'h-full overflow-y-auto p-4'
+      : 'px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 max-h-[40%] overflow-y-auto shrink-0'}>
+      {side && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('graph.filters')}</h2>
+          {onClose && <button type="button" onClick={onClose} className={`${ui.icon} h-7 w-7 -me-1.5`} aria-label={t('graph.hideFilters')} title={t('graph.hideFilters')}><X className="w-4 h-4" /></button>}
+        </div>
+      )}
+      {/* Fields on one line (a column in the side panel), the lists of
+          values in even columns under them. */}
+      <div className={side ? 'space-y-3' : 'flex flex-wrap items-end gap-x-4 gap-y-3'}>
+        <div className={side ? '' : 'w-full sm:w-64'}>
           <label className={ui.label} htmlFor="graph-search">{t('graph.search')}</label>
           <div className="relative">
             <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -129,11 +140,11 @@ export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
         <div>
           <label className={ui.label} htmlFor="graph-min-links">{t('graph.minConnections')}</label>
           <input id="graph-min-links" type="number" min="0" value={filters.minConnections}
-            onChange={(e) => set({ minConnections: Math.max(0, parseInt(e.target.value, 10) || 0) })} className={`${ui.input} w-24`} />
+            onChange={(e) => set({ minConnections: Math.max(0, parseInt(e.target.value, 10) || 0) })} className={`${ui.input} ${side ? 'w-full' : 'w-24'}`} />
         </div>
         <div>
           <label className={ui.label} htmlFor="graph-updated">{t('graph.updated')}</label>
-          <select id="graph-updated" value={filters.dateRange} onChange={(e) => set({ dateRange: e.target.value })} className={ui.select}>
+          <select id="graph-updated" value={filters.dateRange} onChange={(e) => set({ dateRange: e.target.value })} className={`${ui.select} ${side ? 'w-full' : ''}`}>
             {['all', 'week', 'month', 'year'].map((r) => <option key={r} value={r}>{t(`graph.dateRange.${r}`)}</option>)}
           </select>
         </div>
@@ -141,11 +152,11 @@ export function FilterPanel({ filters, onChange, cases, options, edgeLabel }) {
           <input type="checkbox" checked={filters.showIsolated} onChange={(e) => set({ showIsolated: e.target.checked })} />
           {t('graph.showIsolated')}
         </label>
-        <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className={`${ui.button} ms-auto`}>
+        <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className={`${ui.button} ${side ? '-ms-2.5' : 'ms-auto'}`}>
           <RotateCcw className="w-3.5 h-3.5" />{t('graph.resetFilters')}
         </button>
       </div>
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 items-start gap-4">
+      <div className={side ? 'mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4' : 'mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 items-start gap-4'}>
         <ChipList label={t('graph.cases')} values={cases.map((c) => c.id)} selected={filters.caseIds}
           onChange={(caseIds) => set({ caseIds })} render={(id) => cases.find((c) => c.id === id)?.case_name || id} />
         <ChipList label={t('graph.categories')} values={options.categories} selected={filters.categories} onChange={(categories) => set({ categories })} />
@@ -252,7 +263,7 @@ export function FindBox({ inputRef, term, onTerm, count, index, onStep }) {
         placeholder={t('graph.findPlaceholder')}
         aria-label={t('graph.find')}
         title={t('graph.findTitle')}
-        className={`${ui.input} ps-8 w-40 sm:w-48`}
+        className={`${ui.input} ps-8 w-40 2xl:w-48`}
       />
       {term.trim() && (
         <span className="flex items-center gap-x-0.5 ms-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums whitespace-nowrap" aria-live="polite">
@@ -410,5 +421,77 @@ export function FocusTrail({ trail, nameOf, onGo, onClear }) {
         </span>
       ))}
     </nav>
+  );
+}
+
+// ── Phase 4 ──────────────────────────────────────────────────────────────────
+
+// The keyboard shortcuts, for the `?` list. `full`: the ones that only work
+// in the Entity Network section.
+export const SHORTCUTS = [
+  { group: 'find', keys: ['/'], label: 'find' },
+  { group: 'find', keys: ['Enter'], label: 'findNext' },
+  { group: 'find', keys: ['Esc'], label: 'clear' },
+  { group: 'view', keys: ['0'], label: 'fit' },
+  { group: 'view', keys: ['+', '−'], label: 'zoom' },
+  { group: 'view', keys: ['L'], label: 'relayout' },
+  { group: 'view', keys: ['F'], label: 'filters', full: true },
+  { group: 'view', keys: ['D'], label: 'details', full: true },
+  { group: 'view', keys: ['S'], label: 'stats' },
+  { group: 'view', keys: ['T'], label: 'asOf' },
+  { group: 'work', keys: ['H'], label: 'hide' },
+  { group: 'work', keys: ['P'], label: 'pin' },
+  { group: 'work', keys: ['C'], label: 'connect' },
+  { group: 'work', keys: ['Ctrl', 'Z'], label: 'undo' },
+  { group: 'mouse', keys: ['Shift', 'click'], label: 'addToSelection' },
+  { group: 'mouse', keys: ['Shift', 'drag'], label: 'boxSelect' },
+  { group: 'mouse', keys: ['rightClick'], label: 'menu' },
+  { group: 'mouse', keys: ['doubleClick'], label: 'open' },
+  { group: 'help', keys: ['?'], label: 'help' },
+];
+
+const Key = ({ children }) => (
+  <kbd className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-md border border-slate-300 dark:border-slate-600 border-b-2 bg-white dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-200 font-sans">{children}</kbd>
+);
+
+export function ShortcutsDialog({ full, onClose }) {
+  const { t } = useTranslation();
+  const ref = useRef(null);
+  useEffect(() => {
+    ref.current?.querySelector('button')?.focus();
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', esc, true);
+    return () => window.removeEventListener('keydown', esc, true);
+  }, [onClose]);
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
+  const groups = ['find', 'view', 'work', 'mouse', 'help'];
+  const rows = SHORTCUTS.filter((s) => full || !s.full);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="graph-shortcuts-title" onClick={(e) => e.stopPropagation()}
+        className="glass-card w-full max-w-xl max-h-[85vh] overflow-y-auto p-5">
+        <div className="flex items-center justify-between">
+          <h2 id="graph-shortcuts-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('graph.shortcuts.title')}</h2>
+          <button type="button" onClick={onClose} className={ui.icon} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
+        </div>
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+          {groups.map((g) => (
+            <section key={g}>
+              <h3 className={ui.rowLabel}>{t(`graph.shortcuts.groups.${g}`)}</h3>
+              <dl className="mt-2 space-y-1.5">
+                {rows.filter((s) => s.group === g).map((s) => (
+                  <div key={s.label} className="flex items-center justify-between gap-3 text-sm">
+                    <dt className="text-slate-700 dark:text-slate-300">{t(`graph.shortcuts.keys.${s.label}`)}</dt>
+                    <dd className="flex items-center gap-1 shrink-0">
+                      {s.keys.map((k) => <Key key={k}>{k === 'Ctrl' && mac ? '⌘' : t(`graph.shortcuts.keyNames.${k}`, { defaultValue: k })}</Key>)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

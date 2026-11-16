@@ -19,6 +19,7 @@ export const DEFAULT_PREFS = {
   collapse: false,
   filters: EMPTY_FILTERS,
   showFilters: false,
+  showPanel: true, // the details panel beside the graph (desktop)
 };
 
 const LAYOUTS = ['force', 'hierarchical', 'concentric', 'circle', 'grid'];
@@ -55,6 +56,7 @@ export function cleanPrefs(stored) {
       dateRange: pick(f.dateRange, ['all', 'week', 'month', 'year'], 'all'),
     },
     showFilters: p.showFilters === true,
+    showPanel: p.showPanel !== false,
   };
 }
 

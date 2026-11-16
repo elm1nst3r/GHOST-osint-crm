@@ -23,16 +23,20 @@
 // as of the date → filters → focus → (path, find, sizes) → folding → drawn.
 import { lazy, Suspense, useDeferredValue, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import {
   Network, Filter, RefreshCw, Maximize2, Minimize2, ZoomIn, ZoomOut, Scan, Link2, Download,
   Loader2, AlertCircle, ArrowLeft, Shuffle, SlidersHorizontal, Undo2, Eye, Settings2, CalendarClock, ChartColumn,
+  PanelRightClose, PanelRightOpen, Keyboard, SquareArrowOutUpRight,
 } from 'lucide-react';
 import GraphCanvas from './GraphCanvas';
 import {
   Legend, FilterPanel, ConnectDialog, TypeSwitches, LayerSwitches,
-  FindBox, Popover, ViewOptions, ExportOptions, AsOfBar, FocusTrail,
+  FindBox, Popover, ViewOptions, ExportOptions, AsOfBar, FocusTrail, ShortcutsDialog,
 } from './GraphPanels';
-import { Inspector, ContextMenu, SelectionBar, PathPanel, StatsPanel } from './GraphActions';
+import { Inspector, ContextMenu, SelectionBar, PathPanel, StatsPanel, PanelEmpty } from './GraphActions';
+import { useShowInGraph, FOCUS_RE } from '../../utils/useShowInGraph';
+import { useWide } from '../../utils/useWide';
 import { useGraphEdits } from './useGraphEdits';
 import { graphAPI, casesAPI, toolsAPI, peopleAPI } from '../../utils/api';
 import { runnableTools } from '../../utils/integrations';
@@ -75,7 +79,9 @@ function download(text, name, type) {
 }
 
 
-export default function GraphView({ focus = null, variant = 'full' }) {
+// `title`: the full view's heading (the Entity Network section has no
+// other header: the graph is the page).
+export default function GraphView({ focus = null, variant = 'full', title = null }) {
   const { t } = useTranslation();
   const { activeProjectId } = useProject();
   const { theme, darkMode, darkFlavour } = useTheme();
@@ -90,7 +96,19 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const compact = variant === 'compact';
 
   // Re-centred on an entity ("Centre here"); dialogs start centred on theirs.
-  const [centre, setCentre] = useState(null);
+  // In the Entity Network section the centre is in the address
+  // (/relationships?focus=person:12): "Show in graph" links there, and Back
+  // and Forward step through centres.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlFocus = searchParams.get('focus');
+  const [localCentre, setLocalCentre] = useState(null);
+  const centre = full ? (FOCUS_RE.test(urlFocus || '') ? urlFocus : null) : localCentre;
+  const setCentre = (id) => {
+    if (full) setSearchParams(id ? { focus: id } : {});
+    else setLocalCentre(id);
+  };
+  const wide = useWide();
+  const showInGraph = useShowInGraph();
   const focusId = centre || focus;
   const [depth, setDepth] = useState(1);
 
@@ -138,6 +156,8 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const [sizeBy, setSizeBy] = useState(remembered.sizeBy);
   const [groupBy, setGroupBy] = useState(remembered.groupBy);
   const [collapse, setCollapse] = useState(remembered.collapse);
+  const [showPanel, setShowPanel] = useState(remembered.showPanel);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [unfolded, setUnfolded] = useState([]);
   const [asOf, setAsOf] = useState(null);
   const [showAsOf, setShowAsOf] = useState(false);
@@ -150,8 +170,8 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   const saveScope = full ? currentUser?.id : undefined;
   useEffect(() => {
     if (saveScope === undefined) return;
-    writeGraphPrefs(saveScope, { types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters });
-  }, [saveScope, types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters]);
+    writeGraphPrefs(saveScope, { types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters, showPanel });
+  }, [saveScope, types, layers, solo, identifierMode, layout, sizeBy, groupBy, collapse, filters, showFilters, showPanel]);
 
   // ── Data ──
   const include = includeFor(focusId ? ALL_TYPES : types, layers, solo).join(',');
@@ -197,25 +217,6 @@ export default function GraphView({ focus = null, variant = 'full' }) {
   });
   useEffect(() => afterForm(), [forms.open]);
 
-  // Ctrl/Cmd+Z undoes graph edits while the pointer is over this graph; `/`
-  // goes to Find (over this graph, or anywhere on the Relationships page).
-  const onKey = useEffectEvent((e) => {
-    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
-    if (e.key === '/' && !typing && findRef.current && (pointerInside.current || (full && e.target === document.body))) {
-      e.preventDefault();
-      findRef.current.focus();
-      return;
-    }
-    if (!pointerInside.current) return;
-    if (typing) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); edits.undo(); }
-    if (e.key === 'Escape') { setMenu(null); setSelection(null); setMulti([]); canvasRef.current?.unselectAll(); }
-  });
-  useEffect(() => {
-    const handler = (e) => onKey(e);
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   // Cases: for the filters (full view) and to draw them as boxes.
   const casesProject = graphProject || activeProjectId;
@@ -310,6 +311,14 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     setTrail([]); setPathEnds(null); setUnfolded([]);
   };
   const centreOn = (nodeId) => { startOver(); setCentre(nodeId); };
+  // The address changed the centre (Show in graph, Back, Forward): start
+  // over, as "Centre here" does (state adjusted while rendering, not in an
+  // effect).
+  const [seenCentre, setSeenCentre] = useState(centre);
+  if (centre !== seenCentre) {
+    setSeenCentre(centre);
+    if (full) startOver();
+  }
   const backToProject = () => { startOver(); setCentre(null); };
   const reload = () => setReloadKey((k) => k + 1);
   const selectNode = (id) => {
@@ -412,6 +421,46 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     if (format === 'graphml') download(toGraphML(shown, { formatName, edgeLabel, positions }), `ghost-graph-${stamp}.graphml`, 'application/xml');
     else download(toGraphJSON(shown, { formatName, positions, meta: { project_id: graphProject, view: viewKey, as_of: asOf } }), `ghost-graph-${stamp}.json`, 'application/json');
   };
+  // Keyboard shortcuts (`?` lists them). In the Entity Network section
+  // they work anywhere on the page unless a dialog is open over it; in a
+  // dialog's or the dashboard's graph only with the pointer over it.
+  const overlayOpen = () => [...document.querySelectorAll('.fixed.inset-0')]
+    .some((el) => !rootRef.current?.contains(el));
+  const onKey = useEffectEvent((e) => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+    if (typing || compact || showShortcuts) return;
+    if (!(pointerInside.current || (full && !overlayOpen()))) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); edits.undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const picked = multi.length ? multi : (selection?.kind === 'node' ? [selection.data.id] : []);
+    const keys = {
+      '/': () => findRef.current?.focus(),
+      '?': () => setShowShortcuts(true),
+      Escape: () => { setMenu(null); setSelection(null); setMulti([]); canvasRef.current?.unselectAll(); },
+      0: () => canvasRef.current?.fit(),
+      '+': () => canvasRef.current?.zoomBy(1.3),
+      '=': () => canvasRef.current?.zoomBy(1.3),
+      '-': () => canvasRef.current?.zoomBy(1 / 1.3),
+      l: () => canvasRef.current?.relayout(),
+      f: () => full && setShowFilters((v) => !v),
+      d: () => full && setShowPanel((v) => !v),
+      s: () => setShowStats((v) => !v),
+      t: () => { if (showAsOf) setAsOf(null); setShowAsOf(!showAsOf); },
+      c: () => setConnectMode((v) => !v),
+      h: () => { const ids = picked.filter((id) => id !== focusId); if (ids.length) actions.hide(ids); },
+      p: () => { if (picked.length) actions.togglePin(picked); },
+    };
+    const run = keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] || keys[e.key];
+    if (!run) return;
+    e.preventDefault();
+    run();
+  });
+  useEffect(() => {
+    const handler = (e) => onKey(e);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const nameOf = (id) => { const n = combined.nodes.find((x) => x.id === id); return n ? formatName(n) || n.label : id; };
   const panels = (
     <div className="space-y-5">
@@ -430,6 +479,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
     </div>
   );
   const hasPanels = Boolean(selection || listMulti || pathEnds || stats);
+  const sideFilters = full && showFilters && wide;
   const zoomIn = () => canvasRef.current?.zoomBy(1.3);
   const zoomOut = () => canvasRef.current?.zoomBy(1 / 1.3);
   const fit = () => canvasRef.current?.fit();
@@ -450,11 +500,18 @@ export default function GraphView({ focus = null, variant = 'full' }) {
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />{focus ? t('graph.back') : t('graph.wholeProject')}
             </button>
           )}
-          <span className="flex items-center gap-x-2 h-8 text-sm text-slate-600 dark:text-slate-300 tabular-nums me-auto" data-volatile>
+          {/* The title (Entity Network) with the counts under it; without
+              a title, the counts on their own. */}
+          <div className="flex items-center gap-x-2 me-auto min-w-0">
             <Network className="w-4 h-4 text-accent-ink shrink-0" />
-            {t('graph.summary', { nodes: drawn.nodes.length, edges: drawn.edges.length })}
-            {asOf && <span className="text-sky-700 dark:text-sky-300">· {t('graph.asOfShort', { date: formatDate(asOf) })}</span>}
-          </span>
+            <div className={`min-w-0 ${title ? 'leading-tight' : ''}`}>
+              {title && <h1 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</h1>}
+              <span className={`block tabular-nums text-slate-600 dark:text-slate-300 ${title ? 'text-xs text-slate-500 dark:text-slate-400' : 'text-sm'}`} data-volatile>
+                {t('graph.summary', { nodes: drawn.nodes.length, edges: drawn.edges.length })}
+                {asOf && <span className="text-sky-700 dark:text-sky-300"> · {t('graph.asOfShort', { date: formatDate(asOf) })}</span>}
+              </span>
+            </div>
+          </div>
 
           <FindBox inputRef={findRef} term={findTerm} onTerm={changeFind} count={matches.length} index={findIndex} onStep={stepFind} />
           <span className={ui.divider} aria-hidden="true" />
@@ -510,6 +567,12 @@ export default function GraphView({ focus = null, variant = 'full' }) {
               onClick={() => setShowStats(!showStats)} title={t('graph.stats')} aria-label={t('graph.stats')}>
               <ChartColumn className="w-4 h-4" />
             </button>
+            {full && (
+              <button type="button" className={`${ui.icon} hidden md:inline-flex ${showPanel ? ui.pressed : ''}`} aria-pressed={showPanel}
+                onClick={() => setShowPanel(!showPanel)} title={showPanel ? t('graph.hideDetails') : t('graph.showDetails')} aria-label={t('graph.detailsPanel')}>
+                {showPanel ? <PanelRightClose className="w-4 h-4 rtl:-scale-x-100" /> : <PanelRightOpen className="w-4 h-4 rtl:-scale-x-100" />}
+              </button>
+            )}
           </div>
           <span className={ui.divider} aria-hidden="true" />
 
@@ -534,6 +597,12 @@ export default function GraphView({ focus = null, variant = 'full' }) {
           <span className={ui.divider} aria-hidden="true" />
 
           <div className="flex items-center gap-1">
+            {!full && focusId && showInGraph && (
+              <button type="button" className={ui.icon} onClick={() => showInGraph(...focusId.split(':'))}
+                title={t('graph.openInNetwork')} aria-label={t('graph.openInNetwork')}>
+                <SquareArrowOutUpRight className="w-4 h-4 rtl:-scale-x-100" />
+              </button>
+            )}
             <Popover icon={Download} label={t('graph.export')}>
               {(close) => <ExportOptions onExport={exportAs} close={close} />}
             </Popover>
@@ -546,6 +615,10 @@ export default function GraphView({ focus = null, variant = 'full' }) {
               aria-label={fullScreen ? t('graph.exitFullscreen') : t('graph.fullscreen')}
             >
               {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+            <button type="button" className={`${ui.icon} hidden md:inline-flex`} onClick={() => setShowShortcuts(true)}
+              title={t('graph.shortcuts.open')} aria-label={t('graph.shortcuts.open')}>
+              <Keyboard className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -573,7 +646,7 @@ export default function GraphView({ focus = null, variant = 'full' }) {
         </div>
       )}
 
-      {full && showFilters && (
+      {full && showFilters && !wide && (
         <FilterPanel filters={filters} onChange={setFilters} cases={cases} options={options} edgeLabel={edgeLabel} />
       )}
 
@@ -589,8 +662,15 @@ export default function GraphView({ focus = null, variant = 'full' }) {
         </div>
       )}
 
-      {/* Canvas, and beside it the inspector (full view, wide screens) */}
+      {/* The workspace: filters on the left, the canvas, details on the
+          right (wide screens; on phones filters are a strip above and
+          details a sheet over the canvas). */}
       <div className="relative flex-1 min-h-0 flex">
+      {sideFilters && (
+        <aside className="w-72 shrink-0 border-e border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60" aria-label={t('graph.filters')}>
+          <FilterPanel side filters={filters} onChange={setFilters} cases={cases} options={options} edgeLabel={edgeLabel} onClose={() => setShowFilters(false)} />
+        </aside>
+      )}
       <div
         className="relative flex-1 min-w-0"
         style={{ background: graphTheme.bg }}
@@ -672,10 +752,10 @@ export default function GraphView({ focus = null, variant = 'full' }) {
       </div>
 
       {/* The full view: the inspector beside the canvas (a sheet over it on phones) */}
-      {full && hasPanels && (
+      {full && (wide ? showPanel : hasPanels) && (
         <aside className="absolute md:static inset-x-0 bottom-0 z-20 max-h-[55%] md:max-h-none md:w-80 shrink-0 overflow-y-auto p-4 bg-white dark:bg-slate-800 border-t md:border-t-0 md:border-s border-slate-200 dark:border-slate-700 shadow-xl md:shadow-none"
           aria-label={t('graph.inspector')}>
-          {panels}
+          {hasPanels ? panels : <PanelEmpty onShortcuts={() => setShowShortcuts(true)} />}
         </aside>
       )}
       </div>
@@ -690,6 +770,8 @@ export default function GraphView({ focus = null, variant = 'full' }) {
           onSaved={() => { setConnecting(null); reload(); }}
         />
       )}
+
+      {showShortcuts && <ShortcutsDialog full={full} onClose={() => setShowShortcuts(false)} />}
 
       {toolRun && (
         <Suspense fallback={null}>

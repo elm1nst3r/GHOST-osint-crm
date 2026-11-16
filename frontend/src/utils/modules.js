@@ -26,6 +26,13 @@ export const visibleNavGroups = (disabled) => NAV_GROUPS
   .map((g) => ({ ...g, items: g.items.filter((id) => isModuleOn(disabled, id)) }))
   .filter((g) => g.items.length > 0);
 
+// ── Start page ───────────────────────────────────────────────────────────────
+// The section "/" opens (graph plan, phase 4): the user's choice when it's a
+// menu section that's switched on, the dashboard otherwise.
+export const START_PAGES = NAV_GROUPS.flatMap((g) => g.items);
+export const startSection = (startPage, disabled = []) =>
+  (START_PAGES.includes(startPage) && isModuleOn(disabled, startPage) ? startPage : 'dashboard');
+
 // ── Collapsible groups ───────────────────────────────────────────────────────
 // Which group headings are collapsed, per browser. A collapsed group still
 // shows the section you are in, so the menu never hides where you are.

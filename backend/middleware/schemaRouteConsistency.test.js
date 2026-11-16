@@ -81,7 +81,7 @@ const ALLOWLIST = {
   // POST /auth/login and PUT /auth/me read their bodies without validate(),
   // so nothing is stripped there; only the two-factor routes use schemas.
   'auth.js': new Set(['username', 'password', 'email', 'first_name', 'last_name', 'current_password',
-    'new_password', 'language', 'theme_mode']),
+    'new_password', 'language', 'theme_mode', 'start_page']),
 };
 
 // Nested body objects: parent must be in the route schema, and every child

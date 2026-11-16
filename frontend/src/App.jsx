@@ -1,5 +1,5 @@
 // File: frontend/src/App.jsx
-import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent, useSyncExternalStore } from 'react';
+import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router';
 import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -12,8 +12,9 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProjectProvider, useProject } from './contexts/ProjectContext';
 import { ScratchpadProvider } from './contexts/ScratchpadContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
-import { visibleNavGroups, readCollapsedGroups, writeCollapsedGroups, itemsShown, readNavRail, writeNavRail } from './utils/modules';
+import { visibleNavGroups, readCollapsedGroups, writeCollapsedGroups, itemsShown, readNavRail, writeNavRail, startSection } from './utils/modules';
 import { changeLanguage } from './i18n';
+import { useWide } from './utils/useWide';
 
 import UpdateBanner from './components/UpdateBanner';
 import ProjectSelector from './components/ProjectSelector';
@@ -97,28 +98,17 @@ const NavItem = ({ item, active, onSelect, rail = false }) => {
 // Square icon buttons in the sidebar header.
 const sideIconButton = 'inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-(--radius-control) text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors';
 
-// Desktop width (Tailwind's md), for the narrow sidebar: phones always get
-// the full drawer.
-const WIDE = '(min-width: 48rem)';
-const subscribeWide = (onChange) => {
-  const mq = window.matchMedia(WIDE);
-  mq.addEventListener('change', onChange);
-  return () => mq.removeEventListener('change', onChange);
-};
-const isWide = () => window.matchMedia(WIDE).matches;
 
+
+// The graph is the page (graph plan, phase 4): edge to edge in the content
+// card (the negative margins undo the scroll area's padding), its title in
+// the graph's toolbar.
 const EntityNetworkSection = () => {
   const { t } = useTranslation();
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="border-b border-slate-200 dark:border-slate-700 px-4 pb-4 shrink-0">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('app.entityNetworkTitle')}</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">{t('app.entityNetworkSubtitle')}</p>
-      </div>
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0 overflow-hidden">
-          <GraphView variant="full" />
-        </div>
+    <div className="-m-4 md:-m-6 h-[calc(100%+2rem)] md:h-[calc(100%+3rem)] relative overflow-hidden">
+      <div className="absolute inset-0">
+        <GraphView variant="full" title={t('app.entityNetworkTitle')} />
       </div>
     </div>
   );
@@ -238,7 +228,7 @@ const AppShell = () => {
   const selectSection = (id) => { setActiveSection(id); setMobileNavOpen(false); };
   // The sidebar folded to its icons (desktop), remembered in this browser.
   const [navRail, setNavRail] = useState(readNavRail);
-  const wide = useSyncExternalStore(subscribeWide, isWide, () => true);
+  const wide = useWide(); // phones always get the full drawer
   const rail = navRail && wide;
   const toggleRail = () => setNavRail((on) => { writeNavRail(!on); return !on; });
 
@@ -268,6 +258,11 @@ const AppShell = () => {
   // URL → state (also handles back/forward and initial deep links)
   const syncFromUrl = useEffectEvent(() => {
     const [, seg, id] = location.pathname.split('/');
+    // "/" opens the user's start page (graph plan, phase 4).
+    if (!seg && authenticated) {
+      const start = startSection(currentUser?.start_page, disabledModules);
+      if (start !== 'dashboard') { navigate(`/${start}`, { replace: true }); return; }
+    }
     // A switched-off module's address opens the dashboard instead, and the
     // address bar says so.
     const known = navigationItemIds.some(item => item.id === seg);
