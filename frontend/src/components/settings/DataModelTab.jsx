@@ -140,7 +140,7 @@ const DataModelTab = () => {
               <label htmlFor="new_is_active" className="ms-2 text-sm text-gray-700 dark:text-gray-300">{t('settings.dataModel.activeCheckboxLabel')}</label>
             </div>
             <div className="flex justify-end gap-x-2">
-              <button onClick={() => { setShowAddOptionForm(false); setOptionForm(EMPTY_FORM); }} className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300">{t('common.cancel')}</button>
+              <button onClick={() => { setShowAddOptionForm(false); setOptionForm(EMPTY_FORM); }} className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">{t('common.cancel')}</button>
               <button onClick={handleAddOption} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">{t('settings.dataModel.addOption')}</button>
             </div>
           </div>
@@ -150,7 +150,7 @@ const DataModelTab = () => {
           const typeOptions = modelOptions.filter(opt => opt.model_type === modelType);
           return (
             <div key={modelType} className="mb-4 border rounded-lg">
-              <button onClick={() => toggleGroup(modelType)} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 rounded-t-lg flex items-center justify-between transition-colors">
+              <button onClick={() => toggleGroup(modelType)} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-t-lg flex items-center justify-between transition-colors">
                 <div className="flex items-center gap-x-2">
                   {expandedGroups[modelType] ? <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" /> : <ChevronRight className="rtl:-scale-x-100 w-4 h-4 text-gray-500 dark:text-slate-400" />}
                   <h4 className="font-medium text-gray-700 dark:text-gray-300">{label}</h4>
@@ -175,7 +175,7 @@ const DataModelTab = () => {
                           <span className={`px-2 py-1 text-xs rounded-sm ${option.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400'}`}>
                             {option.is_active ? t('settings.dataModel.active') : t('settings.dataModel.inactive')}
                           </span>
-                          <button onClick={() => { setEditingOption(option); setOptionForm({ option_value: option.option_value, option_label: option.option_label, display_order: option.display_order, is_active: option.is_active }); }} className="text-gray-600 dark:text-slate-400 hover:text-gray-700" title={t('common.edit')}><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => { setEditingOption(option); setOptionForm({ option_value: option.option_value, option_label: option.option_label, display_order: option.display_order, is_active: option.is_active }); }} className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200" title={t('common.edit')}><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => handleDeleteOption(option.id)} className="text-red-600 hover:text-red-700" title={t('common.delete')}><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </div>
@@ -213,7 +213,7 @@ const DataModelTab = () => {
               </div>
             </div>
             <div className="flex justify-end gap-x-2 mt-6">
-              <button onClick={() => { setEditingOption(null); setOptionForm(EMPTY_FORM); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200">{t('common.cancel')}</button>
+              <button onClick={() => { setEditingOption(null); setOptionForm(EMPTY_FORM); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600">{t('common.cancel')}</button>
               <button onClick={handleUpdateOption} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{t('settings.dataModel.update')}</button>
             </div>
           </div>

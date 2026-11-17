@@ -280,7 +280,7 @@ const CaseManagement = () => {
                   setShowNewCaseForm(false);
                   setNewCaseData({ case_name: '', description: '', status: 'active', project_id: defaultNewCaseProjectId() });
                 }}
-                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600"
               >
                 {t('common.cancel')}
               </button>
@@ -305,7 +305,7 @@ const CaseManagement = () => {
                 <div className="flex items-center gap-3 min-w-0">
                   <button
                     onClick={() => toggleCase(caseItem.id)}
-                    className="text-gray-500 dark:text-slate-400 hover:text-gray-700"
+                    className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                   >
                     {expandedCases[caseItem.id] ? (
                       <ChevronDown className="w-5 h-5" />
@@ -418,7 +418,7 @@ const CaseManagement = () => {
                       <div className="flex justify-end gap-x-2">
                         <button
                           onClick={() => setEditingCase(null)}
-                          className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300"
+                          className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300 dark:hover:bg-slate-500"
                         >
                           {t('common.cancel')}
                         </button>
@@ -445,7 +445,7 @@ const CaseManagement = () => {
                       <div className="flex gap-x-2">
                         <button
                           onClick={() => setEditingCase(caseItem.id)}
-                          className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
+                          className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -467,7 +467,7 @@ const CaseManagement = () => {
                     <div className="flex gap-x-2">
                       <button
                         onClick={() => setShowAddPeopleModal(caseItem.id)}
-                        className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
+                        className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center text-sm"
                       >
                         <UserPlus className="w-4 h-4 me-1" />
                         {t('caseManagement.addExisting')}
@@ -511,7 +511,7 @@ const CaseManagement = () => {
                             setShowQuickAdd(null);
                             setQuickAddPerson({ firstName: '', lastName: '' });
                           }}
-                          className="px-3 py-2 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300 text-sm"
+                          className="px-3 py-2 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 rounded-md hover:bg-gray-300 dark:hover:bg-slate-500 text-sm"
                         >
                           {t('common.cancel')}
                         </button>
@@ -522,7 +522,7 @@ const CaseManagement = () => {
                   {/* People List */}
                   <div className="space-y-2">
                     {caseItem.people.map(person => (
-                      <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg hover:bg-gray-100">
+                      <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
                         <div className="flex items-center gap-x-3">
                           <User className="w-4 h-4 text-gray-400 dark:text-slate-500" />
                           <div>
@@ -551,7 +551,7 @@ const CaseManagement = () => {
                           </button>
                           <button
                             onClick={() => setEditingPerson(person)}
-                            className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
+                            className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -577,7 +577,7 @@ const CaseManagement = () => {
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{t('caseManagement.selectPeopleHint')}</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {availablePeople.map(person => (
-                  <label key={person.id} className="flex items-center gap-x-3 p-2 hover:bg-gray-50 rounded-sm cursor-pointer">
+                  <label key={person.id} className="flex items-center gap-x-3 p-2 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedPeopleToAdd.includes(person.id)}
@@ -603,7 +603,7 @@ const CaseManagement = () => {
                     setShowAddPeopleModal(null);
                     setSelectedPeopleToAdd([]);
                   }}
-                  className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600"
                 >
                   {t('common.cancel')}
                 </button>

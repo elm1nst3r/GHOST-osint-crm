@@ -152,7 +152,7 @@ const ImportExportTab = () => {
               </div>
             </div>
             <div className="flex justify-end gap-x-2 mt-6">
-              <button onClick={() => { setShowImportPreview(false); setImportPreview(null); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200">{t('common.cancel')}</button>
+              <button onClick={() => { setShowImportPreview(false); setImportPreview(null); }} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600">{t('common.cancel')}</button>
               <button onClick={handleConfirmImport} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">{t('settings.importExport.confirmImport')}</button>
             </div>
           </div>

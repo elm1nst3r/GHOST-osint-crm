@@ -145,7 +145,7 @@ const BusinessList = () => {
                 </button>
                 <button
                   onClick={() => setEditingBusiness(business)}
-                  className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
+                  className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                   title={t('common.edit')}
                 >
                   <Edit2 className="w-4 h-4" />

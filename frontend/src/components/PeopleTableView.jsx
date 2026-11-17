@@ -421,7 +421,7 @@ const PeopleTableView = ({
             </button>
             <button
               onClick={() => setShowQuickAdd(false)}
-              className="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 transition-all"
+              className="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -437,7 +437,7 @@ const PeopleTableView = ({
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{t('peopleTableView.bulkImportPreview')}</h3>
               <button
                 onClick={() => setBulkImportMode(false)}
-                className="text-gray-600 dark:text-slate-400 hover:text-gray-800"
+                className="text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -464,7 +464,7 @@ const PeopleTableView = ({
             <div className="flex items-center justify-end gap-x-3 mt-4">
               <button
                 onClick={() => setBulkImportMode(false)}
-                className="px-4 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all"
               >
                 {t('common.cancel')}
               </button>
@@ -506,8 +506,8 @@ const PeopleTableView = ({
               {people.map((person, index) => (
                 <tr
                   key={person.id}
-                  className={`hover:bg-blue-50/30 transition-colors ${
-                    selectedRows.has(person.id) ? 'bg-blue-50/50' : ''
+                  className={`hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-colors ${
+                    selectedRows.has(person.id) ? 'bg-blue-50/50 dark:bg-blue-900/30' : ''
                   } ${index % 2 === 0 ? 'bg-white/50 dark:bg-slate-800/50' : 'bg-gray-50/30 dark:bg-slate-900/30'}`}
                 >
                   <td className="px-4 py-3">
@@ -613,14 +613,14 @@ const PeopleTableView = ({
                         <>
                           <button
                             onClick={() => handleSave(person.id)}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-sm transition-all"
+                            className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-sm transition-all"
                             title={t('common.save')}
                           >
                             <Save className="w-4 h-4" />
                           </button>
                           <button
                             onClick={handleCancel}
-                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded-sm transition-all"
+                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-sm transition-all"
                             title={t('common.cancel')}
                           >
                             <X className="w-4 h-4" />
@@ -630,28 +630,28 @@ const PeopleTableView = ({
                         <>
                           <button
                             onClick={() => setSelectedPersonForDetail(person)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-sm transition-all"
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-sm transition-all"
                             title={t('peopleList.viewDetails')}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(person)}
-                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 rounded-sm transition-all"
+                            className="p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-sm transition-all"
                             title={t('peopleTableView.quickEdit')}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditingPerson(person)}
-                            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-sm transition-all"
+                            className="p-1.5 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-sm transition-all"
                             title={t('peopleTableView.fullEdit')}
                           >
                             <Edit2 className="w-4 h-4" fill="currentColor" />
                           </button>
                           <button
                             onClick={() => handleDelete(person.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-sm transition-all"
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm transition-all"
                             title={t('common.delete')}
                           >
                             <Trash2 className="w-4 h-4" />

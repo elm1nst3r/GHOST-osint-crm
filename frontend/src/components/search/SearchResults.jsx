@@ -46,7 +46,7 @@ const SearchResults = ({
               ...searchParams,
               sortOrder: searchParams.sortOrder === 'asc' ? 'desc' : 'asc'
             })}
-            className="p-1 hover:bg-gray-100 rounded-sm"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
           >
             {searchParams.sortOrder === 'asc' ? (
               <SortAsc className="w-4 h-4" />
@@ -60,7 +60,7 @@ const SearchResults = ({
           <>
             <button
               onClick={exportResults}
-              className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 flex items-center text-sm"
+              className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center text-sm"
             >
               <Download className="w-4 h-4 me-1" />
               {t('searchResults.exportCsv')}

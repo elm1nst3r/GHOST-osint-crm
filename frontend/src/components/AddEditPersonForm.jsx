@@ -374,7 +374,7 @@ const AddEditPersonForm = () => {
 
           {/* Actions */}
           <div className="flex justify-end gap-x-3 pt-6 border-t dark:border-gray-600">
-            <button type="button" onClick={handleClose} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200">
+            <button type="button" onClick={handleClose} className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600">
               {t('common.cancel')}
             </button>
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
