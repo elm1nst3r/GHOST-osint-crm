@@ -253,6 +253,10 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const caseErr = await checkCaseProjectConsistency(case_id, oldPerson.project_id);
     if (caseErr) return res.status(400).json({ error: caseErr });
     const personCase = await resolvePersonCase({ case_id, caseName }, oldPerson.project_id);
+    // Several screens save a person without the patronymic field (adding
+    // people from Case Management, the table's inline edit, the bulk tool):
+    // keep the stored one then. An empty string still clears it.
+    const newPatronymic = patronymic === undefined ? oldPerson.patronymic : (patronymic || null);
 
     // Geocode any locations that don't have coordinates using improved service if available.
     // Always merge results back into the original array so already-geocoded entries
@@ -316,7 +320,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const values = [
       firstName,
       lastName || null,
-      patronymic || null,
+      newPatronymic,
       aliases || [],
       dateOfBirth || null,
       category || null,
@@ -347,7 +351,7 @@ router.put('/:id', requireAuth, validateIdParam, validate(PersonUpdateSchema), a
     const changes = {};
     if (oldPerson.first_name !== firstName) changes.first_name = { oldValue: oldPerson.first_name, newValue: firstName };
     if (oldPerson.last_name !== lastName) changes.last_name = { oldValue: oldPerson.last_name, newValue: lastName };
-    if (oldPerson.patronymic !== (patronymic || null)) changes.patronymic = { oldValue: oldPerson.patronymic, newValue: patronymic || null };
+    if (oldPerson.patronymic !== newPatronymic) changes.patronymic = { oldValue: oldPerson.patronymic, newValue: newPatronymic };
     if (oldPerson.category !== category) changes.category = { oldValue: oldPerson.category, newValue: category };
     if (oldPerson.status !== status) changes.status = { oldValue: oldPerson.status, newValue: status };
     if (oldPerson.case_name !== personCase.case_name) changes.case_name = { oldValue: oldPerson.case_name, newValue: personCase.case_name };

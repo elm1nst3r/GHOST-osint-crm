@@ -7,11 +7,15 @@
 
 exports.up = async function up(knex) {
   // A name with no id: link it to the case of that name in the person's project.
+  // Names that differ only in upper/lower case: the oldest case, as the routes pick.
   await knex.raw(`
-    UPDATE people p SET case_id = c.id
-    FROM cases c
+    UPDATE people p SET case_id = (
+      SELECT c.id FROM cases c
+      WHERE c.project_id = p.project_id AND LOWER(c.case_name) = LOWER(p.case_name)
+      ORDER BY c.id LIMIT 1
+    )
     WHERE p.case_id IS NULL AND p.case_name IS NOT NULL AND p.case_name <> ''
-      AND c.project_id = p.project_id AND LOWER(c.case_name) = LOWER(p.case_name)
+      AND EXISTS (SELECT 1 FROM cases c WHERE c.project_id = p.project_id AND LOWER(c.case_name) = LOWER(p.case_name))
   `);
   // An id: show that case's current name.
   await knex.raw(`
