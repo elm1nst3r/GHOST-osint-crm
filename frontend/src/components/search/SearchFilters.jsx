@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import {
-  Search, X, ChevronDown, ChevronUp, Calendar, MapPin,
+  Search, ChevronDown, ChevronUp, Calendar, MapPin,
   Tag, Network, Database,
   RefreshCw
 } from 'lucide-react';
 import { PERSON_CATEGORIES, PERSON_STATUSES, OSINT_DATA_TYPES } from '../../utils/constants';
 import { translateOptions } from '../../utils/optionLabels';
 import { mergeOptionMeta } from '../../utils/useModelOptions';
+import SearchHeader from './SearchHeader';
 
 const SearchFilters = ({
   searchParams, setSearchParams,
@@ -14,7 +15,7 @@ const SearchFilters = ({
   performSearch, resetFilters,
   loading,
   cases, people, customFields, modelOptions,
-  onClose,
+  onClose, mode, onModeChange,
 }) => {
   const { t } = useTranslation();
   // These return normalised { value, label } entries (id and the raw row are
@@ -41,17 +42,7 @@ const SearchFilters = ({
 
   return (
 <div className="w-full md:w-96 md:border-e bg-gray-50 dark:bg-slate-900 overflow-y-auto shrink-0 max-h-[50vh] md:max-h-none">
-  <div className="p-6 border-b bg-white dark:bg-slate-800">
-    <div className="flex items-center justify-between">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center">
-        <Search className="w-5 h-5 me-2" />
-        {t('searchFilters.advancedSearch')}
-      </h2>
-      <button onClick={onClose} className="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
-        <X className="w-5 h-5" />
-      </button>
-    </div>
-  </div>
+  <SearchHeader mode={mode} onModeChange={onModeChange} onClose={onClose} />
   
   <div className="p-6 space-y-4">
     {/* Basic Search */}

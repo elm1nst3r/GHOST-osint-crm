@@ -673,7 +673,7 @@ const spec = {
     // ── Saved records (issue #96) ──
     '/records': {
       get: op('Records', 'List or search saved records', {
-        description: 'Newest first. `q` matches any text in a record, its source or the search that found it.',
+        description: 'Newest first. `q` matches any text in a record, its source or the search that found it; a phone number matches however it is written (spaces, brackets, dots, dashes). Without `project_id`, searches every project the caller can see. Each record carries its person, project and case.',
         params: [
           ...paginationParams,
           projectParam,

@@ -6,6 +6,7 @@ import { peopleAPI, casesAPI, modelOptionsAPI, customFieldsAPI, osintRecordsAPI 
 import ReportGenerator from './ReportGenerator';
 import SearchFilters from './search/SearchFilters';
 import SearchResults from './search/SearchResults';
+import RecordSearch from './search/RecordSearch';
 import { personSearchHaystack } from '../utils/personName';
 import { useProject } from '../contexts/ProjectContext';
 
@@ -68,6 +69,8 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
     custom: false
   });
   const [showReportGenerator, setShowReportGenerator] = useState(false);
+  // People (with filters) or saved records across the CRM (issue #120).
+  const [mode, setMode] = useState('people');
   const [selectedResultIds, setSelectedResultIds] = useState([]);
 
   const loadInitialData = async () => {
@@ -386,7 +389,12 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 md:p-4">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full h-full md:h-auto md:max-w-7xl md:max-h-[95vh] overflow-hidden flex flex-col md:flex-row">
+        {mode === 'records' ? (
+          <RecordSearch mode={mode} onModeChange={setMode} onClose={onClose} onSelectPerson={onSelectPerson} />
+        ) : (<>
         <SearchFilters
+          mode={mode}
+          onModeChange={setMode}
           searchParams={searchParams}
           setSearchParams={setSearchParams}
           expandedSections={expandedSections}
@@ -413,6 +421,7 @@ const AdvancedSearch = ({ onSelectPerson, onClose }) => {
           showReportGenerator={showReportGenerator}
           setShowReportGenerator={setShowReportGenerator}
         />
+        </>)}
         {showReportGenerator && (
           <ReportGenerator
             customPeopleIds={selectedResultIds}
