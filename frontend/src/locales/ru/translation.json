@@ -1448,7 +1448,7 @@
       "tasksTodos": "Задачи / цели",
       "chartsAnalytics": "Диаграммы и аналитика",
       "businesses": "Организации",
-      "savedRecords": "Записи сохранены"
+      "savedRecords": "Сохраненные записи"
     },
     "reportTypeHint": "Устанавливает опции ниже, где вы можете изменить их вручную.",
     "scopeLabel": "Область отчёта",
@@ -1484,7 +1484,7 @@
     "twoFormatsRest": " Markdown (.md) включает богатые таблицы и форматирование. Word (.docx) максимизирует совместимость с офисными продуктами.",
     "savedRecordsCount_one": "Сохранено записей ({{count}})",
     "savedRecordsCount_other": "Сохранено записей ({{count}})",
-    "savedRecordsLoading": "Записи сохранены"
+    "savedRecordsLoading": "Сохраненные записи"
   },
   "ledgerReportPanel": {
     "title": "Финансовые данные",
@@ -2085,7 +2085,7 @@
     "directionLabel": "Направление",
     "endOfLedgerReport": "Окончание финансового отчета",
     "osintIntelligence": "OSINT РАЗВЕДКА",
-    "savedRecords": "Записи сохранены",
+    "savedRecords": "Сохраненные записи",
     "recordsAddedByHand": "Добавлено вручную",
     "recordsSearchedFor": "Найдено по {{queries}}",
     "recordCount_one": "{{count}} запись",
@@ -2779,7 +2779,7 @@
     "signInAgain": "Войдите снова"
   },
   "records": {
-    "title": "Записи сохранены",
+    "title": "Сохраненные записи",
     "help": "Результаты интегрированных инструментов сохраняются в том виде, в котором их вернула служба. Откройте запись, чтобы увидеть каждое поле; любое значение в нем может быть добавлено к данным OSINT.",
     "filter": "Фильтр записей",
     "loading": "Загрузка записей…",
