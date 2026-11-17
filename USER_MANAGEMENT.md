@@ -90,17 +90,31 @@ controls they are allowed to use.
 After the containers are running, create your first admin account:
 
 ```bash
-docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email] [firstName] [lastName]
 
 # Example
-docker exec osint-crm-backend node scripts/createAdminSimple.js admin MyStr0ngPass!
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js admin
 ```
 
-Email is optional. Password requirements:
+The password is asked for at a hidden prompt. For automation, pipe it on
+stdin instead of passing it as an argument:
+
+```bash
+printf '%s\n' "$ADMIN_PASSWORD" | docker exec -i osint-crm-backend node scripts/createAdminSimple.js admin
+```
+
+Email is optional (use `-` to skip it and still set a name). Password requirements:
 - Minimum 12 characters
 - At least one uppercase letter, one lowercase letter, one digit
-- Cannot be a common/weak password (blocklist of 100+ entries)
+- Cannot be a common password
 - Cannot contain your username
+
+To set a new password for an existing account from the command line (it also
+signs that account out everywhere):
+
+```bash
+docker exec -it osint-crm-backend node scripts/resetPassword.js <username>
+```
 
 ---
 

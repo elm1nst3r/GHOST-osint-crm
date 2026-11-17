@@ -61,6 +61,8 @@ router.put('/:id', requireAuth, validateIdParam, validate(CaseUpdateSchema), asy
       [case_name, description || null, status || 'open', caseId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+    // People show the case by name; keep it current on a rename (issue #118).
+    await pool.query('UPDATE people SET case_name = $1 WHERE case_id = $2', [result.rows[0].case_name, caseId]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating case:', err);

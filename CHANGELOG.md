@@ -17,6 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Each version converts to AGPLv3 after four years. Earlier releases keep
   their CC BY-NC-SA 4.0 licence.
 
+### 🐛 Fixed
+
+- **People added to a case appear in its report (#118).** Case Management
+  linked people by case id, the person form by case name, and saving in one
+  cleared the other's link. Both now stay in step, renaming a case updates
+  the name shown on its people, and a migration repairs existing records.
+
+### 🔐 Security
+
+- `createAdminSimple.js` and `resetPassword.js` apply the same password
+  policy as the app and ask for the password at a hidden prompt (or read it
+  from stdin) instead of taking it as an argument. **Changed usage:**
+  `createAdminSimple.js <username> [email]`, run with `docker exec -it`.
+  `resetPassword.js` also signs the account out everywhere. The legacy
+  `createAdminUser.js` is removed.
+- The backend image no longer contains development dependencies.
+- CI audits runtime dependencies; Dependabot proposes weekly updates.
+- `FRONTEND_BIND` (in `.env`) limits port 8080 to one interface, e.g.
+  `127.0.0.1` behind a reverse proxy on the same host. Default unchanged.
+
+### 🧹 Housekeeping
+
+- README: removed the outdated "amd64 only" note; added a note that the quick
+  start is for local use. `.gitignore` trimmed to what the project uses.
+- The tracked `frontend/.env` is removed; its value was the built-in default.
+
 ## [3.2.0] - 2026-11-16
 
 ### 🕸️ A new graph: work from the network

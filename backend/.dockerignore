@@ -12,3 +12,6 @@ README.md
 *.md
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Tests aren't needed at runtime
+*.test.js

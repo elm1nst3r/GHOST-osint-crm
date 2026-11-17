@@ -100,12 +100,12 @@ const ReportGenerator = ({ caseId = null, personId = null, customPeopleIds = nul
         filteredPeople = peopleData.filter(p => customPeopleIds.includes(p.id));
       } else if (scope.kind === 'case' && scope.id) {
         selectedCase = casesData.find(c => c.id === scope.id) ?? null;
-        filteredPeople = peopleData.filter(p => p.case_name === selectedCase?.case_name);
+        filteredPeople = peopleData.filter(p => p.case_id === scope.id);
       } else if (scope.kind === 'person' && scope.id) {
         selectedPerson = peopleData.find(p => p.id === scope.id) ?? null;
-        if (selectedPerson?.case_name) {
-          selectedCase = casesData.find(c => c.case_name === selectedPerson.case_name) ?? null;
-          filteredPeople = peopleData.filter(p => p.case_name === selectedPerson.case_name);
+        if (selectedPerson?.case_id) {
+          selectedCase = casesData.find(c => c.id === selectedPerson.case_id) ?? null;
+          filteredPeople = peopleData.filter(p => p.case_id === selectedPerson.case_id);
         }
       }
 

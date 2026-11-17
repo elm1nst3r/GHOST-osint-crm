@@ -82,7 +82,8 @@ replacing the images.
 - ✅ Common passwords rejected via a short blocklist (30 entries)
 - ✅ Password must not contain the user's username
 - ✅ Maximum 128 characters (bcrypt pre-hash protection)
-- ✅ Policy enforced at every point a password is set: password change, admin create, admin reset
+- ✅ Policy enforced at every point a password is set: password change, admin create, admin reset, and the command-line scripts (`createAdminSimple.js`, `resetPassword.js`), which read the password at a hidden prompt rather than from the command line
+- ✅ A password reset from the command line signs the account out everywhere
 
 ### Rate Limiting
 - ✅ Login: 10 attempts per 15 minutes per IP + username combination (tunable via `LOGIN_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE`)
@@ -114,7 +115,7 @@ replacing the images.
 - ✅ `/api/docs` (Swagger UI) and `/api/openapi.json` are available to signed-in users only; requests sent from the page use the caller's own session, role and project memberships. `API_DOCS_ENABLED=false` removes the page
 - ✅ Swagger UI is served from the backend image — no CDN is contacted
 - ✅ The update check is the only connection GHOST makes on its own besides geocoding; it can be disabled in Settings → General, after which no request is made
-- ⚠️ The MCP server (`mcp/`) logs in with a username and password you give it and acts with that account's permissions — use a dedicated account, not your admin login
+- ⚠️ The MCP server (`mcp/`) can read and change investigation data with the full permissions of the account it uses. Give it a dedicated non-admin account that is a member of only the projects it needs, and connect with a personal API token (`GHOST_API_TOKEN`) that you can revoke under Settings → Security. Username and password still work for accounts without two-step verification, but a token is preferred
 
 ### File Uploads
 - ✅ File attachments (evidence on people and projects): up to 50 MB by default (`FILES_MAX_BYTES`), visible only to project members; deleting is limited to the uploader, the project's owners and managers, or an admin
@@ -141,6 +142,8 @@ replacing the images.
 - ✅ PostgreSQL not exposed to host network by default in `docker-compose.yml`
 - ✅ Exposing port 5432 to the host takes a deliberate local `docker-compose.override.yml`, which is git-ignored and not shipped
 - ✅ Images are built and published by GitHub Actions; the repository is scanned with CodeQL
+- ✅ Dependabot proposes dependency updates weekly; CI fails on high or critical advisories in runtime dependencies (`npm audit --omit=dev`)
+- ✅ The backend image contains runtime dependencies only (`npm ci --omit=dev`)
 - ✅ Multi-stage frontend build — dev dependencies not present in the nginx image
 - ✅ `nginx.conf`: `index.html` served with `no-store` / `no-cache`; hashed JS/CSS served as `immutable`
 - ⚠️ Consider using Docker secrets or a secrets manager (Vault, AWS SSM) for `DB_PASSWORD` and `SESSION_SECRET` in production

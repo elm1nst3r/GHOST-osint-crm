@@ -20,7 +20,10 @@ services:
       dockerfile: Dockerfile
     container_name: osint-crm-frontend
     ports:
-      - "8080:80"
+      # All interfaces by default, so other machines on your network can reach
+      # GHOST. With a reverse proxy on the same host, set FRONTEND_BIND=127.0.0.1
+      # in .env so only the proxy (and HTTPS) faces the network.
+      - "${FRONTEND_BIND:-0.0.0.0}:8080:80"
     restart: unless-stopped
     depends_on:
       backend:

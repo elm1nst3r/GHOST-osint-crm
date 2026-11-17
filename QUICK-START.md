@@ -43,6 +43,11 @@ This starts three services:
 - **Backend API** (Node.js): http://localhost:3001
 - **Database** (PostgreSQL): internal to the Docker network — not exposed to the host
 
+> This is a local setup over plain HTTP, and port 8080 is reachable from your
+> network. For anything others can reach, put GHOST behind an HTTPS reverse
+> proxy, set `NODE_ENV=production`, and set `FRONTEND_BIND=127.0.0.1` in `.env`
+> if the proxy runs on the same host.
+
 Wait until `docker compose ps` shows all services as `(healthy)`.
 
 ## 4. Create Your First Admin User
@@ -50,14 +55,21 @@ Wait until `docker compose ps` shows all services as `(healthy)`.
 There are **no default credentials**. Create your admin account:
 
 ```bash
-docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email]
 
 # Example:
-docker exec osint-crm-backend node scripts/createAdminSimple.js admin MyStr0ngPassw0rd
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js admin
 ```
 
-Password rules: at least 12 characters, mixed case, at least one digit.
-Common weak passwords are rejected. Email is optional.
+You'll be asked for the password at a hidden prompt, so it never appears in
+your shell history. Rules: at least 12 characters, mixed case, at least one
+digit; common passwords are rejected. Email is optional.
+
+To set a new password later (this also signs the account out everywhere):
+
+```bash
+docker exec -it osint-crm-backend node scripts/resetPassword.js <username>
+```
 
 ## 5. Log In and Explore
 
@@ -80,7 +92,7 @@ record belongs to exactly one. Then a good first tour:
 ### Manage users
 Settings → User Management (admin only), or via CLI:
 ```bash
-docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email]
 ```
 Non-admin users only see projects they have been added to — add them from the
 project's member list (the people icon in the project selector's edit view),

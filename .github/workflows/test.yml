@@ -32,6 +32,11 @@ jobs:
         working-directory: backend
         run: npm ci
 
+      # Only what ships (no dev tools), and only high or critical advisories.
+      - name: Audit runtime dependencies
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Run tests
         working-directory: backend
         run: npm test
@@ -60,6 +65,10 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Audit runtime dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Lint
         working-directory: frontend
