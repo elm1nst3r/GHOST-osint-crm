@@ -6,7 +6,7 @@
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
 ![Version](https://img.shields.io/badge/version-3.2.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
-![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-E08A4A?style=flat-square)
+![License](https://img.shields.io/badge/license-BSL%201.1%20(source--available)-E08A4A?style=flat-square)
 
 > *"Because Excel sheets are for accountants, not investigators"*
 
@@ -545,21 +545,22 @@ not through pull requests.
 
 ## 📜 License
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License**.
+GHOST is **source-available** under the **[Business Source License 1.1](LICENSE)** (BUSL-1.1), with an Additional Use Grant that makes most investigative use free, including inside for-profit organisations.
 
-**You are free to:**
-- ✅ Use for personal investigations
-- ✅ Use for educational purposes
-- ✅ Use for research
-- ✅ Modify and improve
-- ✅ Share with others
+**Free:**
+- ✅ Independent journalists, and editorial teams at commercial newsrooms
+- ✅ Universities, schools, students and researchers
+- ✅ NGOs, charities and human-rights organisations
+- ✅ Personal and independent investigations
+- ✅ Any organisation's internal investigations (e.g. an in-house security team)
+- ✅ Modifying, sharing and non-production use by anyone
 
-**Under these conditions:**
-- 📝 **Attribution** - Give appropriate credit
-- 🚫 **NonCommercial** - No commercial use without permission
-- 🔄 **ShareAlike** - Share modifications under same license
+**Needs a commercial licence:**
+- 💼 Paid investigations for clients (consultancies, agencies, security firms doing client work)
+- 💼 Hosted or managed GHOST offered to others (SaaS, subscriptions)
+- 💼 Reselling, white-labelling or rebranding GHOST, or building it into a commercial product (attribution to GHOST / elm1nst3r is required)
 
-**Commercial use requires explicit permission from the author.**
+Each version converts to the **GNU AGPLv3** four years after its release under the BSL. Versions released before this change keep their original CC BY-NC-SA 4.0 licence. This summary is for convenience; the [LICENSE](LICENSE) file is binding.
 
 For commercial licensing, contact: hurdles.remand_9g [at] icloud.com
 

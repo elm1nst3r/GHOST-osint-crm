@@ -5,6 +5,18 @@ All notable changes to GHOST OSINT CRM will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 📜 Licence
+
+- GHOST moves from CC BY-NC-SA 4.0 to the Business Source License 1.1 with
+  an Additional Use Grant: journalism (including commercial newsrooms),
+  research, education, nonprofits, personal investigations and any
+  organisation's internal investigations are free. Paid client
+  investigations, hosted offerings and resale need a commercial licence.
+  Each version converts to AGPLv3 after four years. Earlier releases keep
+  their CC BY-NC-SA 4.0 licence.
+
 ## [3.2.0] - 2026-11-16
 
 ### 🕸️ A new graph: work from the network
