@@ -13,7 +13,32 @@ Please include:
 - Steps to reproduce
 - Any proof-of-concept code (if applicable)
 
-We aim to respond within 48 hours and will keep you informed of progress toward a fix.
+GHOST is maintained by one person, so reports are handled on a best-effort
+basis: expect a first reply within a few days. You'll be kept informed of
+progress toward a fix.
+
+### Disclosure
+
+- Please give us **90 days** from your report to release a fix before you
+  disclose details publicly. If a fix ships sooner, we'll agree a disclosure
+  date with you; if more time is needed, we'll explain why and agree an
+  extension.
+- Fixed vulnerabilities are published as GitHub Security Advisories, and
+  reporters are credited unless they prefer not to be.
+- We won't take action against anyone who researches and reports in good
+  faith: test only against your own installation, don't access or alter
+  other people's data, and don't degrade service for others.
+
+### Scope
+
+**In scope:** the GHOST backend, frontend, MCP server (`mcp/`), Docker
+images and compose files in this repository.
+
+**Out of scope:** community integrations under `integrations/` that are
+maintained by others, third-party services GHOST connects to (geocoding
+providers, OSINT tools, identity providers), and problems that come only
+from how an operator has deployed GHOST (e.g. no HTTPS, a weak
+`SESSION_SECRET`, an exposed database port).
 
 ---
 
@@ -21,17 +46,16 @@ We aim to respond within 48 hours and will keep you informed of progress toward 
 
 | Version | Supported |
 |---------|-----------|
-| 2.18.x (latest release) | ✅ Active |
-| 2.8 – 2.17 | ❌ Fixes ship in the latest release only — upgrade |
-| 2.7.x   | ⚠️ Upgrade immediately — contains a silent data-loss bug fixed in 2.8.0 |
-| < 2.7   | ❌ No longer supported |
+| 3.2.x (latest release) | ✅ Active |
+| 3.0 – 3.1 | ❌ Fixes ship in the latest release only — upgrade |
+| 2.x     | ❌ No longer supported — see the [3.0 upgrade notes](README.md#upgrading-to-30) |
 
 Database migrations run automatically at startup, so upgrading is a matter of
 replacing the images.
 
 ---
 
-## Security Architecture (v2.18)
+## Security Architecture
 
 ### Authentication & Sessions
 - ✅ Session-based authentication via `express-session` with `connect-pg-simple` (sessions stored in PostgreSQL)
@@ -39,8 +63,10 @@ replacing the images.
 - ✅ Session revoked immediately on password change, role change, deactivation, or account deletion
 - ✅ `requireAdmin` middleware performs a live database lookup on every admin request — stale sessions rejected in real time
 - ✅ Session cookies: `HttpOnly`, `SameSite=Strict`; `secure: true` enabled automatically when `NODE_ENV=production`
+- ✅ Sessions expire after 30 days
 - ✅ Optional two-step verification (v2.26): authenticator app (TOTP, RFC 6238) and passkeys (WebAuthn), with one-time recovery codes. After the password the session holds only a pending marker, not a user, until the second step passes. App secrets are encrypted at rest (AES-256-GCM, key from `SECRETS_KEY`/`SESSION_SECRET`); each code is accepted once; recovery codes and API tokens are stored as SHA-256 hashes
 - ✅ Admins can require two-step verification for everyone; users without it can reach only the setup screen
+- ✅ Optional single sign-on (OpenID Connect, v3.1.2): authorization code flow with PKCE; the provider must name exactly the configured issuer. Sign-out at the provider ends the GHOST session through back-channel logout, or otherwise within `OIDC_SESSION_CHECK_MINUTES` (default 5). New accounts are created only with `OIDC_AUTO_PROVISION` on, and the admin role can follow an `OIDC_ADMIN_GROUP`
 - ✅ Personal API tokens (`Authorization: Bearer ghost_…`) act as their owner with the owner's current role, are refused for deactivated accounts, and cannot change passwords, security settings or create tokens
 
 ### Authorisation
@@ -53,10 +79,10 @@ replacing the images.
 ### Password Policy
 - ✅ Minimum 12 characters
 - ✅ Must contain at least one uppercase letter, one lowercase letter, and one digit
-- ✅ Common/weak passwords rejected via a blocklist (100+ entries)
+- ✅ Common passwords rejected via a short blocklist (30 entries)
 - ✅ Password must not contain the user's username
 - ✅ Maximum 128 characters (bcrypt pre-hash protection)
-- ✅ Policy enforced at every password-setting point: login, change, admin create, admin reset
+- ✅ Policy enforced at every point a password is set: password change, admin create, admin reset
 
 ### Rate Limiting
 - ✅ Login: 10 attempts per 15 minutes per IP + username combination (tunable via `LOGIN_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_DISABLE`)
@@ -91,10 +117,13 @@ replacing the images.
 - ⚠️ The MCP server (`mcp/`) logs in with a username and password you give it and acts with that account's permissions — use a dedicated account, not your admin login
 
 ### File Uploads
+- ✅ File attachments (evidence on people and projects): up to 50 MB by default (`FILES_MAX_BYTES`), visible only to project members; deleting is limited to the uploader, the project's owners and managers, or an admin
+- ✅ Attachments are only ever served as downloads (`application/octet-stream`, `Content-Disposition: attachment`, `nosniff`, a sandbox CSP), so an uploaded HTML or SVG file never runs on GHOST's origin
+- ✅ Each attachment's SHA-256 is recorded, and uploads, downloads, changes and deletions are written to the audit log
 - ✅ Logo uploads restricted to `image/jpeg`, `image/png`, `image/gif` — SVG rejected
-- ✅ Upload size capped at 5 MB by default; override with `KML_MAX_BYTES` environment variable
-- ✅ KML imports: oversized uploads return `413 Payload Too Large`
-- ⚠️ No virus/malware scanning — consider adding ClamAV for high-security deployments
+- ✅ Logo uploads capped at 5 MB
+- ✅ KML imports capped at 5 MB by default (`KML_MAX_BYTES`); oversized uploads return `413 Payload Too Large`
+- ⚠️ No virus/malware scanning of attachments — treat downloaded evidence files as untrusted, and consider ClamAV for high-security deployments
 - ⚠️ Uploaded files are stored on the local filesystem — use object storage (S3/GCS) for production scale
 
 ### Security Headers (v2.27)
