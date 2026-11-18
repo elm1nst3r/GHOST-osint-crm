@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-11-18
+
+### ⚠️ Before you upgrade
+
+- `createAdminSimple.js` no longer takes the password as an argument. Run
+  `docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email]`
+  and type the password at the prompt (or pipe it in on stdin). Scripts
+  that pass a password are refused with an explanation. Nothing else
+  needs doing: the database update runs on its own.
+
+### 🔎 Search every saved record (#120)
+
+- **Advanced Search → Saved records** searches the records saved on
+  people across all the projects you can see, or only the current one.
+- Each result is the record itself: the fields that matched (highlighted),
+  whose record it is (click to open the person, also in another project),
+  the project and case, which tool found it and when. The whole record
+  opens below.
+- **Phone numbers match however they were written.** Spaces, brackets,
+  dots and dashes don't matter, and `020 7946 0958` and
+  `+44 20 7946 0958` find each other.
+- `GET /api/records` returns each record's project and case. Access is
+  unchanged: you only find records from your own projects.
+
 ### 📜 Licence
 
 - GHOST moves from CC BY-NC-SA 4.0 to the Business Source License 1.1 with
@@ -23,16 +47,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   linked people by case id, the person form by case name, and saving in one
   cleared the other's link. Both now stay in step, renaming a case updates
   the name shown on its people, and a migration repairs existing records.
+- **Adding someone to a case kept their patronymic.** Case Management, the
+  people table's quick edit and the bulk relationship tool erased it.
+- **Hover in dark mode is readable (#119).** 54 buttons, rows and tabs
+  turned light grey under white text when hovered (Advanced Search
+  sections, Cancel buttons, Case Management, the people table, the person
+  dialog's tabs, Data Model, the travel and bulk tools). A test now stops
+  new ones.
 
 ### 🔐 Security
 
 - `createAdminSimple.js` and `resetPassword.js` apply the same password
   policy as the app and ask for the password at a hidden prompt (or read it
-  from stdin) instead of taking it as an argument. **Changed usage:**
-  `createAdminSimple.js <username> [email]`, run with `docker exec -it`.
+  from stdin) instead of taking it as an argument (see Before you upgrade).
   `resetPassword.js` also signs the account out everywhere. The legacy
   `createAdminUser.js` is removed.
-- The backend image no longer contains development dependencies.
+- The backend image no longer contains development dependencies or tests.
 - CI audits runtime dependencies; Dependabot proposes weekly updates.
 - `FRONTEND_BIND` (in `.env`) limits port 8080 to one interface, e.g.
   `127.0.0.1` behind a reverse proxy on the same host. Default unchanged.

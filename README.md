@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.2.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.3.0-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-BSL%201.1%20(source--available)-E08A4A?style=flat-square)
 
@@ -50,7 +50,7 @@ If this project is ever shelved, this section will be updated and the repository
 - **Case associations**: Link people to specific investigations
 - **Status tracking**: Active, Inactive, Under Investigation, Cleared
 - **Custom fields**: Extend person profiles with custom data fields
-- **Advanced search**: Multi-parameter search with filters
+- **Advanced search**: Multi-parameter search with filters, and a search across every saved record (phone numbers match however they were written)
 
 ### 🔗 Entity Network
 - **One graph of the project** (Cytoscape.js): people, businesses, wallets, assets, properties, wireless networks and identifiers (emails, phones, usernames, domains, IPs), linked by relationships, ownership, employment, holdings, money and shared identifiers
@@ -295,7 +295,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.2.0
+GHOST_VERSION=3.3.0
 ```
 
 Without it, the containers track the latest release.
@@ -704,6 +704,13 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.3.0 (November 2026)
+- 🔎 **Search every saved record** — Advanced Search → Saved records searches the records saved on all people across your projects and shows the matching fields, whose record it is, the project and case; phone numbers match however they were written
+- 🐛 **Case reports include everyone in the case** — people added from Case Management now appear in the report (issue #118)
+- 🌙 **Readable hover in dark mode** — buttons and rows no longer turn white under white text (issue #119)
+- 🔐 **Admin scripts ask for the password at a hidden prompt**; the backend image ships runtime dependencies only
+- 📜 **New licence** — Business Source License 1.1 with an Additional Use Grant (journalism, research, education, nonprofits and internal investigations stay free)
+
 ### Version 3.2.0 (November 2026)
 - 🕸️ **A new graph** — one Cytoscape.js graph replaces both old views: every entity type and identifier, details and actions beside the graph, shortest path, find, focus, statistics, the graph as of a date, saved layouts, GraphML export and a full-page workspace (inspired by Trace)
 - ⚙️ **Start page and a narrower menu** — choose where GHOST opens; the menu folds down to its icons
@@ -776,5 +783,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.1.7
-**Last Updated:** November 14, 2026
+**Version:** 3.3.0
+**Last Updated:** November 18, 2026
