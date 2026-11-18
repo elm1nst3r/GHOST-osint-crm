@@ -199,7 +199,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300"
+                className="px-3 py-1 text-gray-700 dark:text-slate-300 bg-gray-200 dark:bg-slate-600 text-sm rounded-md hover:bg-gray-300 dark:hover:bg-slate-500"
               >
                 {t('common.cancel')}
               </button>
@@ -234,7 +234,7 @@ const CustomFieldManager = ({ customFields, fetchCustomFields }) => {
               </span>
               <button
                 onClick={() => handleEdit(field)}
-                className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
+                className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                 title={t('common.edit')}
               >
                 <Edit2 className="w-4 h-4" />

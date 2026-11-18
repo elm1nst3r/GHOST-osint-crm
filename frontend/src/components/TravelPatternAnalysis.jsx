@@ -211,7 +211,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             className={`px-4 py-2 rounded-md text-sm ${
               activeView === 'timeline'
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             <Calendar className="w-4 h-4 inline me-1" />
@@ -222,7 +222,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             className={`px-4 py-2 rounded-md text-sm ${
               activeView === 'map'
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             <Globe className="w-4 h-4 inline me-1" />
@@ -233,7 +233,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
             className={`px-4 py-2 rounded-md text-sm ${
               activeView === 'statistics'
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             <BarChart2 className="w-4 h-4 inline me-1" />
@@ -390,7 +390,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600"
               >
                 {t('common.cancel')}
               </button>
@@ -463,7 +463,7 @@ const TravelPatternAnalysis = ({ personId, personName }) => {
                               new Date(travel.departure_date).toISOString().slice(0, 16) : ''
                           });
                         }}
-                        className="text-gray-600 dark:text-slate-400 hover:text-gray-700"
+                        className="text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>

@@ -231,7 +231,7 @@ const PersonDetailModal = () => {
                   className={`px-4 md:px-6 py-3 font-medium text-sm border-b-2 capitalize whitespace-nowrap transition-all duration-300 ${
                     activeTab === tab
                       ? 'border-accent-primary text-blue-600 dark:text-blue-400 bg-linear-to-t from-white/5 to-transparent'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500'
                   }`}
                 >
                   {t(`personDetailModal.tab_${tab}`)}
@@ -400,7 +400,7 @@ const PersonDetailModal = () => {
                     </div>
                     <div className="space-y-2">
                       {(person.osint_data || []).map((osint, index) => (
-                        <div key={index} className="flex items-center gap-x-3 p-3 glass rounded-lg hover:bg-gray-100 dark:bg-gray-700 transition-all duration-300">
+                        <div key={index} className="flex items-center gap-x-3 p-3 glass rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 transition-all duration-300">
                           <div className="text-gray-600 dark:text-gray-400">
                             {getOsintIcon(osint.type)}
                           </div>

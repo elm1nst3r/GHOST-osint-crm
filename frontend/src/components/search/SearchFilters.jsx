@@ -58,7 +58,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('basic')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <Search className="w-4 h-4 me-2" />
@@ -119,7 +119,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('categories')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <Tag className="w-4 h-4 me-2" />
@@ -253,7 +253,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('dates')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <Calendar className="w-4 h-4 me-2" />
@@ -308,7 +308,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('locations')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <MapPin className="w-4 h-4 me-2" />
@@ -353,7 +353,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('connections')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <Network className="w-4 h-4 me-2" />
@@ -422,7 +422,7 @@ const SearchFilters = ({
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
       <button
         onClick={() => toggleSection('osint')}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
       >
         <span className="font-medium flex items-center">
           <Database className="w-4 h-4 me-2" />
@@ -481,7 +481,7 @@ const SearchFilters = ({
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
         <button
           onClick={() => toggleSection('custom')}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700"
         >
           <span className="font-medium flex items-center">
             <Tag className="w-4 h-4 me-2" />
@@ -557,7 +557,7 @@ const SearchFilters = ({
 
       <button
         onClick={resetFilters}
-        className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200"
+        className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600"
       >
         {t('searchFilters.resetFiltersButton')}
       </button>

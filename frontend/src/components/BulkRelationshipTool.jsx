@@ -267,7 +267,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
           </div>
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 rounded-lg transition-all"
+            className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all"
             title={t('bulkRelationshipTool.helpTitle')}
           >
             <HelpCircle className="w-5 h-5" />
@@ -298,7 +298,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
           <button
             onClick={() => setMode('interactive')}
             className={`px-4 py-2 rounded-lg transition-all ${
-              mode === 'interactive' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              mode === 'interactive' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             {t('bulkRelationshipTool.interactiveTab')}
@@ -306,7 +306,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
           <button
             onClick={() => setMode('csv')}
             className={`px-4 py-2 rounded-lg transition-all flex items-center gap-x-2 ${
-              mode === 'csv' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              mode === 'csv' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             <Upload className="w-4 h-4" />
@@ -373,7 +373,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
 
                   <button
                     onClick={() => removeRelationship(index)}
-                    className="col-span-1 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    className="col-span-1 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                     title={t('bulkRelationshipTool.removeTitle')}
                   >
                     <X className="w-4 h-4" />
@@ -419,7 +419,7 @@ const BulkRelationshipTool = ({ onClose, people, onComplete }) => {
         <div className="flex items-center justify-end gap-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 rounded-lg transition-all"
+            className="px-6 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all"
           >
             {t('common.cancel')}
           </button>
