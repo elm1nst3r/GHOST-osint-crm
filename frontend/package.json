@@ -38,7 +38,7 @@
     "react-window": "^2.5.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.13",
+    "@babel/core": "^8.1.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
     "@rolldown/plugin-babel": "^0.3.0",
