@@ -23,7 +23,7 @@
     "docx": "^9.15.2",
     "dompurify": "3.4.17",
     "file-saver": "^2.0.5",
-    "i18next": "^26.7.1",
+    "i18next": "^27.1.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.68.0",
     "mammoth": "1.13.0",
