@@ -3097,5 +3097,29 @@
     "collapseDetails": "Fold the details away",
     "expandDetails": "Show the details",
     "closeDetails": "Close (clears the selection)"
+  },
+  "recordSearch": {
+    "modeLabel": "What to search",
+    "modePeople": "People",
+    "modeRecords": "Saved records",
+    "placeholder": "A phone number, email, username, name…",
+    "scopeLabel": "Where to search",
+    "scopeAll": "All my projects",
+    "scopeProject": "This project",
+    "search": "Search",
+    "help": "Searches every record saved from integrated tools, on every person, in the projects you can see. Phone numbers are found however they were written.",
+    "empty": "Find out whether a phone number, email address or username has turned up before: every matching record is listed with the person it was saved on, their project and case.",
+    "found_one": "{{count}} record contains \"{{query}}\"",
+    "found_other": "{{count}} records contain \"{{query}}\"",
+    "unnamed": "Unnamed person",
+    "openPerson": "Open this person",
+    "matchedSource": "Matched the record's source.",
+    "matchedQuery": "Matched the search that found this record.",
+    "matchedElsewhere": "Matched the record's raw contents.",
+    "moreFields_one": "…and {{count}} more matching field",
+    "moreFields_other": "…and {{count}} more matching fields",
+    "showRecord": "Show the whole record",
+    "hideRecord": "Hide the record",
+    "loadMore": "Show more ({{shown}} of {{total}})"
   }
 }
