@@ -7,8 +7,8 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install app dependencies
-RUN npm ci
+# Install runtime dependencies only (the test runner stays out of the image)
+RUN npm ci --omit=dev
 
 # Bundle app source
 COPY . .

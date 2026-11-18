@@ -1,73 +1,65 @@
 #!/usr/bin/env node
-
-// Simple script to create admin user with command line arguments
-// Usage: node createAdminSimple.js <username> <password> [email] [firstName] [lastName]
+// Creates an admin account. The password is typed at a hidden prompt (or read
+// from the first line of stdin when piped), never passed as an argument, so it
+// doesn't end up in shell history or process listings.
+//
+//   docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email] [firstName] [lastName]
+//
+// Pass "-" as the email to skip it but still set a name.
 const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
+const { createPool, readNewPassword } = require('./lib/cli');
 
-const dbConfig = {
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'osint_crm_db',
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-};
+const USAGE = 'Usage: node scripts/createAdminSimple.js <username> [email] [firstName] [lastName]';
 
-const pool = new Pool(dbConfig);
-
-async function createAdmin() {
-  const username = process.argv[2];
-  const password = process.argv[3];
-  const email = process.argv[4] || null;
-  const firstName = process.argv[5] || 'Admin';
-  const lastName = process.argv[6] || 'User';
-
-  if (!username || !password) {
-    console.error('Usage: node createAdminSimple.js <username> <password> [email] [firstName] [lastName]');
-    process.exit(1);
+async function main() {
+  const [username, emailArg, firstName = 'Admin', lastName = 'User'] = process.argv.slice(2);
+  if (!username) {
+    console.error(USAGE);
+    process.exitCode = 1;
+    return;
   }
-
-  if (password.length < 12) {
-    console.error('Password must be at least 12 characters long.');
-    process.exit(1);
+  if (emailArg && emailArg !== '-' && !emailArg.includes('@')) {
+    console.error('The second argument is the email address. Passwords are no longer accepted on the');
+    console.error('command line: run the command without it and type the password at the prompt.');
+    console.error(USAGE);
+    process.exitCode = 1;
+    return;
   }
+  const email = emailArg && emailArg !== '-' ? emailArg : null;
 
-  const knownWeakPasswords = ['admin123', 'changeme', 'password', 'newpassword', 'admin'];
-  if (knownWeakPasswords.includes(password.toLowerCase())) {
-    console.error('That password is not allowed. Choose a strong, unique password.');
-    process.exit(1);
-  }
-
-  console.log('\nCreating admin user...');
-  console.log(`Username: ${username}`);
-  console.log(`Email: ${email}`);
-  console.log(`Name: ${firstName} ${lastName}\n`);
-
+  const pool = createPool();
   try {
-    const password_hash = await bcrypt.hash(password, 10);
+    const existing = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+    if (existing.rows.length) {
+      console.error(`A user named "${username}" already exists. To change its password, run scripts/resetPassword.js.`);
+      process.exitCode = 1;
+      return;
+    }
 
-    const result = await pool.query(
+    console.log(`Creating admin "${username}". The password must have 12+ characters, upper and lower case, and a digit.`);
+    const password = await readNewPassword((pw) => validatePasswordStrength(pw, { username }));
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const { rows } = await pool.query(
       `INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active)
        VALUES ($1, $2, $3, $4, $5, 'admin', true)
        RETURNING id, username, email, first_name, last_name, role`,
-      [username, email, password_hash, firstName, lastName]
+      [username, email, passwordHash, firstName, lastName]
     );
-
-    console.log('Admin user created successfully!\n');
-    console.log('User details:');
-    console.log(`  ID: ${result.rows[0].id}`);
-    console.log(`  Username: ${result.rows[0].username}`);
-    console.log(`  Email: ${result.rows[0].email}`);
-    console.log(`  Name: ${result.rows[0].first_name} ${result.rows[0].last_name}`);
-    console.log(`  Role: ${result.rows[0].role}\n`);
-
-    process.exit(0);
-  } catch (error) {
-    console.error('\nError:', error.message);
-    process.exit(1);
+    const user = rows[0];
+    await pool.query(
+      `INSERT INTO audit_logs (entity_type, entity_id, action, user_id, field_name, new_value)
+       VALUES ('user', $1, 'create', NULL, 'role', 'admin_created_from_command_line')`,
+      [user.id]
+    );
+    console.log(`Admin created: [${user.id}] ${user.username}${user.email ? ` <${user.email}>` : ''} (${user.first_name} ${user.last_name})`);
+  } catch (err) {
+    console.error('Could not create the admin:', err.message);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }
 }
 
-createAdmin();
+main();

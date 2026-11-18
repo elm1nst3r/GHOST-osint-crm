@@ -6,9 +6,8 @@
 // "require two-step" is on, goes straight to the setup screen).
 //
 //   docker exec -it osint-crm-backend node scripts/resetTwoFactor.js <username>
-const { Pool } = require('pg');
 const { resetMfa } = require('../services/accountSecurity');
-const { revokeSessionsForUser } = require('../utils/sessions');
+const { createPool, signOutEverywhere } = require('./lib/cli');
 
 const username = process.argv[2];
 if (!username) {
@@ -16,13 +15,7 @@ if (!username) {
   process.exit(1);
 }
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'osint_crm_db',
-  password: process.env.DB_PASSWORD || 'changeme',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+const pool = createPool();
 
 (async () => {
   try {
@@ -34,7 +27,7 @@ const pool = new Pool({
     }
     const user = rows[0];
     await resetMfa(pool, user.id);
-    await revokeSessionsForUser(pool, user.id);
+    await signOutEverywhere(pool, user.id);
     await pool.query(
       `INSERT INTO audit_logs (entity_type, entity_id, action, user_id, field_name, new_value)
        VALUES ('user', $1, 'update', NULL, 'two_factor', 'reset_from_command_line')`,

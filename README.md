@@ -218,21 +218,26 @@ docker compose up -d
 
 > Building from source instead? Use `docker compose up --build -d`. That
 > compiles both images locally and takes considerably longer.
->
-> **ARM machines (Apple Silicon, Raspberry Pi):** the prebuilt images are
-> published for `amd64` only, so `docker compose pull` fails with
-> `no matching manifest for linux/arm64`. Build from source instead.
+
+> **This setup is for trying GHOST on your own machine** over plain HTTP
+> (`NODE_ENV=development`). Port 8080 is reachable from your network. Before
+> putting GHOST anywhere others can reach, put it behind an HTTPS reverse
+> proxy, set `NODE_ENV=production`, and see
+> [Security Considerations](#-security-considerations).
 
 **Create your first admin user:**
 ```bash
-# After containers are running
-docker exec osint-crm-backend node scripts/createAdminSimple.js <username> <password> [email]
+# After containers are running; you'll be asked for the password
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js <username> [email]
 
 # Example:
-docker exec osint-crm-backend node scripts/createAdminSimple.js admin MyStr0ngPass!
+docker exec -it osint-crm-backend node scripts/createAdminSimple.js admin
 ```
 
-Password must be at least 12 characters. Common weak passwords are rejected.
+The password is typed at a hidden prompt, so it doesn't end up in your shell
+history. It needs at least 12 characters, upper and lower case, and a digit.
+Forgot it later? `docker exec -it osint-crm-backend node scripts/resetPassword.js <username>`
+sets a new one and signs that account out everywhere.
 
 **Access the application:**
 - Frontend: http://localhost:8080

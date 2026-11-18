@@ -1,101 +1,52 @@
 #!/usr/bin/env node
-
-// Script to reset a user's password
+// Sets a new password for an account and signs it out everywhere. The
+// password is typed at a hidden prompt (or read from the first line of stdin
+// when piped) and must meet the same policy as the app.
+//
+//   docker exec -it osint-crm-backend node scripts/resetPassword.js [username]
 const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
-const readline = require('readline');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
+const { createPool, readNewPassword, ask, signOutEverywhere } = require('./lib/cli');
 
-// Determine database host based on environment
-const dbConfig = {
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'osint_crm_db',
-  password: process.env.DB_PASSWORD || 'changeme',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-};
-
-const pool = new Pool(dbConfig);
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-const question = (query) => new Promise((resolve) => rl.question(query, resolve));
-
-async function resetPassword() {
-  console.log('\n=== Reset User Password ===\n');
-
+async function main() {
+  const pool = createPool();
   try {
-    // Test database connection
-    console.log('Testing database connection...');
-    await pool.query('SELECT NOW()');
-    console.log('✓ Database connection successful\n');
-
-    // List existing users
-    const users = await pool.query('SELECT id, username, email, role FROM users ORDER BY id');
-
-    if (users.rows.length === 0) {
-      console.log('No users found in database.');
-      console.log('Run: docker exec -it osint-crm-backend node scripts/createAdminUser.js');
-      process.exit(0);
-    }
-
-    console.log('Existing users:');
-    users.rows.forEach(user => {
-      console.log(`  [${user.id}] ${user.username} (${user.role})${user.email ? ' - ' + user.email : ''}`);
-    });
-    console.log();
-
-    // Get username
-    const username = await question('Enter username to reset password: ');
+    let username = process.argv[2];
     if (!username) {
-      console.error('Error: Username is required');
-      process.exit(1);
+      const users = await pool.query('SELECT id, username, role FROM users ORDER BY id');
+      if (!users.rows.length) {
+        console.log('There are no users yet. Create one with scripts/createAdminSimple.js.');
+        return;
+      }
+      console.log('Users:');
+      users.rows.forEach((u) => console.log(`  [${u.id}] ${u.username} (${u.role})`));
+      username = await ask('Username to reset: ');
     }
 
-    // Check if user exists
-    const userCheck = await pool.query('SELECT id, username, role FROM users WHERE username = $1', [username]);
-    if (userCheck.rows.length === 0) {
-      console.error(`Error: User "${username}" not found`);
-      process.exit(1);
+    const { rows } = await pool.query('SELECT id, username FROM users WHERE username = $1', [username]);
+    if (!rows.length) {
+      console.error(`No user named "${username}".`);
+      process.exitCode = 1;
+      return;
     }
+    const user = rows[0];
 
-    const user = userCheck.rows[0];
-    console.log(`\nFound user: ${user.username} (${user.role})`);
-
-    // Get new password
-    const password = await question('New password: ');
-    if (!password) {
-      console.error('Error: Password is required');
-      process.exit(1);
-    }
-
-    if (password.length < 6) {
-      console.error('Error: Password must be at least 6 characters');
-      process.exit(1);
-    }
-
-    // Hash password
-    console.log('\nUpdating password...');
-    const password_hash = await bcrypt.hash(password, 10);
-
-    // Update password
+    const password = await readNewPassword((pw) => validatePasswordStrength(pw, { username: user.username }));
+    const passwordHash = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, user.id]);
+    await signOutEverywhere(pool, user.id);
     await pool.query(
-      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE username = $2',
-      [password_hash, username]
+      `INSERT INTO audit_logs (entity_type, entity_id, action, user_id, field_name, new_value)
+       VALUES ('user', $1, 'update', NULL, 'password', 'reset_from_command_line')`,
+      [user.id]
     );
-
-    console.log('\n✓ Password reset successfully!\n');
-    console.log(`You can now log in as "${username}" with the new password.\n`);
-
-  } catch (error) {
-    console.error('\n✗ Error resetting password:', error.message);
-    process.exit(1);
+    console.log(`Password changed for ${user.username}; their existing sessions were signed out.`);
+  } catch (err) {
+    console.error('Reset failed:', err.message);
+    process.exitCode = 1;
   } finally {
-    rl.close();
     await pool.end();
   }
 }
 
-resetPassword();
+main();
