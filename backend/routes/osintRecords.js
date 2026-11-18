@@ -14,7 +14,7 @@ const { validateIdParam } = require('../middleware/validation');
 const { validate, OsintRecordsAddSchema } = require('../middleware/schemas');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { applyProjectScope, requireProjectMember } = require('../utils/projectAccess');
-const { recordHash, recordProblem } = require('../utils/osintRecords');
+const { recordHash, recordProblem, phonePattern } = require('../utils/osintRecords');
 const logAudit = require('../utils/logAudit');
 
 router.use(apiLimiter);
@@ -23,9 +23,10 @@ const RECORD_SELECT = `
   SELECT r.id, r.person_id, r.data, r.record_source, r.occurrences, r.tool_id, r.tool_name,
          r.integration_id, r.operation, r.query, r.retrieved_at, r.created_by, r.created_at, r.updated_at,
          p.project_id, p.first_name AS person_first_name, p.patronymic AS person_patronymic,
-         p.last_name AS person_last_name
+         p.last_name AS person_last_name, p.case_id, p.case_name, pr.name AS project_name
   FROM osint_records r
   JOIN people p ON p.id = r.person_id
+  JOIN projects pr ON pr.id = p.project_id
 `;
 
 // LIKE pattern for text typed by the user: % and _ match themselves.
@@ -58,7 +59,13 @@ router.get('/', requireAuth, async (req, res) => {
       // Any text anywhere in the record, its source or the search that found it.
       params.push(likePattern(req.query.q));
       const n = params.length;
-      where.push(`(r.data::text ILIKE $${n} OR r.record_source ILIKE $${n} OR r.query ILIKE $${n})`);
+      const phone = phonePattern(req.query.q);
+      let phoneSql = '';
+      if (phone) {
+        params.push(phone);
+        phoneSql = ` OR r.data::text ~ $${params.length} OR r.query ~ $${params.length}`;
+      }
+      where.push(`(r.data::text ILIKE $${n} OR r.record_source ILIKE $${n} OR r.query ILIKE $${n}${phoneSql})`);
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
