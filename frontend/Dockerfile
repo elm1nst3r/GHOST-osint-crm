@@ -31,7 +31,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
-FROM nginx:1.30-alpine
+FROM nginx:1.31-alpine
 
 # Copy the build output from the build stage to Nginx's web server directory
 COPY --from=build /app/build /usr/share/nginx/html
