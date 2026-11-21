@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-11-22
+
 ### 🔎 Search everything (Ctrl/⌘+K)
 
 - **One box for the whole project.** Press Ctrl/⌘+K anywhere, or use the
