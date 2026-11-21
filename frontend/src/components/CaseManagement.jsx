@@ -1,6 +1,7 @@
 // File: frontend/src/components/CaseManagement.jsx
 import { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { optionLabel } from '../utils/optionLabels';
 import {
   Folder, Users, Clock, ChevronDown, ChevronRight, Plus, Search,
@@ -39,6 +40,23 @@ const CaseManagement = () => {
     setNewCaseData(prev => (prev.project_id ? prev : { ...prev, project_id: defaultNewCaseProjectId() }));
   });
   useEffect(() => onProjectsActiveProjectIdChange(), [projects, activeProjectId]);
+
+  // ?case=<id> (from the command palette): open that case and scroll to it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openCaseId = Number(searchParams.get('case')) || null;
+  const [openedCase, setOpenedCase] = useState(null);
+  if (openCaseId && openCaseId !== openedCase && cases.some((c) => c.id === openCaseId)) {
+    setOpenedCase(openCaseId);
+    setSearchTerm('');
+    setExpandedCases((prev) => ({ ...prev, [openCaseId]: true }));
+  }
+  if (!openCaseId && openedCase) setOpenedCase(null);
+  const onCaseOpened = useEffectEvent(() => {
+    if (!openedCase) return;
+    requestAnimationFrame(() => document.getElementById(`case-${openedCase}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    setSearchParams((params) => { params.delete('case'); return params; }, { replace: true });
+  });
+  useEffect(() => onCaseOpened(), [openedCase]);
 
   const fetchCases = async () => {
     try {
@@ -298,7 +316,7 @@ const CaseManagement = () => {
       {/* Cases List */}
       <div className="space-y-4">
         {filteredCases.map(caseItem => (
-          <div key={caseItem.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border">
+          <div key={caseItem.id} id={`case-${caseItem.id}`} className="bg-white dark:bg-slate-800 rounded-lg shadow-xs border scroll-mt-4">
             {/* Case Header */}
             <div className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-y-2">

@@ -7,8 +7,13 @@ import MarkerClusterGroup from './map/MarkerClusterGroup';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIcons';
-import { Search, RefreshCw, Plus, AlertCircle, AlertTriangle, Wifi, Filter, Landmark, Package, Receipt } from 'lucide-react';
-import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI, geocodingAPI, peopleAPI } from '../utils/api';
+import { Search, RefreshCw, Plus, AlertCircle, AlertTriangle, Wifi, Filter, Landmark, Package, Receipt, Camera, Eye } from 'lucide-react';
+import { useSearchParams } from 'react-router';
+import { wirelessNetworksAPI, propertiesAPI, assetsAPI, transactionsAPI, modelOptionsAPI, geocodingAPI, peopleAPI, filesAPI, saveBlob } from '../utils/api';
+import FilePreviewModal from './files/FilePreviewModal';
+import { takenAtParts } from '../utils/photoMetadata';
+import { formatDate } from '../utils/format';
+import { formatPersonName } from '../utils/personName';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { addressQuery } from '../utils/geocodeReasons';
@@ -43,6 +48,18 @@ const MapBounds = ({ markers }) => {
   return null;
 };
 
+// Centres the map on a photo asked for by "Show on map" (?photo=<file id>).
+const FocusOn = ({ target }) => {
+  const map = useMap();
+  const lat = target?.lat;
+  const lng = target?.lng;
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    map.setView([lat, lng], 16);
+  }, [map, lat, lng]);
+  return null;
+};
+
 const GlobalMap = () => {
   const { t } = useTranslation();
   const { activeProjectId } = useProject();
@@ -57,12 +74,19 @@ const GlobalMap = () => {
   const [showProperties, setShowProperties] = useState(true);
   const [showAssets, setShowAssets] = useState(true);
   const [showTransactions, setShowTransactions] = useState(false);
+  // Photos whose metadata holds a GPS position (file-metadata plan).
+  const [photos, setPhotos] = useState([]);
+  const [showPhotos, setShowPhotos] = useState(true);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [searchParams] = useSearchParams();
+  const focusPhotoId = Number(searchParams.get('photo')) || null;
   // Layers of a switched-off module are neither drawn nor offered.
   const { isOn: moduleOn } = useModules();
   const networksShown = showNetworks && moduleOn('wireless');
   const propertiesShown = showProperties && moduleOn('properties');
   const assetsShown = showAssets && moduleOn('assets');
   const transactionsShown = showTransactions && moduleOn('transactions');
+  const photosShown = showPhotos && moduleOn('files');
   const [filterTxType, setFilterTxType] = useState('');
   const [filterAssetCategory, setFilterAssetCategory] = useState('');
   const [txTypeOptions, setTxTypeOptions] = useState([]);
@@ -111,6 +135,17 @@ const GlobalMap = () => {
     } catch (err) {
       console.error('Error fetching transaction map layers:', err);
     }
+  };
+
+  const fetchPhotos = () => {
+    if (!moduleOn('files')) return;
+    filesAPI.getAll({ project_id: activeProjectId, has_location: 'true', limit: 1000 })
+      .then((res) => setPhotos(res.data || []))
+      .catch((err) => console.error('Error fetching photo locations:', err));
+  };
+
+  const downloadPhoto = (file) => {
+    filesAPI.fetchContent(file.id).then((blob) => saveBlob(blob, file.original_name)).catch(() => {});
   };
 
   const fetchPeople = async (page = 0, limit = 100) => {
@@ -259,7 +294,7 @@ const GlobalMap = () => {
       html: `<div style="background:${color};width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;color:#fff;font-weight:bold;">${glyph}</span></div>`,
       iconSize: [22, 22], iconAnchor: [11, 22], popupAnchor: [0, -20],
     });
-    return { property: make('#059669', 'P'), asset: make('#ea580c', 'A'), transaction: make('#2563eb', 'T') };
+    return { property: make('#059669', 'P'), asset: make('#ea580c', 'A'), transaction: make('#2563eb', 'T'), photo: make('#9333ea', '◉') };
   }, []);
 
   const markers = useMemo(() => {
@@ -338,10 +373,30 @@ const GlobalMap = () => {
         });
       });
     }
+    if (photosShown) {
+      photos.forEach(f => {
+        const gps = f.metadata?.gps;
+        if (!gps) return;
+        const taken = takenAtParts(f.metadata.taken_at);
+        list.push({
+          id: `photo-${f.id}`, kind: 'photo', lat: gps.latitude, lng: gps.longitude, file: f,
+          name: f.original_name,
+          takenText: taken ? `${formatDate(taken.date)} ${taken.time}` : null,
+          cameraText: [f.metadata.camera?.make, f.metadata.camera?.model].filter(Boolean).join(' ') || null,
+          personName: f.person_id ? formatPersonName({ first_name: f.person_first_name, patronymic: f.person_patronymic, last_name: f.person_last_name }, `#${f.person_id}`) : null,
+          icon: featureIcons.photo,
+        });
+      });
+    }
     return list;
   }, [filteredPeople, selectedLocationTypes, iconCache, wirelessNetworks, networksShown,
       properties, assets, txEvents, propertiesShown, assetsShown, transactionsShown,
-      filterAssetCategory, filterTxType, featureIcons]);
+      filterAssetCategory, filterTxType, featureIcons, photos, photosShown]);
+
+  const focusTarget = useMemo(() => {
+    const f = focusPhotoId ? photos.find(p => p.id === focusPhotoId) : null;
+    return f?.metadata?.gps ? { lat: f.metadata.gps.latitude, lng: f.metadata.gps.longitude } : null;
+  }, [focusPhotoId, photos]);
 
   const toggleLocationType = (type) =>
     setSelectedLocationTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -360,6 +415,7 @@ const GlobalMap = () => {
     fetchWirelessNetworks();
     fetchGeocodingStats();
     fetchTransactionLayers();
+    fetchPhotos();
   });
   useEffect(() => onActiveProjectIdChange(), [activeProjectId]);
 
@@ -450,6 +506,12 @@ const GlobalMap = () => {
               <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Package className="w-4 h-4 me-1" />{t('globalMap.assetsCount', { count: assets.length })}</span>
             </label>
             )}
+            {moduleOn('files') && (
+            <label className="flex items-center gap-x-2 cursor-pointer">
+              <input type="checkbox" checked={photosShown} onChange={e => setShowPhotos(e.target.checked)} className="h-4 w-4 text-purple-600 rounded-sm" />
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center"><Camera className="w-4 h-4 me-1" />{t('photoMeta.mapLayerCount', { count: photos.length })}</span>
+            </label>
+            )}
             {moduleOn('transactions') && (
             <label className="flex items-center gap-x-2 cursor-pointer">
               <input type="checkbox" checked={showTransactions} onChange={e => setShowTransactions(e.target.checked)} className="h-4 w-4 text-blue-600 rounded-sm" />
@@ -502,7 +564,17 @@ const GlobalMap = () => {
               {markers.map(marker => (
                 <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={marker.icon}>
                   <Popup>
-                    {marker.kind === 'property' ? (
+                    {marker.kind === 'photo' ? (
+                      <div className="p-2 min-w-[200px]">
+                        <h3 className="font-semibold text-purple-700 dark:text-purple-300 flex items-center break-all"><Camera className="w-4 h-4 me-2 shrink-0" />{marker.name}</h3>
+                        {marker.takenText && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t('photoMeta.popupTaken', { date: marker.takenText })}</p>}
+                        {marker.cameraText && <p className="text-xs text-gray-600 dark:text-gray-400">{marker.cameraText}</p>}
+                        {marker.personName && <p className="text-xs text-gray-800 dark:text-gray-200 mt-1">{marker.personName}</p>}
+                        <button type="button" onClick={() => setPreviewPhoto(marker.file)} className="mt-2 inline-flex items-center gap-x-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                          <Eye className="w-3.5 h-3.5" />{t('photoMeta.viewPhoto')}
+                        </button>
+                      </div>
+                    ) : marker.kind === 'property' ? (
                       <div className="p-2 min-w-[200px]">
                         <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center"><Landmark className="w-4 h-4 me-2" />{marker.name}</h3>
                         {marker.propertyType && <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{marker.propertyType.replace(/_/g, ' ')}</p>}
@@ -577,7 +649,8 @@ const GlobalMap = () => {
                 </Marker>
               ))}
             </MarkerClusterGroup>
-            {markers.length > 0 && <MapBounds markers={markers} />}
+            {markers.length > 0 && !focusPhotoId && <MapBounds markers={markers} />}
+            <FocusOn target={focusTarget} />
           </MapContainer>
 
           <MapLegend typeColors={allTypeColors} />
@@ -607,6 +680,9 @@ const GlobalMap = () => {
         </div>
       </div>
 
+      {previewPhoto && (
+        <FilePreviewModal file={previewPhoto} onClose={() => setPreviewPhoto(null)} onDownload={downloadPhoto} />
+      )}
       {showAddLocation && (
         <AddLocationModal
           allPeople={allPeople}

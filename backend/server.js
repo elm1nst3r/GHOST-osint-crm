@@ -150,6 +150,12 @@ initializeDatabase().then(() => {
   app.locals.fileSweepService = new FileSweepService(pool);
   app.locals.fileSweepService.start();
   app.locals.projectRetentionService.onProjectDeleted = () => app.locals.fileSweepService.requestSweep();
+
+  // Photo metadata (file-metadata plan): files uploaded before it existed are
+  // read once, a few at a time, in the background.
+  const { MetadataBackfill } = require('./services/fileMetadata');
+  app.locals.metadataBackfill = new MetadataBackfill(pool);
+  app.locals.metadataBackfill.start();
 }).catch((err) => {
   console.error('Error during database initialization:', err.stack);
   // An unreachable database otherwise shows up only as "container is

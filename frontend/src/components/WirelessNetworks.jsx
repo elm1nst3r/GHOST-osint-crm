@@ -1,6 +1,7 @@
 // File: frontend/src/components/WirelessNetworks.jsx
 import { useState, useEffect, useMemo, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import {
   Wifi, Upload, Map as MapIcon, List, Search,
   Trash2, User, Signal,
@@ -35,6 +36,16 @@ const WirelessNetworks = () => {
     signal_max: '',
   });
   const [importSources, setImportSources] = useState([]);
+
+  // ?network=<id> (from the command palette): open that network's details.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openNetworkId = Number(searchParams.get('network')) || null;
+  const onOpenNetwork = useEffectEvent(() => {
+    if (!openNetworkId) return;
+    setSearchParams((params) => { params.delete('network'); return params; }, { replace: true });
+    wirelessNetworksAPI.getById(openNetworkId).then(setSelectedNetwork).catch(() => {});
+  });
+  useEffect(() => onOpenNetwork(), [openNetworkId]);
 
   const fetchNetworks = async () => {
     try {

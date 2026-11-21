@@ -409,6 +409,7 @@ router.post('/:id/locations', requireAuth, validateIdParam, async (req, res) => 
       [JSON.stringify(location), personId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Person not found' });
+    await req.audit.log('person', personId, 'update', 'locations', null, JSON.stringify(location).slice(0, 2000));
     res.status(201).json({ message: 'Location added' });
   } catch (err) {
     console.error('Error appending location:', err);

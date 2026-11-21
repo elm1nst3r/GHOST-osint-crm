@@ -8,6 +8,9 @@
 // rendered here, with a Blob type picked from the allowlist. Word documents
 // are converted to HTML in the browser by mammoth and then sanitized with
 // DOMPurify. Both libraries load only when a .docx is opened.
+//
+// A photo's own metadata (camera, when, where: file-metadata plan) shows in a
+// panel beside the preview, also for photos the browser can't show (HEIC).
 import { useEffect, useMemo, useState, useEffectEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +20,7 @@ import { filesAPI } from '../../utils/api';
 import {
   previewKind, previewBlobType, guessEncoding, decodeText, formatBytes, TEXT_ENCODINGS,
 } from '../../utils/filePreview';
+import PhotoMetadata from './PhotoMetadata';
 
 const MAX_TEXT_CHARS = 1000000;
 const MAX_TABLE_ROWS = 1000;
@@ -86,6 +90,9 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
   const onIdChange = useEffectEvent(() => {
     let cancelled = false;
     let url = null;
+    // Nothing to preview (e.g. a HEIC photo opened for its details): don't
+    // download it, which would also be logged as viewed.
+    if (!kind) return undefined;
     (async () => {
       try {
         const blob = await filesAPI.fetchContent(file.id, { preview: true });
@@ -133,7 +140,7 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
 
   const body = () => {
     if (!kind) {
-      return <p className="p-8 text-center text-gray-600 dark:text-gray-400">{t('files.previewUnavailable')}</p>;
+      return <p className="p-8 text-center text-gray-600 dark:text-gray-400">{t(file.metadata ? 'photoMeta.noPreview' : 'files.previewUnavailable')}</p>;
     }
     if (status === 'loading') {
       return (
@@ -212,7 +219,7 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
   return createPortal(
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-60 p-2 md:p-4" onClick={onClose}>
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col"
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full ${file.metadata ? 'max-w-6xl' : 'max-w-5xl'} max-h-[95vh] overflow-hidden flex flex-col`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -269,7 +276,16 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
             </button>
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-auto">{body()}</div>
+        {file.metadata ? (
+          <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden md:flex">
+            <div className="md:flex-1 md:min-w-0 md:overflow-auto">{body()}</div>
+            <aside className="md:w-80 shrink-0 border-t md:border-t-0 md:border-s border-gray-200 dark:border-gray-700 p-4 md:overflow-auto" aria-label={t('photoMeta.panelLabel')}>
+              <PhotoMetadata file={file} onNavigate={onClose} />
+            </aside>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-auto">{body()}</div>
+        )}
       </div>
     </div>,
     document.body
