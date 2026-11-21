@@ -1,29 +1,35 @@
-# Weekly dependency update pull requests. Minor and patch updates are grouped
+# Monthly dependency update pull requests. Minor and patch updates are grouped
 # into one PR per ecosystem to keep the noise down; security updates (turned on
 # in the repository's Security settings) still arrive as soon as they're found.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /backend
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     groups:
       minor-and-patch: { update-types: [minor, patch] }
 
   - package-ecosystem: npm
     directory: /frontend
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     groups:
       minor-and-patch: { update-types: [minor, patch] }
+    ignore:
+      # The React Compiler (babel-plugin-react-compiler 1.0) skips many
+      # components under Babel 8 (316 instead of 376 memo blocks in the
+      # build). Move to Babel 8 once a compiler release supports it.
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /mcp
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     groups:
       minor-and-patch: { update-types: [minor, patch] }
 
   - package-ecosystem: docker
     directories: [/backend, /frontend]
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     # Base image majors (Node, nginx) are chosen by hand: Node's odd majors
     # aren't LTS.
     ignore:
@@ -32,6 +38,6 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     groups:
       actions: { patterns: ["*"] }
