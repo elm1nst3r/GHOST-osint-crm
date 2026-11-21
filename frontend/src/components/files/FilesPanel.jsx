@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Upload, Search, Eye, Download, Edit2, Trash2, Loader2, FileText, Image as ImageIcon,
-  FileSpreadsheet, File as FileIcon, User, X, Check,
+  FileSpreadsheet, File as FileIcon, User, X, Check, MapPin, Camera,
 } from 'lucide-react';
 import { filesAPI, saveBlob } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +19,7 @@ import { formatPersonName } from '../../utils/personName';
 import { previewKind, formatBytes } from '../../utils/filePreview';
 import FilePreviewModal, { CopyHash } from './FilePreviewModal';
 import { formatDateTime } from '../../utils/format';
+import { hasLocation } from '../../utils/photoMetadata';
 
 const LIST_LIMIT = 1000;
 
@@ -42,6 +43,8 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [personFilter, setPersonFilter] = useState('');
+  // Only photos whose metadata holds a GPS position (file-metadata plan).
+  const [withLocation, setWithLocation] = useState(false);
   const [uploads, setUploads] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -59,6 +62,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
         person_id: personId,
         project_id: personId ? undefined : projectId,
         q,
+        has_location: withLocation ? 'true' : undefined,
         limit: LIST_LIMIT,
       });
       setFiles(res.data || []);
@@ -68,7 +72,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [personId, projectId, t]);
+  }, [personId, projectId, withLocation, t]);
 
   // Debounced search; also the initial load.
   useEffect(() => {
@@ -187,6 +191,10 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
             ))}
           </select>
         )}
+        <label className="inline-flex items-center gap-x-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 cursor-pointer select-none">
+          <input type="checkbox" checked={withLocation} onChange={(e) => setWithLocation(e.target.checked)} className="h-4 w-4 rounded-sm" />
+          <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />{t('photoMeta.filterWithLocation')}
+        </label>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -247,7 +255,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
       ) : visible.length === 0 ? (
         <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400">
           <FileIcon className="w-8 h-8 mx-auto mb-2 opacity-60" />
-          <p className="text-sm">{query || personFilter ? t('files.noMatches') : t('files.empty')}</p>
+          <p className="text-sm">{query || personFilter || withLocation ? t('files.noMatches') : t('files.empty')}</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -263,7 +271,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
                   <div className="flex-1 min-w-0">
                     <button
                       type="button"
-                      onClick={() => (kind ? setPreviewFile(f) : download(f))}
+                      onClick={() => (kind || f.metadata ? setPreviewFile(f) : download(f))}
                       className="text-start font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 break-all"
                     >
                       {f.original_name}
@@ -271,6 +279,16 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
                       <span>{formatBytes(f.size_bytes)}</span>
                       <span>{dateFmt(f.created_at)}</span>
+                      {hasLocation(f) && (
+                        <span className="inline-flex items-center gap-x-0.5 px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" title={t('photoMeta.badgeLocationTitle')}>
+                          <MapPin className="w-3 h-3" />{t('photoMeta.badgeLocation')}
+                        </span>
+                      )}
+                      {f.metadata && !hasLocation(f) && (f.metadata.camera || f.metadata.taken_at) && (
+                        <span className="inline-flex items-center gap-x-0.5 px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title={t('photoMeta.badgeDetailsTitle')}>
+                          <Camera className="w-3 h-3" />{t('photoMeta.badgeDetails')}
+                        </span>
+                      )}
                       {f.uploaded_by_username && <span>{t('files.uploadedBy', { name: f.uploaded_by_username })}</span>}
                       {showPerson && (
                         <span className="inline-flex items-center gap-1">
@@ -305,7 +323,7 @@ const FilesPanel = ({ projectId, personId, showPerson = false }) => {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {kind && (
+                    {(kind || f.metadata) && (
                       <button type="button" onClick={() => setPreviewFile(f)} title={t('files.preview')} aria-label={t('files.preview')} className="p-1.5 rounded-sm text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                         <Eye className="w-4 h-4" />
                       </button>

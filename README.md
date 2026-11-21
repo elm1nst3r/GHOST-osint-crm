@@ -50,7 +50,8 @@ If this project is ever shelved, this section will be updated and the repository
 - **Case associations**: Link people to specific investigations
 - **Status tracking**: Active, Inactive, Under Investigation, Cleared
 - **Custom fields**: Extend person profiles with custom data fields
-- **Advanced search**: Multi-parameter search with filters, and a search across every saved record (phone numbers match however they were written)
+- **Search everything** (Ctrl/⌘+K): one box for people, businesses, wallets, properties, assets, cases, to-dos, files and wireless networks, including notes, OSINT entries, addresses and photo metadata; phone numbers match however they were written. The same box jumps to any section and runs actions
+- **Advanced search**: Multi-parameter search with filters, and a search across every saved record
 
 ### 🔗 Entity Network
 - **One graph of the project** (Cytoscape.js): people, businesses, wallets, assets, properties, wireless networks and identifiers (emails, phones, usernames, domains, IPs), linked by relationships, ownership, employment, holdings, money and shared identifiers
@@ -161,6 +162,7 @@ administrator can change their own membership. Full details in
 - **Attach files** to a person or to a project: bank statements, call records, reports, screenshots, exports
 - **Project Files page** lists everything in the project, with the person each file belongs to; search and filter by person
 - **In-app previews** for PDF, images, text, CSV/TSV (as a table) and Word `.docx`; everything else downloads
+- **Photo metadata**: where (GPS, on a small map), when (with the camera's time zone) and on what device a photo was taken, read from its EXIF/XMP/IPTC (JPEG, HEIC, PNG, TIFF, WebP). Add the spot to the person's locations, see every photo location on the map, filter files that have one; camera serial numbers are flagged and searchable
 - **SHA-256 hash** recorded for every file, and every upload, download, preview and deletion is audit-logged
 - **Never public**: files are only served after a login and project-membership check
 

@@ -2,9 +2,11 @@
 import { Activity, Suspense, lazy, useEffect, useLayoutEffect, useRef, useMemo, useState, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router';
-import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, Users, Wrench, Network, Settings, Shield, Map, Folder, Search, Building2, Wifi, LogOut, Landmark, Package, Receipt, Menu, X, Wallet, Paperclip, ChevronDown, PanelLeftClose, PanelLeftOpen, SlidersHorizontal } from 'lucide-react';
 
-import { peopleAPI, businessAPI } from './utils/api';
+import { peopleAPI, businessAPI, filesAPI, saveBlob } from './utils/api';
+import { pushRecent } from './utils/palette';
+import { formatPersonName } from './utils/personName';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
@@ -56,6 +58,12 @@ const TransactionsList = lazy(() => import('./components/TransactionsList'));
 const AddEditTransactionForm = lazy(() => import('./components/AddEditTransactionForm'));
 const TransactionDetailModal = lazy(() => import('./components/TransactionDetailModal'));
 const BusinessDetailModal = lazy(() => import('./components/BusinessDetailModal'));
+const CommandPalette = lazy(() => import('./components/palette/CommandPalette'));
+const FilePreviewModal = lazy(() => import('./components/files/FilePreviewModal'));
+
+// The palette's shortcut, as this keyboard writes it.
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+const PALETTE_SHORTCUT = IS_MAC ? '⌘K' : 'Ctrl K';
 
 const navigationItemIds = [
   { id: 'dashboard',     icon: Home },
@@ -232,6 +240,48 @@ const AppShell = () => {
   const rail = navRail && wide;
   const toggleRail = () => setNavRail((on) => { writeNavRail(!on); return !on; });
 
+  // ── Command palette (search-and-command-palette plan) ──────────────────────
+  // Ctrl/⌘+K anywhere once signed in; also the sidebar's search box and the
+  // phone top bar. A file picked in it opens in the file preview.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteFile, setPaletteFile] = useState(null);
+  const openPalette = () => { setPaletteOpen(true); setMobileNavOpen(false); };
+  // Load the palette's code once signed in, so the first Ctrl/⌘+K doesn't
+  // lose the letters typed while it arrives.
+  useEffect(() => {
+    if (!authenticated) return undefined;
+    const handle = setTimeout(() => { import('./components/palette/CommandPalette').catch(() => {}); }, 2000);
+    return () => clearTimeout(handle);
+  }, [authenticated]);
+  useEffect(() => {
+    if (!authenticated) return undefined;
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [authenticated]);
+  if (!authenticated && (paletteOpen || paletteFile)) { setPaletteOpen(false); setPaletteFile(null); }
+
+  // Records opened anywhere become the palette's "Recent" (per user, per browser).
+  const recentSource = [
+    ['person', selectedPersonForDetail, (r) => formatPersonName(r, ''), (r) => r.case_name],
+    ['business', selectedBusinessForDetail, (r) => r.name, (r) => r.type],
+    ['crypto_wallet', selectedCryptoWalletForDetail, (r) => r.label || r.address, (r) => r.network],
+    ['asset', selectedAssetForDetail, (r) => r.name, (r) => r.category],
+    ['property', selectedPropertyForDetail, (r) => r.name, (r) => r.property_type],
+  ].find(([, record]) => record?.id != null);
+  const recentKey = recentSource ? `${recentSource[0]}:${recentSource[1].id}` : null;
+  const rememberOpened = useEffectEvent(() => {
+    if (!recentSource || !currentUser) return;
+    const [type, record, title, subtitle] = recentSource;
+    pushRecent(currentUser.id, { type, id: record.id, title: title(record), subtitle: subtitle(record), project_id: record.project_id });
+  });
+  useEffect(() => { if (recentKey) rememberOpened(); }, [recentKey]);
+
   // Sections opened since sign-in (see SECTIONS). Cleared on sign-out, so
   // nothing one user had open survives into the next session.
   const [visitedSections, setVisitedSections] = useState([]);
@@ -354,7 +404,15 @@ const AppShell = () => {
         <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
           {appSettings.appName}
         </span>
-        <div className="ms-auto">
+        <div className="ms-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={openPalette}
+            className="p-2 rounded-(--radius-control) text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            aria-label={t('palette.open')}
+          >
+            <Search style={{ width: 20, height: 20 }} />
+          </button>
           <ProjectSelector compact />
         </div>
       </div>
@@ -397,12 +455,21 @@ const AppShell = () => {
             <ProjectSelector iconOnly />
             <button
               type="button"
+              onClick={openPalette}
+              className={sideIconButton}
+              aria-label={t('palette.open')}
+              title={`${t('palette.open')} (${PALETTE_SHORTCUT})`}
+            >
+              <Search className="w-4 h-4 text-accent-ink" />
+            </button>
+            <button
+              type="button"
               onClick={() => setShowAdvancedSearch(true)}
               className={sideIconButton}
               aria-label={t('searchFilters.advancedSearch')}
               title={t('searchFilters.advancedSearch')}
             >
-              <Search className="w-4 h-4 text-accent-ink" />
+              <SlidersHorizontal className="w-4 h-4" />
             </button>
           </div>
         ) : (
@@ -435,13 +502,26 @@ const AppShell = () => {
           <div className="mt-4">
             <ProjectSelector />
           </div>
-          <button
-            onClick={() => { setShowAdvancedSearch(true); setMobileNavOpen(false); }}
-            className="mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-          >
-            <Search className="w-4 h-4 shrink-0 text-accent-ink" />
-            <span>{t('searchFilters.advancedSearch')}</span>
-          </button>
+          <div className="mt-2 flex items-stretch gap-2">
+            <button
+              type="button"
+              onClick={openPalette}
+              className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            >
+              <Search className="w-4 h-4 shrink-0 text-accent-ink" />
+              <span className="truncate">{t('palette.searchButton')}</span>
+              <kbd className="ms-auto hidden md:inline text-[11px] font-sans text-slate-400 dark:text-slate-500">{PALETTE_SHORTCUT}</kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAdvancedSearch(true); setMobileNavOpen(false); }}
+              className="shrink-0 inline-flex items-center justify-center w-10 rounded-(--radius-control) border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              aria-label={t('searchFilters.advancedSearch')}
+              title={t('searchFilters.advancedSearch')}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         )}
 
@@ -557,6 +637,14 @@ const AppShell = () => {
 
       {/* Business detail (venue activity / ledger) */}
       {selectedBusinessForDetail && <BusinessDetailModal business={selectedBusinessForDetail} onClose={() => setSelectedBusinessForDetail(null)} />}
+      {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} onOpenFile={setPaletteFile} />}
+      {paletteFile && (
+        <FilePreviewModal
+          file={paletteFile}
+          onClose={() => setPaletteFile(null)}
+          onDownload={(f) => filesAPI.fetchContent(f.id).then((blob) => saveBlob(blob, f.original_name)).catch(() => {})}
+        />
+      )}
       {showAdvancedSearch && (
         <AdvancedSearch
           onSelectPerson={(person) => { setSelectedPersonForDetail(person); setShowAdvancedSearch(false); }}

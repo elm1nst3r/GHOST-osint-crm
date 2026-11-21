@@ -698,12 +698,17 @@ const spec = {
     // ── Files (issue #97) ──
     '/files': {
       get: op('Files', 'List files', {
-        description: 'Newest first. Returns metadata only; fetch the bytes from /files/{id}/content.',
+        description: 'Newest first. Returns details only; fetch the bytes from /files/{id}/content. '
+          + 'Photos carry `metadata` read from their EXIF/GPS/XMP/IPTC: camera (make, model, lens, software, '
+          + 'serial numbers, which identify one device), taken_at (with the time zone when the photo records it), '
+          + 'gps (latitude, longitude, altitude, direction), image size, author and copyright, title, description '
+          + 'and keywords. `metadata_read_at` is empty until the file has been read.',
         params: [
           ...paginationParams,
           projectParam,
           intParam('person_id', 'Only files attached to this person'),
           intParam('uploaded_by', 'Only files uploaded by this user'),
+          queryParam('has_location', 'true: only photos whose metadata holds a GPS position', { type: 'string', enum: ['true'] }),
           queryParam('q', 'Search file name and description'),
         ],
         responseSchema: paginatedEnvelope,
@@ -854,8 +859,20 @@ const spec = {
 
     // ── Search ──
     '/search': {
-      get: op('Search', 'Global search across entities', {
-        params: [queryParam('q', 'Search term'), projectParam],
+      get: op('Search', 'Search everything in your projects', {
+        description: 'Full-text search over people (names, aliases, notes, OSINT entries, addresses, custom fields), '
+          + 'businesses (incl. employees), crypto wallets, properties, assets, cases, to-dos, files (name, description, '
+          + 'photo metadata) and wireless networks. Every word must appear, as the start of a word or inside one; a '
+          + 'phone number matches however it is written. `groups` lists the matches per type, best first, with '
+          + '`total` found and a `snippet` of where each matched. Without `project_id`, searches every project the '
+          + 'caller can see. `people` and `tools` keep the earlier response shape.',
+        params: [
+          queryParam('q', 'What to search for (at least 2 characters)'),
+          projectParam,
+          queryParam('types', 'Comma-separated types to search: person, business, crypto_wallet, property, asset, '
+            + 'case, todo, file, wireless_network, tool. Default: all.'),
+          intParam('limit', 'Results per type, 1-50 (default 8)'),
+        ],
       }),
     },
     '/search/advanced': {

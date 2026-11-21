@@ -5,56 +5,122 @@ const { requireAuth } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiters');
 const { applyProjectScope } = require('../utils/projectAccess');
 const { connectionsSql, incomingConnectionsSql, isAdmin } = require('../utils/personConnectionsSql');
+const { buildSearch, snippet } = require('../utils/searchQuery');
+const { visibilityCondition, sessionUser } = require('../utils/toolAccess');
 
 
 router.use(apiLimiter);
-// Universal search
+// ── GET / — search everything (search-and-command-palette plan) ─────────────
+// Reads search_index (kept current by triggers, see migration
+// 20261121000002_search_index.js): every word must be in a record, as the
+// start of a word or inside one; phone numbers match however they were
+// written. Results come grouped by type, best first, `limit` per type, each
+// with the number found and a snippet of where it matched.
+//
+// `people` and `tools` keep the shape this endpoint had before, for existing
+// API and MCP clients.
+const SEARCH_TYPES = ['person', 'business', 'crypto_wallet', 'property', 'asset', 'case', 'todo', 'file', 'wireless_network'];
+
+const listParam = (v) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(',') : [])
+  .map((x) => String(x).trim()).filter(Boolean);
+
 router.get('/', requireAuth, async (req, res) => {
-  const { q } = req.query;
-  if (typeof q !== 'string' || q.length < 2) {
-    return res.json({ people: [], tools: [] });
-  }
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const search = q.length >= 2 ? buildSearch(q) : null;
+  const empty = { query: q, groups: [], people: [], tools: [] };
+  if (!search) return res.json(empty);
+
+  const requested = listParam(req.query.types);
+  const types = requested.length ? SEARCH_TYPES.filter((t) => requested.includes(t)) : SEARCH_TYPES;
+  const wantTools = !requested.length || requested.includes('tool');
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 8, 1), 50);
 
   try {
-    const searchTerm = `%${q.toLowerCase()}%`;
-    const peopleParams = [searchTerm];
-    const scopeWhere = [];
-    const scopeErr = await applyProjectScope(req, 'people', scopeWhere, peopleParams);
+    const where = [];
+    const params = [];
+    const scopeErr = await applyProjectScope(req, 'si', where, params);
     if (scopeErr) return res.status(403).json({ error: scopeErr });
-    const projectClause = scopeWhere.length ? ` AND ${scopeWhere.join(' AND ')}` : '';
 
-    const peopleQuery = `
-      SELECT id, first_name, last_name, patronymic, category, case_name
-      FROM people
-      WHERE (LOWER(first_name) LIKE $1
-         OR LOWER(last_name) LIKE $1
-         OR LOWER(patronymic) LIKE $1
-         OR LOWER(CONCAT_WS(' ', first_name, NULLIF(patronymic, ''), NULLIF(last_name, ''))) LIKE $1
-         OR EXISTS (SELECT 1 FROM unnest(aliases) AS alias WHERE LOWER(alias) LIKE $1)
-         OR LOWER(case_name) LIKE $1)${projectClause}
-      LIMIT 10
-    `;
+    const p = (value) => { params.push(value); return `$${params.length}`; };
+    where.push(`si.entity_type = ANY(${p(types)}::text[])`);
+    const tsq = p(search.tsquery);
+    const matches = [`(${tsq}::text IS NOT NULL AND si.tsv @@ to_tsquery('simple', ${tsq}::text))`,
+      `si.search_text ILIKE ALL(${p(search.likes)}::text[])`];
+    if (search.phone) matches.push(`si.search_text ~ ${p(search.phone)}`);
+    where.push(`(${matches.join(' OR ')})`);
+    const exact = p(q.toLowerCase());
+    const prefix = p(`${q.replace(/[\\%_]/g, '\\$&')}%`);
+    const anywhere = p(`%${q.replace(/[\\%_]/g, '\\$&')}%`);
 
-    const toolsQuery = `
-      SELECT id, name, category, description
-      FROM tools
-      WHERE LOWER(name) LIKE $1
-         OR LOWER(description) LIKE $1
-         OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE LOWER(tag) LIKE $1)
-      LIMIT 10
-    `;
+    const { rows } = types.length ? await pool.query(`
+      WITH hits AS (
+        SELECT si.entity_type, si.entity_id, si.project_id, si.title, si.subtitle, si.body, si.updated_at,
+          (CASE WHEN ${tsq}::text IS NULL THEN 0 ELSE ts_rank_cd(si.tsv, to_tsquery('simple', ${tsq}::text)) END)
+          + CASE WHEN lower(si.title) = ${exact} THEN 3
+                 WHEN si.title ILIKE ${prefix} THEN 2
+                 WHEN si.title ILIKE ${anywhere} THEN 1 ELSE 0 END AS rank
+        FROM search_index si
+        WHERE ${where.join(' AND ')}
+      ), ranked AS (
+        SELECT h.*,
+          row_number() OVER (PARTITION BY h.entity_type ORDER BY h.rank DESC, h.updated_at DESC, h.entity_id DESC) AS n,
+          count(*) OVER (PARTITION BY h.entity_type)::int AS total
+        FROM hits h
+      )
+      SELECT r.entity_type, r.entity_id, r.project_id, pr.name AS project_name, r.title, r.subtitle,
+             r.body, r.rank, r.total
+      FROM ranked r JOIN projects pr ON pr.id = r.project_id
+      WHERE r.n <= ${p(limit)}
+      ORDER BY r.rank DESC, r.updated_at DESC, r.entity_type, r.entity_id
+    `, params) : { rows: [] };
 
-    const [peopleResult, toolsResult] = await Promise.all([
-      pool.query(peopleQuery, peopleParams),
-      pool.query(toolsQuery, [searchTerm])
-    ]);
+    const groups = [];
+    const byType = new Map();
+    for (const row of rows) {
+      let group = byType.get(row.entity_type);
+      if (!group) {
+        group = { type: row.entity_type, total: row.total, items: [] };
+        byType.set(row.entity_type, group);
+        groups.push(group); // in the order of each type's best result
+      }
+      group.items.push({
+        type: row.entity_type,
+        id: row.entity_id,
+        project_id: row.project_id,
+        project_name: row.project_name,
+        title: row.title,
+        subtitle: row.subtitle,
+        snippet: snippet(row.body, search),
+        rank: Math.round(Number(row.rank) * 1000) / 1000,
+      });
+    }
 
-    res.json({
-      people: peopleResult.rows,
-      tools: toolsResult.rows
-    });
+    // The previous response shape.
+    const personIds = (byType.get('person')?.items || []).map((i) => i.id);
+    const people = personIds.length ? (await pool.query(
+      `SELECT id, first_name, last_name, patronymic, category, case_name FROM people WHERE id = ANY($1::int[])`,
+      [personIds])).rows.sort((a, b) => personIds.indexOf(a.id) - personIds.indexOf(b.id)) : [];
+
+    // Tools aren't per project; only the ones this user may use (they were
+    // all listed before, including other users' private tools).
+    let tools = [];
+    if (wantTools) {
+      const toolParams = [`%${q.toLowerCase().replace(/[\\%_]/g, '\\$&')}%`];
+      const visible = visibilityCondition(sessionUser(req), {}, toolParams);
+      tools = (await pool.query(`
+        SELECT t.id, t.name, t.category, t.description
+        FROM tools t
+        WHERE ${visible}
+          AND (LOWER(t.name) LIKE $1 OR LOWER(t.description) LIKE $1
+               OR EXISTS (SELECT 1 FROM unnest(t.tags) AS tag WHERE LOWER(tag) LIKE $1))
+        ORDER BY t.name, t.id
+        LIMIT ${limit}
+      `, toolParams)).rows;
+    }
+
+    res.json({ query: q, groups, people, tools });
   } catch (err) {
-    console.error('Error in universal search:', err);
+    console.error('Error in search:', err);
     res.status(500).json({ error: 'Search failed' });
   }
 });

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔎 Search everything (Ctrl/⌘+K)
+
+- **One box for the whole project.** Press Ctrl/⌘+K anywhere, or use the
+  search box at the top of the menu (on phones, the search button in the top
+  bar). It finds people (names, aliases, notes, OSINT entries, addresses,
+  custom fields), businesses (including employees), crypto wallets,
+  properties, assets, cases, to-dos, files (name, description, photo
+  metadata) and wireless networks. Every word must appear, as the start of a
+  word or inside one, in any language; phone numbers match however they were
+  written. Results come grouped by type, best first, with the part that
+  matched highlighted.
+- **Also a command palette.** Jump to any section, create a person,
+  business, wallet, property, asset or transaction, open Advanced Search or
+  the scratchpad, or switch project. Recently opened records are at the top.
+  Keyboard first: ↑/↓, Enter, Esc. "All projects" searches every project you
+  belong to.
+- **Kept current by the database.** A search index updated by triggers, so
+  imports, MCP and bulk edits are always findable. The bundled database gets
+  the `pg_trgm` extension for fast partial-word matches; an external database
+  that doesn't allow it still searches, a little slower.
+- `GET /api/search` now covers every type and returns `groups` (per type,
+  with totals and snippets), and takes `types` and `limit`. The `people` and
+  `tools` keys are unchanged for existing clients; `tools` now lists only the
+  tools you may use (it listed other users' private tools by name).
+
+### 📷 Photo metadata
+
+- Uploaded photos (JPEG, HEIC, PNG, TIFF, WebP) are read for where, when and
+  on what device they were taken: GPS position, altitude and direction, the
+  time with the camera's time zone, camera, lens, software, serial numbers,
+  author, copyright, title and keywords (EXIF, XMP and IPTC).
+- The file preview shows them beside the photo, also for HEIC photos the
+  browser can't display. **Add to <person>'s locations** puts the spot on the
+  person; **Show on the map** opens the map there. Serial numbers are marked
+  as identifying one device, and are searchable.
+- Files: a **With a location** filter and a badge. Map: a **Photo locations**
+  layer.
+- Photos uploaded before this release are read once in the background after
+  the upgrade. Reading never blocks or fails an upload: it runs separately
+  with a time limit.
+- `GET /api/files` returns `metadata` and takes `has_location=true`.
+
+### 🐛 Fixed
+
+- Opening a record or a section from search closes the detail dialog that
+  was open, instead of leaving it on top.
+
 ## [3.3.0] - 2026-11-18
 
 ### ⚠️ Before you upgrade

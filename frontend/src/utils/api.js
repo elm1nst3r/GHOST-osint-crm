@@ -81,6 +81,8 @@ export const peopleAPI = {
 
   // Appends OSINT data entries server-side (issue #96); duplicates are skipped.
   addOsint: (id, entries) => fetchAPI(`/people/${id}/osint`, { method: 'POST', body: JSON.stringify({ entries }) }),
+  // Appends one location (e.g. a photo's GPS position) without rewriting the person.
+  addLocation: (id, location) => fetchAPI(`/people/${id}/locations`, { method: 'POST', body: JSON.stringify(location) }),
   // People whose name, patronymic or alias contains the text, in a project.
   search: (text, projectId, limit = 10) => fetchAPI(`/search/advanced?${new URLSearchParams([
     ['searchText', text], ['searchIn[]', 'name'], ['searchIn[]', 'aliases'], ['limit', String(limit)],
@@ -584,6 +586,7 @@ export const osintRecordsAPI = {
 
 export const filesAPI = {
   getAll: (params = {}) => fetchAPI(`/files${buildQuery(params)}`),
+  getById: (id) => fetchAPI(`/files/${id}`),
   update: (id, data) => fetchAPI(`/files/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   remove: (id) => fetchAPI(`/files/${id}`, { method: 'DELETE' }),
 
@@ -710,4 +713,10 @@ export const scratchpadAPI = {
     method: 'PUT',
     body: JSON.stringify(settings),
   }),
+};
+
+// Search everything in the user's projects (search-and-command-palette plan).
+// params: { q, project_id?, types?: 'person,business', limit? }
+export const searchAPI = {
+  search: (params = {}) => fetchAPI(`/search${buildQuery(params)}`),
 };

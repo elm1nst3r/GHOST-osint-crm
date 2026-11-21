@@ -29,6 +29,7 @@ const {
 } = require('../utils/projectAccess');
 const storage = require('../services/fileStorage');
 const { fixMultipartFilename, sanitizeFilename } = require('../utils/fileNames');
+const { extractMetadata } = require('../services/fileMetadata');
 
 router.use(apiLimiter);
 
@@ -36,6 +37,7 @@ router.use(apiLimiter);
 const FILE_SELECT = `
   SELECT f.id, f.project_id, f.person_id, f.original_name, f.mime_type, f.size_bytes,
          f.sha256, f.description, f.uploaded_by, f.created_at, f.updated_at,
+         f.metadata, f.metadata_read_at,
          u.username AS uploaded_by_username,
          p.first_name AS person_first_name, p.patronymic AS person_patronymic,
          p.last_name AS person_last_name
@@ -83,6 +85,8 @@ router.get('/', requireAuth, async (req, res) => {
       params.push(parseInt(req.query.uploaded_by, 10));
       where.push(`f.uploaded_by = $${params.length}`);
     }
+    // Photos whose metadata holds a GPS position (file-metadata plan).
+    if (req.query.has_location === 'true') where.push(`f.metadata ? 'gps'`);
     if (req.query.q) {
       params.push(`%${req.query.q}%`);
       where.push(`(f.original_name ILIKE $${params.length} OR f.description ILIKE $${params.length})`);
@@ -162,11 +166,15 @@ router.post('/', requireAuth, receiveUpload, discardTmpOnError, validate(FileUpl
     const mimeType = (req.file.mimetype || 'application/octet-stream').slice(0, 255);
 
     stored = await storage.storeUpload(req.file.path);
+    // Photo metadata (file-metadata plan). Never fails the upload: at worst
+    // a few seconds and no metadata (services/fileMetadata.js).
+    const metadata = await extractMetadata(storage.storedPath(stored.storedName), { mimeType, name: originalName });
     const { rows } = await pool.query(
-      `INSERT INTO files (project_id, person_id, original_name, stored_name, mime_type, size_bytes, sha256, description, uploaded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+      `INSERT INTO files (project_id, person_id, original_name, stored_name, mime_type, size_bytes, sha256, description, uploaded_by,
+                          metadata, metadata_read_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING id`,
       [projectId, person_id || null, originalName, stored.storedName, mimeType, stored.size,
-       stored.sha256, description || null, req.session.userId || null]
+       stored.sha256, description || null, req.session.userId || null, metadata ? JSON.stringify(metadata) : null]
     );
     const id = rows[0].id;
 
