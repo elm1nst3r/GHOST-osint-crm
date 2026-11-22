@@ -490,19 +490,19 @@
     },
     "importExport": {
       "dataExport": "Data Export",
-      "exportDescription": "Export all your data (people, tools, todos, custom fields, and settings) to a JSON file for backup or migration.",
+      "exportDescription": "Export people, businesses, crypto wallets, the links between them, cases, assets, properties, transactions, wireless networks, saved records, to-dos and settings to a JSON file, for one project or the whole instance. Import it here or on another GHOST.",
       "exporting": "Exporting...",
-      "exportAllData": "Export All Data",
+      "exportAllData": "Export all projects",
       "exportSuccess": "Export completed successfully!",
       "errorExportData": "Failed to export data: {{message}}",
       "dataImport": "Data Import",
-      "importDescription": "Import data from a previously exported JSON file. This will merge the data with existing records.",
+      "importDescription": "Import a file exported from GHOST. Everything in it is added to the active project as new records, with the links between them.",
       "importing": "Importing...",
       "importData": "Import Data",
       "importSuccess": "Import completed successfully! Reloading page...",
       "importantNotes": "Important Notes:",
-      "noteMerge": "Import will merge data with existing records",
-      "noteMatchingIds": "Records with matching IDs will be updated",
+      "noteMerge": "Records are added to the active project; nothing that's already there is changed",
+      "noteMatchingIds": "Links to records that aren't in the file (e.g. in another project) are skipped and listed",
       "noteBackup": "Always backup your data before importing",
       "errorInvalidFileFormat": "Invalid import file format",
       "errorReadFile": "Failed to read import file: {{message}}",
@@ -516,7 +516,14 @@
       "notAvailable": "N/A",
       "recordsToImport": "Records to Import",
       "confirmMergeWarning": "This will merge the imported data with your existing records. Make sure you have a backup before proceeding.",
-      "confirmImport": "Confirm Import"
+      "confirmImport": "Confirm Import",
+      "exportProject": "Export {{name}}",
+      "exportNotIncluded": "Not in the file: users and project members, the contents of uploaded files, scratchpad notes and API keys. For a full backup, back up the database and the files volume.",
+      "partialTitle_one": "Imported, but {{count}} record was skipped.",
+      "partialTitle_other": "Imported, but {{count}} records were skipped.",
+      "partialImported": "Added: {{list}}.",
+      "partialShow": "Show what was skipped and why",
+      "reloadNow": "Reload to see the imported records"
     },
     "geocoding": {
       "title": "Geocoding",
@@ -2319,6 +2326,18 @@
       "file": "Files",
       "wireless_network": "Wireless networks"
     }
+  },
+  "sessionWait": {
+    "limitedTitle": "Too many requests",
+    "limitedText": "This connection asked GHOST for a lot in the last minute, so the server is pausing it for a moment. You're still signed in.",
+    "unreachableTitle": "Can't reach the server",
+    "unreachableText": "GHOST's server isn't answering. It may be restarting, for example during an update. You're still signed in.",
+    "retryIn_one": "Trying again in {{count}} second",
+    "retryIn_other": "Trying again in {{count}} seconds",
+    "retrying": "Trying again…",
+    "retryNow": "Try again now",
+    "inAppLimited_one": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} second.",
+    "inAppLimited_other": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} seconds."
   },
   "tools": {
     "sectionIntegrated": "Integrated tools",
