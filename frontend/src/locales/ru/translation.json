@@ -490,19 +490,19 @@
     },
     "importExport": {
       "dataExport": "Экспорт данных",
-      "exportDescription": "Экспортировать все ваши данные (личности, инструменты, задачи, созданные поля и настройки) в файл JSON для резервного копирования или миграции.",
+      "exportDescription": "Export people, businesses, crypto wallets, the links between them, cases, assets, properties, transactions, wireless networks, saved records, to-dos and settings to a JSON file, for one project or the whole instance. Import it here or on another GHOST.",
       "exporting": "Экспортирование...",
-      "exportAllData": "Экспортировать все данные",
+      "exportAllData": "Export all projects",
       "exportSuccess": "Экспорт завершен успешно!",
       "errorExportData": "Не удалось экспортировать данные: {{message}}",
       "dataImport": "Импорт данных",
-      "importDescription": "Импорт данных из ранее экспортированного файла JSON. Это объединит данные с существующими записями.",
+      "importDescription": "Import a file exported from GHOST. Everything in it is added to the active project as new records, with the links between them.",
       "importing": "Импортирование...",
       "importData": "Импорт данных",
       "importSuccess": "Импорт успешно завершён! Перезагрузка страницы...",
       "importantNotes": "Важные заметки:",
-      "noteMerge": "Импорт объединит данные с существующими записями",
-      "noteMatchingIds": "Записи с соответствующими ID будут обновлены",
+      "noteMerge": "Records are added to the active project; nothing that's already there is changed",
+      "noteMatchingIds": "Links to records that aren't in the file (e.g. in another project) are skipped and listed",
       "noteBackup": "Всегда делать backup ваших данных перед импортированием",
       "errorInvalidFileFormat": "Неверный формат файла импорта",
       "errorReadFile": "Не удалось прочитать файл импорта: {{message}}",
@@ -516,7 +516,14 @@
       "notAvailable": "Н/Д",
       "recordsToImport": "Записи для импорта",
       "confirmMergeWarning": "Это объединит импортированные данные с существующими записями. Перед продолжением убедитесь, что у вас есть резервная копия.",
-      "confirmImport": "Подтвердить импорт"
+      "confirmImport": "Подтвердить импорт",
+      "exportProject": "Export {{name}}",
+      "exportNotIncluded": "Not in the file: users and project members, the contents of uploaded files, scratchpad notes and API keys. For a full backup, back up the database and the files volume.",
+      "partialTitle_one": "Imported, but {{count}} record was skipped.",
+      "partialTitle_other": "Imported, but {{count}} records were skipped.",
+      "partialImported": "Added: {{list}}.",
+      "partialShow": "Show what was skipped and why",
+      "reloadNow": "Reload to see the imported records"
     },
     "geocoding": {
       "title": "Геокодирование",
@@ -2319,6 +2326,18 @@
       "file": "Files",
       "wireless_network": "Wireless networks"
     }
+  },
+  "sessionWait": {
+    "limitedTitle": "Too many requests",
+    "limitedText": "This connection asked GHOST for a lot in the last minute, so the server is pausing it for a moment. You're still signed in.",
+    "unreachableTitle": "Can't reach the server",
+    "unreachableText": "GHOST's server isn't answering. It may be restarting, for example during an update. You're still signed in.",
+    "retryIn_one": "Trying again in {{count}} second",
+    "retryIn_other": "Trying again in {{count}} seconds",
+    "retrying": "Trying again…",
+    "retryNow": "Try again now",
+    "inAppLimited_one": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} second.",
+    "inAppLimited_other": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} seconds."
   },
   "tools": {
     "sectionIntegrated": "Интегрированные инструменты",
