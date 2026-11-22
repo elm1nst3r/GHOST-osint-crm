@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useEffectEvent } from 'react';
 import { authAPI } from '../utils/authAPI';
 import { SESSION_ENDED_EVENT } from '../utils/api';
+import { sessionRetry } from '../utils/sessionRetry';
 
 const AuthContext = createContext(null);
 
@@ -9,17 +10,22 @@ let leaving = false;
 
 // The session check answers { authenticated: false } when nobody is signed
 // in, so a failed request (a 429 from the rate limiter, the server
-// restarting, a network drop) only means "couldn't tell". Ask again instead
-// of showing the sign-in screen to someone who is signed in; give up after
-// a few tries. Waits the server's Retry-After, else 1, 2, 4, 8 seconds.
-const SESSION_TRIES = 5;
-async function fetchSession() {
+// restarting, a network drop) only means "couldn't tell". Ask again, for as
+// long as it takes, instead of showing the sign-in screen to someone who is
+// signed in (utils/sessionRetry.js has the timing). onWait reports why and
+// until when, for the waiting screen; `skip` (Try again now) cuts a wait short.
+const wake = { skip: null };
+async function fetchSession(onWait) {
   for (let attempt = 1; ; attempt++) {
     const result = await authAPI.getSession().then((session) => ({ session }), (error) => ({ error }));
-    if (!result.error) return result.session;
-    if (attempt >= SESSION_TRIES) return null;
-    const seconds = result.error.retryAfter ?? 2 ** (attempt - 1);
-    await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 15) * 1000));
+    if (!result.error) { onWait(null); return result.session; }
+    const { reason, seconds } = sessionRetry(result.error, attempt);
+    onWait({ reason, until: Date.now() + seconds * 1000 });
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, seconds * 1000);
+      wake.skip = () => { clearTimeout(timer); resolve(); };
+    });
+    wake.skip = null;
   }
 }
 
@@ -32,6 +38,9 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [mfaSetupRequired, setMfaSetupRequired] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  // While the session check waits: { reason: 'rate_limited' | 'unreachable', until }.
+  const [sessionWait, setSessionWait] = useState(null);
+  const retrySessionNow = useCallback(() => wake.skip?.(), []);
 
   const signedIn = useCallback((user, setupRequired) => {
     setCurrentUser(user);
@@ -49,7 +58,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const session = await fetchSession();
+    const session = await fetchSession(setSessionWait);
     if (session?.authenticated) signedIn(session.user, session.mfa_setup_required);
     else signedOut();
     setAuthLoading(false);
@@ -105,6 +114,8 @@ export const AuthProvider = ({ children }) => {
       currentUser,
       updateCurrentUser,
       authLoading,
+      sessionWait,
+      retrySessionNow,
       mfaSetupRequired,
       handleLogin,
       completeLogin,

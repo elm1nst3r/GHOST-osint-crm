@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Feedback](https://img.shields.io/badge/feedback-highly%20welcome-4A90D9?style=flat-square)
 ![Feature Requests](https://img.shields.io/badge/feature%20requests-welcome-4A90D9?style=flat-square)
-![Version](https://img.shields.io/badge/version-3.4.0-informational?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.4.1-informational?style=flat-square)
 ![Stack](https://img.shields.io/badge/stack-Node.js%20%7C%20React%20%7C%20PostgreSQL-555?style=flat-square)
 ![License](https://img.shields.io/badge/license-BSL%201.1%20(source--available)-E08A4A?style=flat-square)
 
@@ -285,7 +285,10 @@ Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in Docker volumes and is not touched.
 
 **Backups:** uploaded files (since 2.20.0) live in the `files_data` volume,
-not in the database. Back up both.
+not in the database. Back up both. The JSON export (Settings → Import /
+Export, one project or all) is for moving investigations between projects or
+instances: it carries the records and the links between them, but not users,
+project members or the files' contents.
 
 **Coming from 2.17.0–2.18.x with your own PostgreSQL server?** Those
 versions skipped the bundled database when `COMPOSE_PROFILES` was cleared;
@@ -297,7 +300,7 @@ instead (see [Quick Start](#-quick-start-docker)). A leftover
 **Pin a specific version** by setting `GHOST_VERSION` in `.env`:
 
 ```bash
-GHOST_VERSION=3.4.0
+GHOST_VERSION=3.4.1
 ```
 
 Without it, the containers track the latest release.
@@ -706,6 +709,10 @@ Feedback, inputs, and suggestions are highly welcome! Please open an issue or re
 
 ## 📋 Recent Changes
 
+### Version 3.4.1 (November 2026)
+- 🐛 **The export keeps every link** — relationships, crypto wallets and wallet transactions are in the file; export one project or all; one bad record no longer stops an import
+- 🐛 **No sign-in screen during a rate limit or server restart** — the app says why it's waiting and carries on by itself
+
 ### Version 3.4.0 (November 2026)
 - 🔎 **Search everything (Ctrl/⌘+K)** — one box for people, businesses, wallets, properties, assets, cases, to-dos, files and wireless networks, notes and OSINT entries included; also jumps to sections and runs actions
 - 📷 **Photo metadata** — where, when and on what device a photo was taken; add the spot to the person, see photo locations on the map
@@ -789,5 +796,5 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 Built with ❤️ for the OSINT community.
 
-**Version:** 3.4.0
+**Version:** 3.4.1
 **Last Updated:** November 22, 2026

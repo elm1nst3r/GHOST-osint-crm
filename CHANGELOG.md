@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-11-22
+
+### 🐛 Fixed
+
+- **The export now keeps every link.** Relationships and crypto wallets were
+  missing from the JSON export, so moving an investigation lost its wallets,
+  the links between businesses, people and wallets, and person-to-person
+  links made since 2.15. Export 1.5 carries the relationships table, crypto
+  wallets and wallet transactions, and the import rebuilds them onto the new
+  records. Files from older versions now get their business owner, employee
+  and ownership links on import too.
+- **Export one project.** Settings → Import / Export exports the active
+  project or all of them (`GET /api/export?project_id=`). The screen says
+  what isn't in the file: users, project members, uploaded files' contents,
+  scratchpad notes and API keys.
+- **One bad record no longer sinks an import.** In PostgreSQL a failed
+  statement aborts the whole transaction, so a single bad record made the
+  import fail with a server error and nothing was imported. Each record is
+  now skipped on its own, and the screen lists what was skipped and why
+  instead of reloading out of sight. The import note that "records with
+  matching IDs will be updated" was wrong (everything is added as new) and
+  is corrected.
+- **A rate limit or a restarting server no longer looks like being signed
+  out.** The session check gave up after about a minute and showed the
+  sign-in screen. It now waits as long as the server asks, says why ("Too
+  many requests" or "Can't reach the server", with a countdown and "Try
+  again now"), and carries on by itself. While working, a rate limit shows
+  one notice with when things work again.
+
 ## [3.4.0] - 2026-11-22
 
 ### 🔎 Search everything (Ctrl/⌘+K)

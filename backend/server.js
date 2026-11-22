@@ -360,36 +360,61 @@ app.post('/api/upload/logo', requireAdmin, logoUpload.single('appLogo'), (req, r
 
 
 // Export/Import endpoints
+//
+// Export 1.5: everything the import can bring back, for the whole instance or
+// (?project_id=) one project. Relationships and crypto wallets were missing
+// before 1.5, so links between people, businesses and wallets were lost (the
+// people.connections column the file still carries stopped being written in
+// #83). Not in the file, by design: users and project memberships (they
+// belong to the instance), uploaded files' contents (back up the files_data
+// volume), scratchpad notes (private), API keys. For a full backup use
+// pg_dump plus the files_data volume.
 app.get('/api/export', requireAdmin, async (req, res) => {
   try {
-    // "Export All Data" has to mean all of it — assets, transactions,
-    // properties and wireless networks were silently absent, which made the
-    // file unusable for backup or migration (issue #74).
+    const projectId = req.query.project_id != null ? parseInt(req.query.project_id, 10) : null;
+    if (req.query.project_id != null && !(projectId > 0)) return res.status(400).json({ error: 'project_id must be a project id' });
+    if (projectId && !(await pool.query('SELECT 1 FROM projects WHERE id = $1', [projectId])).rows.length) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    const scoped = (table) => (projectId
+      ? pool.query(`SELECT * FROM ${table} WHERE project_id = $1 ORDER BY id`, [projectId])
+      : pool.query(`SELECT * FROM ${table} ORDER BY id`));
     const [
-      people, tools, todos, customFields, modelOptions, cases, travelHistory,
-      businesses, properties, assets, transactions, wirelessNetworks, osintRecords,
+      people, todos, customFields, modelOptions, cases, travelHistory, businesses, properties,
+      assets, transactions, wirelessNetworks, osintRecords, cryptoWallets, relationships, projects, tools,
     ] = await Promise.all([
-      pool.query('SELECT * FROM people'),
-      pool.query('SELECT * FROM tools'),
-      pool.query('SELECT * FROM todos'),
-      pool.query('SELECT * FROM custom_person_fields'),
-      pool.query('SELECT * FROM model_options'),
-      pool.query('SELECT * FROM cases'),
-      pool.query('SELECT * FROM travel_history'),
-      pool.query('SELECT * FROM businesses'),
-      pool.query('SELECT * FROM properties'),
-      pool.query('SELECT * FROM assets'),
-      pool.query('SELECT * FROM transactions'),
-      pool.query('SELECT * FROM wireless_networks'),
-      pool.query('SELECT * FROM osint_records ORDER BY id'),
+      scoped('people'),
+      scoped('todos'),
+      pool.query('SELECT * FROM custom_person_fields ORDER BY id'),
+      pool.query('SELECT * FROM model_options ORDER BY id'),
+      scoped('cases'),
+      scoped('travel_history'),
+      scoped('businesses'),
+      scoped('properties'),
+      scoped('assets'),
+      scoped('transactions'),
+      scoped('wireless_networks'),
+      projectId
+        ? pool.query('SELECT r.* FROM osint_records r JOIN people p ON p.id = r.person_id WHERE p.project_id = $1 ORDER BY r.id', [projectId])
+        : pool.query('SELECT * FROM osint_records ORDER BY id'),
+      scoped('crypto_wallets'),
+      scoped('relationships'),
+      pool.query(`SELECT id, name, description, status, allow_cross_linking, icon, created_at FROM projects
+                  ${projectId ? 'WHERE id = $1' : ''} ORDER BY id`, projectId ? [projectId] : []),
+      // Tools belong to the instance, not to a project: whole-instance exports only.
+      projectId ? { rows: [] } : pool.query('SELECT * FROM tools ORDER BY id'),
     ]);
 
     const exportData = {
-      version: '1.4',
+      version: '1.5',
       exportDate: new Date().toISOString(),
+      scope: projectId ? 'project' : 'all',
       data: {
+        projects: projects.rows,
         people: people.rows,
         businesses: businesses.rows,
+        cryptoWallets: cryptoWallets.rows,
+        relationships: relationships.rows,
         properties: properties.rows,
         assets: assets.rows,
         transactions: transactions.rows,
@@ -400,12 +425,13 @@ app.get('/api/export', requireAdmin, async (req, res) => {
         customFields: customFields.rows,
         modelOptions: modelOptions.rows,
         cases: cases.rows,
-        travelHistory: travelHistory.rows
-      }
+        travelHistory: travelHistory.rows,
+      },
     };
-    
+
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="osint-crm-export-${Date.now()}.json"`);
+    res.setHeader('Content-Disposition',
+      `attachment; filename="osint-crm-export-${projectId ? `project-${projectId}-` : ''}${Date.now()}.json"`);
     res.json(exportData);
   } catch (err) {
     console.error('Error exporting data:', err);
@@ -431,7 +457,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'project_id is required (pass ?project_id=<id> — choose the project this import should land in)' });
   }
 
-  const { syncPersonConnections } = require('./routes/relationships');
+  const { syncPersonConnections, syncBusinessRelationships, syncBusinessOwnership } = require('./routes/relationships');
 
   const client = await pool.connect();
   
@@ -451,16 +477,30 @@ app.post('/api/import', requireAdmin, async (req, res) => {
   
   const importErrors = [];
 
+  // Each record behind a savepoint: in PostgreSQL one failed statement aborts
+  // the whole transaction, so without it every record after a bad one failed
+  // too and COMMIT quietly rolled everything back, while the answer said
+  // "imported with some errors".
   const tryInsert = async (label, fn) => {
+    await client.query('SAVEPOINT import_record');
     try {
-      await fn();
+      const value = await fn();
+      await client.query('RELEASE SAVEPOINT import_record');
+      return value;
     } catch (err) {
+      await client.query('ROLLBACK TO SAVEPOINT import_record');
       console.warn('Import warning:', label, err.message);
       importErrors.push({ record: label, error: err.message });
       // In strict mode, re-throw so the transaction rolls back
       if (strictMode) throw err;
+      return undefined;
     }
   };
+  // Export 1.5 carries the relationships table itself; older files only
+  // people.connections and the business owner/employee fields.
+  const fileRelationships = Array.isArray(importData.data.relationships) ? importData.data.relationships : null;
+  const imported = {};
+  const count = (key) => { imported[key] = (imported[key] || 0) + 1; };
 
   try {
     await client.query('BEGIN');
@@ -552,7 +592,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
         const locationsJSON = person.locations ? toJSONString(person.locations) : '[]';
         const customFieldsJSON = person.custom_fields ? toJSONString(person.custom_fields) : '{}';
 
-        try {
+        await tryInsert(`person:${person.first_name} ${person.last_name}`, async () => {
           // case_id is what groups people under a case (issue #83); case_name
           // alone left imported people outside every case.
           const personCase = await caseFor(caseNameOf(person));
@@ -571,10 +611,8 @@ app.post('/api/import', requireAdmin, async (req, res) => {
           if (person.id && result.rows[0]) {
             personIdMapping[person.id] = result.rows[0].id;
           }
-        } catch (err) {
-          console.warn('Import warning: person', person.first_name, person.last_name, err.message);
-          importErrors.push({ record: `person:${person.first_name} ${person.last_name}`, error: err.message });
-        }
+          count('people');
+        });
       }
     }
 
@@ -618,6 +656,18 @@ app.post('/api/import', requireAdmin, async (req, res) => {
       }
     }
 
+    // Cases of this project only (see importedCases above).
+    const caseIdByName = {};
+    for (const [fileName, c] of Object.entries(importedCases)) if (c) caseIdByName[fileName] = c.id;
+    {
+      const rows = await client.query('SELECT id, case_name FROM cases WHERE project_id = $1', [importProjectId]);
+      rows.rows.forEach(r => { if (!(r.case_name in caseIdByName)) caseIdByName[r.case_name] = r.id; });
+    }
+    const remapCase = (row) => {
+      const name = caseNameOf(row);
+      return name && caseIdByName[name] ? caseIdByName[name] : null;
+    };
+
     // Import businesses after people so owner_person_id can be remapped
     const businessIdMapping = {};
     if (importData.data.businesses) {
@@ -631,22 +681,30 @@ app.post('/api/import', requireAdmin, async (req, res) => {
           ? (personIdMapping[business.owner_person_id] || null)
           : null;
 
-        const result = await client.query(
-          `INSERT INTO businesses (name, type, industry, address, city, state, country, postal_code,
-                                   latitude, longitude, phone, email, website, owner_person_id,
-                                   registration_number, registration_date, status, employees, notes, project_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19, $20)
-           RETURNING id`,
-          [business.name, business.type, business.industry, business.address, business.city,
-           business.state, business.country, business.postal_code, business.latitude, business.longitude,
-           business.phone, business.email, business.website, remappedOwnerId,
-           business.registration_number, business.registration_date, business.status,
-           employeesJSON, business.notes, importProjectId]
-        );
-
-        if (business.id && result.rows[0]) {
-          businessIdMapping[business.id] = result.rows[0].id;
-        }
+        await tryInsert(`business:${business.name}`, async () => {
+          const result = await client.query(
+            `INSERT INTO businesses (name, type, industry, address, city, state, country, postal_code,
+                                     latitude, longitude, phone, email, website, owner_person_id,
+                                     registration_number, registration_date, status, employees, notes, case_id, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19, $20, $21)
+             RETURNING id`,
+            [business.name, business.type, business.industry, business.address, business.city,
+             business.state, business.country, business.postal_code, business.latitude, business.longitude,
+             business.phone, business.email, business.website, remappedOwnerId,
+             business.registration_number, business.registration_date, business.status,
+             employeesJSON, business.notes, remapCase(business), importProjectId]
+          );
+          const newId = result.rows[0].id;
+          if (business.id) businessIdMapping[business.id] = newId;
+          count('businesses');
+          // Older files have no relationships table: rebuild the owner and
+          // employee links from the business's own fields (they were never
+          // created on import before).
+          if (!fileRelationships) {
+            await syncBusinessRelationships(newId, importProjectId, remapCase(business),
+              { ownerPersonId: remappedOwnerId, employees }, client);
+          }
+        });
       }
     }
 
@@ -654,18 +712,6 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     // Imported after people and businesses so their owner/party references can
     // be remapped onto the newly-inserted ids. Cases are matched by name, since
     // case_id is not stable across installs.
-    // Cases of this project only (see importedCases above).
-    const caseIdByName = {};
-    for (const [fileName, c] of Object.entries(importedCases)) if (c) caseIdByName[fileName] = c.id;
-    {
-      const rows = await client.query('SELECT id, case_name FROM cases WHERE project_id = $1', [importProjectId]);
-      rows.rows.forEach(r => { if (!(r.case_name in caseIdByName)) caseIdByName[r.case_name] = r.id; });
-    }
-    const remapCase = (row) => {
-      const name = caseNameOf(row);
-      return name && caseIdByName[name] ? caseIdByName[name] : null;
-    };
-
     const propertyIdMapping = {};
     if (importData.data.properties) {
       for (const prop of importData.data.properties) {
@@ -706,6 +752,21 @@ app.post('/api/import', requireAdmin, async (req, res) => {
       }
     }
 
+    // Crypto wallets (issue #82; in the file since 1.5).
+    const walletIdMapping = {};
+    for (const wallet of importData.data.cryptoWallets || []) {
+      await tryInsert(`cryptoWallet:${wallet.label || wallet.address}`, async () => {
+        const { rows } = await client.query(
+          `INSERT INTO crypto_wallets (address, network, label, tags, external_reference_url, notes, status, case_id, project_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          [wallet.address, wallet.network, wallet.label, wallet.tags || [], wallet.external_reference_url,
+           wallet.notes, wallet.status || 'active', remapCase(wallet), importProjectId]
+        );
+        if (wallet.id != null) walletIdMapping[wallet.id] = rows[0].id;
+        count('cryptoWallets');
+      });
+    }
+
     if (importData.data.transactions) {
       for (const tx of importData.data.transactions) {
         await tryInsert(`transaction:${tx.item_label || tx.transaction_type}`, () => client.query(
@@ -714,9 +775,10 @@ app.post('/api/import', requireAdmin, async (req, res) => {
                                      from_business_id, from_external, to_person_id, to_business_id,
                                      to_external, value, currency, occurred_on, location_business_id,
                                      location_property_id, location_name, address, city, state,
-                                     country, postal_code, latitude, longitude, case_id, notes, tags, project_id)
+                                     country, postal_code, latitude, longitude, case_id, notes, tags, project_id,
+                                     from_wallet_id, to_wallet_id, tx_hash)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-                   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`,
+                   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)`,
           [tx.transaction_type, tx.item_label, tx.item_category,
            tx.subject_asset_id ? (assetIdMapping[tx.subject_asset_id] || null) : null,
            tx.subject_business_id ? (businessIdMapping[tx.subject_business_id] || null) : null,
@@ -730,8 +792,11 @@ app.post('/api/import', requireAdmin, async (req, res) => {
            tx.location_business_id ? (businessIdMapping[tx.location_business_id] || null) : null,
            tx.location_property_id ? (propertyIdMapping[tx.location_property_id] || null) : null,
            tx.location_name, tx.address, tx.city, tx.state, tx.country, tx.postal_code,
-           tx.latitude, tx.longitude, remapCase(tx), tx.notes, tx.tags || [], importProjectId]
-        ));
+           tx.latitude, tx.longitude, remapCase(tx), tx.notes, tx.tags || [], importProjectId,
+           tx.from_wallet_id ? (walletIdMapping[tx.from_wallet_id] || null) : null,
+           tx.to_wallet_id ? (walletIdMapping[tx.to_wallet_id] || null) : null,
+           tx.tx_hash || null]
+        ).then(() => count('transactions')));
       }
     }
 
@@ -803,10 +868,34 @@ app.post('/api/import', requireAdmin, async (req, res) => {
         const newId = businessIdMapping[business.id];
         const newOwnerId = business.owner_business_id ? businessIdMapping[business.owner_business_id] : null;
         if (newId && newOwnerId) {
-          await tryInsert(`businessOwner:${business.name}`, () => client.query(
-            'UPDATE businesses SET owner_business_id = $1 WHERE id = $2', [newOwnerId, newId]
-          ));
+          await tryInsert(`businessOwner:${business.name}`, async () => {
+            await client.query('UPDATE businesses SET owner_business_id = $1 WHERE id = $2', [newOwnerId, newId]);
+            if (!fileRelationships) await syncBusinessOwnership(newId, importProjectId, null, null, newOwnerId, client);
+          });
         }
+      }
+    }
+
+    // The relationships table (export 1.5): every link between people,
+    // businesses and wallets, onto the new ids. A link whose other end isn't
+    // in the file (a record in another project) can't be rebuilt.
+    if (fileRelationships) {
+      const { remapRelationship, relationshipKey } = require('./utils/importRemap');
+      const maps = { person: personIdMapping, business: businessIdMapping, crypto_wallet: walletIdMapping };
+      const seen = new Set();
+      for (const rel of fileRelationships) {
+        const r = remapRelationship(rel, maps);
+        const label = `relationship:${rel?.source_type}${rel?.source_id}-${rel?.relationship_type}-${rel?.target_type}${rel?.target_id}`;
+        if (!r.ok) { importErrors.push({ record: label, error: r.reason }); continue; }
+        const key = relationshipKey(r, rel.relationship_type, rel.note);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        await tryInsert(label, () => client.query(
+          `INSERT INTO relationships (project_id, case_id, source_type, source_id, target_type, target_id, relationship_type, note)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [importProjectId, remapCase(rel), r.source_type, r.source_id, r.target_type, r.target_id,
+           rel.relationship_type, rel.note ?? null]
+        ).then(() => count('relationships')));
       }
     }
 
@@ -818,7 +907,7 @@ app.post('/api/import', requireAdmin, async (req, res) => {
     // ignored on every subsequent read). Done after COMMIT: syncPersonConnections
     // writes through the shared pool, not this transaction's client, so it
     // needs the imported people to actually exist first.
-    if (importData.data.people) {
+    if (importData.data.people && !fileRelationships) {
       for (const person of importData.data.people) {
         if (person.connections && person.connections.length > 0) {
           const newPersonId = personIdMapping[person.id];
@@ -845,10 +934,11 @@ app.post('/api/import', requireAdmin, async (req, res) => {
       return res.status(207).json({
         partial: true,
         message: 'Data imported with some errors',
+        imported,
         errors: importErrors
       });
     }
-    res.json({ partial: false, message: 'Data imported successfully' });
+    res.json({ partial: false, message: 'Data imported successfully', imported });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error importing data:', err);

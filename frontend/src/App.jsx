@@ -24,6 +24,8 @@ import ProjectGate from './components/ProjectGate';
 import SystemHealth from './components/SystemHealth';
 import ErrorBoundary from './components/ErrorBoundary';
 import Scratchpad from './components/scratchpad/Scratchpad';
+import SessionWait from './components/SessionWait';
+import RateLimitNotice from './components/RateLimitNotice';
 import Login from './components/Login';
 import TwoFactorSetupGate from './components/TwoFactorSetupGate';
 
@@ -156,7 +158,7 @@ const SECTIONS = {
 
 const AppShell = () => {
   const { t, i18n } = useTranslation();
-  const { authenticated, currentUser, authLoading, mfaSetupRequired, handleLogin, handleLogout } = useAuth();
+  const { authenticated, currentUser, authLoading, sessionWait, retrySessionNow, mfaSetupRequired, handleLogin, handleLogout } = useAuth();
   const { refreshAll, appSettings, fetchBusinesses, fetchTools } = useData();
   const { refetchProjects, activeProjectId } = useProject();
   const {
@@ -370,6 +372,7 @@ const AppShell = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [mobileNavOpen]);
 
+  if (authLoading && sessionWait) return <SessionWait wait={sessionWait} onRetry={retrySessionNow} />;
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-dvh bg-slate-50 dark:bg-slate-900">
@@ -662,6 +665,7 @@ const AppShell = () => {
       {/* Private floating notepad. Rendered after the modals and above them
           (z-60) so text can be copied out of an open record into it. */}
       <Scratchpad />
+      <RateLimitNotice />
     </div>
     </ProjectGate>
   );

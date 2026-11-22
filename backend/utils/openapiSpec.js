@@ -1288,18 +1288,24 @@ const spec = {
       get: op('System', 'Export investigation data as one JSON file', {
         admin: true, mcp: false,
         description:
-          'Spans all projects. Covers people, businesses, properties, assets, transactions, wireless ' +
-          'networks, tools, todos, cases, travel history, custom fields and model options. Not included: ' +
-          'crypto wallets, relationship rows, projects and their members, users and audit logs — use a ' +
-          'database backup for a complete copy. The file is the input format for POST /import.',
+          'Format 1.5. The whole instance, or one project with project_id. Covers people, businesses, crypto ' +
+          'wallets, relationships (every link between people, businesses and wallets), properties, assets, ' +
+          'transactions (with wallet links), wireless networks, saved records, todos, cases, travel history, ' +
+          'custom fields, model options, the projects\' names and settings, and (whole instance only) tools. ' +
+          'Not included: users and project memberships, uploaded files\' contents, scratchpad notes, API keys ' +
+          'and audit logs; use a database backup plus the files volume for a complete copy. ' +
+          'The file is the input format for POST /import.',
+        params: [queryParam('project_id', 'Export only this project', { type: 'integer' })],
       }),
     },
     '/import': {
       post: op('System', 'Import a file produced by GET /export', {
         admin: true, mcp: false,
         description:
-          'Records are created in the project named by project_id, with ids remapped. ' +
-          'By default the import is best-effort and reports per-record failures.',
+          'Records are created in the project named by project_id, with ids and the links between them ' +
+          'remapped. A link whose other end is not in the file is reported and skipped. By default the import ' +
+          'is best-effort: a failed record is skipped and reported (HTTP 207 with `errors`), the rest is kept. ' +
+          '`imported` counts what was created.',
         params: [
           { ...queryParam('project_id', 'Project the imported records land in', { type: 'integer' }), required: true },
           queryParam('strict', 'Set to 1 to roll the whole import back if any record fails', { type: 'string', enum: ['1'] }),
