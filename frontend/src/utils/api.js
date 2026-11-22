@@ -1,4 +1,6 @@
 // File: frontend/src/utils/api.js
+import { retryAfterSeconds } from './sessionRetry';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -8,6 +10,8 @@ const DEFAULT_TIMEOUT_MS = 30000;
 // the identity provider, issue #105). AuthContext takes it from there.
 // /auth/ endpoints are left out: there 401 also means "wrong password".
 export const SESSION_ENDED_EVENT = 'ghost:session-ended';
+// The server said "too many requests" (429); detail: { retryAfter } in seconds.
+export const RATE_LIMITED_EVENT = 'ghost:rate-limited';
 
 // Generic fetch wrapper with error handling and timeout
 const fetchAPI = async (endpoint, options = {}) => {
@@ -30,6 +34,11 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     if (response.status === 401 && !endpoint.startsWith('/auth/')) {
       window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
+    }
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent(RATE_LIMITED_EVENT, {
+        detail: { retryAfter: retryAfterSeconds(response.headers.get('Retry-After')) },
+      }));
     }
 
     if (!response.ok) {
@@ -321,9 +330,10 @@ export const modelOptionsAPI = {
 
 // Export/Import API - Fixed export function
 export const exportAPI = {
-  export: async () => {
+  // projectId: export only that project; omitted: the whole instance.
+  export: async (projectId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/export`, {
+      const response = await fetch(`${API_BASE_URL}/export${buildQuery({ project_id: projectId })}`, {
         credentials: 'include',
       });
 
@@ -341,7 +351,7 @@ export const exportAPI = {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `osint-crm-export-${new Date().getTime()}.json`;
+      a.download = `osint-crm-export-${projectId ? `project-${projectId}-` : ''}${new Date().getTime()}.json`;
       document.body.appendChild(a);
       a.click();
       
@@ -358,9 +368,11 @@ export const exportAPI = {
 };
 
 export const importAPI = {
+  // → { partial, message, imported: { people: n, … }, errors?: [{ record, error }] }
   import: (data, projectId) => fetchAPI(`/import${buildQuery({ project_id: projectId })}`, {
     method: 'POST',
     body: JSON.stringify(data),
+    timeout: 300000, // a big project takes a while
   }),
 };
 

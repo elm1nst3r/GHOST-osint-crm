@@ -285,7 +285,10 @@ Database migrations run automatically at startup, so there's no separate
 schema step. Your data lives in Docker volumes and is not touched.
 
 **Backups:** uploaded files (since 2.20.0) live in the `files_data` volume,
-not in the database. Back up both.
+not in the database. Back up both. The JSON export (Settings → Import /
+Export, one project or all) is for moving investigations between projects or
+instances: it carries the records and the links between them, but not users,
+project members or the files' contents.
 
 **Coming from 2.17.0–2.18.x with your own PostgreSQL server?** Those
 versions skipped the bundled database when `COMPOSE_PROFILES` was cleared;

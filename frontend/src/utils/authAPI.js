@@ -49,8 +49,11 @@ export const authAPI = {
 
   // Get current session
   getSession: async () => {
+    // A stopped backend can leave the request hanging at the proxy for a
+    // minute; give up after 8 s and let the caller say "can't reach the server".
     const response = await fetch(`${API_BASE_URL}/auth/session`, {
-      credentials: 'include'
+      credentials: 'include',
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {

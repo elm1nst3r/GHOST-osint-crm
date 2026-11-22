@@ -1,26 +1,28 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Upload, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Download, Upload, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { exportAPI, importAPI } from '../../utils/api';
 import { useProject } from '../../contexts/ProjectContext';
 import { formatDateTime } from '../../utils/format';
 
 const ImportExportTab = () => {
   const { t } = useTranslation();
-  const { activeProjectId } = useProject();
+  const { activeProjectId, activeProject } = useProject();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  // What the last import did: { imported, errors } (errors = records skipped).
+  const [importResult, setImportResult] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [showImportPreview, setShowImportPreview] = useState(false);
   const importInputRef = useRef(null);
 
-  const handleExport = async () => {
+  const handleExport = async (projectId) => {
     try {
       setIsExporting(true);
       setExportSuccess(false);
-      await exportAPI.export();
+      await exportAPI.export(projectId);
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
@@ -66,10 +68,16 @@ const ImportExportTab = () => {
     try {
       setIsImporting(true);
       setImportSuccess(false);
+      setImportResult(null);
       setShowImportPreview(false);
-      await importAPI.import(importPreview.rawData, activeProjectId);
-      setImportSuccess(true);
+      const result = await importAPI.import(importPreview.rawData, activeProjectId);
       setImportPreview(null);
+      // Records were skipped: show which instead of reloading them out of sight.
+      if (result?.partial) {
+        setImportResult({ imported: result.imported || {}, errors: result.errors || [] });
+        return;
+      }
+      setImportSuccess(true);
       setTimeout(() => window.location.reload(), 2000);
     } catch (error) {
       console.error('Error importing data:', error);
@@ -87,9 +95,17 @@ const ImportExportTab = () => {
         <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
           {t('settings.importExport.exportDescription')}
         </p>
-        <button onClick={handleExport} disabled={isExporting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-          {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white me-2"></div>{t('settings.importExport.exporting')}</> : <><Download className="w-4 h-4 me-2" />{t('settings.importExport.exportAllData')}</>}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {activeProject && (
+            <button onClick={() => handleExport(activeProjectId)} disabled={isExporting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+              <Download className="w-4 h-4 me-2" />{t('settings.importExport.exportProject', { name: activeProject.name })}
+            </button>
+          )}
+          <button onClick={() => handleExport()} disabled={isExporting} className={`px-4 py-2 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed ${activeProject ? 'border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+            {isExporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current me-2"></div>{t('settings.importExport.exporting')}</> : <><Download className="w-4 h-4 me-2" />{t('settings.importExport.exportAllData')}</>}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">{t('settings.importExport.exportNotIncluded')}</p>
         {exportSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 me-1" />{t('settings.importExport.exportSuccess')}</div>}
       </div>
 
@@ -104,6 +120,31 @@ const ImportExportTab = () => {
           {isImporting ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white me-2"></div>{t('settings.importExport.importing')}</> : <><Upload className="w-4 h-4 me-2" />{t('settings.importExport.importData')}</>}
         </button>
         {importSuccess && <div className="mt-2 flex items-center text-green-600 text-sm"><CheckCircle className="w-4 h-4 me-1" />{t('settings.importExport.importSuccess')}</div>}
+        {importResult && (
+          <div role="status" className="mt-3 p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 space-y-2">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+              {t('settings.importExport.partialTitle', { count: importResult.errors.length })}
+            </p>
+            {Object.keys(importResult.imported).length > 0 && (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {t('settings.importExport.partialImported', {
+                  list: Object.entries(importResult.imported).map(([k, n]) => `${n} ${k.replace(/([A-Z])/g, ' $1').toLowerCase()}`).join(', '),
+                })}
+              </p>
+            )}
+            <details className="text-xs text-amber-800 dark:text-amber-200">
+              <summary className="cursor-pointer select-none">{t('settings.importExport.partialShow')}</summary>
+              <ul className="mt-2 space-y-1 max-h-60 overflow-y-auto font-mono">
+                {importResult.errors.slice(0, 200).map((e, i) => (
+                  <li key={i}><bdi>{e.record}</bdi>: {e.error}</li>
+                ))}
+              </ul>
+            </details>
+            <button type="button" onClick={() => window.location.reload()} className="inline-flex items-center gap-x-1.5 px-3 py-1.5 text-sm rounded-md bg-amber-600 text-white hover:bg-amber-700">
+              <RefreshCw className="w-4 h-4" />{t('settings.importExport.reloadNow')}
+            </button>
+          </div>
+        )}
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <div className="flex items-start">
             <AlertTriangle className="w-5 h-5 text-amber-600 me-2 shrink-0 mt-0.5" />
