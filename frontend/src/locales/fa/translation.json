@@ -490,19 +490,19 @@
     },
     "importExport": {
       "dataExport": "خروجی داده",
-      "exportDescription": "تمام داده‌های خود (افراد، ابزارها، وظایف، فیلدهای سفارشی و تنظیمات) را برای پشتیبان‌گیری یا انتقال به یک فایل JSON صادر کنید.",
+      "exportDescription": "Export people, businesses, crypto wallets, the links between them, cases, assets, properties, transactions, wireless networks, saved records, to-dos and settings to a JSON file, for one project or the whole instance. Import it here or on another GHOST.",
       "exporting": "در حال صادر کردن...",
-      "exportAllData": "صادر کردن همه داده‌ها",
+      "exportAllData": "Export all projects",
       "exportSuccess": "صادر با موفقیت انجام شد!",
       "errorExportData": "خطا در صادر کردن داده‌ها: {{message}}",
       "dataImport": "وارد کردن داده",
-      "importDescription": "داده‌ها را از یک فایل JSON قبلی صادر شده وارد کنید. این کار داده‌ها را با سوابق موجود ادغام می‌کند.",
+      "importDescription": "Import a file exported from GHOST. Everything in it is added to the active project as new records, with the links between them.",
       "importing": "در حال وارد کردن...",
       "importData": "وارد کردن داده",
       "importSuccess": "وارد کردن با موفقیت انجام شد! صفحه در حال بارگذاری مجدد است...",
       "importantNotes": "نکات مهم:",
-      "noteMerge": "وارد کردن داده‌ها با سوابق موجود ادغام می‌شود",
-      "noteMatchingIds": "سوابق با شناسه مطابقت‌یافته به‌روزرسانی خواهند شد",
+      "noteMerge": "Records are added to the active project; nothing that's already there is changed",
+      "noteMatchingIds": "Links to records that aren't in the file (e.g. in another project) are skipped and listed",
       "noteBackup": "همیشه قبل از وارد کردن، داده‌های خود را پشتیبان بگیرید",
       "errorInvalidFileFormat": "فرمت فایل وارد شده نامعتبر",
       "errorReadFile": "خواندن فایل وارد شده ناموفق بود: {{message}}",
@@ -516,7 +516,14 @@
       "notAvailable": "ندارد",
       "recordsToImport": "سوابق برای وارد کردن",
       "confirmMergeWarning": "این داده‌ها با سوابق موجود شما ادغام می‌شوند. قبل از ادامه، مطمئن شوید که یک نسخه پشتیبان تهیه کرده‌اید.",
-      "confirmImport": "تأیید وارد کردن"
+      "confirmImport": "تأیید وارد کردن",
+      "exportProject": "Export {{name}}",
+      "exportNotIncluded": "Not in the file: users and project members, the contents of uploaded files, scratchpad notes and API keys. For a full backup, back up the database and the files volume.",
+      "partialTitle_one": "Imported, but {{count}} record was skipped.",
+      "partialTitle_other": "Imported, but {{count}} records were skipped.",
+      "partialImported": "Added: {{list}}.",
+      "partialShow": "Show what was skipped and why",
+      "reloadNow": "Reload to see the imported records"
     },
     "geocoding": {
       "title": "کدگذاری جغرافیایی",
@@ -2319,6 +2326,18 @@
       "file": "Files",
       "wireless_network": "Wireless networks"
     }
+  },
+  "sessionWait": {
+    "limitedTitle": "Too many requests",
+    "limitedText": "This connection asked GHOST for a lot in the last minute, so the server is pausing it for a moment. You're still signed in.",
+    "unreachableTitle": "Can't reach the server",
+    "unreachableText": "GHOST's server isn't answering. It may be restarting, for example during an update. You're still signed in.",
+    "retryIn_one": "Trying again in {{count}} second",
+    "retryIn_other": "Trying again in {{count}} seconds",
+    "retrying": "Trying again…",
+    "retryNow": "Try again now",
+    "inAppLimited_one": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} second.",
+    "inAppLimited_other": "Too many requests in the last minute. Anything that didn't load will work again in {{count}} seconds."
   },
   "tools": {
     "sectionIntegrated": "ابزارهای یکپارچه",
